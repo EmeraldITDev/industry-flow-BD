@@ -11,59 +11,59 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Light mint-gray background */
-    --background: 160 20% 97%;
-    --foreground: 220 30% 20%;
+    /* Soft gray backgrounds with slight blue undertone */
+    --background: 210 15% 97%;
+    --foreground: 196 73% 16%;
 
     --card: 0 0% 100%;
-    --card-foreground: 220 30% 20%;
+    --card-foreground: 196 73% 16%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 30% 20%;
+    --popover-foreground: 196 73% 16%;
 
-    /* Emerald Green Primary */
-    --primary: 160 60% 45%;
+    /* Deep Blue #135471 */
+    --primary: 196 73% 26%;
     --primary-foreground: 0 0% 100%;
 
-    /* Teal Secondary */
-    --secondary: 160 30% 92%;
-    --secondary-foreground: 160 60% 35%;
+    /* Turquoise #3aaeaa */
+    --secondary: 178 50% 45%;
+    --secondary-foreground: 0 0% 100%;
 
     /* Soft grays for subtle UI elements */
-    --muted: 160 10% 92%;
-    --muted-foreground: 220 15% 45%;
+    --muted: 210 10% 92%;
+    --muted-foreground: 210 15% 45%;
 
-    --accent: 160 30% 92%;
-    --accent-foreground: 160 60% 35%;
+    --accent: 178 50% 45%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 72% 50%;
     --destructive-foreground: 0 85% 97%;
 
     /* Light gray borders */
-    --border: 160 10% 88%;
-    --input: 160 10% 88%;
-    --ring: 160 60% 45%;
+    --border: 210 12% 88%;
+    --input: 210 12% 88%;
+    --ring: 196 73% 26%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
 
-    /* Sidebar with emerald */
-    --sidebar-background: 160 60% 40%;
+    /* Sidebar with deep blue */
+    --sidebar-background: 196 73% 26%;
     --sidebar-foreground: 0 0% 100%;
-    --sidebar-primary: 160 70% 50%;
+    --sidebar-primary: 178 50% 45%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 160 50% 35%;
+    --sidebar-accent: 196 60% 32%;
     --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 160 50% 32%;
-    --sidebar-ring: 160 70% 50%;
+    --sidebar-border: 196 60% 22%;
+    --sidebar-ring: 178 50% 45%;
 
-    /* Chart colors with emerald palette */
-    --chart-1: 160 60% 45%;
-    --chart-2: 160 45% 55%;
-    --chart-3: 180 40% 50%;
-    --chart-4: 200 40% 55%;
-    --chart-5: 220 30% 50%;
+    /* Chart colors combining deep blue, turquoise, and grays */
+    --chart-1: 196 73% 26%;
+    --chart-2: 178 50% 45%;
+    --chart-3: 210 15% 55%;
+    --chart-4: 178 40% 55%;
+    --chart-5: 210 10% 65%;
 
-    --sidebar: 160 60% 40%;
+    --sidebar: 196 73% 26%;
 
     --font-sans: 'Work Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
     --font-serif: 'Lora', ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
@@ -83,59 +83,55 @@ All colors MUST be HSL.
   }
 
   .dark {
-    --background: 160 20% 8%;
+    --background: 196 30% 10%;
     --foreground: 0 0% 98%;
 
-    --card: 160 20% 12%;
+    --card: 196 30% 14%;
     --card-foreground: 0 0% 98%;
 
-    --popover: 160 20% 14%;
+    --popover: 196 30% 18%;
     --popover-foreground: 0 0% 98%;
 
-    --primary: 160 60% 50%;
+    --primary: 178 50% 45%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 160 30% 18%;
-    --secondary-foreground: 160 50% 70%;
+    --secondary: 196 73% 26%;
+    --secondary-foreground: 0 0% 98%;
 
-    --muted: 160 15% 20%;
-    --muted-foreground: 160 10% 65%;
+    --muted: 196 20% 25%;
+    --muted-foreground: 196 15% 70%;
 
-    --accent: 160 30% 20%;
-    --accent-foreground: 160 50% 70%;
+    --accent: 178 50% 35%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 85% 97%;
 
-    --border: 160 15% 22%;
-    --input: 160 15% 22%;
-    --ring: 160 60% 50%;
-
-    --sidebar-background: 160 50% 15%;
+    --border: 196 20% 25%;
+    --input: 196 20% 25%;
+    --ring: 178 50% 45%;
+    --sidebar-background: 196 73% 20%;
     --sidebar-foreground: 0 0% 98%;
-    --sidebar-primary: 160 60% 50%;
+    --sidebar-primary: 178 50% 45%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 160 40% 22%;
+    --sidebar-accent: 196 50% 28%;
     --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 160 40% 12%;
-    --sidebar-ring: 160 60% 50%;
-
-    --chart-1: 160 55% 55%;
-    --chart-2: 160 45% 45%;
-    --chart-3: 180 40% 50%;
-    --chart-4: 200 35% 50%;
-    --chart-5: 160 25% 40%;
-
-    --sidebar: 160 50% 15%;
-
-    --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.1);
-    --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.1);
-    --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.15), 0 1px 2px -1px hsl(0 0% 0% / 0.15);
-    --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.15), 0 1px 2px -1px hsl(0 0% 0% / 0.15);
-    --shadow-md: 0 1px 3px 0px hsl(0 0% 0% / 0.15), 0 2px 4px -1px hsl(0 0% 0% / 0.15);
-    --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.15), 0 4px 6px -1px hsl(0 0% 0% / 0.15);
-    --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.15), 0 8px 10px -1px hsl(0 0% 0% / 0.15);
-    --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.35);
+    --sidebar-border: 196 50% 16%;
+    --sidebar-ring: 178 50% 45%;
+    --chart-1: 178 50% 55%;
+    --chart-2: 196 60% 45%;
+    --chart-3: 178 40% 50%;
+    --chart-4: 196 40% 55%;
+    --chart-5: 196 30% 45%;
+    --sidebar: 196 73% 20%;
+    --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
+    --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
+    --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
+    --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
+    --shadow-md: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 2px 4px -1px hsl(0 0% 0% / 0.1);
+    --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 4px 6px -1px hsl(0 0% 0% / 0.1);
+    --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 8px 10px -1px hsl(0 0% 0% / 0.1);
+    --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
   }
 }
 
