@@ -1,0 +1,146 @@
+@import url("https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inconsolata:wght@400;700&display=swap");
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    /* Soft gray backgrounds with slight blue undertone */
+    --background: 210 15% 97%;
+    --foreground: 196 73% 16%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 196 73% 16%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 196 73% 16%;
+
+    /* Deep Blue #135471 */
+    --primary: 196 73% 26%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Turquoise #3aaeaa */
+    --secondary: 178 50% 45%;
+    --secondary-foreground: 0 0% 100%;
+
+    /* Soft grays for subtle UI elements */
+    --muted: 210 10% 92%;
+    --muted-foreground: 210 15% 45%;
+
+    --accent: 178 50% 45%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 72% 50%;
+    --destructive-foreground: 0 85% 97%;
+
+    /* Light gray borders */
+    --border: 210 12% 88%;
+    --input: 210 12% 88%;
+    --ring: 196 73% 26%;
+
+    --radius: 0.75rem;
+
+    /* Sidebar with deep blue */
+    --sidebar-background: 196 73% 26%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 178 50% 45%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 196 60% 32%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 196 60% 22%;
+    --sidebar-ring: 178 50% 45%;
+
+    /* Chart colors combining deep blue, turquoise, and grays */
+    --chart-1: 196 73% 26%;
+    --chart-2: 178 50% 45%;
+    --chart-3: 210 15% 55%;
+    --chart-4: 178 40% 55%;
+    --chart-5: 210 10% 65%;
+
+    --sidebar: 196 73% 26%;
+
+    --font-sans: 'Work Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+    --font-serif: 'Lora', ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
+    --font-mono: 'Inconsolata', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+
+    --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
+    --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
+    --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
+    --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
+    --shadow-md: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 2px 4px -1px hsl(0 0% 0% / 0.1);
+    --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 4px 6px -1px hsl(0 0% 0% / 0.1);
+    --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 8px 10px -1px hsl(0 0% 0% / 0.1);
+    --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
+
+    --tracking-normal: 0em;
+    --spacing: 0.25rem;
+  }
+
+  .dark {
+    --background: 196 30% 10%;
+    --foreground: 0 0% 98%;
+
+    --card: 196 30% 14%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 196 30% 18%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 178 50% 45%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 196 73% 26%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 196 20% 25%;
+    --muted-foreground: 196 15% 70%;
+
+    --accent: 178 50% 35%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 85% 97%;
+
+    --border: 196 20% 25%;
+    --input: 196 20% 25%;
+    --ring: 178 50% 45%;
+    --sidebar-background: 196 73% 20%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 178 50% 45%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 196 50% 28%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 196 50% 16%;
+    --sidebar-ring: 178 50% 45%;
+    --chart-1: 178 50% 55%;
+    --chart-2: 196 60% 45%;
+    --chart-3: 178 40% 50%;
+    --chart-4: 196 40% 55%;
+    --chart-5: 196 30% 45%;
+    --sidebar: 196 73% 20%;
+    --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
+    --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
+    --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
+    --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
+    --shadow-md: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 2px 4px -1px hsl(0 0% 0% / 0.1);
+    --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 4px 6px -1px hsl(0 0% 0% / 0.1);
+    --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 8px 10px -1px hsl(0 0% 0% / 0.1);
+    --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
