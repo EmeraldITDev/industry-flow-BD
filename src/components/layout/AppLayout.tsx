@@ -5,6 +5,7 @@ import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { NotificationCenter } from '@/components/notifications/NotificationCenter';
+import { ThemeToggle } from '@/components/theme/ThemeToggle';
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -28,6 +29,7 @@ export function AppLayout({ children }: AppLayoutProps) {
               </div>
             </div>
             <div className="flex items-center gap-3">
+              <ThemeToggle />
               <NotificationCenter />
               <Avatar className="w-9 h-9">
                 <AvatarImage src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face" />
