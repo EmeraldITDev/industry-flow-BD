@@ -17,14 +17,14 @@ export function AppLayout({ children }: AppLayoutProps) {
       <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
         <div className="flex-1 flex flex-col">
-          <header className="h-16 border-b border-border bg-card flex items-center justify-between px-4 lg:px-6">
-            <div className="flex items-center gap-4">
+          <header className="h-14 sm:h-16 border-b border-border bg-card flex items-center justify-between px-3 sm:px-4 lg:px-6">
+            <div className="flex items-center gap-2 sm:gap-4">
               <SidebarTrigger className="lg:hidden" />
-              <div className="relative hidden md:block">
+              <div className="relative hidden sm:block">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input 
                   placeholder="Search projects, tasks..." 
-                  className="pl-10 w-64 lg:w-80 bg-background"
+                  className="pl-10 w-48 md:w-64 lg:w-80 bg-background text-sm"
                 />
               </div>
             </div>

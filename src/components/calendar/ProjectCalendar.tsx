@@ -52,44 +52,46 @@ export function ProjectCalendar() {
 
   return (
     <Card className="border-border/50">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-lg font-semibold">
-          <CalendarDays className="h-5 w-5 text-primary" />
+      <CardHeader className="pb-2 sm:pb-3 p-4 sm:p-6">
+        <CardTitle className="flex items-center gap-2 text-base sm:text-lg font-semibold">
+          <CalendarDays className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
           Project Due Dates
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <Calendar
-          mode="single"
-          selected={selectedDate}
-          onSelect={setSelectedDate}
-          className="rounded-md border border-border/50 pointer-events-auto"
-          modifiers={{
-            hasProject: datesWithProjects,
-          }}
-          modifiersStyles={{
-            hasProject: {
-              backgroundColor: 'hsl(var(--primary) / 0.15)',
-              borderRadius: '50%',
-              fontWeight: 'bold',
-            },
-          }}
-        />
+      <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6 pt-0 sm:pt-0">
+        <div className="flex justify-center">
+          <Calendar
+            mode="single"
+            selected={selectedDate}
+            onSelect={setSelectedDate}
+            className="rounded-md border border-border/50 pointer-events-auto w-full max-w-[280px]"
+            modifiers={{
+              hasProject: datesWithProjects,
+            }}
+            modifiersStyles={{
+              hasProject: {
+                backgroundColor: 'hsl(var(--primary) / 0.15)',
+                borderRadius: '50%',
+                fontWeight: 'bold',
+              },
+            }}
+          />
+        </div>
 
         {selectedDate && (
           <div className="space-y-2">
-            <h4 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Clock className="h-4 w-4" />
-              {format(selectedDate, 'MMMM d, yyyy')}
+            <h4 className="text-xs sm:text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
+              {format(selectedDate, 'MMM d, yyyy')}
             </h4>
             {projectsOnSelectedDate.length > 0 ? (
               <div className="space-y-2">
                 {projectsOnSelectedDate.map((project) => (
                   <div
                     key={project.projectId}
-                    className="p-3 rounded-lg bg-muted/50 border border-border/50 hover:bg-muted transition-colors"
+                    className="p-2 sm:p-3 rounded-lg bg-muted/50 border border-border/50 hover:bg-muted transition-colors"
                   >
-                    <p className="font-medium text-sm">{project.projectName}</p>
+                    <p className="font-medium text-xs sm:text-sm truncate">{project.projectName}</p>
                     <Badge
                       variant="outline"
                       className={cn('mt-1 text-xs', getSectorColor(project.sector))}
@@ -100,15 +102,15 @@ export function ProjectCalendar() {
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground/70">No projects due on this date</p>
+              <p className="text-xs sm:text-sm text-muted-foreground/70">No projects due on this date</p>
             )}
           </div>
         )}
 
         {/* Upcoming due dates summary */}
-        <div className="pt-3 border-t border-border/50">
-          <h4 className="text-sm font-medium mb-2">Upcoming Due Dates</h4>
-          <div className="space-y-1.5 max-h-32 overflow-y-auto">
+        <div className="pt-2 sm:pt-3 border-t border-border/50">
+          <h4 className="text-xs sm:text-sm font-medium mb-2">Upcoming Due Dates</h4>
+          <div className="space-y-1 sm:space-y-1.5 max-h-24 sm:max-h-32 overflow-y-auto">
             {projectDueDates
               .filter((p) => p.dueDate >= new Date())
               .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime())
@@ -116,7 +118,7 @@ export function ProjectCalendar() {
               .map((project) => (
                 <div
                   key={project.projectId}
-                  className="flex items-center justify-between text-sm py-1"
+                  className="flex items-center justify-between text-xs sm:text-sm py-0.5 sm:py-1"
                 >
                   <span className="truncate flex-1 mr-2">{project.projectName}</span>
                   <span className="text-muted-foreground text-xs whitespace-nowrap">

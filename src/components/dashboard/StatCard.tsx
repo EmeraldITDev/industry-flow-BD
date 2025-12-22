@@ -16,22 +16,23 @@ interface StatCardProps {
 export function StatCard({ title, value, icon: Icon, trend, className }: StatCardProps) {
   return (
     <Card className={cn("relative overflow-hidden", className)}>
-      <CardContent className="p-6">
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="text-sm font-medium text-muted-foreground">{title}</p>
-            <p className="text-3xl font-bold mt-2">{value}</p>
+      <CardContent className="p-3 sm:p-4 lg:p-6">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate">{title}</p>
+            <p className="text-xl sm:text-2xl lg:text-3xl font-bold mt-1 sm:mt-2">{value}</p>
             {trend && (
               <p className={cn(
-                "text-sm mt-2 font-medium",
+                "text-xs sm:text-sm mt-1 sm:mt-2 font-medium",
                 trend.isPositive ? "text-chart-1" : "text-destructive"
               )}>
-                {trend.isPositive ? '↑' : '↓'} {Math.abs(trend.value)}% from last month
+                {trend.isPositive ? '↑' : '↓'} {Math.abs(trend.value)}%
+                <span className="hidden sm:inline"> from last month</span>
               </p>
             )}
           </div>
-          <div className="p-3 rounded-lg bg-primary/10">
-            <Icon className="w-6 h-6 text-primary" />
+          <div className="p-2 sm:p-3 rounded-lg bg-primary/10 shrink-0">
+            <Icon className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-primary" />
           </div>
         </div>
       </CardContent>
