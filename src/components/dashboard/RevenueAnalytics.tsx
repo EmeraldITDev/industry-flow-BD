@@ -149,31 +149,31 @@ export const RevenueAnalytics = () => {
         </div>
 
         {/* Total Revenue Display */}
-        <div className="mt-4 p-4 rounded-lg bg-primary/10 border border-primary/20">
-          <p className="text-sm text-muted-foreground">Total Revenue ({filterLabels[filter]})</p>
-          <p className="text-2xl font-bold text-primary">{formatCurrency(totalRevenue)}</p>
-          <p className="text-sm text-muted-foreground">{filteredProjects.length} projects</p>
+        <div className="mt-4 p-3 sm:p-4 rounded-lg bg-primary/10 border border-primary/20">
+          <p className="text-xs sm:text-sm text-muted-foreground">Total Revenue ({filterLabels[filter]})</p>
+          <p className="text-xl sm:text-2xl font-bold text-primary">{formatCurrency(totalRevenue)}</p>
+          <p className="text-xs sm:text-sm text-muted-foreground">{filteredProjects.length} projects</p>
         </div>
       </CardHeader>
 
       <CardContent>
         <Tabs defaultValue="project" className="w-full">
-          <TabsList className="grid grid-cols-4 mb-4">
-            <TabsTrigger value="project" className="flex items-center gap-1 text-xs">
-              <DollarSign className="h-3 w-3" />
-              <span className="hidden sm:inline">By Project</span>
+          <TabsList className="grid grid-cols-4 mb-4 h-auto p-1">
+            <TabsTrigger value="project" className="flex items-center justify-center gap-1 text-xs py-2 px-1 sm:px-3">
+              <DollarSign className="h-3 w-3 shrink-0" />
+              <span className="hidden sm:inline truncate">By Project</span>
             </TabsTrigger>
-            <TabsTrigger value="team" className="flex items-center gap-1 text-xs">
-              <Users className="h-3 w-3" />
-              <span className="hidden sm:inline">By Team</span>
+            <TabsTrigger value="team" className="flex items-center justify-center gap-1 text-xs py-2 px-1 sm:px-3">
+              <Users className="h-3 w-3 shrink-0" />
+              <span className="hidden sm:inline truncate">By Team</span>
             </TabsTrigger>
-            <TabsTrigger value="customer" className="flex items-center gap-1 text-xs">
-              <Building2 className="h-3 w-3" />
-              <span className="hidden sm:inline">By Customer</span>
+            <TabsTrigger value="customer" className="flex items-center justify-center gap-1 text-xs py-2 px-1 sm:px-3">
+              <Building2 className="h-3 w-3 shrink-0" />
+              <span className="hidden sm:inline truncate">By Customer</span>
             </TabsTrigger>
-            <TabsTrigger value="segment" className="flex items-center gap-1 text-xs">
-              <Layers className="h-3 w-3" />
-              <span className="hidden sm:inline">By Segment</span>
+            <TabsTrigger value="segment" className="flex items-center justify-center gap-1 text-xs py-2 px-1 sm:px-3">
+              <Layers className="h-3 w-3 shrink-0" />
+              <span className="hidden sm:inline truncate">By Segment</span>
             </TabsTrigger>
           </TabsList>
 
