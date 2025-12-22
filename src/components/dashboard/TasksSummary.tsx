@@ -53,28 +53,28 @@ export function TasksSummary() {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Tasks Summary</CardTitle>
+      <CardHeader className="p-3 sm:p-6">
+        <CardTitle className="text-base sm:text-lg">Tasks Summary</CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
         <Tabs defaultValue="status" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-4">
-            <TabsTrigger value="status">By Status</TabsTrigger>
-            <TabsTrigger value="member">By Team Member</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 mb-3 sm:mb-4 h-8 sm:h-10">
+            <TabsTrigger value="status" className="text-xs sm:text-sm">By Status</TabsTrigger>
+            <TabsTrigger value="member" className="text-xs sm:text-sm">By Member</TabsTrigger>
           </TabsList>
           
           <TabsContent value="status">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-2 sm:gap-4">
               {statusConfig.map(status => (
                 <div 
                   key={status.key} 
-                  className="p-4 rounded-lg bg-accent/30 border border-border"
+                  className="p-2.5 sm:p-4 rounded-lg bg-accent/30 border border-border"
                 >
-                  <div className="flex items-center gap-2 mb-2">
-                    <status.icon className={`w-5 h-5 ${status.color}`} />
-                    <span className="text-sm font-medium text-muted-foreground">{status.label}</span>
+                  <div className="flex items-center gap-1.5 sm:gap-2 mb-1 sm:mb-2">
+                    <status.icon className={`w-4 h-4 sm:w-5 sm:h-5 ${status.color}`} />
+                    <span className="text-[10px] sm:text-sm font-medium text-muted-foreground">{status.label}</span>
                   </div>
-                  <p className="text-2xl font-bold">
+                  <p className="text-xl sm:text-2xl font-bold">
                     {tasksByStatus[status.key as keyof typeof tasksByStatus].length}
                   </p>
                 </div>
@@ -83,26 +83,26 @@ export function TasksSummary() {
           </TabsContent>
           
           <TabsContent value="member">
-            <div className="space-y-3">
+            <div className="space-y-2 sm:space-y-3">
               {tasksByMember.map(({ member, tasks, todo, inProgress, review, completed }) => (
                 <div 
                   key={member.id} 
-                  className="p-4 rounded-lg bg-accent/30 border border-border"
+                  className="p-2.5 sm:p-4 rounded-lg bg-accent/30 border border-border"
                 >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-                        <User className="w-4 h-4 text-primary" />
+                  <div className="flex items-center justify-between mb-2 sm:mb-3">
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                      <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                        <User className="w-3 h-3 sm:w-4 sm:h-4 text-primary" />
                       </div>
                       <div>
-                        <p className="font-medium">{member.name}</p>
-                        <p className="text-xs text-muted-foreground">{member.department}</p>
+                        <p className="text-sm sm:text-base font-medium">{member.name}</p>
+                        <p className="text-[10px] sm:text-xs text-muted-foreground">{member.department}</p>
                       </div>
                     </div>
-                    <span className="text-lg font-bold">{tasks.length} tasks</span>
+                    <span className="text-sm sm:text-lg font-bold">{tasks.length}</span>
                   </div>
                   
-                  <div className="grid grid-cols-4 gap-2 text-xs mb-3">
+                  <div className="grid grid-cols-4 gap-1 sm:gap-2 text-[10px] sm:text-xs mb-2 sm:mb-3">
                     <div className="text-center p-1 rounded bg-chart-5/10">
                       <p className="text-chart-5 font-medium">{todo}</p>
                       <p className="text-muted-foreground">To Do</p>

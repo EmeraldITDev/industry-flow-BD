@@ -117,31 +117,29 @@ export const RevenueAnalytics = () => {
 
   return (
     <Card className="bg-card border-border">
-      <CardHeader className="pb-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <CardTitle className="text-lg font-semibold text-foreground">Revenue Analytics</CardTitle>
-          <div className="flex items-center gap-2">
-            <Select value={currency} onValueChange={(v) => setCurrency(v as 'NGN' | 'USD')}>
-              <SelectTrigger className="w-24 h-8">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="USD">USD</SelectItem>
-                <SelectItem value="NGN">NGN</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+      <CardHeader className="p-3 sm:p-6 pb-2 sm:pb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
+          <CardTitle className="text-base sm:text-lg font-semibold text-foreground">Revenue Analytics</CardTitle>
+          <Select value={currency} onValueChange={(v) => setCurrency(v as 'NGN' | 'USD')}>
+            <SelectTrigger className="w-20 sm:w-24 h-7 sm:h-8 text-xs sm:text-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="USD">USD</SelectItem>
+              <SelectItem value="NGN">NGN</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         
         {/* Filter Buttons */}
-        <div className="flex flex-wrap gap-2 mt-4">
+        <div className="flex flex-wrap gap-1.5 sm:gap-2 mt-3 sm:mt-4">
           {(Object.keys(filterLabels) as RevenueFilter[]).map((f) => (
             <Button
               key={f}
               variant={filter === f ? 'default' : 'outline'}
               size="sm"
               onClick={() => setFilter(f)}
-              className="h-8"
+              className="h-7 sm:h-8 text-[10px] sm:text-xs px-2 sm:px-3"
             >
               {filterLabels[f]}
             </Button>
@@ -149,92 +147,92 @@ export const RevenueAnalytics = () => {
         </div>
 
         {/* Total Revenue Display */}
-        <div className="mt-4 p-3 sm:p-4 rounded-lg bg-primary/10 border border-primary/20">
-          <p className="text-xs sm:text-sm text-muted-foreground">Total Revenue ({filterLabels[filter]})</p>
-          <p className="text-xl sm:text-2xl font-bold text-primary">{formatCurrency(totalRevenue)}</p>
-          <p className="text-xs sm:text-sm text-muted-foreground">{filteredProjects.length} projects</p>
+        <div className="mt-3 sm:mt-4 p-2.5 sm:p-4 rounded-lg bg-primary/10 border border-primary/20">
+          <p className="text-[10px] sm:text-sm text-muted-foreground">Total Revenue ({filterLabels[filter]})</p>
+          <p className="text-lg sm:text-2xl font-bold text-primary">{formatCurrency(totalRevenue)}</p>
+          <p className="text-[10px] sm:text-sm text-muted-foreground">{filteredProjects.length} projects</p>
         </div>
       </CardHeader>
 
-      <CardContent>
+      <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
         <Tabs defaultValue="project" className="w-full">
-          <TabsList className="grid grid-cols-4 mb-4 h-auto p-1">
-            <TabsTrigger value="project" className="flex items-center justify-center gap-1 text-xs py-2 px-1 sm:px-3">
+          <TabsList className="grid grid-cols-4 mb-3 sm:mb-4 h-auto p-0.5 sm:p-1">
+            <TabsTrigger value="project" className="flex items-center justify-center gap-1 text-[10px] sm:text-xs py-1.5 sm:py-2 px-1 sm:px-3">
               <DollarSign className="h-3 w-3 shrink-0" />
               <span className="hidden sm:inline truncate">By Project</span>
             </TabsTrigger>
-            <TabsTrigger value="team" className="flex items-center justify-center gap-1 text-xs py-2 px-1 sm:px-3">
+            <TabsTrigger value="team" className="flex items-center justify-center gap-1 text-[10px] sm:text-xs py-1.5 sm:py-2 px-1 sm:px-3">
               <Users className="h-3 w-3 shrink-0" />
               <span className="hidden sm:inline truncate">By Team</span>
             </TabsTrigger>
-            <TabsTrigger value="customer" className="flex items-center justify-center gap-1 text-xs py-2 px-1 sm:px-3">
+            <TabsTrigger value="customer" className="flex items-center justify-center gap-1 text-[10px] sm:text-xs py-1.5 sm:py-2 px-1 sm:px-3">
               <Building2 className="h-3 w-3 shrink-0" />
               <span className="hidden sm:inline truncate">By Customer</span>
             </TabsTrigger>
-            <TabsTrigger value="segment" className="flex items-center justify-center gap-1 text-xs py-2 px-1 sm:px-3">
+            <TabsTrigger value="segment" className="flex items-center justify-center gap-1 text-[10px] sm:text-xs py-1.5 sm:py-2 px-1 sm:px-3">
               <Layers className="h-3 w-3 shrink-0" />
               <span className="hidden sm:inline truncate">By Segment</span>
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="project" className="space-y-2 max-h-64 overflow-y-auto">
+          <TabsContent value="project" className="space-y-1.5 sm:space-y-2 max-h-48 sm:max-h-64 overflow-y-auto">
             {revenueByProject.map((item) => (
-              <div key={item.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+              <div key={item.id} className="flex items-center justify-between p-2 sm:p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm text-foreground truncate">{item.name}</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Badge variant="outline" className="text-xs">{item.sector}</Badge>
-                    <span className="text-xs text-muted-foreground">{item.client}</span>
+                  <p className="font-medium text-xs sm:text-sm text-foreground truncate">{item.name}</p>
+                  <div className="flex items-center gap-1.5 sm:gap-2 mt-0.5 sm:mt-1">
+                    <Badge variant="outline" className="text-[10px] sm:text-xs px-1 sm:px-2">{item.sector}</Badge>
+                    <span className="text-[10px] sm:text-xs text-muted-foreground truncate">{item.client}</span>
                   </div>
                 </div>
-                <div className="text-right ml-4">
-                  <p className="font-semibold text-sm text-foreground">{formatCurrency(item.revenue)}</p>
-                  <p className="text-xs text-muted-foreground">Margin: {formatCurrency(item.margin)}</p>
+                <div className="text-right ml-2 sm:ml-4 shrink-0">
+                  <p className="font-semibold text-xs sm:text-sm text-foreground">{formatCurrency(item.revenue)}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">M: {formatCurrency(item.margin)}</p>
                 </div>
               </div>
             ))}
           </TabsContent>
 
-          <TabsContent value="team" className="space-y-2 max-h-64 overflow-y-auto">
+          <TabsContent value="team" className="space-y-1.5 sm:space-y-2 max-h-48 sm:max-h-64 overflow-y-auto">
             {revenueByTeamMember.map((item, index) => (
-              <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
-                <div className="flex-1">
-                  <p className="font-medium text-sm text-foreground">{item.name}</p>
-                  <p className="text-xs text-muted-foreground">{item.projects} project(s)</p>
+              <div key={index} className="flex items-center justify-between p-2 sm:p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-xs sm:text-sm text-foreground truncate">{item.name}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">{item.projects} project(s)</p>
                 </div>
-                <div className="text-right">
-                  <p className="font-semibold text-sm text-foreground">{formatCurrency(item.revenue)}</p>
-                  <p className="text-xs text-muted-foreground">Margin: {formatCurrency(item.margin)}</p>
+                <div className="text-right shrink-0">
+                  <p className="font-semibold text-xs sm:text-sm text-foreground">{formatCurrency(item.revenue)}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">M: {formatCurrency(item.margin)}</p>
                 </div>
               </div>
             ))}
           </TabsContent>
 
-          <TabsContent value="customer" className="space-y-2 max-h-64 overflow-y-auto">
+          <TabsContent value="customer" className="space-y-1.5 sm:space-y-2 max-h-48 sm:max-h-64 overflow-y-auto">
             {revenueByCustomer.map((item, index) => (
-              <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
-                <div className="flex-1">
-                  <p className="font-medium text-sm text-foreground">{item.name}</p>
-                  <p className="text-xs text-muted-foreground">{item.projects} project(s)</p>
+              <div key={index} className="flex items-center justify-between p-2 sm:p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-xs sm:text-sm text-foreground truncate">{item.name}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">{item.projects} project(s)</p>
                 </div>
-                <div className="text-right">
-                  <p className="font-semibold text-sm text-foreground">{formatCurrency(item.revenue)}</p>
-                  <p className="text-xs text-muted-foreground">Margin: {formatCurrency(item.margin)}</p>
+                <div className="text-right shrink-0">
+                  <p className="font-semibold text-xs sm:text-sm text-foreground">{formatCurrency(item.revenue)}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">M: {formatCurrency(item.margin)}</p>
                 </div>
               </div>
             ))}
           </TabsContent>
 
-          <TabsContent value="segment" className="space-y-2 max-h-64 overflow-y-auto">
+          <TabsContent value="segment" className="space-y-1.5 sm:space-y-2 max-h-48 sm:max-h-64 overflow-y-auto">
             {revenueBySegment.map((item, index) => (
-              <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
-                <div className="flex-1">
-                  <p className="font-medium text-sm text-foreground">{item.name}</p>
-                  <p className="text-xs text-muted-foreground">{item.projects} project(s)</p>
+              <div key={index} className="flex items-center justify-between p-2 sm:p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-xs sm:text-sm text-foreground truncate">{item.name}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">{item.projects} project(s)</p>
                 </div>
-                <div className="text-right">
-                  <p className="font-semibold text-sm text-foreground">{formatCurrency(item.revenue)}</p>
-                  <p className="text-xs text-muted-foreground">Margin: {formatCurrency(item.margin)}</p>
+                <div className="text-right shrink-0">
+                  <p className="font-semibold text-xs sm:text-sm text-foreground">{formatCurrency(item.revenue)}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">M: {formatCurrency(item.margin)}</p>
                 </div>
               </div>
             ))}
