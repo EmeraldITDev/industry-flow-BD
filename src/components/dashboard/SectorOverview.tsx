@@ -20,24 +20,22 @@ export function SectorOverview() {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Sector Overview</CardTitle>
+      <CardHeader className="p-3 sm:p-6">
+        <CardTitle className="text-base sm:text-lg">Sector Overview</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0 space-y-3 sm:space-y-6">
         {sectorStats.map(stat => (
-          <div key={stat.sector} className="space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className={`px-2 py-1 rounded text-sm ${sectorColors[stat.sector as Sector]}`}>
-                  {sectorIcons[stat.sector as Sector]} {stat.sector}
-                </span>
-              </div>
-              <span className="text-sm text-muted-foreground">
-                {stat.activeCount} active / {stat.projectCount} total
+          <div key={stat.sector} className="space-y-1.5 sm:space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <span className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-[10px] sm:text-sm ${sectorColors[stat.sector as Sector]}`}>
+                {sectorIcons[stat.sector as Sector]} {stat.sector}
+              </span>
+              <span className="text-[10px] sm:text-sm text-muted-foreground whitespace-nowrap">
+                {stat.activeCount}/{stat.projectCount}
               </span>
             </div>
-            <Progress value={stat.avgProgress} className="h-2" />
-            <p className="text-xs text-muted-foreground text-right">{stat.avgProgress}% avg. completion</p>
+            <Progress value={stat.avgProgress} className="h-1.5 sm:h-2" />
+            <p className="text-[10px] sm:text-xs text-muted-foreground text-right">{stat.avgProgress}%</p>
           </div>
         ))}
       </CardContent>
