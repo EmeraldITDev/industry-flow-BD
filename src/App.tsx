@@ -6,12 +6,15 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { NotificationProvider } from "@/context/NotificationContext";
 import { AuthProvider } from "@/context/AuthContext";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import Index from "./pages/Index";
+import LoginPage from "./pages/LoginPage";
 import ProjectsPage from "./pages/ProjectsPage";
 import ProjectDetailPage from "./pages/ProjectDetailPage";
 import TeamPage from "./pages/TeamPage";
 import NewProjectPage from "./pages/NewProjectPage";
 import SettingsPage from "./pages/SettingsPage";
+import CalendarPage from "./pages/CalendarPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,12 +29,14 @@ const App = () => (
             <Sonner />
             <BrowserRouter>
               <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/projects" element={<ProjectsPage />} />
-                <Route path="/projects/new" element={<NewProjectPage />} />
-                <Route path="/projects/:id" element={<ProjectDetailPage />} />
-                <Route path="/team" element={<TeamPage />} />
-                <Route path="/settings" element={<SettingsPage />} />
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+                <Route path="/projects" element={<ProtectedRoute><ProjectsPage /></ProtectedRoute>} />
+                <Route path="/projects/new" element={<ProtectedRoute><NewProjectPage /></ProtectedRoute>} />
+                <Route path="/projects/:id" element={<ProtectedRoute><ProjectDetailPage /></ProtectedRoute>} />
+                <Route path="/team" element={<ProtectedRoute><TeamPage /></ProtectedRoute>} />
+                <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+                <Route path="/calendar" element={<ProtectedRoute><CalendarPage /></ProtectedRoute>} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
