@@ -124,7 +124,7 @@ export default function Team() {
   const viewerCount = members.filter(m => m.role === 'viewer').length;
 
   return (
-    <div className="space-y-6">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Team Management</h1>
