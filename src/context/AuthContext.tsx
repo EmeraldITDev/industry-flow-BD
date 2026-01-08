@@ -6,6 +6,7 @@ interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   updateUserRole: (userId: string, newRole: AccessLevel) => boolean;
+  updateProfile: (updates: Partial<Pick<User, 'name' | 'avatarUrl'>>) => Promise<void>;
   canManageRole: (targetRole: AccessLevel) => boolean;
   canReassignProjects: () => boolean;
   canApproveDueDates: () => boolean;
@@ -16,14 +17,27 @@ interface AuthContextType extends AuthState {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Test account creation date - will expire 30 days after creation
-const TEST_ACCOUNT_CREATED = new Date();
-const TEST_ACCOUNT_EXPIRES = new Date(TEST_ACCOUNT_CREATED.getTime() + 30 * 24 * 60 * 60 * 1000);
+// User credentials map (email -> password)
+const userCredentials: Record<string, string> = {
+  'chiemela.ikechi@emeraldcfze.com': 'emerald2024',
+  'admin@emeraldcfze.com': 'admin123',
+  'pm@emeraldcfze.com': 'pm123',
+  'sarah.johnson@emeraldcfze.com': 'emerald2024',
+  'michael.chen@emeraldcfze.com': 'emerald2024',
+};
 
-// Mock users database
+// Initial users database
 const initialUsers: User[] = [
   {
     id: '1',
+    email: 'chiemela.ikechi@emeraldcfze.com',
+    name: 'Chiemela Ikechi',
+    accessLevel: 'bd_director',
+    createdAt: new Date('2024-01-01'),
+    isActive: true,
+  },
+  {
+    id: '2',
     email: 'admin@emeraldcfze.com',
     name: 'System Admin',
     accessLevel: 'admin',
@@ -31,29 +45,28 @@ const initialUsers: User[] = [
     isActive: true,
   },
   {
-    id: '2',
-    email: 'director@emeraldcfze.com',
-    name: 'Sarah Johnson',
-    accessLevel: 'bd_director',
+    id: '3',
+    email: 'pm@emeraldcfze.com',
+    name: 'Project Manager',
+    accessLevel: 'pm',
     createdAt: new Date('2024-02-15'),
     isActive: true,
   },
   {
-    id: '3',
-    email: 'pm@emeraldcfze.com',
-    name: 'Michael Chen',
+    id: '4',
+    email: 'sarah.johnson@emeraldcfze.com',
+    name: 'Sarah Johnson',
     accessLevel: 'pm',
     createdAt: new Date('2024-03-10'),
     isActive: true,
   },
   {
-    id: '4',
-    email: 'test@emeraldcfze.com',
-    name: 'Test User',
-    accessLevel: 'pm',
-    createdAt: TEST_ACCOUNT_CREATED,
-    expiresAt: TEST_ACCOUNT_EXPIRES,
-    isActive: new Date() < TEST_ACCOUNT_EXPIRES,
+    id: '5',
+    email: 'michael.chen@emeraldcfze.com',
+    name: 'Michael Chen',
+    accessLevel: 'viewer',
+    createdAt: new Date('2024-04-01'),
+    isActive: true,
   },
 ];
 
@@ -91,28 +104,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 800));
 
-    // Check for test account
-    if (email === 'test@emeraldcfze.com' && password === 'test') {
-      const testUser = users.find(u => u.email === 'test@emeraldcfze.com');
-      if (testUser) {
-        // Check if test account has expired
-        if (testUser.expiresAt && new Date(testUser.expiresAt) < new Date()) {
-          toast.error('Test account has expired');
-          setIsLoading(false);
-          return false;
-        }
-        setUser(testUser);
-        localStorage.setItem('emerald_pm_user', JSON.stringify(testUser));
-        toast.success(`Welcome, ${testUser.name}!`);
-        setIsLoading(false);
-        return true;
-      }
+    // Check credentials
+    const expectedPassword = userCredentials[email.toLowerCase()];
+    if (!expectedPassword || expectedPassword !== password) {
+      toast.error('Invalid email or password');
+      setIsLoading(false);
+      return false;
     }
 
-    // Find user in mock database
-    const foundUser = users.find(u => u.email === email && u.isActive);
+    // Find user in database
+    const foundUser = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.isActive);
     if (foundUser) {
-      // For demo purposes, accept any password for valid users
       setUser(foundUser);
       localStorage.setItem('emerald_pm_user', JSON.stringify(foundUser));
       toast.success(`Welcome, ${foundUser.name}!`);
@@ -120,7 +122,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return true;
     }
 
-    toast.error('Invalid credentials');
+    toast.error('User account not found');
     setIsLoading(false);
     return false;
   };
@@ -129,6 +131,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     localStorage.removeItem('emerald_pm_user');
     toast.info('You have been logged out');
+  };
+
+  const updateProfile = async (updates: Partial<Pick<User, 'name' | 'avatarUrl'>>): Promise<void> => {
+    if (!user) return;
+    
+    const updatedUser = { ...user, ...updates };
+    setUser(updatedUser);
+    localStorage.setItem('emerald_pm_user', JSON.stringify(updatedUser));
+    
+    // Also update in users list
+    setUsers(prev => prev.map(u => 
+      u.id === user.id ? updatedUser : u
+    ));
+    
+    toast.success('Profile updated successfully');
   };
 
   const canManageRole = (targetRole: AccessLevel): boolean => {
@@ -189,14 +206,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const getAllUsers = (): User[] => users;
 
   const addUser = (newUser: Omit<User, 'id' | 'createdAt' | 'isActive'>) => {
-    const user: User = {
+    const createdUser: User = {
       ...newUser,
       id: Date.now().toString(),
       createdAt: new Date(),
       isActive: true,
     };
-    setUsers(prev => [...prev, user]);
-    toast.success(`Added ${user.name} to the team`);
+    setUsers(prev => [...prev, createdUser]);
+    toast.success(`Added ${createdUser.name} to the team`);
   };
 
   const removeUser = (userId: string) => {
@@ -216,6 +233,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         logout,
         updateUserRole,
+        updateProfile,
         canManageRole,
         canReassignProjects,
         canApproveDueDates,

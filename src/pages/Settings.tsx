@@ -1,12 +1,10 @@
 import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { LoginForm } from '@/components/settings/LoginForm';
 import { AccessLevelManager } from '@/components/settings/AccessLevelManager';
 import { IntegrationSettings } from '@/components/integrations/IntegrationSettings';
 import { ACCESS_LEVEL_CONFIG } from '@/types/auth';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
@@ -19,7 +17,6 @@ import {
   Link2, 
   Bell, 
   Palette,
-  LogOut,
   Crown,
   Briefcase,
   ClipboardList,
@@ -36,14 +33,9 @@ const roleIcons = {
 };
 
 export default function Settings() {
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user } = useAuth();
   const [darkMode, setDarkMode] = useState(false);
   const [notifications, setNotifications] = useState(true);
-
-  // Show login if not authenticated
-  if (!isAuthenticated) {
-    return <LoginForm />;
-  }
 
   const getInitials = (name: string) => {
     return name
@@ -61,22 +53,16 @@ export default function Settings() {
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-background">
       <div className="max-w-6xl mx-auto p-6 space-y-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="p-3 rounded-xl bg-primary/10 border border-primary/20">
-              <SettingsIcon className="h-6 w-6 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
-              <p className="text-sm text-muted-foreground">
-                Manage your account and preferences
-              </p>
-            </div>
+        <div className="flex items-center gap-3">
+          <div className="p-3 rounded-xl bg-primary/10 border border-primary/20">
+            <SettingsIcon className="h-6 w-6 text-primary" />
           </div>
-          <Button variant="outline" onClick={logout} className="gap-2">
-            <LogOut className="h-4 w-4" />
-            Sign Out
-          </Button>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
+            <p className="text-sm text-muted-foreground">
+              Manage your account and preferences
+            </p>
+          </div>
         </div>
 
         {/* User Profile Card */}
