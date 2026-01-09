@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Plus, Grid3X3, List, Settings } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { IntegrationSettings } from '@/components/integrations/IntegrationSettings';
+import { usePermissions } from '@/hooks/usePermissions';
 
 const defaultFilters: FilterState = {
   search: '',
@@ -24,6 +25,7 @@ const defaultFilters: FilterState = {
 export default function Projects() {
   const [filters, setFilters] = useState<FilterState>(defaultFilters);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const { canCreateProjects, canManageSettings } = usePermissions();
 
   const filteredProjects = useMemo(() => {
     return projects.filter(project => {
@@ -82,26 +84,30 @@ export default function Projects() {
               <List className="w-4 h-4" />
             </Button>
           </div>
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="sm">
-                <Settings className="w-4 h-4 mr-2" />
-                Integrations
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Integrations</DialogTitle>
-              </DialogHeader>
-              <IntegrationSettings />
-            </DialogContent>
-          </Dialog>
-          <Button asChild>
-            <Link to="/projects/new">
-              <Plus className="w-4 h-4 mr-2" />
-              New Project
-            </Link>
-          </Button>
+          {canManageSettings && (
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Settings className="w-4 h-4 mr-2" />
+                  Integrations
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Integrations</DialogTitle>
+                </DialogHeader>
+                <IntegrationSettings />
+              </DialogContent>
+            </Dialog>
+          )}
+          {canCreateProjects && (
+            <Button asChild>
+              <Link to="/projects/new">
+                <Plus className="w-4 h-4 mr-2" />
+                New Project
+              </Link>
+            </Button>
+          )}
         </div>
       </div>
 

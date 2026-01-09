@@ -37,6 +37,7 @@ import { Plus, MoreHorizontal, Shield, Edit, Eye, Trash2, Users } from 'lucide-r
 import { teamMembers as initialTeamMembers, projects } from '@/data/mockData';
 import { TeamMember, TeamRole } from '@/types';
 import { toast } from 'sonner';
+import { usePermissions } from '@/hooks/usePermissions';
 
 const roleColors: Record<TeamRole, string> = {
   admin: 'bg-destructive/20 text-destructive',
@@ -66,6 +67,7 @@ export default function Team() {
     role: 'viewer' as TeamRole,
     department: '',
   });
+  const { canManageTeam } = usePermissions();
 
   const handleAddMember = () => {
     if (!formData.name || !formData.email || !formData.department) {
@@ -132,13 +134,14 @@ export default function Team() {
             Manage team members and their permissions
           </p>
         </div>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Add Member
-            </Button>
-          </DialogTrigger>
+        {canManageTeam && (
+          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Member
+              </Button>
+            </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Add New Team Member</DialogTitle>
@@ -201,6 +204,7 @@ export default function Team() {
             </div>
           </DialogContent>
         </Dialog>
+        )}
       </div>
 
       {/* Stats Cards */}
@@ -256,7 +260,7 @@ export default function Team() {
                 <TableHead>Department</TableHead>
                 <TableHead>Role</TableHead>
                 <TableHead>Assigned Projects</TableHead>
-                <TableHead className="w-[50px]"></TableHead>
+                {canManageTeam && <TableHead className="w-[50px]"></TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -304,36 +308,38 @@ export default function Team() {
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleUpdateRole(member.id, 'admin')}>
-                            <Shield className="mr-2 h-4 w-4" />
-                            Make Admin
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleUpdateRole(member.id, 'editor')}>
-                            <Edit className="mr-2 h-4 w-4" />
-                            Make Editor
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleUpdateRole(member.id, 'viewer')}>
-                            <Eye className="mr-2 h-4 w-4" />
-                            Make Viewer
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => handleDeleteMember(member.id)}
-                            className="text-destructive"
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Remove
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
+                    {canManageTeam && (
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleUpdateRole(member.id, 'admin')}>
+                              <Shield className="mr-2 h-4 w-4" />
+                              Make Admin
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleUpdateRole(member.id, 'editor')}>
+                              <Edit className="mr-2 h-4 w-4" />
+                              Make Editor
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleUpdateRole(member.id, 'viewer')}>
+                              <Eye className="mr-2 h-4 w-4" />
+                              Make Viewer
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={() => handleDeleteMember(member.id)}
+                              className="text-destructive"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Remove
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    )}
                   </TableRow>
                 );
               })}
