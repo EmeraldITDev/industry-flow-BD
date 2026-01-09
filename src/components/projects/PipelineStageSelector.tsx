@@ -18,9 +18,16 @@ export function PipelineStageSelector({
 }: PipelineStageSelectorProps) {
   const currentIndex = PIPELINE_STAGES.findIndex(s => s.value === currentStage);
 
-  const handleStageClick = (stage: PipelineStage) => {
+  const handleStageClick = (stage: PipelineStage, index: number) => {
     if (readonly || !onStageChange) return;
+    // Only allow clicking on current stage or next stage (sequential progression)
+    if (index > currentIndex + 1) return;
     onStageChange(stage);
+  };
+
+  const isClickable = (index: number) => {
+    // Can only click on current stage, completed stages, or the immediate next stage
+    return index <= currentIndex + 1;
   };
 
   if (compact) {
@@ -33,15 +40,15 @@ export function PipelineStageSelector({
           return (
             <div key={stage.value} className="flex items-center">
               <button
-                onClick={() => handleStageClick(stage.value)}
-                disabled={readonly}
+                onClick={() => handleStageClick(stage.value, index)}
+                disabled={readonly || !isClickable(index)}
                 className={cn(
                   "px-2 py-1 text-xs rounded-md font-medium transition-all",
                   isCurrent && stageColors[stage.value],
                   isCompleted && "bg-primary/20 text-primary",
                   !isCurrent && !isCompleted && "bg-muted/50 text-muted-foreground",
-                  !readonly && "hover:opacity-80 cursor-pointer",
-                  readonly && "cursor-default"
+                  !readonly && isClickable(index) && "hover:opacity-80 cursor-pointer",
+                  (readonly || !isClickable(index)) && "cursor-not-allowed opacity-60"
                 )}
               >
                 {isCompleted && <Check className="w-3 h-3 inline mr-1" />}
@@ -67,16 +74,16 @@ export function PipelineStageSelector({
           return (
             <div key={stage.value} className="flex-1 flex items-center">
               <button
-                onClick={() => handleStageClick(stage.value)}
-                disabled={readonly}
+                onClick={() => handleStageClick(stage.value, index)}
+                disabled={readonly || !isClickable(index)}
                 className={cn(
                   "w-full py-2 px-3 text-sm font-medium rounded-lg transition-all text-center",
                   isCurrent && stageColors[stage.value],
                   isCurrent && "ring-2 ring-offset-2 ring-primary",
                   isCompleted && "bg-primary/20 text-primary",
                   !isCurrent && !isCompleted && "bg-muted/30 text-muted-foreground",
-                  !readonly && "hover:opacity-80 cursor-pointer",
-                  readonly && "cursor-default"
+                  !readonly && isClickable(index) && "hover:opacity-80 cursor-pointer",
+                  (readonly || !isClickable(index)) && "cursor-not-allowed opacity-60"
                 )}
               >
                 <div className="flex items-center justify-center gap-1">
