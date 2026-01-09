@@ -16,7 +16,7 @@ import {
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Separator } from '@/components/ui/separator';
-import { CalendarIcon, Plus, X, AlertTriangle } from 'lucide-react';
+import { CalendarIcon, Plus, X, AlertTriangle, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { sectors, teamMembers, businessSegments } from '@/data/mockData';
@@ -24,6 +24,7 @@ import { Sector, RiskLevel, Milestone, PipelineStage, BusinessSegment, PIPELINE_
 import { toast } from 'sonner';
 import { PipelineStageSelector } from '@/components/projects/PipelineStageSelector';
 import { DocumentManager } from '@/components/projects/DocumentManager';
+import { projectsService } from '@/services/projects';
 
 const riskLevels: { value: RiskLevel; label: string; color: string }[] = [
   { value: 'low', label: 'Low', color: 'bg-chart-2/20 text-chart-2' },
@@ -97,7 +98,9 @@ export default function NewProject() {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.name || !formData.description || !formData.sector || !formData.startDate) {
@@ -105,8 +108,42 @@ export default function NewProject() {
       return;
     }
 
-    toast.success('Project created successfully!');
-    navigate('/projects');
+    setIsSubmitting(true);
+    try {
+      await projectsService.create({
+        name: formData.name,
+        description: formData.description,
+        sector: formData.sector as Sector,
+        status: formData.status,
+        startDate: formData.startDate.toISOString(),
+        endDate: formData.endDate?.toISOString(),
+        clientName: formData.clientName || undefined,
+        clientContact: formData.clientContact || undefined,
+        pipelineStage: formData.pipelineStage,
+        pipelineIntakeDate: formData.pipelineIntakeDate?.toISOString(),
+        oem: formData.oem || undefined,
+        location: formData.location || undefined,
+        expectedCloseDate: formData.expectedCloseDate?.toISOString(),
+        businessSegment: formData.businessSegment as BusinessSegment || undefined,
+        product: formData.product || undefined,
+        subProduct: formData.subProduct || undefined,
+        projectLeadId: formData.projectLeadId || undefined,
+        assigneeId: formData.assigneeId || undefined,
+        channelPartner: formData.channelPartner || undefined,
+        contractValueNGN: formData.contractValueNGN ? parseFloat(formData.contractValueNGN) : undefined,
+        contractValueUSD: formData.contractValueUSD ? parseFloat(formData.contractValueUSD) : undefined,
+        marginPercentNGN: formData.marginPercentNGN ? parseFloat(formData.marginPercentNGN) : undefined,
+        marginPercentUSD: formData.marginPercentUSD ? parseFloat(formData.marginPercentUSD) : undefined,
+        projectLeadComments: formData.projectLeadComments || undefined,
+      });
+      toast.success('Project created successfully!');
+      navigate('/projects');
+    } catch (error: any) {
+      console.error('Failed to create project:', error);
+      toast.error(error.response?.data?.message || 'Failed to create project. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -499,8 +536,11 @@ export default function NewProject() {
         <Separator />
 
         <div className="flex flex-col-reverse sm:flex-row justify-end gap-4">
-          <Button type="button" variant="outline" onClick={() => navigate('/projects')}>Cancel</Button>
-          <Button type="submit">Create Project</Button>
+          <Button type="button" variant="outline" onClick={() => navigate('/projects')} disabled={isSubmitting}>Cancel</Button>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isSubmitting ? 'Creating...' : 'Create Project'}
+          </Button>
         </div>
       </form>
     </div>
