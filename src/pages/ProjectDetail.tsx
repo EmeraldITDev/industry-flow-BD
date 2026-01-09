@@ -17,10 +17,12 @@ import {
   Plus
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { usePermissions } from '@/hooks/usePermissions';
 
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
   const project = getProjectById(id || '');
+  const { canEditProjects, canAssignTasks } = usePermissions();
 
   if (!project) {
     return (
@@ -62,9 +64,11 @@ export default function ProjectDetail() {
           </div>
           <h1 className="text-2xl lg:text-3xl font-bold">{project.name}</h1>
         </div>
-        <Button variant="outline" size="icon">
-          <MoreHorizontal className="w-5 h-5" />
-        </Button>
+        {canEditProjects && (
+          <Button variant="outline" size="icon">
+            <MoreHorizontal className="w-5 h-5" />
+          </Button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -84,10 +88,12 @@ export default function ProjectDetail() {
                 <TabsTrigger value="kanban">Kanban Board</TabsTrigger>
                 <TabsTrigger value="list">Task List</TabsTrigger>
               </TabsList>
-              <Button size="sm">
-                <Plus className="w-4 h-4 mr-2" />
-                Add Task
-              </Button>
+              {canAssignTasks && (
+                <Button size="sm">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Task
+                </Button>
+              )}
             </div>
             <TabsContent value="kanban" className="mt-0">
               <KanbanBoard tasks={project.tasks} />

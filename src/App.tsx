@@ -29,8 +29,7 @@ const App = () => (
             <NotificationProvider>
               <Toaster />
               <Sonner />
-            <Sonner />
-            <BrowserRouter>
+              <BrowserRouter>
               <Routes>
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />

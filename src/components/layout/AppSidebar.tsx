@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import emeraldLogo from '@/assets/emerald-logo.png';
 import { NavLink, useLocation } from 'react-router-dom';
+import { usePermissions } from '@/hooks/usePermissions';
 import { cn } from '@/lib/utils';
 import {
   Sidebar,
@@ -45,6 +46,7 @@ export function AppSidebar() {
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
   const currentSector = searchParams.get('sector');
+  const { canCreateProjects, canManageSettings } = usePermissions();
 
   return (
     <Sidebar className="border-r border-sidebar-border">
@@ -52,12 +54,14 @@ export function AppSidebar() {
         <div className="flex items-center gap-3 mb-3">
           <img src={emeraldLogo} alt="Emerald PM" className="h-10 w-auto" />
         </div>
-        <NavLink to="/projects/new">
-          <Button className="w-full" size="sm">
-            <Plus className="w-4 h-4 mr-2" />
-            New Project
-          </Button>
-        </NavLink>
+        {canCreateProjects && (
+          <NavLink to="/projects/new">
+            <Button className="w-full" size="sm">
+              <Plus className="w-4 h-4 mr-2" />
+              New Project
+            </Button>
+          </NavLink>
+        )}
       </SidebarHeader>
 
       <SidebarContent className="px-2">
@@ -118,24 +122,26 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-4 border-t border-sidebar-border">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild>
-              <NavLink 
-                to="/settings"
-                className={({ isActive }) => cn(
-                  "flex items-center gap-3 px-3 py-2 rounded-md text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors",
-                  isActive && "bg-primary text-primary-foreground"
-                )}
-              >
-                <Settings className="w-5 h-5" />
-                <span className="font-medium">Settings</span>
-              </NavLink>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
+      {canManageSettings && (
+        <SidebarFooter className="p-4 border-t border-sidebar-border">
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <NavLink 
+                  to="/settings"
+                  className={({ isActive }) => cn(
+                    "flex items-center gap-3 px-3 py-2 rounded-md text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors",
+                    isActive && "bg-primary text-primary-foreground"
+                  )}
+                >
+                  <Settings className="w-5 h-5" />
+                  <span className="font-medium">Settings</span>
+                </NavLink>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarFooter>
+      )}
     </Sidebar>
   );
 }
