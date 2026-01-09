@@ -307,7 +307,15 @@ export default function NewProject() {
                   </div>
                   <div className="space-y-2">
                     <Label>Margin Value (₦)</Label>
-                    <Input type="number" value={formData.marginValueNGN} onChange={(e) => setFormData({ ...formData, marginValueNGN: e.target.value })} placeholder="0" />
+                    <Input 
+                      type="number" 
+                      value={formData.contractValueNGN && formData.marginPercentNGN 
+                        ? (parseFloat(formData.contractValueNGN) * parseFloat(formData.marginPercentNGN) / 100).toFixed(2) 
+                        : ''} 
+                      readOnly 
+                      className="bg-muted cursor-not-allowed" 
+                      placeholder="Auto-calculated" 
+                    />
                   </div>
                 </div>
               </div>
@@ -324,7 +332,15 @@ export default function NewProject() {
                   </div>
                   <div className="space-y-2">
                     <Label>Margin Value ($)</Label>
-                    <Input type="number" value={formData.marginValueUSD} onChange={(e) => setFormData({ ...formData, marginValueUSD: e.target.value })} placeholder="0" />
+                    <Input 
+                      type="number" 
+                      value={formData.contractValueUSD && formData.marginPercentUSD 
+                        ? (parseFloat(formData.contractValueUSD) * parseFloat(formData.marginPercentUSD) / 100).toFixed(2) 
+                        : ''} 
+                      readOnly 
+                      className="bg-muted cursor-not-allowed" 
+                      placeholder="Auto-calculated" 
+                    />
                   </div>
                 </div>
               </div>
