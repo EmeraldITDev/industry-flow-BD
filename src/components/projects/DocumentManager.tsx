@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { ProjectDocument, DocumentType } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -57,11 +57,38 @@ function getFileIcon(name: string) {
 
 export function DocumentManager({ documents, onDocumentsChange, readonly = false }: DocumentManagerProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [newDocument, setNewDocument] = useState({
     name: '',
     type: 'supporting' as DocumentType,
     source: 'local' as 'local' | 'onedrive',
   });
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      if (!newDocument.name) {
+        setNewDocument({ ...newDocument, name: file.name });
+      }
+    }
+  };
+
+  const handleDropZoneClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      if (!newDocument.name) {
+        setNewDocument({ ...newDocument, name: file.name });
+      }
+    }
+  };
 
   const handleAddDocument = () => {
     if (!newDocument.name) {
@@ -73,15 +100,16 @@ export function DocumentManager({ documents, onDocumentsChange, readonly = false
       id: `doc-${Date.now()}`,
       name: newDocument.name,
       type: newDocument.type,
-      url: '#',
+      url: selectedFile ? URL.createObjectURL(selectedFile) : '#',
       uploadedAt: new Date().toISOString(),
       uploadedBy: 'Current User',
-      size: Math.floor(Math.random() * 5000000) + 100000,
+      size: selectedFile?.size || Math.floor(Math.random() * 5000000) + 100000,
       source: newDocument.source,
     };
 
     onDocumentsChange([...documents, doc]);
     setNewDocument({ name: '', type: 'supporting', source: 'local' });
+    setSelectedFile(null);
     setIsDialogOpen(false);
     toast.success('Document added successfully');
   };
@@ -94,6 +122,7 @@ export function DocumentManager({ documents, onDocumentsChange, readonly = false
   const handleConnectOneDrive = () => {
     toast.info('OneDrive connection coming soon. This is a placeholder for Microsoft Graph API integration.');
   };
+
 
   return (
     <Card>
@@ -166,11 +195,27 @@ export function DocumentManager({ documents, onDocumentsChange, readonly = false
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="border-2 border-dashed rounded-lg p-6 text-center">
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileSelect}
+                    className="hidden"
+                    accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.ppt,.pptx"
+                  />
+                  <div 
+                    className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:border-primary/50 hover:bg-muted/50 transition-colors"
+                    onClick={handleDropZoneClick}
+                    onDrop={handleDrop}
+                    onDragOver={(e) => e.preventDefault()}
+                  >
                     <Upload className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
-                    <p className="text-sm text-muted-foreground">
-                      Drag and drop or click to upload
-                    </p>
+                    {selectedFile ? (
+                      <p className="text-sm font-medium text-primary">{selectedFile.name}</p>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        Drag and drop or click to upload
+                      </p>
+                    )}
                   </div>
                   <Button onClick={handleAddDocument} className="w-full">
                     Add Document
