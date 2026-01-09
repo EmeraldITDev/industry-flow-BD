@@ -114,6 +114,16 @@ export default function Projects() {
         <div className="flex items-center justify-center py-12">
           <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
         </div>
+      ) : error ? (
+        <div className="text-center py-12">
+          <p className="text-destructive mb-2">Failed to load projects</p>
+          <p className="text-muted-foreground text-sm mb-4">
+            {(error as any)?.message || 'Please check your connection and try again'}
+          </p>
+          <Button variant="outline" onClick={() => window.location.reload()}>
+            Retry
+          </Button>
+        </div>
       ) : (
         <div className={viewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6" : "space-y-4"}>
           {filteredProjects.map(project => (
@@ -122,7 +132,7 @@ export default function Projects() {
         </div>
       )}
 
-      {!isLoading && filteredProjects.length === 0 && (
+      {!isLoading && !error && filteredProjects.length === 0 && (
         <div className="text-center py-12">
           <p className="text-muted-foreground">No projects match your filters.</p>
           <Button variant="link" onClick={() => setFilters(defaultFilters)}>Clear filters</Button>

@@ -33,10 +33,11 @@ api.interceptors.response.use(
   (error) => {
     // Handle 401 Unauthorized errors (token expired or invalid)
     if (error.response?.status === 401) {
-      // Clear token and redirect to login
+      // Clear token - let AuthContext handle redirect via React Router
       localStorage.removeItem('authToken');
       localStorage.removeItem('user');
-      window.location.href = '/login';
+      // Don't use window.location.href as it causes full page reload
+      // The ProtectedRoute component will handle the redirect
     }
     return Promise.reject(error);
   }
