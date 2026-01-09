@@ -35,8 +35,8 @@ export default function Projects() {
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  // Use backend data if available, fallback to mock data
-  const projects: Project[] = backendProjects || mockProjects;
+  // Use backend data if available and valid array, fallback to mock data
+  const projects: Project[] = Array.isArray(backendProjects) ? backendProjects : mockProjects;
 
   const filteredProjects = useMemo(() => {
     return projects.filter(project => {
