@@ -49,7 +49,11 @@ export const projectsService = {
   // Get all projects
   getAll: async (filters?: ProjectFilters): Promise<Project[]> => {
     const response = await api.get('/api/projects', { params: filters });
-    return response.data;
+    // Handle both direct array response and wrapped { data: [...] } response
+    const data = response.data;
+    if (Array.isArray(data)) return data;
+    if (data && Array.isArray(data.data)) return data.data;
+    return [];
   },
 
   // Get single project by ID
