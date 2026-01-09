@@ -391,7 +391,10 @@ export default function NewProject() {
                 <SelectContent>
                   {riskLevels.map((level) => (
                     <SelectItem key={level.value} value={level.value}>
-                      <div className="flex items-center gap-2"><AlertTriangle className="h-4 w-4" />{level.label}</div>
+                      <div className={cn("flex items-center gap-2 px-2 py-0.5 rounded-md", level.color)}>
+                        <AlertTriangle className="h-4 w-4" />
+                        {level.label}
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>
