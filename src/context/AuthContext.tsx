@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, AccessLevel, AuthState } from '@/types/auth';
 import { toast } from 'sonner';
+import { loginRequest, logoutRequest, BackendUser } from '@/services/api';
 
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<boolean>;
@@ -77,59 +78,78 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Check for saved session
-    const savedUser = localStorage.getItem('emerald_pm_user');
+    const savedUser = localStorage.getItem('industry_flow_user');
     if (savedUser) {
-      const parsed = JSON.parse(savedUser);
-      // Check if account is expired
-      if (parsed.expiresAt && new Date(parsed.expiresAt) < new Date()) {
-        localStorage.removeItem('emerald_pm_user');
-        toast.error('Your account has expired');
-      } else {
-        setUser(parsed);
+      try {
+        const parsed = JSON.parse(savedUser);
+        setUser({
+          ...parsed,
+          createdAt: new Date(parsed.createdAt),
+        });
+      } catch {
+        localStorage.removeItem('industry_flow_user');
+        localStorage.removeItem('industry_flow_token');
       }
     }
     setIsLoading(false);
   }, []);
 
+  const mapBackendUserToAccessLevel = (backendUser: BackendUser): AccessLevel => {
+    const role = (backendUser.role || '').toLowerCase();
+    if (role === 'admin') return 'admin';
+    if (role === 'bd_director' || role === 'bd director' || role === 'business_development_director') {
+      return 'bd_director';
+    }
+    if (role === 'pm' || role === 'project_manager' || role === 'project manager') {
+      return 'pm';
+    }
+    return 'viewer';
+  };
+
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
-    
-    // Validate email domain
-    if (!email.endsWith('@emeraldcfze.com')) {
-      toast.error('Only @emeraldcfze.com email addresses are allowed');
-      setIsLoading(false);
-      return false;
-    }
 
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 800));
+    try {
+      const data = await loginRequest({ email, password });
+      const backendUser = data.user;
 
-    // Check credentials
-    const expectedPassword = userCredentials[email.toLowerCase()];
-    if (!expectedPassword || expectedPassword !== password) {
-      toast.error('Invalid email or password');
-      setIsLoading(false);
-      return false;
-    }
+      const accessLevel = mapBackendUserToAccessLevel(backendUser);
 
-    // Find user in database
-    const foundUser = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.isActive);
-    if (foundUser) {
-      setUser(foundUser);
-      localStorage.setItem('emerald_pm_user', JSON.stringify(foundUser));
-      toast.success(`Welcome, ${foundUser.name}!`);
+      const appUser: User = {
+        id: String(backendUser.id),
+        email: backendUser.email,
+        name: backendUser.name,
+        accessLevel,
+        createdAt: new Date(backendUser.createdAt),
+        isActive: true,
+      };
+
+      setUser(appUser);
+      // Persist session
+      localStorage.setItem('industry_flow_user', JSON.stringify(appUser));
+      localStorage.setItem('industry_flow_token', data.token);
+
+      toast.success(`Welcome, ${backendUser.name}!`);
       setIsLoading(false);
       return true;
+    } catch (error: any) {
+      console.error('Login error:', error);
+      const message =
+        error?.response?.data?.message ||
+        error?.response?.data?.errors?.email?.[0] ||
+        'Login failed. Please check your credentials.';
+      toast.error(message);
+      setIsLoading(false);
+      return false;
     }
-
-    toast.error('User account not found');
-    setIsLoading(false);
-    return false;
   };
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('emerald_pm_user');
+    localStorage.removeItem('industry_flow_user');
+    localStorage.removeItem('industry_flow_token');
+    // Fire and forget backend logout
+    logoutRequest();
     toast.info('You have been logged out');
   };
 
@@ -138,7 +158,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     const updatedUser = { ...user, ...updates };
     setUser(updatedUser);
-    localStorage.setItem('emerald_pm_user', JSON.stringify(updatedUser));
+    localStorage.setItem('industry_flow_user', JSON.stringify(updatedUser));
     
     // Also update in users list
     setUsers(prev => prev.map(u => 
