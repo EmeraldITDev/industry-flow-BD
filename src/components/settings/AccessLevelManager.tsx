@@ -30,12 +30,21 @@ const roleIcons: Record<AccessLevel, React.ElementType> = {
   viewer: Eye,
 };
 
+type SystemRole = 'admin' | 'project_manager' | 'viewer';
+
+const SYSTEM_ROLES: { value: SystemRole; label: string; description: string }[] = [
+  { value: 'admin', label: 'Admin', description: 'Full system access' },
+  { value: 'project_manager', label: 'Project Manager', description: 'Manage projects and tasks' },
+  { value: 'viewer', label: 'Viewer', description: 'Read-only access' },
+];
+
 export function AccessLevelManager() {
   const { user, getAllUsers, updateUserRole, canManageRole, addUser, removeUser } = useAuth();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserName, setNewUserName] = useState('');
   const [newUserRole, setNewUserRole] = useState<AccessLevel>('viewer');
+  const [newUserSystemRole, setNewUserSystemRole] = useState<SystemRole>('viewer');
 
   const allUsers = getAllUsers();
 
@@ -67,6 +76,7 @@ export function AccessLevelManager() {
     setNewUserEmail('');
     setNewUserName('');
     setNewUserRole('viewer');
+    setNewUserSystemRole('viewer');
     setIsAddDialogOpen(false);
   };
 
@@ -131,6 +141,22 @@ export function AccessLevelManager() {
                   <p className="text-xs text-muted-foreground">
                     Must be an @emeraldcfze.com email
                   </p>
+                </div>
+                <div className="space-y-2">
+                  <Label>System Role</Label>
+                  <Select value={newUserSystemRole} onValueChange={(v) => setNewUserSystemRole(v as SystemRole)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SYSTEM_ROLES.map((role) => (
+                        <SelectItem key={role.value} value={role.value}>
+                          <span>{role.label}</span>
+                          <span className="text-muted-foreground ml-1">- {role.description}</span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <Label>Access Level</Label>
