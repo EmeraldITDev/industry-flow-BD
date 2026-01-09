@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,13 +34,14 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Plus, MoreHorizontal, Shield, Edit, Eye, Trash2, Users, UserPlus } from 'lucide-react';
+import { Plus, MoreHorizontal, Shield, Edit, Eye, Trash2, Users, UserPlus, Loader2, Copy, Check } from 'lucide-react';
 import { teamMembers as initialTeamMembers, projects } from '@/data/mockData';
 import { TeamMember, TeamRole } from '@/types';
 import { toast } from 'sonner';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/context/AuthContext';
 import { AccessLevel, ACCESS_LEVEL_CONFIG, SystemRole, SYSTEM_ROLE_CONFIG } from '@/types/auth';
+import { teamService } from '@/services/team';
 
 const SYSTEM_ROLES: { value: SystemRole; label: string; description: string }[] = [
   { value: 'admin', label: 'Admin', description: 'Full system access' },
@@ -66,18 +67,49 @@ const roleDescriptions: Record<TeamRole, string> = {
   viewer: 'Read-only access to projects and tasks',
 };
 
+// Generate a random password
+function generatePassword(length = 12): string {
+  const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%';
+  let password = '';
+  for (let i = 0; i < length; i++) {
+    password += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return password;
+}
+
 export default function Team() {
   const [members, setMembers] = useState<TeamMember[]>(initialTeamMembers);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isCredentialsDialogOpen, setIsCredentialsDialogOpen] = useState(false);
+  const [newUserCredentials, setNewUserCredentials] = useState<{ email: string; password: string } | null>(null);
   const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
   const [newUserName, setNewUserName] = useState('');
   const [newUserEmail, setNewUserEmail] = useState('');
+  const [newUserDepartment, setNewUserDepartment] = useState('');
   const [newUserSystemRole, setNewUserSystemRole] = useState<SystemRole>('viewer');
   const [newUserAccessLevel, setNewUserAccessLevel] = useState<AccessLevel>('viewer');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
   const { canManageTeam } = usePermissions();
   const { addUser, canManageRole } = useAuth();
 
-  const handleAddMember = () => {
+  // Map system role to team role
+  const getTeamRoleFromSystemRole = (systemRole: SystemRole): TeamRole => {
+    switch (systemRole) {
+      case 'admin': return 'admin';
+      case 'project_manager': return 'editor';
+      case 'viewer': return 'viewer';
+      default: return 'viewer';
+    }
+  };
+
+  const handleCopyToClipboard = async (text: string, field: string) => {
+    await navigator.clipboard.writeText(text);
+    setCopiedField(field);
+    setTimeout(() => setCopiedField(null), 2000);
+  };
+
+  const handleAddMember = async () => {
     if (!newUserEmail.endsWith('@emeraldcfze.com')) {
       toast.error('Email must end with @emeraldcfze.com');
       return;
@@ -87,18 +119,50 @@ export default function Team() {
       return;
     }
 
-    addUser({
-      email: newUserEmail,
-      name: newUserName,
-      accessLevel: newUserAccessLevel,
-      systemRole: newUserSystemRole,
-    });
+    const generatedPassword = generatePassword();
+    const teamRole = getTeamRoleFromSystemRole(newUserSystemRole);
 
-    setNewUserName('');
-    setNewUserEmail('');
-    setNewUserSystemRole('viewer');
-    setNewUserAccessLevel('viewer');
-    setIsAddDialogOpen(false);
+    setIsSubmitting(true);
+    try {
+      const newMember = await teamService.create({
+        name: newUserName,
+        email: newUserEmail,
+        role: teamRole,
+        department: newUserDepartment || 'General',
+        systemRole: newUserSystemRole,
+        accessLevel: newUserAccessLevel,
+      });
+
+      // Add to local state
+      setMembers(prev => [...prev, newMember]);
+
+      // Also add to auth context
+      addUser({
+        email: newUserEmail,
+        name: newUserName,
+        accessLevel: newUserAccessLevel,
+        systemRole: newUserSystemRole,
+      });
+
+      // Show credentials dialog
+      setNewUserCredentials({ email: newUserEmail, password: generatedPassword });
+      setIsAddDialogOpen(false);
+      setIsCredentialsDialogOpen(true);
+
+      // Reset form
+      setNewUserName('');
+      setNewUserEmail('');
+      setNewUserDepartment('');
+      setNewUserSystemRole('viewer');
+      setNewUserAccessLevel('viewer');
+
+      toast.success('Team member added successfully!');
+    } catch (error: any) {
+      console.error('Failed to add team member:', error);
+      toast.error(error.response?.data?.message || 'Failed to add team member. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleUpdateRole = (memberId: string, newRole: TeamRole) => {
@@ -183,6 +247,15 @@ export default function Team() {
                 </p>
               </div>
               <div className="space-y-2">
+                <Label htmlFor="department">Department</Label>
+                <Input
+                  id="department"
+                  placeholder="Engineering"
+                  value={newUserDepartment}
+                  onChange={(e) => setNewUserDepartment(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
                 <Label>System Role</Label>
                 <Select value={newUserSystemRole} onValueChange={(v) => setNewUserSystemRole(v as SystemRole)}>
                   <SelectTrigger>
@@ -215,14 +288,69 @@ export default function Team() {
                   </SelectContent>
                 </Select>
               </div>
-              <Button onClick={handleAddMember} className="w-full">
-                Add Member
+              <Button onClick={handleAddMember} className="w-full" disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isSubmitting ? 'Adding...' : 'Add Member'}
               </Button>
             </div>
           </DialogContent>
         </Dialog>
         )}
       </div>
+
+      {/* Credentials Dialog */}
+      <Dialog open={isCredentialsDialogOpen} onOpenChange={setIsCredentialsDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Team Member Added Successfully!</DialogTitle>
+            <DialogDescription>
+              Please share these login credentials with the new team member. Make sure to copy them now as the password cannot be retrieved later.
+            </DialogDescription>
+          </DialogHeader>
+          {newUserCredentials && (
+            <div className="space-y-4 mt-4">
+              <div className="p-4 rounded-lg bg-muted/50 border space-y-3">
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Email</Label>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 text-sm bg-background px-3 py-2 rounded border">
+                      {newUserCredentials.email}
+                    </code>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => handleCopyToClipboard(newUserCredentials.email, 'email')}
+                    >
+                      {copiedField === 'email' ? <Check className="h-4 w-4 text-chart-2" /> : <Copy className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Temporary Password</Label>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 text-sm bg-background px-3 py-2 rounded border font-mono">
+                      {newUserCredentials.password}
+                    </code>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => handleCopyToClipboard(newUserCredentials.password, 'password')}
+                    >
+                      {copiedField === 'password' ? <Check className="h-4 w-4 text-chart-2" /> : <Copy className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                The user should change their password after first login.
+              </p>
+              <Button onClick={() => setIsCredentialsDialogOpen(false)} className="w-full">
+                Done
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-4">
