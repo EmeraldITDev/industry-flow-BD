@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useTheme } from 'next-themes';
 import { useAuth } from '@/context/AuthContext';
+import { useColorTheme, ColorTheme } from '@/context/ColorThemeContext';
 import { AccessLevelManager } from '@/components/settings/AccessLevelManager';
 import { IntegrationSettings } from '@/components/integrations/IntegrationSettings';
 import { ACCESS_LEVEL_CONFIG } from '@/types/auth';
@@ -23,8 +24,10 @@ import {
   ClipboardList,
   Eye,
   Moon,
-  Sun
+  Sun,
+  Check
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 const roleIcons = {
   admin: Crown,
@@ -36,6 +39,7 @@ const roleIcons = {
 export default function Settings() {
   const { user } = useAuth();
   const { theme, setTheme } = useTheme();
+  const { colorTheme, setColorTheme } = useColorTheme();
   const [notifications, setNotifications] = useState(true);
   
   const isDarkMode = theme === 'dark';
@@ -43,6 +47,19 @@ export default function Settings() {
   const handleDarkModeChange = (checked: boolean) => {
     setTheme(checked ? 'dark' : 'light');
   };
+
+  const handleColorThemeChange = (theme: ColorTheme) => {
+    setColorTheme(theme);
+    toast.success(`Theme changed to ${theme.charAt(0).toUpperCase() + theme.slice(1)}`);
+  };
+
+  const themeOptions: { id: ColorTheme; name: string; color: string }[] = [
+    { id: 'emerald', name: 'Emerald', color: 'bg-[hsl(196,73%,26%)]' },
+    { id: 'ocean', name: 'Ocean', color: 'bg-[hsl(210,70%,35%)]' },
+    { id: 'turquoise', name: 'Turquoise', color: 'bg-[hsl(177,48%,45%)]' },
+    { id: 'purple', name: 'Purple', color: 'bg-[hsl(270,60%,45%)]' },
+    { id: 'amber', name: 'Amber', color: 'bg-[hsl(35,85%,45%)]' },
+  ];
 
   const getInitials = (name: string) => {
     return name
@@ -224,21 +241,26 @@ export default function Settings() {
 
                   <div className="space-y-3">
                     <Label className="text-base">Theme Colors</Label>
-                    <div className="flex gap-3">
-                      {[
-                        { name: 'Emerald', class: 'bg-primary' },
-                        { name: 'Deep Blue', class: 'bg-[hsl(196,70%,26%)]' },
-                        { name: 'Turquoise', class: 'bg-[hsl(177,48%,45%)]' },
-                      ].map((color) => (
+                    <div className="flex flex-wrap gap-3">
+                      {themeOptions.map((themeOption) => (
                         <button
-                          key={color.name}
-                          className={`h-10 w-10 rounded-full ${color.class} ring-2 ring-offset-2 ring-offset-background ring-transparent hover:ring-primary transition-all`}
-                          title={color.name}
-                        />
+                          key={themeOption.id}
+                          onClick={() => handleColorThemeChange(themeOption.id)}
+                          className={`relative h-10 w-10 rounded-full ${themeOption.color} ring-2 ring-offset-2 ring-offset-background transition-all ${
+                            colorTheme === themeOption.id 
+                              ? 'ring-foreground' 
+                              : 'ring-transparent hover:ring-muted-foreground'
+                          }`}
+                          title={themeOption.name}
+                        >
+                          {colorTheme === themeOption.id && (
+                            <Check className="absolute inset-0 m-auto h-5 w-5 text-white" />
+                          )}
+                        </button>
                       ))}
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Theme customization coming soon
+                      Select a color theme for the application
                     </p>
                   </div>
                 </CardContent>
