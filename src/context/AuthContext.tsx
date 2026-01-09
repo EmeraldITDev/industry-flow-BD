@@ -92,10 +92,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const userData = await authService.me();
           const convertedUser = convertToUser(userData);
           setUser(convertedUser);
-        } catch (error) {
-          // Token is invalid, clear storage
-          localStorage.removeItem('authToken');
-          localStorage.removeItem('user');
+        } catch (error: any) {
+          // Only clear token on 401, not on network errors
+          if (error.response?.status === 401) {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('user');
+          } else {
+            // For network errors, use stored user data as fallback
+            const convertedUser = convertToUser(storedUser);
+            setUser(convertedUser);
+          }
         }
       }
       setIsLoading(false);
