@@ -1,11 +1,14 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { ProjectCard } from '@/components/projects/ProjectCard';
 import { AdvancedFilters, FilterState } from '@/components/projects/AdvancedFilters';
-import { projects } from '@/data/mockData';
+import { projects as mockProjects } from '@/data/mockData';
+import { projectsService } from '@/services/projects';
 import { Button } from '@/components/ui/button';
-import { Plus, Grid3X3, List } from 'lucide-react';
+import { Plus, Grid3X3, List, Loader2 } from 'lucide-react';
 import { usePermissions } from '@/hooks/usePermissions';
+import { Project } from '@/types';
 
 const defaultFilters: FilterState = {
   search: '',
@@ -24,6 +27,16 @@ export default function Projects() {
   const [filters, setFilters] = useState<FilterState>(defaultFilters);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const { canCreateProjects } = usePermissions();
+
+  // Fetch projects from backend
+  const { data: backendProjects, isLoading, error } = useQuery({
+    queryKey: ['projects'],
+    queryFn: () => projectsService.getAll(),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  // Use backend data if available, fallback to mock data
+  const projects: Project[] = backendProjects || mockProjects;
 
   const filteredProjects = useMemo(() => {
     return projects.filter(project => {
@@ -64,14 +77,16 @@ export default function Projects() {
       
       return true;
     });
-  }, [filters]);
+  }, [projects, filters]);
 
   return (
     <div className="p-4 md:p-6 lg:p-8 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl lg:text-3xl font-bold">Projects</h1>
-          <p className="text-muted-foreground mt-1">{filteredProjects.length} projects found</p>
+          <p className="text-muted-foreground mt-1">
+            {isLoading ? 'Loading...' : `${filteredProjects.length} projects found`}
+          </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <div className="flex items-center border border-border rounded-md">
@@ -95,13 +110,19 @@ export default function Projects() {
 
       <AdvancedFilters filters={filters} onFiltersChange={setFilters} />
 
-      <div className={viewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6" : "space-y-4"}>
-        {filteredProjects.map(project => (
-          <ProjectCard key={project.id} project={project} />
-        ))}
-      </div>
+      {isLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+        </div>
+      ) : (
+        <div className={viewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6" : "space-y-4"}>
+          {filteredProjects.map(project => (
+            <ProjectCard key={project.id} project={project} />
+          ))}
+        </div>
+      )}
 
-      {filteredProjects.length === 0 && (
+      {!isLoading && filteredProjects.length === 0 && (
         <div className="text-center py-12">
           <p className="text-muted-foreground">No projects match your filters.</p>
           <Button variant="link" onClick={() => setFilters(defaultFilters)}>Clear filters</Button>
