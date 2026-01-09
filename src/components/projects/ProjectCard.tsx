@@ -5,7 +5,7 @@ import { Progress } from '@/components/ui/progress';
 import { sectorColors, sectorIcons, stageColors } from '@/data/mockData';
 import { Calendar, Users, CheckSquare, AlertTriangle } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { format, differenceInDays } from 'date-fns';
+import { format, differenceInDays, isValid } from 'date-fns';
 
 interface ProjectCardProps {
   project: Project;
@@ -19,6 +19,12 @@ function formatCurrency(value: number | undefined, currency: 'NGN' | 'USD'): str
   return `${symbol}${value}`;
 }
 
+function safeFormatDate(dateStr: string | undefined, formatStr: string): string {
+  if (!dateStr) return '-';
+  const date = new Date(dateStr);
+  return isValid(date) ? format(date, formatStr) : '-';
+}
+
 export function ProjectCard({ project }: ProjectCardProps) {
   const statusColors = {
     active: 'bg-chart-1/20 text-chart-1 border-chart-1/30',
@@ -26,13 +32,18 @@ export function ProjectCard({ project }: ProjectCardProps) {
     completed: 'bg-chart-2/20 text-chart-2 border-chart-2/30',
   };
 
-  const completedTasks = project.tasks.filter(t => t.status === 'completed').length;
+  const tasks = Array.isArray(project.tasks) ? project.tasks : [];
+  const completedTasks = tasks.filter(t => t.status === 'completed').length;
   const stageLabel = PIPELINE_STAGES.find(s => s.value === project.pipelineStage)?.label || project.pipelineStage;
   
   // Check for inactivity warning (3+ days)
-  const daysSinceUpdate = project.lastStageUpdate 
-    ? differenceInDays(new Date(), new Date(project.lastStageUpdate))
-    : 0;
+  let daysSinceUpdate = 0;
+  if (project.lastStageUpdate) {
+    const updateDate = new Date(project.lastStageUpdate);
+    if (isValid(updateDate)) {
+      daysSinceUpdate = differenceInDays(new Date(), updateDate);
+    }
+  }
   const showInactivityWarning = daysSinceUpdate >= 3 && project.status === 'active' && project.pipelineStage !== 'closure';
 
   return (
@@ -41,10 +52,10 @@ export function ProjectCard({ project }: ProjectCardProps) {
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className={`text-xs px-2 py-1 rounded-md font-medium ${sectorColors[project.sector as Sector]}`}>
-                {sectorIcons[project.sector as Sector]} {project.sector}
+              <span className={`text-xs px-2 py-1 rounded-md font-medium ${sectorColors[project.sector as Sector] || 'bg-muted text-muted-foreground'}`}>
+                {sectorIcons[project.sector as Sector] || '📁'} {project.sector}
               </span>
-              <Badge variant="outline" className={statusColors[project.status]}>
+              <Badge variant="outline" className={statusColors[project.status] || ''}>
                 {project.status}
               </Badge>
             </div>
@@ -58,7 +69,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
           <h3 className="font-semibold text-lg mt-2 group-hover:text-primary transition-colors line-clamp-2">
             {project.name}
           </h3>
-          <Badge variant="outline" className={`w-fit ${stageColors[project.pipelineStage]}`}>
+          <Badge variant="outline" className={`w-fit ${stageColors[project.pipelineStage] || ''}`}>
             {stageLabel}
           </Badge>
         </CardHeader>
@@ -82,23 +93,23 @@ export function ProjectCard({ project }: ProjectCardProps) {
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Progress</span>
-              <span className="font-medium">{project.progress}%</span>
+              <span className="font-medium">{project.progress || 0}%</span>
             </div>
-            <Progress value={project.progress} className="h-2" />
+            <Progress value={project.progress || 0} className="h-2" />
           </div>
 
           <div className="flex items-center justify-between text-sm text-muted-foreground pt-2 border-t border-border">
             <div className="flex items-center gap-1">
               <Users className="w-4 h-4" />
-              <span>{project.teamSize}</span>
+              <span>{project.teamSize || 0}</span>
             </div>
             <div className="flex items-center gap-1">
               <CheckSquare className="w-4 h-4" />
-              <span>{completedTasks}/{project.tasks.length}</span>
+              <span>{completedTasks}/{tasks.length}</span>
             </div>
             <div className="flex items-center gap-1">
               <Calendar className="w-4 h-4" />
-              <span>{format(new Date(project.startDate), 'MMM d')}</span>
+              <span>{safeFormatDate(project.startDate, 'MMM d')}</span>
             </div>
           </div>
         </CardContent>
