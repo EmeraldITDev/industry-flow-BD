@@ -240,7 +240,7 @@ export function AccessLevelManager() {
                           value={teamUser.systemRole || 'viewer'}
                           onValueChange={(value) => updateUserSystemRole(teamUser.id, value as SystemRole)}
                         >
-                          <SelectTrigger className="w-[150px] h-9">
+                          <SelectTrigger className="w-[170px] h-9">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -263,7 +263,7 @@ export function AccessLevelManager() {
                           value={teamUser.accessLevel}
                           onValueChange={(value) => updateUserRole(teamUser.id, value as AccessLevel)}
                         >
-                          <SelectTrigger className="w-[140px] h-9">
+                          <SelectTrigger className="w-[160px] h-9">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
