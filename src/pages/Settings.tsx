@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTheme } from 'next-themes';
 import { useAuth } from '@/context/AuthContext';
 import { AccessLevelManager } from '@/components/settings/AccessLevelManager';
 import { IntegrationSettings } from '@/components/integrations/IntegrationSettings';
@@ -34,8 +35,14 @@ const roleIcons = {
 
 export default function Settings() {
   const { user } = useAuth();
-  const [darkMode, setDarkMode] = useState(false);
+  const { theme, setTheme } = useTheme();
   const [notifications, setNotifications] = useState(true);
+  
+  const isDarkMode = theme === 'dark';
+  
+  const handleDarkModeChange = (checked: boolean) => {
+    setTheme(checked ? 'dark' : 'light');
+  };
 
   const getInitials = (name: string) => {
     return name
@@ -202,7 +209,7 @@ export default function Settings() {
                 <CardContent className="pt-6 space-y-6">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      {darkMode ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+                      {isDarkMode ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
                       <div className="space-y-0.5">
                         <Label className="text-base">Dark Mode</Label>
                         <p className="text-sm text-muted-foreground">
@@ -210,7 +217,7 @@ export default function Settings() {
                         </p>
                       </div>
                     </div>
-                    <Switch checked={darkMode} onCheckedChange={setDarkMode} />
+                    <Switch checked={isDarkMode} onCheckedChange={handleDarkModeChange} />
                   </div>
 
                   <Separator />
