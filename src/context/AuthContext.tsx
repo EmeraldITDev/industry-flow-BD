@@ -1,11 +1,12 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, AccessLevel, AuthState } from '@/types/auth';
+import { User, AccessLevel, AuthState, SystemRole } from '@/types/auth';
 import { toast } from 'sonner';
 
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   updateUserRole: (userId: string, newRole: AccessLevel) => boolean;
+  updateUserSystemRole: (userId: string, newSystemRole: SystemRole) => boolean;
   updateProfile: (updates: Partial<Pick<User, 'name' | 'avatarUrl'>>) => Promise<void>;
   canManageRole: (targetRole: AccessLevel) => boolean;
   canReassignProjects: () => boolean;
@@ -33,6 +34,7 @@ const initialUsers: User[] = [
     email: 'chiemela.ikechi@emeraldcfze.com',
     name: 'Chiemela Ikechi',
     accessLevel: 'bd_director',
+    systemRole: 'admin',
     createdAt: new Date('2024-01-01'),
     isActive: true,
   },
@@ -41,6 +43,7 @@ const initialUsers: User[] = [
     email: 'admin@emeraldcfze.com',
     name: 'System Admin',
     accessLevel: 'admin',
+    systemRole: 'admin',
     createdAt: new Date('2024-01-01'),
     isActive: true,
   },
@@ -49,6 +52,7 @@ const initialUsers: User[] = [
     email: 'pm@emeraldcfze.com',
     name: 'Project Manager',
     accessLevel: 'pm',
+    systemRole: 'project_manager',
     createdAt: new Date('2024-02-15'),
     isActive: true,
   },
@@ -57,6 +61,7 @@ const initialUsers: User[] = [
     email: 'sarah.johnson@emeraldcfze.com',
     name: 'Sarah Johnson',
     accessLevel: 'pm',
+    systemRole: 'project_manager',
     createdAt: new Date('2024-03-10'),
     isActive: true,
   },
@@ -65,6 +70,7 @@ const initialUsers: User[] = [
     email: 'michael.chen@emeraldcfze.com',
     name: 'Michael Chen',
     accessLevel: 'viewer',
+    systemRole: 'viewer',
     createdAt: new Date('2024-04-01'),
     isActive: true,
   },
@@ -203,6 +209,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return false;
   };
 
+  const updateUserSystemRole = (userId: string, newSystemRole: SystemRole): boolean => {
+    if (!user) return false;
+    
+    const targetUser = users.find(u => u.id === userId);
+    if (!targetUser) return false;
+
+    // Only admin can change system roles
+    if (user.systemRole !== 'admin') {
+      toast.error('You do not have permission to change system roles');
+      return false;
+    }
+
+    setUsers(prev => prev.map(u => 
+      u.id === userId ? { ...u, systemRole: newSystemRole } : u
+    ));
+    toast.success(`Updated ${targetUser.name}'s system role to ${newSystemRole}`);
+    return true;
+  };
+
   const getAllUsers = (): User[] => users;
 
   const addUser = (newUser: Omit<User, 'id' | 'createdAt' | 'isActive'>) => {
@@ -233,6 +258,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         logout,
         updateUserRole,
+        updateUserSystemRole,
         updateProfile,
         canManageRole,
         canReassignProjects,
