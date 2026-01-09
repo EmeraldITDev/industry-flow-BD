@@ -9,10 +9,11 @@ import { getDashboardStats } from '@/data/mockData';
 import { projectsService } from '@/services/projects';
 import { FolderKanban, Activity, CheckCircle, Clock, AlertTriangle, Loader2 } from 'lucide-react';
 import { DashboardStats } from '@/types';
+import { Button } from '@/components/ui/button';
 
 export default function Dashboard() {
   // Fetch stats from backend
-  const { data: backendStats, isLoading } = useQuery({
+  const { data: backendStats, isLoading, error } = useQuery({
     queryKey: ['dashboard-stats'],
     queryFn: () => projectsService.getStats(),
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -21,6 +22,26 @@ export default function Dashboard() {
   // Fallback to mock data if backend unavailable
   const mockStats = getDashboardStats();
   const stats: DashboardStats = backendStats || mockStats;
+
+  if (error) {
+    return (
+      <div className="p-3 sm:p-6 lg:p-8 space-y-3 sm:space-y-6">
+        <div>
+          <h1 className="text-lg sm:text-2xl lg:text-3xl font-bold">Dashboard</h1>
+          <p className="text-xs sm:text-base text-muted-foreground mt-0.5 sm:mt-1">Overview of projects and tasks</p>
+        </div>
+        <div className="flex flex-col items-center justify-center py-12">
+          <p className="text-destructive mb-2">Failed to load dashboard data</p>
+          <p className="text-muted-foreground text-sm mb-4">
+            {(error as any)?.message || 'Please check your connection'}
+          </p>
+          <Button variant="outline" onClick={() => window.location.reload()}>
+            Retry
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-3 sm:p-6 lg:p-8 space-y-3 sm:space-y-6">
