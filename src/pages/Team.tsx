@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -33,11 +34,19 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Plus, MoreHorizontal, Shield, Edit, Eye, Trash2, Users } from 'lucide-react';
+import { Plus, MoreHorizontal, Shield, Edit, Eye, Trash2, Users, UserPlus } from 'lucide-react';
 import { teamMembers as initialTeamMembers, projects } from '@/data/mockData';
 import { TeamMember, TeamRole } from '@/types';
 import { toast } from 'sonner';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useAuth } from '@/context/AuthContext';
+import { AccessLevel, ACCESS_LEVEL_CONFIG, SystemRole, SYSTEM_ROLE_CONFIG } from '@/types/auth';
+
+const SYSTEM_ROLES: { value: SystemRole; label: string; description: string }[] = [
+  { value: 'admin', label: 'Admin', description: 'Full system access' },
+  { value: 'project_manager', label: 'Project Manager', description: 'Manage projects and tasks' },
+  { value: 'viewer', label: 'Viewer', description: 'Read-only access' },
+];
 
 const roleColors: Record<TeamRole, string> = {
   admin: 'bg-destructive/20 text-destructive',
@@ -61,34 +70,35 @@ export default function Team() {
   const [members, setMembers] = useState<TeamMember[]>(initialTeamMembers);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    role: 'viewer' as TeamRole,
-    department: '',
-  });
+  const [newUserName, setNewUserName] = useState('');
+  const [newUserEmail, setNewUserEmail] = useState('');
+  const [newUserSystemRole, setNewUserSystemRole] = useState<SystemRole>('viewer');
+  const [newUserAccessLevel, setNewUserAccessLevel] = useState<AccessLevel>('viewer');
   const { canManageTeam } = usePermissions();
+  const { addUser, canManageRole } = useAuth();
 
   const handleAddMember = () => {
-    if (!formData.name || !formData.email || !formData.department) {
-      toast.error('Please fill in all required fields');
+    if (!newUserEmail.endsWith('@emeraldcfze.com')) {
+      toast.error('Email must end with @emeraldcfze.com');
+      return;
+    }
+    if (!newUserName.trim()) {
+      toast.error('Please enter a name');
       return;
     }
 
-    const newMember: TeamMember = {
-      id: `member-${Date.now()}`,
-      name: formData.name,
-      email: formData.email,
-      role: formData.role,
-      department: formData.department,
-      assignedProjects: [],
-      createdAt: new Date().toISOString(),
-    };
+    addUser({
+      email: newUserEmail,
+      name: newUserName,
+      accessLevel: newUserAccessLevel,
+      systemRole: newUserSystemRole,
+    });
 
-    setMembers([...members, newMember]);
-    setFormData({ name: '', email: '', role: 'viewer', department: '' });
+    setNewUserName('');
+    setNewUserEmail('');
+    setNewUserSystemRole('viewer');
+    setNewUserAccessLevel('viewer');
     setIsAddDialogOpen(false);
-    toast.success(`${newMember.name} has been added to the team`);
   };
 
   const handleUpdateRole = (memberId: string, newRole: TeamRole) => {
@@ -137,23 +147,26 @@ export default function Team() {
         {canManageTeam && (
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
+              <Button className="gap-2">
+                <UserPlus className="h-4 w-4" />
                 Add Member
               </Button>
             </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Add New Team Member</DialogTitle>
+              <DialogTitle>Add Team Member</DialogTitle>
+              <DialogDescription>
+                Invite a new member to Emerald PM
+              </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 pt-4">
+            <div className="space-y-4 mt-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Full Name</Label>
                 <Input
                   id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="John Doe"
+                  value={newUserName}
+                  onChange={(e) => setNewUserName(e.target.value)}
                 />
               </div>
               <div className="space-y-2">
@@ -161,40 +174,44 @@ export default function Team() {
                 <Input
                   id="email"
                   type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder="john@company.com"
+                  placeholder="john@emeraldcfze.com"
+                  value={newUserEmail}
+                  onChange={(e) => setNewUserEmail(e.target.value)}
                 />
+                <p className="text-xs text-muted-foreground">
+                  Must be an @emeraldcfze.com email
+                </p>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="department">Department</Label>
-                <Input
-                  id="department"
-                  value={formData.department}
-                  onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                  placeholder="Engineering"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="role">Role</Label>
-                <Select
-                  value={formData.role}
-                  onValueChange={(value: TeamRole) => setFormData({ ...formData, role: value })}
-                >
+                <Label>System Role</Label>
+                <Select value={newUserSystemRole} onValueChange={(v) => setNewUserSystemRole(v as SystemRole)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {(['admin', 'editor', 'viewer'] as TeamRole[]).map((role) => (
-                      <SelectItem key={role} value={role}>
-                        <div className="flex items-center gap-2">
-                          <span className="capitalize">{role}</span>
-                          <span className="text-xs text-muted-foreground">
-                            - {roleDescriptions[role]}
-                          </span>
-                        </div>
+                    {SYSTEM_ROLES.map((role) => (
+                      <SelectItem key={role.value} value={role.value}>
+                        <span>{role.label}</span>
+                        <span className="text-muted-foreground ml-1">- {role.description}</span>
                       </SelectItem>
                     ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Access Level</Label>
+                <Select value={newUserAccessLevel} onValueChange={(v) => setNewUserAccessLevel(v as AccessLevel)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(ACCESS_LEVEL_CONFIG)
+                      .filter(([key]) => canManageRole(key as AccessLevel))
+                      .map(([key, config]) => (
+                        <SelectItem key={key} value={key}>
+                          {config.label}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               </div>
