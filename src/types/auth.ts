@@ -1,15 +1,80 @@
 export type AccessLevel = 'admin' | 'bd_director' | 'pm' | 'viewer';
 
+export type SystemRole = 'admin' | 'project_manager' | 'viewer';
+
 export interface User {
   id: string;
   email: string;
   name: string;
   accessLevel: AccessLevel;
+  systemRole?: SystemRole;
   avatarUrl?: string;
   createdAt: Date;
   expiresAt?: Date; // For test accounts
   isActive: boolean;
 }
+
+export const SYSTEM_ROLE_CONFIG: Record<SystemRole, {
+  label: string;
+  description: string;
+  permissions: {
+    canCreateProjects: boolean;
+    canEditProjects: boolean;
+    canDeleteProjects: boolean;
+    canManageTeam: boolean;
+    canViewReports: boolean;
+    canManageSettings: boolean;
+    canAssignTasks: boolean;
+    canEditTasks: boolean;
+    canViewTasks: boolean;
+  };
+}> = {
+  admin: {
+    label: 'Admin',
+    description: 'Full system access',
+    permissions: {
+      canCreateProjects: true,
+      canEditProjects: true,
+      canDeleteProjects: true,
+      canManageTeam: true,
+      canViewReports: true,
+      canManageSettings: true,
+      canAssignTasks: true,
+      canEditTasks: true,
+      canViewTasks: true,
+    },
+  },
+  project_manager: {
+    label: 'Project Manager',
+    description: 'Manage projects and tasks',
+    permissions: {
+      canCreateProjects: true,
+      canEditProjects: true,
+      canDeleteProjects: false,
+      canManageTeam: false,
+      canViewReports: true,
+      canManageSettings: false,
+      canAssignTasks: true,
+      canEditTasks: true,
+      canViewTasks: true,
+    },
+  },
+  viewer: {
+    label: 'Viewer',
+    description: 'Read-only access',
+    permissions: {
+      canCreateProjects: false,
+      canEditProjects: false,
+      canDeleteProjects: false,
+      canManageTeam: false,
+      canViewReports: true,
+      canManageSettings: false,
+      canAssignTasks: false,
+      canEditTasks: false,
+      canViewTasks: true,
+    },
+  },
+};
 
 export interface AuthState {
   user: User | null;

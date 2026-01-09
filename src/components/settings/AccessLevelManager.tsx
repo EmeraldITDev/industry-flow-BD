@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { User, AccessLevel, ACCESS_LEVEL_CONFIG } from '@/types/auth';
+import { User, AccessLevel, ACCESS_LEVEL_CONFIG, SystemRole, SYSTEM_ROLE_CONFIG } from '@/types/auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -30,8 +30,6 @@ const roleIcons: Record<AccessLevel, React.ElementType> = {
   viewer: Eye,
 };
 
-type SystemRole = 'admin' | 'project_manager' | 'viewer';
-
 const SYSTEM_ROLES: { value: SystemRole; label: string; description: string }[] = [
   { value: 'admin', label: 'Admin', description: 'Full system access' },
   { value: 'project_manager', label: 'Project Manager', description: 'Manage projects and tasks' },
@@ -39,7 +37,7 @@ const SYSTEM_ROLES: { value: SystemRole; label: string; description: string }[] 
 ];
 
 export function AccessLevelManager() {
-  const { user, getAllUsers, updateUserRole, canManageRole, addUser, removeUser } = useAuth();
+  const { user, getAllUsers, updateUserRole, updateUserSystemRole, canManageRole, addUser, removeUser } = useAuth();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserName, setNewUserName] = useState('');
@@ -71,6 +69,7 @@ export function AccessLevelManager() {
       email: newUserEmail,
       name: newUserName,
       accessLevel: newUserRole,
+      systemRole: newUserSystemRole,
     });
 
     setNewUserEmail('');
@@ -90,6 +89,7 @@ export function AccessLevelManager() {
 
   const canAddUsers = user?.accessLevel === 'admin' || user?.accessLevel === 'bd_director';
   const canRemoveUsers = user?.accessLevel === 'admin';
+  const canEditSystemRoles = user?.systemRole === 'admin';
 
   return (
     <div className="space-y-6">
@@ -234,6 +234,30 @@ export function AccessLevelManager() {
                     </div>
 
                     <div className="flex items-center gap-3">
+                      {/* System Role */}
+                      {canEditSystemRoles && !isCurrentUser ? (
+                        <Select
+                          value={teamUser.systemRole || 'viewer'}
+                          onValueChange={(value) => updateUserSystemRole(teamUser.id, value as SystemRole)}
+                        >
+                          <SelectTrigger className="w-[150px] h-9">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {SYSTEM_ROLES.map((role) => (
+                              <SelectItem key={role.value} value={role.value}>
+                                {role.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Badge variant="secondary" className="text-xs">
+                          {SYSTEM_ROLE_CONFIG[teamUser.systemRole || 'viewer']?.label || 'Viewer'}
+                        </Badge>
+                      )}
+
+                      {/* Access Level */}
                       {canEdit ? (
                         <Select
                           value={teamUser.accessLevel}
