@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,12 +20,14 @@ import { Separator } from '@/components/ui/separator';
 import { CalendarIcon, Plus, X, AlertTriangle, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { sectors, teamMembers, businessSegments } from '@/data/mockData';
-import { Sector, RiskLevel, Milestone, PipelineStage, BusinessSegment, PIPELINE_STAGES, ProjectDocument } from '@/types';
+import { sectors, businessSegments } from '@/data/mockData';
+import { Sector, RiskLevel, Milestone, PipelineStage, BusinessSegment, PIPELINE_STAGES, ProjectDocument, TeamMember } from '@/types';
 import { toast } from 'sonner';
 import { PipelineStageSelector } from '@/components/projects/PipelineStageSelector';
 import { DocumentManager } from '@/components/projects/DocumentManager';
 import { projectsService } from '@/services/projects';
+import { teamService } from '@/services/team';
+import { useAuth } from '@/context/AuthContext';
 
 const riskLevels: { value: RiskLevel; label: string; color: string }[] = [
   { value: 'low', label: 'Low', color: 'bg-chart-2/20 text-chart-2' },
@@ -35,6 +38,22 @@ const riskLevels: { value: RiskLevel; label: string; color: string }[] = [
 
 export default function NewProject() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  
+  // Fetch team members from backend
+  const { data: teamMembers = [], isLoading: isLoadingTeam } = useQuery({
+    queryKey: ['team'],
+    queryFn: () => teamService.getAll(),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Find admin user (Chiemela) to default as project lead
+  const adminUser = teamMembers.find((m: any) => 
+    m.email?.toLowerCase().includes('chiemela') || 
+    m.role?.toLowerCase() === 'admin' ||
+    m.systemRole?.toLowerCase() === 'admin'
+  );
+  
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -71,6 +90,13 @@ export default function NewProject() {
     // Comments
     projectLeadComments: '',
   });
+
+  // Set default project lead when team members load
+  useEffect(() => {
+    if (adminUser && !formData.projectLeadId) {
+      setFormData(prev => ({ ...prev, projectLeadId: String(adminUser.id) }));
+    }
+  }, [adminUser, formData.projectLeadId]);
 
   const [milestones, setMilestones] = useState<Omit<Milestone, 'id'>[]>([]);
   const [newMilestone, setNewMilestone] = useState({ title: '', dueDate: undefined as Date | undefined });
@@ -452,7 +478,15 @@ export default function NewProject() {
                 <Select value={formData.projectLeadId} onValueChange={(value) => setFormData({ ...formData, projectLeadId: value })}>
                   <SelectTrigger><SelectValue placeholder="Select lead" /></SelectTrigger>
                   <SelectContent>
-                    {teamMembers.map((m) => (<SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>))}
+                    {isLoadingTeam ? (
+                      <SelectItem value="" disabled>Loading team members...</SelectItem>
+                    ) : teamMembers.length === 0 ? (
+                      <SelectItem value="" disabled>No team members found</SelectItem>
+                    ) : (
+                      teamMembers.map((m: any) => (
+                        <SelectItem key={m.id} value={String(m.id)}>{m.name}</SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -461,20 +495,40 @@ export default function NewProject() {
                 <Select value={formData.assigneeId} onValueChange={(value) => setFormData({ ...formData, assigneeId: value })}>
                   <SelectTrigger><SelectValue placeholder="Select assignee" /></SelectTrigger>
                   <SelectContent>
-                    {teamMembers.map((m) => (<SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>))}
+                    {isLoadingTeam ? (
+                      <SelectItem value="" disabled>Loading team members...</SelectItem>
+                    ) : teamMembers.length === 0 ? (
+                      <SelectItem value="" disabled>No team members found</SelectItem>
+                    ) : (
+                      teamMembers.map((m: any) => (
+                        <SelectItem key={m.id} value={String(m.id)}>{m.name}</SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
               </div>
             </div>
             <div>
               <Label className="mb-2 block">Team Members</Label>
-              <div className="flex flex-wrap gap-2">
-                {teamMembers.map((member) => (
-                  <Badge key={member.id} variant={formData.teamMemberIds.includes(member.id) ? 'default' : 'outline'} className="cursor-pointer" onClick={() => handleTeamMemberToggle(member.id)}>
-                    {member.name}{formData.teamMemberIds.includes(member.id) && <X className="ml-1 h-3 w-3" />}
-                  </Badge>
-                ))}
-              </div>
+              {isLoadingTeam ? (
+                <p className="text-sm text-muted-foreground">Loading team members...</p>
+              ) : teamMembers.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No team members found. Add team members in the Team page first.</p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {teamMembers.map((member: any) => (
+                    <Badge 
+                      key={member.id} 
+                      variant={formData.teamMemberIds.includes(String(member.id)) ? 'default' : 'outline'} 
+                      className="cursor-pointer" 
+                      onClick={() => handleTeamMemberToggle(String(member.id))}
+                    >
+                      {member.name}
+                      {formData.teamMemberIds.includes(String(member.id)) && <X className="ml-1 h-3 w-3" />}
+                    </Badge>
+                  ))}
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
