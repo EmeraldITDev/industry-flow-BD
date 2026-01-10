@@ -200,7 +200,8 @@ export default function Team() {
     toast.success('Project assignment updated');
   };
 
-  const getInitials = (name: string) => {
+  const getInitials = (name?: string | null) => {
+    if (!name) return 'U';
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
   };
 

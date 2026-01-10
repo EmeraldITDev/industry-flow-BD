@@ -29,7 +29,8 @@ export function KanbanBoard({ tasks: initialTasks, onTaskMove }: KanbanBoardProp
     urgent: 'bg-destructive/20 text-destructive',
   };
 
-  const getInitials = (name: string) => {
+  const getInitials = (name?: string | null) => {
+    if (!name) return 'U';
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
   };
 

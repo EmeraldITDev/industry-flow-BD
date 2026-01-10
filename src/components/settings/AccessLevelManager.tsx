@@ -46,7 +46,8 @@ export function AccessLevelManager() {
 
   const allUsers = getAllUsers();
 
-  const getInitials = (name: string) => {
+  const getInitials = (name?: string | null) => {
+    if (!name) return 'U';
     return name
       .split(' ')
       .map(n => n[0])
