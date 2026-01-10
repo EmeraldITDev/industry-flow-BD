@@ -24,6 +24,11 @@ interface ChangePasswordData {
   newPassword_confirmation: string;
 }
 
+interface ResetPasswordData {
+  userId: string;
+  newPassword: string;
+}
+
 export const authService = {
   // Login
   login: async (credentials: LoginCredentials): Promise<LoginResponse> => {
@@ -59,9 +64,15 @@ export const authService = {
     return response.data;
   },
 
-  // Change password
+  // Change password (for current user)
   changePassword: async (data: ChangePasswordData) => {
     const response = await api.post('/api/auth/change-password', data);
+    return response.data;
+  },
+
+  // Admin reset password for a team member
+  resetMemberPassword: async (data: ResetPasswordData) => {
+    const response = await api.post('/api/auth/reset-password', data);
     return response.data;
   },
 
