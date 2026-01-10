@@ -4,6 +4,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useColorTheme, ColorTheme } from '@/context/ColorThemeContext';
 import { AccessLevelManager } from '@/components/settings/AccessLevelManager';
 import { IntegrationSettings } from '@/components/integrations/IntegrationSettings';
+import { PasswordManagement } from '@/components/settings/PasswordManagement';
 import { ACCESS_LEVEL_CONFIG } from '@/types/auth';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
@@ -25,7 +26,8 @@ import {
   Eye,
   Moon,
   Sun,
-  Check
+  Check,
+  Key
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -117,10 +119,14 @@ export default function Settings() {
 
         {/* Settings Tabs */}
         <Tabs defaultValue="access" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-grid h-auto p-1 bg-muted/50">
+          <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-grid h-auto p-1 bg-muted/50">
             <TabsTrigger value="access" className="gap-2 data-[state=active]:bg-background py-2.5">
               <Shield className="h-4 w-4" />
               <span className="hidden sm:inline">Access</span>
+            </TabsTrigger>
+            <TabsTrigger value="password" className="gap-2 data-[state=active]:bg-background py-2.5">
+              <Key className="h-4 w-4" />
+              <span className="hidden sm:inline">Password</span>
             </TabsTrigger>
             <TabsTrigger value="integrations" className="gap-2 data-[state=active]:bg-background py-2.5">
               <Link2 className="h-4 w-4" />
@@ -139,6 +145,11 @@ export default function Settings() {
           {/* Access Management Tab */}
           <TabsContent value="access" className="mt-6 animate-fade-in">
             <AccessLevelManager />
+          </TabsContent>
+
+          {/* Password Management Tab */}
+          <TabsContent value="password" className="mt-6 animate-fade-in">
+            <PasswordManagement />
           </TabsContent>
 
           {/* Integrations Tab */}

@@ -1,28 +1,101 @@
 import { useParams, Link } from 'react-router-dom';
-import { getProjectById, sectorColors, sectorIcons } from '@/data/mockData';
+import { useState, useEffect } from 'react';
+import { sectorColors, sectorIcons } from '@/data/mockData';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { TaskList } from '@/components/tasks/TaskList';
 import { KanbanBoard } from '@/components/tasks/KanbanBoard';
-import { Sector } from '@/types';
+import { Project, Sector } from '@/types';
+import { projectsService } from '@/services/projects';
 import { 
   ArrowLeft, 
   Calendar, 
   Users, 
   CheckSquare, 
   MoreHorizontal,
-  Plus
+  Plus,
+  RefreshCw,
+  AlertCircle
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { usePermissions } from '@/hooks/usePermissions';
 
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
-  const project = getProjectById(id || '');
+  const [project, setProject] = useState<Project | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { canEditProjects, canAssignTasks } = usePermissions();
+
+  const fetchProject = async () => {
+    if (!id) return;
+    
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const data = await projectsService.getById(id);
+      setProject(data);
+    } catch (err: any) {
+      console.error('Failed to fetch project:', err);
+      setError(err.response?.data?.message || 'Failed to load project');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProject();
+  }, [id]);
+
+  if (isLoading) {
+    return (
+      <div className="p-6 lg:p-8 space-y-6">
+        <div className="flex items-center gap-4">
+          <Skeleton className="h-10 w-10 rounded-md" />
+          <div className="flex-1 space-y-2">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-8 w-64" />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          <div className="lg:col-span-3 space-y-6">
+            <Skeleton className="h-32 w-full" />
+            <Skeleton className="h-64 w-full" />
+          </div>
+          <div className="space-y-6">
+            <Skeleton className="h-40 w-full" />
+            <Skeleton className="h-48 w-full" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6 lg:p-8">
+        <div className="text-center py-12">
+          <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
+          <h2 className="text-xl font-semibold mb-2">Error loading project</h2>
+          <p className="text-muted-foreground mb-4">{error}</p>
+          <div className="flex items-center justify-center gap-4">
+            <Button variant="outline" onClick={fetchProject}>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Retry
+            </Button>
+            <Button variant="link" asChild>
+              <Link to="/projects">← Back to projects</Link>
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!project) {
     return (
@@ -43,7 +116,8 @@ export default function ProjectDetail() {
     completed: 'bg-chart-2/20 text-chart-2 border-chart-2/30',
   };
 
-  const completedTasks = project.tasks.filter(t => t.status === 'completed').length;
+  const tasks = project.tasks || [];
+  const completedTasks = tasks.filter(t => t.status === 'completed').length;
 
   return (
     <div className="p-6 lg:p-8 space-y-6">
@@ -55,10 +129,10 @@ export default function ProjectDetail() {
         </Button>
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-1">
-            <span className={`text-xs px-2 py-1 rounded-md font-medium ${sectorColors[project.sector as Sector]}`}>
-              {sectorIcons[project.sector as Sector]} {project.sector}
+            <span className={`text-xs px-2 py-1 rounded-md font-medium ${sectorColors[project.sector as Sector] || 'bg-muted text-muted-foreground'}`}>
+              {sectorIcons[project.sector as Sector] || '📁'} {project.sector}
             </span>
-            <Badge variant="outline" className={statusColors[project.status]}>
+            <Badge variant="outline" className={statusColors[project.status] || ''}>
               {project.status}
             </Badge>
           </div>
@@ -78,7 +152,47 @@ export default function ProjectDetail() {
               <CardTitle>About this project</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground">{project.description}</p>
+              <p className="text-muted-foreground">{project.description || 'No description provided.'}</p>
+              
+              {/* Additional project details */}
+              <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-4 pt-4 border-t">
+                {project.clientName && (
+                  <div>
+                    <p className="text-xs text-muted-foreground">Client</p>
+                    <p className="font-medium text-sm">{project.clientName}</p>
+                  </div>
+                )}
+                {project.oem && (
+                  <div>
+                    <p className="text-xs text-muted-foreground">OEM</p>
+                    <p className="font-medium text-sm">{project.oem}</p>
+                  </div>
+                )}
+                {project.location && (
+                  <div>
+                    <p className="text-xs text-muted-foreground">Location</p>
+                    <p className="font-medium text-sm">{project.location}</p>
+                  </div>
+                )}
+                {project.businessSegment && (
+                  <div>
+                    <p className="text-xs text-muted-foreground">Business Segment</p>
+                    <p className="font-medium text-sm">{project.businessSegment}</p>
+                  </div>
+                )}
+                {project.pipelineStage && (
+                  <div>
+                    <p className="text-xs text-muted-foreground">Pipeline Stage</p>
+                    <p className="font-medium text-sm capitalize">{project.pipelineStage}</p>
+                  </div>
+                )}
+                {project.budget && (
+                  <div>
+                    <p className="text-xs text-muted-foreground">Budget</p>
+                    <p className="font-medium text-sm">${project.budget.toLocaleString()}</p>
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
 
@@ -96,10 +210,10 @@ export default function ProjectDetail() {
               )}
             </div>
             <TabsContent value="kanban" className="mt-0">
-              <KanbanBoard tasks={project.tasks} />
+              <KanbanBoard tasks={tasks} />
             </TabsContent>
             <TabsContent value="list" className="mt-0">
-              <TaskList tasks={project.tasks} />
+              <TaskList tasks={tasks} />
             </TabsContent>
           </Tabs>
         </div>
@@ -113,14 +227,14 @@ export default function ProjectDetail() {
               <div>
                 <div className="flex items-center justify-between text-sm mb-2">
                   <span className="text-muted-foreground">Overall</span>
-                  <span className="font-medium">{project.progress}%</span>
+                  <span className="font-medium">{project.progress || 0}%</span>
                 </div>
-                <Progress value={project.progress} className="h-3" />
+                <Progress value={project.progress || 0} className="h-3" />
               </div>
               <div className="pt-4 border-t border-border">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Tasks completed</span>
-                  <span className="font-medium">{completedTasks}/{project.tasks.length}</span>
+                  <span className="font-medium">{completedTasks}/{tasks.length}</span>
                 </div>
               </div>
             </CardContent>
@@ -137,7 +251,9 @@ export default function ProjectDetail() {
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Start Date</p>
-                  <p className="font-medium text-sm">{format(new Date(project.startDate), 'MMM d, yyyy')}</p>
+                  <p className="font-medium text-sm">
+                    {project.startDate ? format(new Date(project.startDate), 'MMM d, yyyy') : 'Not set'}
+                  </p>
                 </div>
               </div>
               {project.endDate && (
@@ -151,13 +267,24 @@ export default function ProjectDetail() {
                   </div>
                 </div>
               )}
+              {project.expectedCloseDate && (
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-md bg-accent">
+                    <Calendar className="w-4 h-4 text-accent-foreground" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Expected Close</p>
+                    <p className="font-medium text-sm">{format(new Date(project.expectedCloseDate), 'MMM d, yyyy')}</p>
+                  </div>
+                </div>
+              )}
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-md bg-accent">
                   <Users className="w-4 h-4 text-accent-foreground" />
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Team Size</p>
-                  <p className="font-medium text-sm">{project.teamSize} members</p>
+                  <p className="font-medium text-sm">{project.teamSize || 0} members</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
@@ -166,7 +293,7 @@ export default function ProjectDetail() {
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Total Tasks</p>
-                  <p className="font-medium text-sm">{project.tasks.length} tasks</p>
+                  <p className="font-medium text-sm">{tasks.length} tasks</p>
                 </div>
               </div>
             </CardContent>

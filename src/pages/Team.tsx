@@ -121,31 +121,37 @@ export default function Team() {
 
     const generatedPassword = generatePassword();
     const teamRole = getTeamRoleFromSystemRole(newUserSystemRole);
+    const normalizedEmail = newUserEmail.toLowerCase().trim();
 
     setIsSubmitting(true);
     try {
-      const newMember = await teamService.create({
+      // Send password to backend so it can create the user with auth credentials
+      const response = await teamService.create({
         name: newUserName,
-        email: newUserEmail,
+        email: normalizedEmail,
         role: teamRole,
         department: newUserDepartment || 'General',
         systemRole: newUserSystemRole,
         accessLevel: newUserAccessLevel,
-      });
+        password: generatedPassword, // Backend will hash this
+      } as any);
+
+      // Use password from response if backend generates it, otherwise use our generated one
+      const finalPassword = (response as any).password || generatedPassword;
 
       // Add to local state
-      setMembers(prev => [...prev, newMember]);
+      setMembers(prev => [...prev, response]);
 
       // Also add to auth context
       addUser({
-        email: newUserEmail,
+        email: normalizedEmail,
         name: newUserName,
         accessLevel: newUserAccessLevel,
         systemRole: newUserSystemRole,
       });
 
       // Show credentials dialog
-      setNewUserCredentials({ email: newUserEmail, password: generatedPassword });
+      setNewUserCredentials({ email: normalizedEmail, password: finalPassword });
       setIsAddDialogOpen(false);
       setIsCredentialsDialogOpen(true);
 
@@ -159,7 +165,10 @@ export default function Team() {
       toast.success('Team member added successfully!');
     } catch (error: any) {
       console.error('Failed to add team member:', error);
-      toast.error(error.response?.data?.message || 'Failed to add team member. Please try again.');
+      const errorMessage = error.response?.data?.message 
+        || error.response?.data?.error 
+        || 'Failed to add team member. Please check your backend connection.';
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
