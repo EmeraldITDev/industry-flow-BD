@@ -21,11 +21,18 @@ export interface TeamMemberFilters {
   search?: string;
 }
 
+// Helper to normalize array responses from backend
+const normalizeArray = (data: any): any[] => {
+  if (Array.isArray(data)) return data;
+  if (data && Array.isArray(data.data)) return data.data;
+  return [];
+};
+
 export const teamService = {
   // Get all team members
   getAll: async (filters?: TeamMemberFilters): Promise<TeamMember[]> => {
     const response = await api.get('/api/team', { params: filters });
-    return response.data;
+    return normalizeArray(response.data);
   },
 
   // Get single team member by ID

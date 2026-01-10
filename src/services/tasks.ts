@@ -24,17 +24,24 @@ export interface TaskFilters {
   assigneeId?: string;
 }
 
+// Helper to normalize array responses from backend
+const normalizeArray = (data: any): any[] => {
+  if (Array.isArray(data)) return data;
+  if (data && Array.isArray(data.data)) return data.data;
+  return [];
+};
+
 export const tasksService = {
   // Get all tasks (optionally filtered by project)
   getAll: async (filters?: TaskFilters): Promise<Task[]> => {
     const response = await api.get('/api/tasks', { params: filters });
-    return response.data;
+    return normalizeArray(response.data);
   },
 
   // Get tasks for a specific project
   getByProject: async (projectId: string): Promise<Task[]> => {
     const response = await api.get(`/api/projects/${projectId}/tasks`);
-    return response.data;
+    return normalizeArray(response.data);
   },
 
   // Get single task by ID
