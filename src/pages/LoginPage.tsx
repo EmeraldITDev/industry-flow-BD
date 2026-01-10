@@ -26,7 +26,8 @@ export default function LoginPage() {
     e.preventDefault();
     setIsLoggingIn(true);
     
-    const success = await login(email, password);
+    const normalizedEmail = email.toLowerCase().trim();
+    const success = await login(normalizedEmail, password);
     
     if (success) {
       navigate('/', { replace: true });
