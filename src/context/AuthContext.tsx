@@ -53,8 +53,8 @@ const mapRoleToSystemRole = (role: string): SystemRole => {
 // Convert backend user to frontend User type
 const convertToUser = (backendUser: any): User => ({
   id: String(backendUser.id),
-  email: backendUser.email,
-  name: backendUser.name,
+  email: backendUser.email || '',
+  name: backendUser.name || backendUser.email?.split('@')[0] || 'User',
   accessLevel: mapRoleToAccessLevel(backendUser.role),
   systemRole: mapRoleToSystemRole(backendUser.role),
   avatarUrl: backendUser.avatarUrl,
