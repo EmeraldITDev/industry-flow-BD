@@ -1,5 +1,6 @@
 import { useParams, Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { sectorColors, sectorIcons } from '@/data/mockData';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -9,8 +10,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TaskList } from '@/components/tasks/TaskList';
 import { KanbanBoard } from '@/components/tasks/KanbanBoard';
+import { AddTaskDialog } from '@/components/tasks/AddTaskDialog';
 import { Project, Sector } from '@/types';
 import { projectsService } from '@/services/projects';
+import { tasksService } from '@/services/tasks';
 import { 
   ArrowLeft, 
   Calendar, 
@@ -26,10 +29,20 @@ import { usePermissions } from '@/hooks/usePermissions';
 
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
+  const queryClient = useQueryClient();
   const [project, setProject] = useState<Project | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [addTaskOpen, setAddTaskOpen] = useState(false);
   const { canEditProjects, canAssignTasks } = usePermissions();
+
+  // Fetch tasks separately for refresh capability
+  const { data: projectTasks = [], refetch: refetchTasks } = useQuery({
+    queryKey: ['project-tasks', id],
+    queryFn: () => id ? tasksService.getByProject(id) : Promise.resolve([]),
+    enabled: !!id,
+    staleTime: 60 * 1000,
+  });
 
   const fetchProject = async () => {
     if (!id) return;
@@ -160,8 +173,14 @@ export default function ProjectDetail() {
     completed: 'bg-chart-2/20 text-chart-2 border-chart-2/30',
   };
 
-  const tasks = project.tasks || [];
+  // Use tasks from API or fallback to project.tasks
+  const tasks = projectTasks.length > 0 ? projectTasks : (project.tasks || []);
   const completedTasks = tasks.filter(t => t.status === 'completed').length;
+
+  const handleTaskCreated = () => {
+    refetchTasks();
+    fetchProject(); // Refresh project to update task count
+  };
 
   return (
     <div className="p-6 lg:p-8 space-y-6">
@@ -247,7 +266,7 @@ export default function ProjectDetail() {
                 <TabsTrigger value="list">Task List</TabsTrigger>
               </TabsList>
               {canAssignTasks && (
-                <Button size="sm">
+                <Button size="sm" onClick={() => setAddTaskOpen(true)}>
                   <Plus className="w-4 h-4 mr-2" />
                   Add Task
                 </Button>
@@ -260,6 +279,14 @@ export default function ProjectDetail() {
               <TaskList tasks={tasks} />
             </TabsContent>
           </Tabs>
+
+          {/* Add Task Dialog */}
+          <AddTaskDialog
+            open={addTaskOpen}
+            onOpenChange={setAddTaskOpen}
+            projectId={id || ''}
+            onTaskCreated={handleTaskCreated}
+          />
         </div>
 
         <div className="space-y-6">

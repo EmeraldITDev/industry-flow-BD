@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ProjectCard } from '@/components/projects/ProjectCard';
 import { AdvancedFilters, FilterState } from '@/components/projects/AdvancedFilters';
@@ -7,7 +7,7 @@ import { projectsService } from '@/services/projects';
 import { Button } from '@/components/ui/button';
 import { Plus, Grid3X3, List, Loader2 } from 'lucide-react';
 import { usePermissions } from '@/hooks/usePermissions';
-import { Project } from '@/types';
+import { Project, Sector } from '@/types';
 
 const defaultFilters: FilterState = {
   search: '',
@@ -22,9 +22,35 @@ const defaultFilters: FilterState = {
   channelPartner: '',
 };
 
+// Mapping for sector display names
+const sectorDisplayNames: Record<string, string> = {
+  'Manufacturing': 'Manufacturing Projects',
+  'Energy': 'Energy Projects',
+  'Oil and Gas': 'Oil & Gas Projects',
+  'Commodity Trading': 'Commodity Trading Projects',
+};
+
 export default function Projects() {
-  const [filters, setFilters] = useState<FilterState>(defaultFilters);
+  const [searchParams] = useSearchParams();
+  const sectorParam = searchParams.get('sector');
+  
+  const [filters, setFilters] = useState<FilterState>(() => ({
+    ...defaultFilters,
+    sector: (sectorParam as Sector | 'all') || 'all',
+  }));
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  
+  // Update filters when sector param changes
+  useEffect(() => {
+    if (sectorParam) {
+      setFilters(prev => ({ ...prev, sector: sectorParam as Sector }));
+    }
+  }, [sectorParam]);
+  
+  // Calculate page title based on sector filter
+  const pageTitle = sectorParam && sectorDisplayNames[sectorParam] 
+    ? sectorDisplayNames[sectorParam] 
+    : 'Projects';
   const { canCreateProjects } = usePermissions();
 
   // Fetch projects from backend
@@ -82,7 +108,7 @@ export default function Projects() {
     <div className="p-4 md:p-6 lg:p-8 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl lg:text-3xl font-bold">Projects</h1>
+          <h1 className="text-2xl lg:text-3xl font-bold">{pageTitle}</h1>
           <p className="text-muted-foreground mt-1">
             {isLoading ? 'Loading...' : `${filteredProjects.length} projects found`}
           </p>
