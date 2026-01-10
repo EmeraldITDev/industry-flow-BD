@@ -5,7 +5,6 @@ import { RecentProjects } from '@/components/dashboard/RecentProjects';
 import { TasksSummary } from '@/components/dashboard/TasksSummary';
 import { RevenueAnalytics } from '@/components/dashboard/RevenueAnalytics';
 import { ProjectCalendar } from '@/components/calendar/ProjectCalendar';
-import { getDashboardStats } from '@/data/mockData';
 import { projectsService } from '@/services/projects';
 import { FolderKanban, Activity, CheckCircle, Clock, AlertTriangle, Loader2 } from 'lucide-react';
 import { DashboardStats } from '@/types';
@@ -19,9 +18,14 @@ export default function Dashboard() {
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  // Fallback to mock data if backend unavailable
-  const mockStats = getDashboardStats();
-  const stats: DashboardStats = backendStats || mockStats;
+  // Use backend data only - no mock fallback
+  const stats: DashboardStats = backendStats || {
+    totalProjects: 0,
+    activeProjects: 0,
+    completedTasks: 0,
+    pendingTasks: 0,
+    overdueTasks: 0,
+  };
 
   if (error) {
     return (
