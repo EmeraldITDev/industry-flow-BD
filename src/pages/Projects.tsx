@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ProjectCard } from '@/components/projects/ProjectCard';
 import { AdvancedFilters, FilterState } from '@/components/projects/AdvancedFilters';
-import { projects as mockProjects } from '@/data/mockData';
 import { projectsService } from '@/services/projects';
 import { Button } from '@/components/ui/button';
 import { Plus, Grid3X3, List, Loader2 } from 'lucide-react';
@@ -35,8 +34,8 @@ export default function Projects() {
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  // Use backend data if available and valid array, fallback to mock data
-  const projects: Project[] = Array.isArray(backendProjects) ? backendProjects : mockProjects;
+  // Use backend data only - no mock fallback
+  const projects: Project[] = Array.isArray(backendProjects) ? backendProjects : [];
 
   const filteredProjects = useMemo(() => {
     return projects.filter(project => {

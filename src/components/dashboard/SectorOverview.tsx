@@ -1,22 +1,46 @@
+import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { sectors, sectorColors, sectorIcons, projects } from '@/data/mockData';
-import { Sector } from '@/types';
+import { Skeleton } from '@/components/ui/skeleton';
+import { sectors, sectorColors, sectorIcons } from '@/data/mockData';
+import { Sector, Project } from '@/types';
+import { projectsService } from '@/services/projects';
 
 export function SectorOverview() {
+  const { data: projects, isLoading } = useQuery({
+    queryKey: ['projects'],
+    queryFn: () => projectsService.getAll(),
+    staleTime: 5 * 60 * 1000,
+  });
+
   const sectorStats = sectors.map(sector => {
-    const sectorProjects = projects.filter(p => p.sector === sector);
+    const sectorProjects = (projects || []).filter((p: Project) => p.sector === sector);
     const avgProgress = sectorProjects.length 
-      ? Math.round(sectorProjects.reduce((acc, p) => acc + p.progress, 0) / sectorProjects.length)
+      ? Math.round(sectorProjects.reduce((acc: number, p: Project) => acc + (p.progress || 0), 0) / sectorProjects.length)
       : 0;
     
     return {
       sector,
       projectCount: sectorProjects.length,
       avgProgress,
-      activeCount: sectorProjects.filter(p => p.status === 'active').length,
+      activeCount: sectorProjects.filter((p: Project) => p.status === 'active').length,
     };
   });
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader className="p-3 sm:p-6">
+          <CardTitle className="text-base sm:text-lg">Sector Overview</CardTitle>
+        </CardHeader>
+        <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0 space-y-3 sm:space-y-6">
+          {sectors.map((_, i) => (
+            <Skeleton key={i} className="h-12" />
+          ))}
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
