@@ -18,7 +18,8 @@ export function ProfileEditDialog({ open, onOpenChange }: ProfileEditDialogProps
   const [avatarUrl, setAvatarUrl] = useState(user?.avatarUrl || '');
   const [isSaving, setIsSaving] = useState(false);
 
-  const getInitials = (name: string) => {
+  const getInitials = (name?: string | null) => {
+    if (!name) return 'U';
     return name
       .split(' ')
       .map(n => n[0])

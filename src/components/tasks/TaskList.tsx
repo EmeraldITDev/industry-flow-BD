@@ -33,7 +33,8 @@ export function TaskList({ tasks, title, onTaskUpdate }: TaskListProps) {
     completed: 'bg-chart-1/20 text-chart-1',
   };
 
-  const getInitials = (name: string) => {
+  const getInitials = (name?: string | null) => {
+    if (!name) return 'U';
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
   };
 

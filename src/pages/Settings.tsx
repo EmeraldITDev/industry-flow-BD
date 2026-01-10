@@ -63,7 +63,8 @@ export default function Settings() {
     { id: 'amber', name: 'Amber', color: 'bg-[hsl(35,85%,45%)]' },
   ];
 
-  const getInitials = (name: string) => {
+  const getInitials = (name?: string | null) => {
+    if (!name) return 'U';
     return name
       .split(' ')
       .map(n => n[0])
