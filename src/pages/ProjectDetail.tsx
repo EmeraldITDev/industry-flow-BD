@@ -38,8 +38,52 @@ export default function ProjectDetail() {
     setError(null);
     
     try {
-      const data = await projectsService.getById(id);
-      setProject(data);
+      const response = await projectsService.getById(id);
+      console.log('Project API response:', response);
+      
+      // Handle both direct data and wrapped { data: ... } response
+      const data: any = (response as any)?.data || response;
+      
+      // Map snake_case fields from Laravel to camelCase for frontend
+      const mappedProject: Project = {
+        id: data.id,
+        name: data.name || '',
+        description: data.description || '',
+        sector: data.sector || 'technology',
+        status: data.status || 'active',
+        progress: data.progress || 0,
+        startDate: data.start_date || data.startDate || '',
+        endDate: data.end_date || data.endDate,
+        budget: data.budget,
+        spentBudget: data.spent_budget || data.spentBudget,
+        teamSize: data.team_size || data.teamSize || 0,
+        clientName: data.client_name || data.clientName,
+        clientContact: data.client_contact || data.clientContact,
+        oem: data.oem,
+        location: data.location,
+        businessSegment: data.business_segment || data.businessSegment,
+        pipelineStage: data.pipeline_stage || data.pipelineStage,
+        pipelineIntakeDate: data.pipeline_intake_date || data.pipelineIntakeDate,
+        expectedCloseDate: data.expected_close_date || data.expectedCloseDate,
+        product: data.product,
+        subProduct: data.sub_product || data.subProduct,
+        channelPartner: data.channel_partner || data.channelPartner,
+        contractValueNGN: data.contract_value_ngn || data.contractValueNGN,
+        contractValueUSD: data.contract_value_usd || data.contractValueUSD,
+        marginPercentNGN: data.margin_percent_ngn || data.marginPercentNGN,
+        marginPercentUSD: data.margin_percent_usd || data.marginPercentUSD,
+        projectLeadId: data.project_lead_id || data.projectLeadId,
+        assigneeId: data.assignee_id || data.assigneeId,
+        projectLeadComments: data.project_lead_comments || data.projectLeadComments,
+        riskLevel: data.risk_level || data.riskLevel,
+        tasks: data.tasks || [],
+        milestones: data.milestones || [],
+        documents: data.documents || [],
+        stageHistory: data.stage_history || data.stageHistory || [],
+      };
+      
+      console.log('Mapped project:', mappedProject);
+      setProject(mappedProject);
     } catch (err: any) {
       console.error('Failed to fetch project:', err);
       setError(err.response?.data?.message || 'Failed to load project');
