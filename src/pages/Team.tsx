@@ -190,9 +190,10 @@ export default function Team() {
   const handleAssignProject = (memberId: string, projectId: string) => {
     setMembers(members.map(m => {
       if (m.id === memberId) {
-        const assignedProjects = m.assignedProjects.includes(projectId)
-          ? m.assignedProjects.filter(p => p !== projectId)
-          : [...m.assignedProjects, projectId];
+        const currentProjects = m.assignedProjects || [];
+        const assignedProjects = currentProjects.includes(projectId)
+          ? currentProjects.filter(p => p !== projectId)
+          : [...currentProjects, projectId];
         return { ...m, assignedProjects };
       }
       return m;
@@ -445,7 +446,7 @@ export default function Team() {
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="outline" size="sm">
-                            {member.assignedProjects.length} Projects
+                            {(member.assignedProjects || []).length} Projects
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="start" className="w-[200px]">
@@ -454,8 +455,8 @@ export default function Team() {
                               key={project.id}
                               onClick={() => handleAssignProject(member.id, project.id)}
                             >
-                              <span className={member.assignedProjects.includes(project.id) ? 'font-bold' : ''}>
-                                {member.assignedProjects.includes(project.id) ? '✓ ' : ''}
+                              <span className={(member.assignedProjects || []).includes(project.id) ? 'font-bold' : ''}>
+                                {(member.assignedProjects || []).includes(project.id) ? '✓ ' : ''}
                                 {project.name}
                               </span>
                             </DropdownMenuItem>
