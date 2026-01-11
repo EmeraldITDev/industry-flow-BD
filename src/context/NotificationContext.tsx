@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Notification, NotificationType } from '@/types/notifications';
 import { notificationsService } from '@/services/notifications';
+import { authService } from '@/services/auth';
 import { toast } from 'sonner';
 
 interface NotificationContextType {
@@ -90,15 +91,19 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     }
   }, []);
 
-  // Fetch notifications on mount
+  // Only fetch notifications when authenticated
   useEffect(() => {
-    fetchNotifications();
+    if (authService.isAuthenticated()) {
+      fetchNotifications();
+    }
   }, [fetchNotifications]);
 
-  // Poll for new notifications every 30 seconds
+  // Poll for new notifications every 30 seconds (only when authenticated)
   useEffect(() => {
     const interval = setInterval(() => {
-      fetchNotifications();
+      if (authService.isAuthenticated()) {
+        fetchNotifications();
+      }
     }, 30000);
 
     return () => clearInterval(interval);

@@ -8,17 +8,44 @@ const normalizeArray = (data: any): Notification[] => {
   return [];
 };
 
+// Check if user is authenticated before making requests
+const isAuthenticated = (): boolean => {
+  return !!localStorage.getItem('authToken');
+};
+
 export const notificationsService = {
   // Get all notifications for current user
   getAll: async (): Promise<Notification[]> => {
-    const response = await api.get('/api/notifications');
-    return normalizeArray(response.data);
+    if (!isAuthenticated()) {
+      return []; // Return empty array if not logged in
+    }
+    try {
+      const response = await api.get('/api/notifications');
+      return normalizeArray(response.data);
+    } catch (error: any) {
+      if (error.response?.status === 401) {
+        // User not logged in - this is expected, don't throw
+        console.log('Not authenticated, skipping notifications');
+        return [];
+      }
+      throw error;
+    }
   },
 
   // Get unread count
   getUnreadCount: async (): Promise<number> => {
-    const response = await api.get<{ count: number }>('/api/notifications/unread-count');
-    return response.data.count || 0;
+    if (!isAuthenticated()) {
+      return 0;
+    }
+    try {
+      const response = await api.get<{ count: number }>('/api/notifications/unread-count');
+      return response.data.count || 0;
+    } catch (error: any) {
+      if (error.response?.status === 401) {
+        return 0;
+      }
+      throw error;
+    }
   },
 
   // Mark notification as read
