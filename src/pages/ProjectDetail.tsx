@@ -1,4 +1,4 @@
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { sectorColors, sectorIcons } from '@/data/mockData';
@@ -14,6 +14,23 @@ import { AddTaskDialog } from '@/components/tasks/AddTaskDialog';
 import { Project, Sector } from '@/types';
 import { projectsService } from '@/services/projects';
 import { tasksService } from '@/services/tasks';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { 
   ArrowLeft, 
   Calendar, 
@@ -22,18 +39,27 @@ import {
   MoreHorizontal,
   Plus,
   RefreshCw,
-  AlertCircle
+  AlertCircle,
+  Pencil,
+  Trash2,
+  PauseCircle,
+  PlayCircle,
+  CheckCircle2
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { usePermissions } from '@/hooks/usePermissions';
+import { toast } from 'sonner';
 
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [project, setProject] = useState<Project | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [addTaskOpen, setAddTaskOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const { canEditProjects, canAssignTasks } = usePermissions();
 
   // Fetch tasks separately for refresh capability
@@ -182,6 +208,38 @@ export default function ProjectDetail() {
     fetchProject(); // Refresh project to update task count
   };
 
+  const handleDeleteProject = async () => {
+    if (!id) return;
+    
+    setIsDeleting(true);
+    try {
+      await projectsService.delete(id);
+      toast.success('Project deleted successfully');
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      navigate('/projects');
+    } catch (err: any) {
+      console.error('Failed to delete project:', err);
+      toast.error(err.response?.data?.message || 'Failed to delete project');
+    } finally {
+      setIsDeleting(false);
+      setDeleteDialogOpen(false);
+    }
+  };
+
+  const handleStatusChange = async (newStatus: 'active' | 'on-hold' | 'completed') => {
+    if (!id || !project) return;
+    
+    try {
+      await projectsService.update(id, { status: newStatus });
+      setProject({ ...project, status: newStatus });
+      toast.success(`Project status updated to ${newStatus}`);
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+    } catch (err: any) {
+      console.error('Failed to update project status:', err);
+      toast.error(err.response?.data?.message || 'Failed to update status');
+    }
+  };
+
   return (
     <div className="p-6 lg:p-8 space-y-6">
       <div className="flex items-center gap-4">
@@ -202,11 +260,70 @@ export default function ProjectDetail() {
           <h1 className="text-2xl lg:text-3xl font-bold">{project.name}</h1>
         </div>
         {canEditProjects && (
-          <Button variant="outline" size="icon">
-            <MoreHorizontal className="w-5 h-5" />
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon">
+                <MoreHorizontal className="w-5 h-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem onClick={() => navigate(`/projects/${id}/edit`)}>
+                <Pencil className="w-4 h-4 mr-2" />
+                Edit Project
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              {project.status !== 'active' && (
+                <DropdownMenuItem onClick={() => handleStatusChange('active')}>
+                  <PlayCircle className="w-4 h-4 mr-2" />
+                  Set Active
+                </DropdownMenuItem>
+              )}
+              {project.status !== 'on-hold' && (
+                <DropdownMenuItem onClick={() => handleStatusChange('on-hold')}>
+                  <PauseCircle className="w-4 h-4 mr-2" />
+                  Put On Hold
+                </DropdownMenuItem>
+              )}
+              {project.status !== 'completed' && (
+                <DropdownMenuItem onClick={() => handleStatusChange('completed')}>
+                  <CheckCircle2 className="w-4 h-4 mr-2" />
+                  Mark Completed
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem 
+                className="text-destructive focus:text-destructive"
+                onClick={() => setDeleteDialogOpen(true)}
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete Project
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Project</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{project.name}"? This action cannot be undone and will permanently remove all associated tasks and data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteProject}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? 'Deleting...' : 'Delete Project'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <div className="lg:col-span-3 space-y-6">
