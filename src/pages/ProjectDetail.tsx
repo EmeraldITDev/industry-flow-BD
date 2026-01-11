@@ -49,6 +49,7 @@ import {
 import { format } from 'date-fns';
 import { usePermissions } from '@/hooks/usePermissions';
 import { toast } from 'sonner';
+import { safeFormatDate } from '@/lib/dateUtils';
 
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
@@ -440,7 +441,7 @@ export default function ProjectDetail() {
                 <div>
                   <p className="text-xs text-muted-foreground">Start Date</p>
                   <p className="font-medium text-sm">
-                    {project.startDate ? format(new Date(project.startDate), 'MMM d, yyyy') : 'Not set'}
+                    {safeFormatDate(project.startDate, 'MMM d, yyyy', 'Not set')}
                   </p>
                 </div>
               </div>
@@ -451,7 +452,7 @@ export default function ProjectDetail() {
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">End Date</p>
-                    <p className="font-medium text-sm">{format(new Date(project.endDate), 'MMM d, yyyy')}</p>
+                    <p className="font-medium text-sm">{safeFormatDate(project.endDate, 'MMM d, yyyy', 'Not set')}</p>
                   </div>
                 </div>
               )}
@@ -462,7 +463,7 @@ export default function ProjectDetail() {
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">Expected Close</p>
-                    <p className="font-medium text-sm">{format(new Date(project.expectedCloseDate), 'MMM d, yyyy')}</p>
+                    <p className="font-medium text-sm">{safeFormatDate(project.expectedCloseDate, 'MMM d, yyyy', 'Not set')}</p>
                   </div>
                 </div>
               )}
