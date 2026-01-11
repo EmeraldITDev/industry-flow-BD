@@ -43,9 +43,7 @@ export const teamService = {
 
   // Create new team member
   create: async (data: CreateTeamMemberData): Promise<TeamMember> => {
-    console.log('Data being sent to backend:', data);
-    const response = await api.post('/api/debug/team', data);
-    console.log('Backend response:', response.data);
+    const response = await api.post('/api/team', data);
     return response.data;
   },
 
