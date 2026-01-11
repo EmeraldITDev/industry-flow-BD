@@ -35,12 +35,23 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const unreadCount = notifications.filter(n => !n.read).length;
 
   const fetchNotifications = useCallback(async () => {
+    // Don't fetch if not authenticated
+    if (!authService.isAuthenticated()) {
+      setNotifications([]);
+      return;
+    }
+    
     try {
       setLoading(true);
       setError(null);
       const data = await notificationsService.getAll();
       setNotifications(data);
-    } catch (err) {
+    } catch (err: any) {
+      // Don't show error for 401 - user just isn't logged in
+      if (err.response?.status === 401) {
+        setNotifications([]);
+        return;
+      }
       console.error('Failed to fetch notifications:', err);
       setError('Failed to load notifications');
     } finally {
