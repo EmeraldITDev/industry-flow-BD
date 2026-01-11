@@ -4,10 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Textarea } from '@/components/ui/textarea';
-import { format } from 'date-fns';
 import { Calendar, AlertCircle, StickyNote, Check, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { safeFormatDate, isOverdue as checkOverdue } from '@/lib/dateUtils';
 
 interface TaskListProps {
   tasks: Task[];
@@ -47,10 +47,7 @@ export function TaskList({ tasks, title, onTaskUpdate }: TaskListProps) {
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
   };
 
-  const isOverdue = (dueDate?: string) => {
-    if (!dueDate) return false;
-    return new Date(dueDate) < new Date();
-  };
+  const isOverdue = (dueDate?: string | null) => checkOverdue(dueDate);
 
   const handleEditNote = (task: Task) => {
     setEditingNoteId(task.id);
@@ -167,7 +164,7 @@ export function TaskList({ tasks, title, onTaskUpdate }: TaskListProps) {
                   {task.dueDate && (
                     <div className="flex items-center gap-1">
                       <Calendar className="w-3 h-3" />
-                      <span>{format(new Date(task.dueDate), 'MMM d, yyyy')}</span>
+                      <span>{safeFormatDate(task.dueDate, 'MMM d, yyyy', '-')}</span>
                     </div>
                   )}
                 </div>

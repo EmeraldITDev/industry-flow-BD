@@ -2,10 +2,10 @@ import { useState } from 'react';
 import { Task, TaskStatus } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { format } from 'date-fns';
 import { Calendar, Circle, Clock, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
+import { safeFormatDate } from '@/lib/dateUtils';
 
 interface KanbanBoardProps {
   tasks: Task[];
@@ -137,7 +137,7 @@ export function KanbanBoard({ tasks: initialTasks, onTaskMove }: KanbanBoardProp
                             {task.dueDate && (
                               <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
                                 <Calendar className="w-3 h-3" />
-                                <span>{format(new Date(task.dueDate), 'MMM d')}</span>
+                                <span>{safeFormatDate(task.dueDate, 'MMM d', '-')}</span>
                               </div>
                             )}
                           </div>

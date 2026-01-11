@@ -18,8 +18,8 @@ import {
   HardDrive,
   Plus
 } from 'lucide-react';
-import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { safeFormatDate } from '@/lib/dateUtils';
 
 interface DocumentManagerProps {
   documents: ProjectDocument[];
@@ -246,7 +246,7 @@ export function DocumentManager({ documents, onDocumentsChange, readonly = false
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <span>{formatFileSize(doc.size)}</span>
                       <span>•</span>
-                      <span>{format(new Date(doc.uploadedAt), 'MMM d, yyyy')}</span>
+                      <span>{safeFormatDate(doc.uploadedAt, 'MMM d, yyyy', '-')}</span>
                     </div>
                   </div>
                 </div>
