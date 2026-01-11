@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import { Bell, Check, CheckCheck, Trash2, X, AlertTriangle, Clock, UserPlus, RefreshCw, ArrowRightLeft, AlertCircle } from 'lucide-react';
+import { Bell, CheckCheck, Trash2, X, Clock, UserPlus, RefreshCw, ArrowRightLeft, MessageSquare, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -18,20 +18,16 @@ const notificationIcons: Record<NotificationType, typeof Bell> = {
   task_assigned: UserPlus,
   status_change: RefreshCw,
   deadline_approaching: Clock,
-  deadline_overdue: AlertTriangle,
-  comment: Bell,
+  comment: MessageSquare,
   stage_change: ArrowRightLeft,
-  inactivity_reminder: AlertCircle,
 };
 
 const notificationColors: Record<NotificationType, string> = {
   task_assigned: 'text-chart-1',
   status_change: 'text-chart-2',
   deadline_approaching: 'text-chart-4',
-  deadline_overdue: 'text-destructive',
   comment: 'text-muted-foreground',
   stage_change: 'text-primary',
-  inactivity_reminder: 'text-chart-5',
 };
 
 export function NotificationCenter() {
@@ -39,11 +35,21 @@ export function NotificationCenter() {
   const {
     notifications,
     unreadCount,
+    loading,
     markAsRead,
     markAllAsRead,
     clearNotification,
     clearAll,
   } = useNotifications();
+
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return 'N/A';
+    try {
+      return formatDistanceToNow(new Date(dateString), { addSuffix: true });
+    } catch {
+      return 'N/A';
+    }
+  };
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -86,7 +92,12 @@ export function NotificationCenter() {
         </div>
 
         <ScrollArea className="h-[400px]">
-          {notifications.length === 0 ? (
+          {loading && notifications.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-32 text-muted-foreground">
+              <Loader2 className="h-8 w-8 mb-2 animate-spin" />
+              <p className="text-sm">Loading notifications...</p>
+            </div>
+          ) : notifications.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-32 text-muted-foreground">
               <Bell className="h-8 w-8 mb-2 opacity-50" />
               <p className="text-sm">No notifications</p>
@@ -94,8 +105,8 @@ export function NotificationCenter() {
           ) : (
             <div className="divide-y">
               {notifications.map((notification) => {
-                const Icon = notificationIcons[notification.type];
-                const iconColor = notificationColors[notification.type];
+                const Icon = notificationIcons[notification.type] || Bell;
+                const iconColor = notificationColors[notification.type] || 'text-muted-foreground';
 
                 return (
                   <div
@@ -125,8 +136,13 @@ export function NotificationCenter() {
                         <p className="text-sm text-muted-foreground line-clamp-2 mt-0.5">
                           {notification.message}
                         </p>
+                        {notification.project && (
+                          <p className="text-xs text-primary mt-1">
+                            Project: {notification.project.name}
+                          </p>
+                        )}
                         <p className="text-xs text-muted-foreground mt-1">
-                          {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
+                          {formatDate(notification.createdAt)}
                         </p>
                       </div>
                     </div>

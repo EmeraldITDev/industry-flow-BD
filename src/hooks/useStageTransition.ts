@@ -1,6 +1,5 @@
 import { useCallback } from 'react';
 import { PipelineStage, PIPELINE_STAGES, Task, Project } from '@/types';
-import { useNotifications } from '@/context/NotificationContext';
 import { toast } from 'sonner';
 
 interface StageTransitionResult {
@@ -50,7 +49,6 @@ const stageTaskTemplates: Record<PipelineStage, { title: string; description: st
 };
 
 export function useStageTransition(): StageTransitionResult {
-  const { addNotification } = useNotifications();
 
   const getStageTaskTemplates = useCallback((stage: PipelineStage) => {
     return stageTaskTemplates[stage] || [];
@@ -92,21 +90,13 @@ export function useStageTransition(): StageTransitionResult {
       tasks: [...project.tasks, ...autoTasks],
     };
 
-    // Add notification
-    const direction = newStageIndex > currentStageIndex ? 'moved forward to' : 'moved back to';
-    addNotification({
-      type: 'stage_change',
-      title: `Stage Changed: ${project.name}`,
-      message: `Project ${direction} ${stageName} stage. ${autoTasks.length} tasks auto-created.`,
-    });
-
-    // Show toast
+    // Show toast (backend will create the notification automatically)
     toast.success(`Project moved to ${stageName} stage`, {
       description: `${autoTasks.length} tasks have been automatically created for this stage.`,
     });
 
     return { updatedProject, autoTasks };
-  }, [addNotification]);
+  }, []);
 
   return { handleStageChange, getStageTaskTemplates };
 }
