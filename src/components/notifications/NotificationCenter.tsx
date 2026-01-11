@@ -112,16 +112,15 @@ export function NotificationCenter() {
                   <div
                     key={notification.id}
                     className={cn(
-                      'p-4 hover:bg-muted/50 transition-colors cursor-pointer relative group',
+                      'p-4 hover:bg-muted/50 transition-colors relative group',
                       !notification.read && 'bg-primary/5'
                     )}
-                    onClick={() => markAsRead(notification.id)}
                   >
                     <div className="flex gap-3">
                       <div className={cn('mt-0.5', iconColor)}>
                         <Icon className="h-5 w-5" />
                       </div>
-                      <div className="flex-1 min-w-0">
+                      <div className="flex-1 min-w-0 pr-8">
                         <div className="flex items-start justify-between gap-2">
                           <p className={cn(
                             'text-sm',
@@ -144,12 +143,26 @@ export function NotificationCenter() {
                         <p className="text-xs text-muted-foreground mt-1">
                           {formatDate(notification.createdAt)}
                         </p>
+                        {!notification.read && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 px-2 text-xs mt-2 text-primary hover:text-primary"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              markAsRead(notification.id);
+                            }}
+                          >
+                            <CheckCheck className="h-3 w-3 mr-1" />
+                            Mark as read
+                          </Button>
+                        )}
                       </div>
                     </div>
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="absolute top-2 right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute top-4 right-4 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity bg-background hover:bg-muted"
                       onClick={(e) => {
                         e.stopPropagation();
                         clearNotification(notification.id);
