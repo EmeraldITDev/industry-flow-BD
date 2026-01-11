@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { Bell, CheckCheck, Trash2, X, Clock, UserPlus, RefreshCw, ArrowRightLeft, MessageSquare, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -11,7 +12,7 @@ import {
 } from '@/components/ui/popover';
 import { Separator } from '@/components/ui/separator';
 import { useNotifications } from '@/context/NotificationContext';
-import { NotificationType } from '@/types/notifications';
+import { NotificationType, Notification } from '@/types/notifications';
 import { cn } from '@/lib/utils';
 
 const notificationIcons: Record<NotificationType, typeof Bell> = {
@@ -32,6 +33,7 @@ const notificationColors: Record<NotificationType, string> = {
 
 export function NotificationCenter() {
   const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
   const {
     notifications,
     unreadCount,
@@ -48,6 +50,19 @@ export function NotificationCenter() {
       return formatDistanceToNow(new Date(dateString), { addSuffix: true });
     } catch {
       return 'N/A';
+    }
+  };
+
+  const handleNotificationClick = (notification: Notification) => {
+    markAsRead(notification.id);
+    setOpen(false);
+    
+    // Navigate based on notification type and related data
+    if (notification.project?.id) {
+      navigate(`/projects/${notification.project.id}`);
+    } else if (notification.task?.id) {
+      // If task has project info, navigate to that project
+      navigate('/projects');
     }
   };
 
@@ -112,9 +127,10 @@ export function NotificationCenter() {
                   <div
                     key={notification.id}
                     className={cn(
-                      'p-4 hover:bg-muted/50 transition-colors relative group',
+                      'p-4 hover:bg-muted/50 transition-colors relative group cursor-pointer',
                       !notification.read && 'bg-primary/5'
                     )}
+                    onClick={() => handleNotificationClick(notification)}
                   >
                     <div className="flex gap-3">
                       <div className={cn('mt-0.5', iconColor)}>
