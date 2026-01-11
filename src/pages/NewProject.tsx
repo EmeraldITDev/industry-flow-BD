@@ -476,14 +476,14 @@ export default function NewProject() {
               <div className="space-y-2">
                 <Label>Project Lead</Label>
                 <Select value={formData.projectLeadId} onValueChange={(value) => setFormData({ ...formData, projectLeadId: value })}>
-                  <SelectTrigger><SelectValue placeholder="Select lead" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder={isLoadingTeam ? "Loading..." : "Select lead"} /></SelectTrigger>
                   <SelectContent>
                     {isLoadingTeam ? (
-                      <SelectItem value="" disabled>Loading team members...</SelectItem>
+                      <div className="py-2 px-2 text-sm text-muted-foreground">Loading team members...</div>
                     ) : teamMembers.length === 0 ? (
-                      <SelectItem value="" disabled>No team members found</SelectItem>
+                      <div className="py-2 px-2 text-sm text-muted-foreground">No team members found</div>
                     ) : (
-                      teamMembers.map((m: any) => (
+                      teamMembers.filter((m: any) => m.id).map((m: any) => (
                         <SelectItem key={m.id} value={String(m.id)}>{m.name}</SelectItem>
                       ))
                     )}
@@ -493,14 +493,14 @@ export default function NewProject() {
               <div className="space-y-2">
                 <Label>Assignee</Label>
                 <Select value={formData.assigneeId} onValueChange={(value) => setFormData({ ...formData, assigneeId: value })}>
-                  <SelectTrigger><SelectValue placeholder="Select assignee" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder={isLoadingTeam ? "Loading..." : "Select assignee"} /></SelectTrigger>
                   <SelectContent>
                     {isLoadingTeam ? (
-                      <SelectItem value="" disabled>Loading team members...</SelectItem>
+                      <div className="py-2 px-2 text-sm text-muted-foreground">Loading team members...</div>
                     ) : teamMembers.length === 0 ? (
-                      <SelectItem value="" disabled>No team members found</SelectItem>
+                      <div className="py-2 px-2 text-sm text-muted-foreground">No team members found</div>
                     ) : (
-                      teamMembers.map((m: any) => (
+                      teamMembers.filter((m: any) => m.id).map((m: any) => (
                         <SelectItem key={m.id} value={String(m.id)}>{m.name}</SelectItem>
                       ))
                     )}
