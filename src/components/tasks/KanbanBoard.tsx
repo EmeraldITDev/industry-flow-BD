@@ -29,8 +29,17 @@ export function KanbanBoard({ tasks: initialTasks, onTaskMove }: KanbanBoardProp
     urgent: 'bg-destructive/20 text-destructive',
   };
 
+  // Handle assignee being either a string name or an object { id, name }
+  const getAssigneeName = (assignee: any): string | null => {
+    if (!assignee) return null;
+    if (typeof assignee === 'string') return assignee;
+    if (typeof assignee === 'object' && assignee.name) return assignee.name;
+    return null;
+  };
+
   const getInitials = (name?: string | null) => {
     if (!name) return 'U';
+    if (typeof name !== 'string') return 'U';
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
   };
 
@@ -111,13 +120,13 @@ export function KanbanBoard({ tasks: initialTasks, onTaskMove }: KanbanBoardProp
                               <Badge variant="outline" className={cn("text-xs", priorityColors[task.priority])}>
                                 {task.priority}
                               </Badge>
-                              {task.assignee && (
-                                <Avatar className="w-6 h-6">
-                                  <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
-                                    {getInitials(task.assignee)}
-                                  </AvatarFallback>
-                                </Avatar>
-                              )}
+                            {getAssigneeName(task.assignee) && (
+                              <Avatar className="w-6 h-6">
+                                <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
+                                  {getInitials(getAssigneeName(task.assignee))}
+                                </AvatarFallback>
+                              </Avatar>
+                            )}
                             </div>
                             <h4 className="font-medium text-sm line-clamp-2">{task.title}</h4>
                             {task.notes && (
