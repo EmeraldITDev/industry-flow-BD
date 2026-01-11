@@ -33,8 +33,17 @@ export function TaskList({ tasks, title, onTaskUpdate }: TaskListProps) {
     completed: 'bg-chart-1/20 text-chart-1',
   };
 
+  // Handle assignee being either a string name or an object { id, name }
+  const getAssigneeName = (assignee: any): string | null => {
+    if (!assignee) return null;
+    if (typeof assignee === 'string') return assignee;
+    if (typeof assignee === 'object' && assignee.name) return assignee.name;
+    return null;
+  };
+
   const getInitials = (name?: string | null) => {
     if (!name) return 'U';
+    if (typeof name !== 'string') return 'U';
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
   };
 
@@ -104,10 +113,10 @@ export function TaskList({ tasks, title, onTaskUpdate }: TaskListProps) {
                       </p>
                     )}
                   </div>
-                  {task.assignee && (
+                  {getAssigneeName(task.assignee) && (
                     <Avatar className="w-8 h-8 flex-shrink-0">
                       <AvatarFallback className="text-xs bg-primary/10 text-primary">
-                        {getInitials(task.assignee)}
+                        {getInitials(getAssigneeName(task.assignee))}
                       </AvatarFallback>
                     </Avatar>
                   )}
@@ -154,7 +163,7 @@ export function TaskList({ tasks, title, onTaskUpdate }: TaskListProps) {
                 </div>
 
                 <div className="flex items-center justify-between mt-3 text-xs text-muted-foreground">
-                  {task.assignee && <span>{task.assignee}</span>}
+                  {getAssigneeName(task.assignee) && <span>{getAssigneeName(task.assignee)}</span>}
                   {task.dueDate && (
                     <div className="flex items-center gap-1">
                       <Calendar className="w-3 h-3" />
