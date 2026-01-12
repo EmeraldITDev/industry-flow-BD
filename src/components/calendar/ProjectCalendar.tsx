@@ -167,23 +167,23 @@ export function ProjectCalendar() {
                 {format(selectedDate, 'MMMM d, yyyy')}
             </h4>
               {itemsOnSelectedDate.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   {itemsOnSelectedDate.map((item) => (
                     <Link
                       key={`${item.type}-${item.id}`}
                       to={item.type === 'project' ? `/projects/${item.id}` : `/projects/${item.projectId}`}
-                      className="block p-4 rounded-lg bg-card border border-border hover:bg-accent hover:border-primary/50 transition-all shadow-sm"
+                      className="block p-5 rounded-lg bg-card border border-border hover:bg-accent hover:border-primary/50 transition-all shadow-sm"
                     >
-                      <div className="flex items-start gap-3">
+                      <div className="flex items-start gap-4">
                         {item.type === 'project' ? (
-                          <FolderKanban className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                          <FolderKanban className="h-6 w-6 text-primary mt-0.5 flex-shrink-0" />
                         ) : (
-                          <CheckSquare className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                          <CheckSquare className="h-6 w-6 text-primary mt-0.5 flex-shrink-0" />
                         )}
-                        <div className="flex-1 min-w-0 space-y-2">
-                          <p className="font-semibold text-sm leading-tight">{item.name}</p>
+                        <div className="flex-1 min-w-0 space-y-3">
+                          <p className="font-semibold text-base leading-tight">{item.name}</p>
                           {item.type === 'task' && item.projectName && (
-                            <p className="text-xs text-muted-foreground leading-tight">
+                            <p className="text-sm text-muted-foreground leading-tight">
                               Project: {item.projectName}
                             </p>
                           )}
@@ -223,7 +223,7 @@ export function ProjectCalendar() {
           <CardTitle className="text-lg">Upcoming Deadlines</CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {allDeadlines
               .filter((item) => item.dueDate >= new Date())
               .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime())
@@ -232,30 +232,30 @@ export function ProjectCalendar() {
                 <Link
                   key={`${item.type}-${item.id}`}
                   to={item.type === 'project' ? `/projects/${item.id}` : `/projects/${item.projectId}`}
-                  className="block p-4 rounded-lg border border-border bg-card hover:border-primary/50 hover:bg-accent transition-all shadow-sm h-full"
+                  className="block p-5 rounded-lg border border-border bg-card hover:border-primary/50 hover:bg-accent transition-all shadow-sm"
                 >
-                  <div className="flex flex-col gap-3 h-full">
-                    <div className="flex items-start gap-2">
-                      {item.type === 'project' ? (
-                        <FolderKanban className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                      ) : (
-                        <CheckSquare className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                      )}
-                      <Badge variant="outline" className="text-xs capitalize">
-                        {item.type}
-                      </Badge>
-                    </div>
-                    <div className="flex-1 space-y-2">
-                      <p className="text-sm font-semibold leading-tight line-clamp-2">{item.name}</p>
+                  <div className="flex items-start gap-4">
+                    {item.type === 'project' ? (
+                      <FolderKanban className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                    ) : (
+                      <CheckSquare className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                    )}
+                    <div className="flex-1 min-w-0 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-xs capitalize">
+                          {item.type}
+                        </Badge>
+                      </div>
+                      <p className="text-base font-semibold leading-tight">{item.name}</p>
                       {item.type === 'task' && item.projectName && (
-                        <p className="text-xs text-muted-foreground leading-tight line-clamp-1">
+                        <p className="text-sm text-muted-foreground leading-tight">
                           {item.projectName}
                         </p>
                       )}
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium pt-2 border-t border-border/50">
-                      <Clock className="h-3 w-3" />
-                      {format(item.dueDate, 'MMM d, yyyy')}
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground font-medium pt-2 border-t border-border/50">
+                        <Clock className="h-4 w-4" />
+                        {format(item.dueDate, 'MMM d, yyyy')}
+                      </div>
                     </div>
                 </div>
                 </Link>
