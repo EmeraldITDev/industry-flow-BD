@@ -31,41 +31,96 @@ const normalizeArray = (data: any): any[] => {
   return [];
 };
 
+// Convert frontend status format (kebab-case) to backend format (snake_case)
+const statusToBackend = (status: TaskStatus): string => {
+  const statusMap: Record<TaskStatus, string> = {
+    'todo': 'todo',
+    'in-progress': 'in_progress',
+    'review': 'in_review',
+    'completed': 'completed'
+  };
+  return statusMap[status] || status;
+};
+
+// Convert backend status format (snake_case) to frontend format (kebab-case)
+const statusToFrontend = (status: string): TaskStatus => {
+  const statusMap: Record<string, TaskStatus> = {
+    'todo': 'todo',
+    'in_progress': 'in-progress',
+    'in_review': 'review',
+    'completed': 'completed'
+  };
+  return (statusMap[status] || status) as TaskStatus;
+};
+
+// Normalize a single task from backend format to frontend format
+const normalizeTask = (task: any): Task => {
+  return {
+    ...task,
+    id: String(task.id),
+    status: statusToFrontend(task.status),
+    projectId: String(task.project_id || task.projectId),
+    assigneeId: task.assignee_id || task.assigneeId,
+    dueDate: task.due_date || task.dueDate,
+    createdAt: task.created_at || task.createdAt,
+    stageTriggered: task.stage_triggered || task.stageTriggered,
+  };
+};
+
+// Normalize task array
+const normalizeTasks = (tasks: any[]): Task[] => {
+  return tasks.map(normalizeTask);
+};
+
 export const tasksService = {
   // Get all tasks (optionally filtered by project)
   getAll: async (filters?: TaskFilters): Promise<Task[]> => {
     const response = await api.get('/api/tasks', { params: filters });
-    return normalizeArray(response.data);
+    const tasks = normalizeArray(response.data);
+    return normalizeTasks(tasks);
   },
 
   // Get tasks for a specific project
   getByProject: async (projectId: string): Promise<Task[]> => {
     const response = await api.get(`/api/projects/${projectId}/tasks`);
-    return normalizeArray(response.data);
+    const tasks = normalizeArray(response.data);
+    return normalizeTasks(tasks);
   },
 
   // Get single task by ID
   getById: async (id: string): Promise<Task> => {
     const response = await api.get(`/api/tasks/${id}`);
-    return response.data;
+    return normalizeTask(response.data);
   },
 
   // Create new task
   create: async (data: CreateTaskData): Promise<Task> => {
-    const response = await api.post('/api/tasks', data);
-    return response.data;
+    // Convert status to backend format before sending
+    const backendData = {
+      ...data,
+      status: data.status ? statusToBackend(data.status) : undefined,
+    };
+    const response = await api.post('/api/tasks', backendData);
+    return normalizeTask(response.data);
   },
 
   // Update task
   update: async (id: string, data: UpdateTaskData): Promise<Task> => {
-    const response = await api.put(`/api/tasks/${id}`, data);
-    return response.data;
+    // Convert status to backend format before sending
+    const backendData = {
+      ...data,
+      status: data.status ? statusToBackend(data.status) : undefined,
+    };
+    const response = await api.put(`/api/tasks/${id}`, backendData);
+    return normalizeTask(response.data);
   },
 
   // Update task status only
   updateStatus: async (id: string, status: TaskStatus): Promise<Task> => {
-    const response = await api.patch(`/api/tasks/${id}/status`, { status });
-    return response.data;
+    // Convert status to backend format
+    const backendStatus = statusToBackend(status);
+    const response = await api.patch(`/api/tasks/${id}/status`, { status: backendStatus });
+    return normalizeTask(response.data);
   },
 
   // Delete task
@@ -76,6 +131,6 @@ export const tasksService = {
   // Assign task to user
   assign: async (id: string, assigneeId: string): Promise<Task> => {
     const response = await api.patch(`/api/tasks/${id}/assign`, { assigneeId });
-    return response.data;
+    return normalizeTask(response.data);
   },
 };

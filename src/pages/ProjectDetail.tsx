@@ -211,6 +211,7 @@ export default function ProjectDetail() {
 
   const handleTaskMove = async (taskId: string, newStatus: TaskStatus) => {
     try {
+      // Status conversion is handled by tasksService
       await tasksService.updateStatus(taskId, newStatus);
       toast.success('Task status updated');
       refetchTasks();
