@@ -23,7 +23,11 @@ interface DeadlineItem {
   status?: string;
 }
 
-export function ProjectCalendar() {
+interface ProjectCalendarProps {
+  variant?: 'full' | 'compact';
+}
+
+export function ProjectCalendar({ variant = 'full' }: ProjectCalendarProps) {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
 
   // Fetch projects from API
@@ -130,6 +134,121 @@ export function ProjectCalendar() {
     );
   }
 
+  // Compact layout for Dashboard sidebar
+  if (variant === 'compact') {
+    return (
+      <Card className="border-border/50">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <CalendarDays className="h-5 w-5 text-primary" />
+            Project & Task Deadlines
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex justify-center">
+            <Calendar
+              mode="single"
+              selected={selectedDate}
+              onSelect={setSelectedDate}
+              className="rounded-md border border-border/50 w-full"
+              modifiers={{
+                hasDeadline: datesWithDeadlines,
+              }}
+              modifiersStyles={{
+                hasDeadline: {
+                  backgroundColor: 'hsl(var(--primary) / 0.15)',
+                  borderRadius: '50%',
+                  fontWeight: 'bold',
+                },
+              }}
+            />
+          </div>
+
+          {selectedDate && itemsOnSelectedDate.length > 0 && (
+            <div className="space-y-2 pt-3 border-t">
+              <h4 className="text-sm font-semibold flex items-center gap-2">
+                <Clock className="h-4 w-4" />
+                {format(selectedDate, 'MMM d, yyyy')}
+              </h4>
+              <div className="space-y-2 max-h-40 overflow-y-auto">
+                {itemsOnSelectedDate.slice(0, 3).map((item) => (
+                  <Link
+                    key={`${item.type}-${item.id}`}
+                    to={item.type === 'project' ? `/projects/${item.id}` : `/projects/${item.projectId}`}
+                    className="block p-2 rounded-lg bg-muted/50 border border-border/50 hover:bg-muted hover:border-primary/30 transition-all text-sm"
+                  >
+                    <div className="flex items-start gap-2">
+                      {item.type === 'project' ? (
+                        <FolderKanban className="h-3.5 w-3.5 text-primary mt-0.5 flex-shrink-0" />
+                      ) : (
+                        <CheckSquare className="h-3.5 w-3.5 text-primary mt-0.5 flex-shrink-0" />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-xs truncate">{item.name}</p>
+                        <div className="flex gap-1 mt-1 flex-wrap">
+                          <Badge variant="outline" className="text-[10px] py-0 h-4">
+                            {item.type}
+                          </Badge>
+                          {item.priority && (
+                            <Badge variant="outline" className={cn('text-[10px] py-0 h-4', getPriorityColor(item.priority))}>
+                              {item.priority}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+                {itemsOnSelectedDate.length > 3 && (
+                  <Link to="/calendar" className="block text-xs text-primary hover:underline text-center py-1">
+                    View all {itemsOnSelectedDate.length} items →
+                  </Link>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className="pt-3 border-t">
+            <h4 className="text-sm font-semibold mb-2">Upcoming Deadlines</h4>
+            <div className="space-y-2 max-h-48 overflow-y-auto">
+              {allDeadlines
+                .filter((item) => item.dueDate >= new Date())
+                .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime())
+                .slice(0, 8)
+                .map((item) => (
+                  <Link
+                    key={`${item.type}-${item.id}`}
+                    to={item.type === 'project' ? `/projects/${item.id}` : `/projects/${item.projectId}`}
+                    className="block p-2 rounded-lg hover:bg-muted transition-colors"
+                  >
+                    <div className="flex items-start gap-2">
+                      {item.type === 'project' ? (
+                        <FolderKanban className="h-3 w-3 text-primary mt-0.5 flex-shrink-0" />
+                      ) : (
+                        <CheckSquare className="h-3 w-3 text-primary mt-0.5 flex-shrink-0" />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium truncate">{item.name}</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">
+                          {format(item.dueDate, 'MMM d, yyyy')}
+                        </p>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              {allDeadlines.filter((item) => item.dueDate >= new Date()).length === 0 && (
+                <p className="text-xs text-muted-foreground text-center py-4">
+                  No upcoming deadlines
+                </p>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Full layout for Calendar page
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       {/* Calendar - Takes 2 columns on large screens */}

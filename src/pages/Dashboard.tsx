@@ -100,7 +100,7 @@ export default function Dashboard() {
           <TasksSummary />
         </div>
         <div className="space-y-3 sm:space-y-6">
-          <ProjectCalendar />
+          <ProjectCalendar variant="compact" />
           <SectorOverview />
         </div>
       </div>
