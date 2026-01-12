@@ -232,32 +232,32 @@ export function ProjectCalendar() {
                 <Link
                   key={`${item.type}-${item.id}`}
                   to={item.type === 'project' ? `/projects/${item.id}` : `/projects/${item.projectId}`}
-                  className="block p-5 rounded-lg border border-border bg-card hover:border-primary/50 hover:bg-accent transition-all shadow-sm"
+                  className="block p-4 rounded-lg border border-border bg-card hover:border-primary/50 hover:bg-accent transition-all shadow-sm"
                 >
-                  <div className="flex items-start gap-4">
+                  <div className="flex items-start gap-3">
                     {item.type === 'project' ? (
-                      <FolderKanban className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                      <FolderKanban className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
                     ) : (
-                      <CheckSquare className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                      <CheckSquare className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
                     )}
-                    <div className="flex-1 min-w-0 space-y-2">
+                    <div className="flex-1 min-w-0 space-y-1.5">
                       <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="text-xs capitalize">
+                        <Badge variant="outline" className="text-[10px] capitalize">
                           {item.type}
                         </Badge>
                       </div>
-                      <p className="text-base font-semibold leading-tight">{item.name}</p>
+                      <p className="text-sm font-semibold leading-snug line-clamp-2">{item.name}</p>
                       {item.type === 'task' && item.projectName && (
-                        <p className="text-sm text-muted-foreground leading-tight">
+                        <p className="text-xs text-muted-foreground leading-snug line-clamp-1">
                           {item.projectName}
                         </p>
                       )}
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground font-medium pt-2 border-t border-border/50">
-                        <Clock className="h-4 w-4" />
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium pt-1.5 border-t border-border/50">
+                        <Clock className="h-3 w-3" />
                         {format(item.dueDate, 'MMM d, yyyy')}
                       </div>
                     </div>
-                </div>
+                  </div>
                 </Link>
               ))}
             {allDeadlines.filter((item) => item.dueDate >= new Date()).length === 0 && (
