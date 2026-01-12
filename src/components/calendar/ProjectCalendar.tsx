@@ -1,39 +1,93 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { projects } from '@/data/mockData';
-import { format, isSameDay, parseISO } from 'date-fns';
+import { Skeleton } from '@/components/ui/skeleton';
+import { format, isSameDay, parseISO, isValid } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { CalendarDays, Clock } from 'lucide-react';
+import { CalendarDays, Clock, CheckSquare, FolderKanban } from 'lucide-react';
+import { projectsService } from '@/services/projects';
+import { tasksService } from '@/services/tasks';
+import { Link } from 'react-router-dom';
 
-interface ProjectDueDate {
-  projectId: string;
-  projectName: string;
+interface DeadlineItem {
+  id: string;
+  name: string;
   dueDate: Date;
-  sector: string;
+  type: 'project' | 'task';
+  projectId?: string;
+  projectName?: string;
+  sector?: string;
+  priority?: string;
+  status?: string;
 }
 
 export function ProjectCalendar() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
 
-  // Collect all project due dates
-  const projectDueDates: ProjectDueDate[] = projects
-    .filter((p) => p.expectedCloseDate || p.endDate)
-    .map((p) => ({
-      projectId: p.id,
-      projectName: p.name,
-      dueDate: parseISO(p.expectedCloseDate || p.endDate || ''),
-      sector: p.sector,
-    }));
+  // Fetch projects from API
+  const { data: projects = [], isLoading: isLoadingProjects } = useQuery({
+    queryKey: ['projects'],
+    queryFn: () => projectsService.getAll(),
+    staleTime: 5 * 60 * 1000,
+  });
 
-  // Get projects due on selected date
-  const projectsOnSelectedDate = selectedDate
-    ? projectDueDates.filter((p) => isSameDay(p.dueDate, selectedDate))
+  // Fetch all tasks from API
+  const { data: tasks = [], isLoading: isLoadingTasks } = useQuery({
+    queryKey: ['all-tasks'],
+    queryFn: () => tasksService.getAll(),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Combine project and task deadlines
+  const allDeadlines: DeadlineItem[] = useMemo(() => {
+    const projectDeadlines: DeadlineItem[] = projects
+      .filter((p: any) => {
+        const dateStr = p.expected_close_date || p.expectedCloseDate || p.end_date || p.endDate;
+        return dateStr && isValid(parseISO(dateStr));
+      })
+      .map((p: any) => {
+        const dateStr = p.expected_close_date || p.expectedCloseDate || p.end_date || p.endDate;
+        return {
+          id: p.id,
+          name: p.name,
+          dueDate: parseISO(dateStr),
+          type: 'project' as const,
+          sector: p.sector,
+        };
+      });
+
+    const taskDeadlines: DeadlineItem[] = tasks
+      .filter((t: any) => {
+        const dateStr = t.due_date || t.dueDate;
+        return dateStr && isValid(parseISO(dateStr)) && t.status !== 'completed';
+      })
+      .map((t: any) => {
+        const dateStr = t.due_date || t.dueDate;
+        const project = projects.find((p: any) => p.id === (t.project_id || t.projectId));
+        return {
+          id: t.id,
+          name: t.title,
+          dueDate: parseISO(dateStr),
+          type: 'task' as const,
+          projectId: t.project_id || t.projectId,
+          projectName: project?.name || 'Unknown Project',
+          priority: t.priority,
+          status: t.status,
+        };
+      });
+
+    return [...projectDeadlines, ...taskDeadlines];
+  }, [projects, tasks]);
+
+  // Get items due on selected date
+  const itemsOnSelectedDate = selectedDate
+    ? allDeadlines.filter((item) => isSameDay(item.dueDate, selectedDate))
     : [];
 
-  // Get all dates that have project due dates
-  const datesWithProjects = projectDueDates.map((p) => p.dueDate);
+  // Get all dates that have deadlines
+  const datesWithDeadlines = allDeadlines.map((item) => item.dueDate);
 
   const getSectorColor = (sector: string) => {
     switch (sector) {
@@ -43,92 +97,169 @@ export function ProjectCalendar() {
         return 'bg-chart-2/20 text-chart-2 border-chart-2/30';
       case 'Oil and Gas':
         return 'bg-chart-3/20 text-chart-3 border-chart-3/30';
-      case 'Logistics':
+      case 'Commodity Trading':
         return 'bg-chart-4/20 text-chart-4 border-chart-4/30';
       default:
         return 'bg-muted text-muted-foreground';
     }
   };
 
-  return (
-    <Card className="border-border/50">
-      <CardHeader className="pb-2 sm:pb-3 p-4 sm:p-6">
-        <CardTitle className="flex items-center gap-2 text-base sm:text-lg font-semibold">
-          <CalendarDays className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-          Project Due Dates
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6 pt-0 sm:pt-0">
-        <div className="flex justify-center">
-          <Calendar
-            mode="single"
-            selected={selectedDate}
-            onSelect={setSelectedDate}
-            className="rounded-md border border-border/50 pointer-events-auto w-full max-w-[280px]"
-            modifiers={{
-              hasProject: datesWithProjects,
-            }}
-            modifiersStyles={{
-              hasProject: {
-                backgroundColor: 'hsl(var(--primary) / 0.15)',
-                borderRadius: '50%',
-                fontWeight: 'bold',
-              },
-            }}
-          />
-        </div>
+  const getPriorityColor = (priority?: string) => {
+    switch (priority) {
+      case 'urgent':
+        return 'bg-destructive/20 text-destructive border-destructive/30';
+      case 'high':
+        return 'bg-chart-4/20 text-chart-4 border-chart-4/30';
+      case 'medium':
+        return 'bg-chart-3/20 text-chart-3 border-chart-3/30';
+      default:
+        return 'bg-chart-5/20 text-chart-5 border-chart-5/30';
+    }
+  };
 
-        {selectedDate && (
-          <div className="space-y-2">
-            <h4 className="text-xs sm:text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
-              {format(selectedDate, 'MMM d, yyyy')}
-            </h4>
-            {projectsOnSelectedDate.length > 0 ? (
-              <div className="space-y-2">
-                {projectsOnSelectedDate.map((project) => (
-                  <div
-                    key={project.projectId}
-                    className="p-2 sm:p-3 rounded-lg bg-muted/50 border border-border/50 hover:bg-muted transition-colors"
-                  >
-                    <p className="font-medium text-xs sm:text-sm truncate">{project.projectName}</p>
-                    <Badge
-                      variant="outline"
-                      className={cn('mt-1 text-xs', getSectorColor(project.sector))}
+  if (isLoadingProjects || isLoadingTasks) {
+    return (
+      <Card className="border-border/50">
+        <CardHeader>
+          <Skeleton className="h-6 w-48" />
+        </CardHeader>
+        <CardContent>
+          <Skeleton className="h-[400px] w-full" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Calendar - Takes 2 columns on large screens */}
+      <Card className="border-border/50 lg:col-span-2">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CalendarDays className="h-5 w-5 text-primary" />
+            Project & Task Deadlines
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex justify-center">
+            <Calendar
+              mode="single"
+              selected={selectedDate}
+              onSelect={setSelectedDate}
+              className="rounded-md border border-border/50 w-full scale-125 origin-top py-4"
+              modifiers={{
+                hasDeadline: datesWithDeadlines,
+              }}
+              modifiersStyles={{
+                hasDeadline: {
+                  backgroundColor: 'hsl(var(--primary) / 0.15)',
+                  borderRadius: '50%',
+                  fontWeight: 'bold',
+                },
+              }}
+            />
+          </div>
+
+          {selectedDate && (
+            <div className="space-y-3 pt-4 border-t">
+              <h4 className="text-sm font-semibold flex items-center gap-2">
+                <Clock className="h-4 w-4" />
+                {format(selectedDate, 'MMMM d, yyyy')}
+              </h4>
+              {itemsOnSelectedDate.length > 0 ? (
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {itemsOnSelectedDate.map((item) => (
+                    <Link
+                      key={`${item.type}-${item.id}`}
+                      to={item.type === 'project' ? `/projects/${item.id}` : `/projects/${item.projectId}`}
+                      className="block p-3 rounded-lg bg-muted/50 border border-border/50 hover:bg-muted hover:border-primary/30 transition-all"
                     >
-                      {project.sector}
-                    </Badge>
+                      <div className="flex items-start gap-2">
+                        {item.type === 'project' ? (
+                          <FolderKanban className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                        ) : (
+                          <CheckSquare className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">{item.name}</p>
+                          {item.type === 'task' && item.projectName && (
+                            <p className="text-xs text-muted-foreground truncate">
+                              {item.projectName}
+                            </p>
+                          )}
+                          <div className="flex gap-2 mt-1 flex-wrap">
+                            <Badge variant="outline" className="text-xs">
+                              {item.type}
+                            </Badge>
+                            {item.sector && (
+                              <Badge variant="outline" className={cn('text-xs', getSectorColor(item.sector))}>
+                                {item.sector}
+                              </Badge>
+                            )}
+                            {item.priority && (
+                              <Badge variant="outline" className={cn('text-xs', getPriorityColor(item.priority))}>
+                                {item.priority}
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">No deadlines on this date</p>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Upcoming Deadlines Sidebar */}
+      <Card className="border-border/50">
+        <CardHeader>
+          <CardTitle className="text-lg">Upcoming Deadlines</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3 max-h-[600px] overflow-y-auto">
+            {allDeadlines
+              .filter((item) => item.dueDate >= new Date())
+              .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime())
+              .slice(0, 20)
+              .map((item) => (
+                <Link
+                  key={`${item.type}-${item.id}`}
+                  to={item.type === 'project' ? `/projects/${item.id}` : `/projects/${item.projectId}`}
+                  className="block p-2 rounded-lg hover:bg-muted transition-colors"
+                >
+                  <div className="flex items-start gap-2">
+                    {item.type === 'project' ? (
+                      <FolderKanban className="h-3.5 w-3.5 text-primary mt-0.5 flex-shrink-0" />
+                    ) : (
+                      <CheckSquare className="h-3.5 w-3.5 text-primary mt-0.5 flex-shrink-0" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{item.name}</p>
+                      {item.type === 'task' && item.projectName && (
+                        <p className="text-xs text-muted-foreground truncate">
+                          {item.projectName}
+                        </p>
+                      )}
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {format(item.dueDate, 'MMM d, yyyy')}
+                      </p>
+                    </div>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-xs sm:text-sm text-muted-foreground/70">No projects due on this date</p>
+                </Link>
+              ))}
+            {allDeadlines.filter((item) => item.dueDate >= new Date()).length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                No upcoming deadlines
+              </p>
             )}
           </div>
-        )}
-
-        {/* Upcoming due dates summary */}
-        <div className="pt-2 sm:pt-3 border-t border-border/50">
-          <h4 className="text-xs sm:text-sm font-medium mb-2">Upcoming Due Dates</h4>
-          <div className="space-y-1 sm:space-y-1.5 max-h-24 sm:max-h-32 overflow-y-auto">
-            {projectDueDates
-              .filter((p) => p.dueDate >= new Date())
-              .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime())
-              .slice(0, 5)
-              .map((project) => (
-                <div
-                  key={project.projectId}
-                  className="flex items-center justify-between text-xs sm:text-sm py-0.5 sm:py-1"
-                >
-                  <span className="truncate flex-1 mr-2">{project.projectName}</span>
-                  <span className="text-muted-foreground text-xs whitespace-nowrap">
-                    {format(project.dueDate, 'MMM d')}
-                  </span>
-                </div>
-              ))}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

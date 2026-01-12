@@ -25,8 +25,13 @@ export function KanbanBoard({ tasks: initialTasks, onTaskMove, onTaskDelete }: K
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
 
   // Sync with prop changes (e.g., when new tasks are added)
+  // Ensure task IDs are strings for draggable
   useEffect(() => {
-    setTasks(initialTasks);
+    const tasksWithStringIds = initialTasks.map(task => ({
+      ...task,
+      id: String(task.id)
+    }));
+    setTasks(tasksWithStringIds);
   }, [initialTasks]);
 
   const priorityColors = {
@@ -112,23 +117,22 @@ export function KanbanBoard({ tasks: initialTasks, onTaskMove, onTaskDelete }: K
                     )}
                   >
                     {columnTasks.map((task, index) => (
-                      <Draggable key={task.id} draggableId={task.id} index={index}>
+                      <Draggable key={String(task.id)} draggableId={String(task.id)} index={index}>
                         {(provided, snapshot) => (
                           <div 
                             ref={provided.innerRef}
                             {...provided.draggableProps}
+                            {...provided.dragHandleProps}
                             className={cn(
-                              "group p-3 bg-background rounded-md border border-border hover:border-primary/30 hover:shadow-sm transition-all",
+                              "group p-3 bg-background rounded-md border border-border hover:border-primary/30 hover:shadow-sm transition-all cursor-grab active:cursor-grabbing",
                               snapshot.isDragging && "shadow-lg ring-2 ring-primary/20"
                             )}
                           >
                             <div className="flex items-start justify-between gap-2 mb-2">
                               <div className="flex items-center gap-2">
-                                <div {...provided.dragHandleProps} className="cursor-grab active:cursor-grabbing">
-                                  <Badge variant="outline" className={cn("text-xs", priorityColors[task.priority])}>
-                                    {task.priority}
-                                  </Badge>
-                                </div>
+                                <Badge variant="outline" className={cn("text-xs", priorityColors[task.priority])}>
+                                  {task.priority}
+                                </Badge>
                               </div>
                               <div className="flex items-center gap-1">
                                 {getAssigneeName(task.assignee) && (
@@ -143,6 +147,9 @@ export function KanbanBoard({ tasks: initialTasks, onTaskMove, onTaskDelete }: K
                                     variant="ghost"
                                     size="icon"
                                     className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/10 hover:text-destructive"
+                                    onMouseDown={(e) => {
+                                      e.stopPropagation();
+                                    }}
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       onTaskDelete(task.id);
