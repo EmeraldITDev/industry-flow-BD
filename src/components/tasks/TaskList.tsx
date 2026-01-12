@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Textarea } from '@/components/ui/textarea';
-import { Calendar, AlertCircle, StickyNote, Check, X } from 'lucide-react';
+import { Calendar, AlertCircle, StickyNote, Check, X, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { safeFormatDate, isOverdue as checkOverdue } from '@/lib/dateUtils';
@@ -13,9 +13,10 @@ interface TaskListProps {
   tasks: Task[];
   title?: string;
   onTaskUpdate?: (taskId: string, updates: Partial<Task>) => void;
+  onTaskDelete?: (taskId: string) => void;
 }
 
-export function TaskList({ tasks, title, onTaskUpdate }: TaskListProps) {
+export function TaskList({ tasks, title, onTaskUpdate, onTaskDelete }: TaskListProps) {
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [noteValue, setNoteValue] = useState('');
 
@@ -85,7 +86,7 @@ export function TaskList({ tasks, title, onTaskUpdate }: TaskListProps) {
             tasks.map(task => (
               <div 
                 key={task.id} 
-                className="p-4 rounded-lg border border-border hover:border-primary/30 hover:bg-accent/30 transition-all"
+                className="group p-4 rounded-lg border border-border hover:border-primary/30 hover:bg-accent/30 transition-all"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
@@ -110,13 +111,25 @@ export function TaskList({ tasks, title, onTaskUpdate }: TaskListProps) {
                       </p>
                     )}
                   </div>
-                  {getAssigneeName(task.assignee) && (
-                    <Avatar className="w-8 h-8 flex-shrink-0">
-                      <AvatarFallback className="text-xs bg-primary/10 text-primary">
-                        {getInitials(getAssigneeName(task.assignee))}
-                      </AvatarFallback>
-                    </Avatar>
-                  )}
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {getAssigneeName(task.assignee) && (
+                      <Avatar className="w-8 h-8">
+                        <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                          {getInitials(getAssigneeName(task.assignee))}
+                        </AvatarFallback>
+                      </Avatar>
+                    )}
+                    {onTaskDelete && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/10 hover:text-destructive"
+                        onClick={() => onTaskDelete(task.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
                 
                 {/* Notes Section */}

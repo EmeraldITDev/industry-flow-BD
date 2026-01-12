@@ -11,7 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { TaskList } from '@/components/tasks/TaskList';
 import { KanbanBoard } from '@/components/tasks/KanbanBoard';
 import { AddTaskDialog } from '@/components/tasks/AddTaskDialog';
-import { Project, Sector } from '@/types';
+import { Project, Sector, TaskStatus } from '@/types';
 import { projectsService } from '@/services/projects';
 import { tasksService } from '@/services/tasks';
 import {
@@ -209,6 +209,34 @@ export default function ProjectDetail() {
     fetchProject(); // Refresh project to update task count
   };
 
+  const handleTaskMove = async (taskId: string, newStatus: TaskStatus) => {
+    try {
+      await tasksService.updateStatus(taskId, newStatus);
+      toast.success('Task status updated');
+      refetchTasks();
+      fetchProject();
+    } catch (err: any) {
+      console.error('Failed to update task status:', err);
+      toast.error(err.response?.data?.message || 'Failed to update task status');
+    }
+  };
+
+  const handleTaskDelete = async (taskId: string) => {
+    if (!confirm('Are you sure you want to delete this task?')) {
+      return;
+    }
+    
+    try {
+      await tasksService.delete(taskId);
+      toast.success('Task deleted successfully');
+      refetchTasks();
+      fetchProject();
+    } catch (err: any) {
+      console.error('Failed to delete task:', err);
+      toast.error(err.response?.data?.message || 'Failed to delete task');
+    }
+  };
+
   const handleDeleteProject = async () => {
     if (!id) return;
     
@@ -391,10 +419,17 @@ export default function ProjectDetail() {
               )}
             </div>
             <TabsContent value="kanban" className="mt-0">
-              <KanbanBoard tasks={tasks} />
+              <KanbanBoard 
+                tasks={tasks} 
+                onTaskMove={handleTaskMove}
+                onTaskDelete={handleTaskDelete}
+              />
             </TabsContent>
             <TabsContent value="list" className="mt-0">
-              <TaskList tasks={tasks} />
+              <TaskList 
+                tasks={tasks}
+                onTaskDelete={handleTaskDelete}
+              />
             </TabsContent>
           </Tabs>
 

@@ -135,7 +135,7 @@ export function AddTaskDialog({ open, onOpenChange, projectId, onTaskCreated }: 
                   <SelectItem value="low">Low</SelectItem>
                   <SelectItem value="medium">Medium</SelectItem>
                   <SelectItem value="high">High</SelectItem>
-                  <SelectItem value="critical">Critical</SelectItem>
+                  <SelectItem value="urgent">Urgent</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -151,8 +151,8 @@ export function AddTaskDialog({ open, onOpenChange, projectId, onTaskCreated }: 
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todo">To Do</SelectItem>
-                  <SelectItem value="in_progress">In Progress</SelectItem>
-                  <SelectItem value="in_review">In Review</SelectItem>
+                  <SelectItem value="in-progress">In Progress</SelectItem>
+                  <SelectItem value="review">In Review</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
                 </SelectContent>
               </Select>

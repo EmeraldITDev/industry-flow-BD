@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Task, TaskStatus } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Calendar, Circle, Clock, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Calendar, Circle, Clock, AlertCircle, CheckCircle2, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { safeFormatDate } from '@/lib/dateUtils';
@@ -10,6 +11,7 @@ import { safeFormatDate } from '@/lib/dateUtils';
 interface KanbanBoardProps {
   tasks: Task[];
   onTaskMove?: (taskId: string, newStatus: TaskStatus) => void;
+  onTaskDelete?: (taskId: string) => void;
 }
 
 const columns: { status: TaskStatus; title: string; icon: React.ElementType; color: string }[] = [
@@ -19,8 +21,13 @@ const columns: { status: TaskStatus; title: string; icon: React.ElementType; col
   { status: 'completed', title: 'Completed', icon: CheckCircle2, color: 'border-t-chart-1' },
 ];
 
-export function KanbanBoard({ tasks: initialTasks, onTaskMove }: KanbanBoardProps) {
+export function KanbanBoard({ tasks: initialTasks, onTaskMove, onTaskDelete }: KanbanBoardProps) {
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
+
+  // Sync with prop changes (e.g., when new tasks are added)
+  useEffect(() => {
+    setTasks(initialTasks);
+  }, [initialTasks]);
 
   const priorityColors = {
     low: 'bg-chart-5/20 text-chart-5',
@@ -110,23 +117,41 @@ export function KanbanBoard({ tasks: initialTasks, onTaskMove }: KanbanBoardProp
                           <div 
                             ref={provided.innerRef}
                             {...provided.draggableProps}
-                            {...provided.dragHandleProps}
                             className={cn(
-                              "p-3 bg-background rounded-md border border-border hover:border-primary/30 hover:shadow-sm transition-all cursor-grab active:cursor-grabbing",
+                              "group p-3 bg-background rounded-md border border-border hover:border-primary/30 hover:shadow-sm transition-all",
                               snapshot.isDragging && "shadow-lg ring-2 ring-primary/20"
                             )}
                           >
                             <div className="flex items-start justify-between gap-2 mb-2">
-                              <Badge variant="outline" className={cn("text-xs", priorityColors[task.priority])}>
-                                {task.priority}
-                              </Badge>
-                            {getAssigneeName(task.assignee) && (
-                              <Avatar className="w-6 h-6">
-                                <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
-                                  {getInitials(getAssigneeName(task.assignee))}
-                                </AvatarFallback>
-                              </Avatar>
-                            )}
+                              <div className="flex items-center gap-2">
+                                <div {...provided.dragHandleProps} className="cursor-grab active:cursor-grabbing">
+                                  <Badge variant="outline" className={cn("text-xs", priorityColors[task.priority])}>
+                                    {task.priority}
+                                  </Badge>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                {getAssigneeName(task.assignee) && (
+                                  <Avatar className="w-6 h-6">
+                                    <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
+                                      {getInitials(getAssigneeName(task.assignee))}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                )}
+                                {onTaskDelete && (
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/10 hover:text-destructive"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      onTaskDelete(task.id);
+                                    }}
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                )}
+                              </div>
                             </div>
                             <h4 className="font-medium text-sm line-clamp-2">{task.title}</h4>
                             {task.notes && (
