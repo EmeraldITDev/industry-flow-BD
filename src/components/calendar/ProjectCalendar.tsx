@@ -54,7 +54,7 @@ export function ProjectCalendar() {
           name: p.name,
           dueDate: parseISO(dateStr),
           type: 'project' as const,
-          sector: p.sector,
+      sector: p.sector,
         };
       });
 
@@ -131,43 +131,43 @@ export function ProjectCalendar() {
   }
 
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-      {/* Calendar - Takes 2 columns on large screens */}
-      <Card className="border-border/50 xl:col-span-2">
+    <div className="space-y-6">
+      {/* Calendar */}
+    <Card className="border-border/50">
         <CardHeader className="pb-4">
           <CardTitle className="flex items-center gap-2 text-lg">
             <CalendarDays className="h-5 w-5 text-primary" />
             Project & Task Deadlines
-          </CardTitle>
-        </CardHeader>
+        </CardTitle>
+      </CardHeader>
         <CardContent className="space-y-6 pb-6">
-          <div className="flex justify-center px-4">
-            <Calendar
-              mode="single"
-              selected={selectedDate}
-              onSelect={setSelectedDate}
+        <div className="flex justify-center">
+          <Calendar
+            mode="single"
+            selected={selectedDate}
+            onSelect={setSelectedDate}
               className="rounded-md border border-border/50 shadow-sm"
-              modifiers={{
+            modifiers={{
                 hasDeadline: datesWithDeadlines,
-              }}
-              modifiersStyles={{
+            }}
+            modifiersStyles={{
                 hasDeadline: {
-                  backgroundColor: 'hsl(var(--primary) / 0.15)',
-                  borderRadius: '50%',
-                  fontWeight: 'bold',
-                },
-              }}
-            />
-          </div>
+                backgroundColor: 'hsl(var(--primary) / 0.15)',
+                borderRadius: '50%',
+                fontWeight: 'bold',
+              },
+            }}
+          />
+        </div>
 
-          {selectedDate && (
-            <div className="space-y-4 pt-6 border-t border-border/50 px-4">
+        {selectedDate && (
+            <div className="space-y-4 pt-6 border-t border-border/50">
               <h4 className="text-base font-semibold flex items-center gap-2 text-foreground">
                 <Clock className="h-4 w-4 text-primary" />
                 {format(selectedDate, 'MMMM d, yyyy')}
-              </h4>
+            </h4>
               {itemsOnSelectedDate.length > 0 ? (
-                <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                   {itemsOnSelectedDate.map((item) => (
                     <Link
                       key={`${item.type}-${item.id}`}
@@ -199,31 +199,31 @@ export function ProjectCalendar() {
                             {item.priority && (
                               <Badge variant="outline" className={cn('text-xs capitalize', getPriorityColor(item.priority))}>
                                 {item.priority}
-                              </Badge>
+                    </Badge>
                             )}
                           </div>
                         </div>
-                      </div>
+                  </div>
                     </Link>
-                  ))}
-                </div>
-              ) : (
+                ))}
+              </div>
+            ) : (
                 <p className="text-sm text-muted-foreground text-center py-8">
                   No deadlines on this date
                 </p>
-              )}
-            </div>
-          )}
+            )}
+          </div>
+        )}
         </CardContent>
       </Card>
 
-      {/* Upcoming Deadlines Sidebar */}
+      {/* Upcoming Deadlines */}
       <Card className="border-border/50">
         <CardHeader className="pb-4">
           <CardTitle className="text-lg">Upcoming Deadlines</CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
-          <div className="space-y-2 max-h-[calc(100vh-280px)] overflow-y-auto pr-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
             {allDeadlines
               .filter((item) => item.dueDate >= new Date())
               .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime())
@@ -232,36 +232,42 @@ export function ProjectCalendar() {
                 <Link
                   key={`${item.type}-${item.id}`}
                   to={item.type === 'project' ? `/projects/${item.id}` : `/projects/${item.projectId}`}
-                  className="block p-3 rounded-lg border border-transparent hover:border-primary/30 hover:bg-accent transition-all"
+                  className="block p-4 rounded-lg border border-border bg-card hover:border-primary/50 hover:bg-accent transition-all shadow-sm h-full"
                 >
-                  <div className="flex items-start gap-3">
-                    {item.type === 'project' ? (
-                      <FolderKanban className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                    ) : (
-                      <CheckSquare className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                    )}
-                    <div className="flex-1 min-w-0 space-y-1">
-                      <p className="text-sm font-medium leading-tight line-clamp-2">{item.name}</p>
+                  <div className="flex flex-col gap-3 h-full">
+                    <div className="flex items-start gap-2">
+                      {item.type === 'project' ? (
+                        <FolderKanban className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                      ) : (
+                        <CheckSquare className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                      )}
+                      <Badge variant="outline" className="text-xs capitalize">
+                        {item.type}
+                      </Badge>
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      <p className="text-sm font-semibold leading-tight line-clamp-2">{item.name}</p>
                       {item.type === 'task' && item.projectName && (
                         <p className="text-xs text-muted-foreground leading-tight line-clamp-1">
                           {item.projectName}
                         </p>
                       )}
-                      <p className="text-xs text-muted-foreground font-medium">
-                        {format(item.dueDate, 'MMM d, yyyy')}
-                      </p>
                     </div>
-                  </div>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium pt-2 border-t border-border/50">
+                      <Clock className="h-3 w-3" />
+                      {format(item.dueDate, 'MMM d, yyyy')}
+                    </div>
+                </div>
                 </Link>
               ))}
             {allDeadlines.filter((item) => item.dueDate >= new Date()).length === 0 && (
-              <p className="text-sm text-muted-foreground text-center py-8">
+              <p className="text-sm text-muted-foreground text-center py-8 col-span-full">
                 No upcoming deadlines
               </p>
             )}
-          </div>
-        </CardContent>
-      </Card>
+        </div>
+      </CardContent>
+    </Card>
     </div>
   );
 }
