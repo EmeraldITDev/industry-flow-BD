@@ -79,14 +79,11 @@ export default function NewProject() {
     projectLeadId: '',
     assigneeId: '',
     channelPartner: '',
-    // Financial fields (dual currency)
-    exchangeRate: '1500', // Default NGN/USD rate
+    // Financial fields (independent currencies)
     contractValueNGN: '',
     contractValueUSD: '',
     marginPercentNGN: '',
     marginPercentUSD: '',
-    marginValueNGN: '',
-    marginValueUSD: '',
     // Comments
     projectLeadComments: '',
   });
@@ -357,24 +354,6 @@ export default function NewProject() {
             <CardDescription>Contract value and margin in both Naira and USD</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Exchange Rate */}
-            <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
-              <div className="flex items-center justify-between gap-4">
-                <div className="space-y-1">
-                  <Label className="text-sm font-medium">Exchange Rate (₦ per $1 USD)</Label>
-                  <p className="text-xs text-muted-foreground">Enter the rate to auto-convert between currencies</p>
-                </div>
-                <div className="w-40">
-                  <Input 
-                    type="number" 
-                    value={formData.exchangeRate} 
-                    onChange={(e) => setFormData({ ...formData, exchangeRate: e.target.value })} 
-                    placeholder="1500" 
-                  />
-                </div>
-              </div>
-            </div>
-
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-4 p-4 rounded-lg bg-muted/30">
                 <h4 className="font-medium">Nigerian Naira (₦)</h4>
@@ -383,12 +362,7 @@ export default function NewProject() {
                   <Input 
                     type="number" 
                     value={formData.contractValueNGN} 
-                    onChange={(e) => {
-                      const ngnValue = e.target.value;
-                      const rate = parseFloat(formData.exchangeRate) || 1;
-                      const usdValue = ngnValue ? (parseFloat(ngnValue) / rate).toFixed(2) : '';
-                      setFormData({ ...formData, contractValueNGN: ngnValue, contractValueUSD: usdValue });
-                    }} 
+                    onChange={(e) => setFormData({ ...formData, contractValueNGN: e.target.value })} 
                     placeholder="0" 
                   />
                 </div>
@@ -418,12 +392,7 @@ export default function NewProject() {
                   <Input 
                     type="number" 
                     value={formData.contractValueUSD} 
-                    onChange={(e) => {
-                      const usdValue = e.target.value;
-                      const rate = parseFloat(formData.exchangeRate) || 1;
-                      const ngnValue = usdValue ? (parseFloat(usdValue) * rate).toFixed(2) : '';
-                      setFormData({ ...formData, contractValueUSD: usdValue, contractValueNGN: ngnValue });
-                    }} 
+                    onChange={(e) => setFormData({ ...formData, contractValueUSD: e.target.value })} 
                     placeholder="0" 
                   />
                 </div>
