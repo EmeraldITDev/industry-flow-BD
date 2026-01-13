@@ -3,7 +3,7 @@ import { ProjectDocument, DocumentType } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,10 +16,13 @@ import {
   Download,
   Cloud,
   HardDrive,
-  Plus
+  Plus,
+  Loader2,
+  LogOut
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { safeFormatDate } from '@/lib/dateUtils';
+import { useOneDrive } from '@/hooks/useOneDrive';
 
 interface DocumentManagerProps {
   documents: ProjectDocument[];
@@ -57,13 +60,25 @@ function getFileIcon(name: string) {
 
 export function DocumentManager({ documents, onDocumentsChange, readonly = false }: DocumentManagerProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isOneDriveDialogOpen, setIsOneDriveDialogOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const oneDriveFileInputRef = useRef<HTMLInputElement>(null);
   const [newDocument, setNewDocument] = useState({
     name: '',
     type: 'supporting' as DocumentType,
     source: 'local' as 'local' | 'onedrive',
   });
+  
+  const { 
+    isConfigured, 
+    isLoggedIn, 
+    isUploading, 
+    currentUser,
+    login, 
+    logout, 
+    uploadFile 
+  } = useOneDrive();
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -119,8 +134,45 @@ export function DocumentManager({ documents, onDocumentsChange, readonly = false
     toast.success('Document removed');
   };
 
-  const handleConnectOneDrive = () => {
-    toast.info('OneDrive connection coming soon. This is a placeholder for Microsoft Graph API integration.');
+  const handleConnectOneDrive = async () => {
+    if (!isConfigured) {
+      toast.error('OneDrive is not configured. Please add VITE_ONEDRIVE_CLIENT_ID to your .env file.');
+      return;
+    }
+
+    if (isLoggedIn) {
+      setIsOneDriveDialogOpen(true);
+    } else {
+      await login();
+    }
+  };
+
+  const handleOneDriveFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const uploadedFile = await uploadFile(file, 'IndustryFlow');
+      if (uploadedFile) {
+        const doc: ProjectDocument = {
+          id: uploadedFile.id,
+          name: uploadedFile.name,
+          type: newDocument.type,
+          url: uploadedFile.webUrl,
+          uploadedAt: uploadedFile.createdDateTime,
+          uploadedBy: currentUser?.displayName || 'OneDrive User',
+          size: uploadedFile.size,
+          source: 'onedrive',
+        };
+
+        onDocumentsChange([...documents, doc]);
+        setNewDocument({ name: '', type: 'supporting', source: 'local' });
+        setIsOneDriveDialogOpen(false);
+        toast.success('Document uploaded to OneDrive and linked successfully');
+      }
+    } catch (error) {
+      console.error('OneDrive upload error:', error);
+    }
   };
 
 
@@ -278,6 +330,95 @@ export function DocumentManager({ documents, onDocumentsChange, readonly = false
           </div>
         )}
       </CardContent>
+
+      {/* OneDrive Upload Dialog */}
+      <Dialog open={isOneDriveDialogOpen} onOpenChange={setIsOneDriveDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Cloud className="w-5 h-5 text-chart-1" />
+              Upload to OneDrive
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            {currentUser && (
+              <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                <div>
+                  <p className="text-sm font-medium">{currentUser.displayName}</p>
+                  <p className="text-xs text-muted-foreground">{currentUser.mail || currentUser.userPrincipalName}</p>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={logout}
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Logout
+                </Button>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label>Document Type</Label>
+              <Select
+                value={newDocument.type}
+                onValueChange={(value: DocumentType) => 
+                  setNewDocument({ ...newDocument, type: value })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="rfq">RFQ</SelectItem>
+                  <SelectItem value="proposal">Proposal</SelectItem>
+                  <SelectItem value="contract">Contract</SelectItem>
+                  <SelectItem value="supporting">Supporting Document</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Select File</Label>
+              <div 
+                onClick={() => oneDriveFileInputRef.current?.click()}
+                className="border-2 border-dashed border-border rounded-lg p-8 text-center cursor-pointer hover:border-primary transition-colors"
+              >
+                <Cloud className="w-12 h-12 mx-auto mb-4 text-chart-1" />
+                <p className="text-sm font-medium mb-1">
+                  Click to select file to upload to OneDrive
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  File will be uploaded to your OneDrive and linked to this project
+                </p>
+              </div>
+              <input
+                ref={oneDriveFileInputRef}
+                type="file"
+                onChange={handleOneDriveFileSelect}
+                className="hidden"
+              />
+            </div>
+
+            {isUploading && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Uploading to OneDrive...
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setIsOneDriveDialogOpen(false)}
+              disabled={isUploading}
+            >
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

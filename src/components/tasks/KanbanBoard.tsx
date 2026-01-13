@@ -130,18 +130,18 @@ export function KanbanBoard({ tasks: initialTasks, onTaskMove, onTaskDelete }: K
                           >
                             <div className="flex items-start justify-between gap-2 mb-2">
                               <div className="flex items-center gap-2">
-                                <Badge variant="outline" className={cn("text-xs", priorityColors[task.priority])}>
-                                  {task.priority}
-                                </Badge>
+                              <Badge variant="outline" className={cn("text-xs", priorityColors[task.priority])}>
+                                {task.priority}
+                              </Badge>
                               </div>
                               <div className="flex items-center gap-1">
-                                {getAssigneeName(task.assignee) && (
-                                  <Avatar className="w-6 h-6">
-                                    <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
-                                      {getInitials(getAssigneeName(task.assignee))}
-                                    </AvatarFallback>
-                                  </Avatar>
-                                )}
+                            {getAssigneeName(task.assignee) && (
+                              <Avatar className="w-6 h-6">
+                                <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
+                                  {getInitials(getAssigneeName(task.assignee))}
+                                </AvatarFallback>
+                              </Avatar>
+                            )}
                                 {onTaskDelete && (
                                   <Button
                                     variant="ghost"
