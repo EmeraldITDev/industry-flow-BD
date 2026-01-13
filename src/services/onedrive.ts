@@ -34,31 +34,44 @@ const loginRequest = {
 
 // Initialize MSAL instance
 let msalInstance: PublicClientApplication | null = null;
-let initializationPromise: Promise<void> | null = null;
+let initializationPromise: Promise<PublicClientApplication | null> | null = null;
 
-const initializeMsal = async () => {
+const initializeMsal = async (): Promise<PublicClientApplication | null> => {
   if (!msalConfig.auth.clientId) {
+    console.error('MSAL not configured. Please set VITE_MICROSOFT_CLIENT_ID.');
     return null;
   }
 
+  // If already initialized, return it
   if (msalInstance) {
     return msalInstance;
   }
 
-  if (!initializationPromise) {
-    initializationPromise = (async () => {
-      msalInstance = new PublicClientApplication(msalConfig);
-      await msalInstance.initialize();
-    })();
+  // If initialization is in progress, wait for it
+  if (initializationPromise) {
+    return initializationPromise;
   }
 
-  await initializationPromise;
-  return msalInstance;
+  // Start initialization
+  initializationPromise = (async () => {
+    try {
+      msalInstance = new PublicClientApplication(msalConfig);
+      await msalInstance.initialize();
+      return msalInstance;
+    } catch (error) {
+      console.error('Failed to initialize MSAL:', error);
+      msalInstance = null;
+      initializationPromise = null;
+      return null;
+    }
+  })();
+
+  return initializationPromise;
 };
 
 // Get the access token
 const getAccessToken = async (): Promise<string | null> => {
-  const msal = initializeMsal();
+  const msal = await initializeMsal();
   if (!msal) {
     console.error('MSAL not initialized. Please configure Microsoft Client ID.');
     return null;
@@ -94,9 +107,8 @@ const getAccessToken = async (): Promise<string | null> => {
 
 // Check if user is authenticated (alias for compatibility)
 const isAuthenticated = (): boolean => {
-  const msal = initializeMsal();
-  if (!msal) return false;
-  return msal.getAllAccounts().length > 0;
+  if (!msalInstance) return false;
+  return msalInstance.getAllAccounts().length > 0;
 };
 
 const isLoggedIn = isAuthenticated;
@@ -123,7 +135,7 @@ const getCurrentUser = async (): Promise<any | null> => {
 
 // Login to OneDrive
 const login = async (): Promise<any> => {
-  const msal = initializeMsal();
+  const msal = await initializeMsal();
   if (!msal) {
     throw new Error('Microsoft Client ID not configured. Please set VITE_MICROSOFT_CLIENT_ID in your .env file.');
   }
@@ -139,7 +151,7 @@ const login = async (): Promise<any> => {
 
 // Logout from OneDrive
 const logout = async (): Promise<void> => {
-  const msal = initializeMsal();
+  const msal = await initializeMsal();
   if (!msal) return;
 
   const accounts = msal.getAllAccounts();

@@ -173,7 +173,7 @@ export function ProjectCalendar() {
                       key={`${item.type}-${item.id}`}
                       to={item.type === 'project' ? `/projects/${item.id}` : `/projects/${item.projectId}`}
                       className="block p-5 rounded-lg bg-card border border-border hover:bg-accent hover:border-primary/50 transition-all shadow-sm"
-                    >
+                  >
                       <div className="flex items-start gap-4">
                         {item.type === 'project' ? (
                           <FolderKanban className="h-6 w-6 text-primary mt-0.5 flex-shrink-0" />
@@ -257,7 +257,7 @@ export function ProjectCalendar() {
                         {format(item.dueDate, 'MMM d, yyyy')}
                       </div>
                     </div>
-                  </div>
+                </div>
                 </Link>
               ))}
             {allDeadlines.filter((item) => item.dueDate >= new Date()).length === 0 && (

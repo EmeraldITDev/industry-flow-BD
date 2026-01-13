@@ -112,13 +112,13 @@ export function TaskList({ tasks, title, onTaskUpdate, onTaskDelete }: TaskListP
                     )}
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    {getAssigneeName(task.assignee) && (
+                  {getAssigneeName(task.assignee) && (
                       <Avatar className="w-8 h-8">
-                        <AvatarFallback className="text-xs bg-primary/10 text-primary">
-                          {getInitials(getAssigneeName(task.assignee))}
-                        </AvatarFallback>
-                      </Avatar>
-                    )}
+                      <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                        {getInitials(getAssigneeName(task.assignee))}
+                      </AvatarFallback>
+                    </Avatar>
+                  )}
                     {onTaskDelete && (
                       <Button
                         variant="ghost"
