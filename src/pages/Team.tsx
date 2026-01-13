@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -35,13 +36,14 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Plus, MoreHorizontal, Shield, Edit, Eye, Trash2, Users, UserPlus, Loader2, Copy, Check } from 'lucide-react';
-import { teamMembers as initialTeamMembers, projects } from '@/data/mockData';
+import { projects } from '@/data/mockData';
 import { TeamMember, TeamRole } from '@/types';
 import { toast } from 'sonner';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/context/AuthContext';
 import { AccessLevel, ACCESS_LEVEL_CONFIG, SystemRole, SYSTEM_ROLE_CONFIG } from '@/types/auth';
 import { teamService } from '@/services/team';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const SYSTEM_ROLES: { value: SystemRole; label: string; description: string }[] = [
   { value: 'admin', label: 'Admin', description: 'Full system access' },
@@ -78,7 +80,7 @@ function generatePassword(length = 12): string {
 }
 
 export default function Team() {
-  const [members, setMembers] = useState<TeamMember[]>(initialTeamMembers);
+  const queryClient = useQueryClient();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isCredentialsDialogOpen, setIsCredentialsDialogOpen] = useState(false);
   const [newUserCredentials, setNewUserCredentials] = useState<{ email: string; password: string } | null>(null);
@@ -91,7 +93,14 @@ export default function Team() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const { canManageTeam } = usePermissions();
-  const { addUser, canManageRole } = useAuth();
+  const { canManageRole } = useAuth();
+
+  // Fetch team members from backend
+  const { data: members = [], isLoading: isLoadingMembers } = useQuery({
+    queryKey: ['team'],
+    queryFn: () => teamService.getAll(),
+    staleTime: 5 * 60 * 1000,
+  });
 
   // Map system role to team role
   const getTeamRoleFromSystemRole = (systemRole: SystemRole): TeamRole => {
@@ -139,16 +148,8 @@ export default function Team() {
       // Use password from response if backend generates it, otherwise use our generated one
       const finalPassword = (response as any).password || generatedPassword;
 
-      // Add to local state
-      setMembers(prev => [...prev, response]);
-
-      // Also add to auth context
-      addUser({
-        email: normalizedEmail,
-        name: newUserName,
-        accessLevel: newUserAccessLevel,
-        systemRole: newUserSystemRole,
-      });
+      // Refetch team members from backend to get the complete list
+      await queryClient.invalidateQueries({ queryKey: ['team'] });
 
       // Show credentials dialog
       setNewUserCredentials({ email: normalizedEmail, password: finalPassword });
@@ -174,17 +175,27 @@ export default function Team() {
     }
   };
 
-  const handleUpdateRole = (memberId: string, newRole: TeamRole) => {
-    setMembers(members.map(m => 
-      m.id === memberId ? { ...m, role: newRole } : m
-    ));
-    toast.success('Role updated successfully');
+  const handleUpdateRole = async (memberId: string, newRole: TeamRole) => {
+    try {
+      await teamService.updateRole(memberId, newRole);
+      await queryClient.invalidateQueries({ queryKey: ['team'] });
+      toast.success('Role updated successfully');
+    } catch (error: any) {
+      console.error('Failed to update role:', error);
+      toast.error(error.response?.data?.message || 'Failed to update role');
+    }
   };
 
-  const handleDeleteMember = (memberId: string) => {
+  const handleDeleteMember = async (memberId: string) => {
     const member = members.find(m => m.id === memberId);
-    setMembers(members.filter(m => m.id !== memberId));
-    toast.success(`${member?.name} has been removed from the team`);
+    try {
+      await teamService.delete(memberId);
+      await queryClient.invalidateQueries({ queryKey: ['team'] });
+      toast.success(`${member?.name} has been removed from the team`);
+    } catch (error: any) {
+      console.error('Failed to delete member:', error);
+      toast.error(error.response?.data?.message || 'Failed to remove team member');
+    }
   };
 
   const handleAssignProject = (memberId: string, projectId: string) => {
@@ -409,7 +420,14 @@ export default function Team() {
           <CardTitle>Team Members</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
+          {isLoadingMembers ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-16 w-full" />
+              ))}
+            </div>
+          ) : (
+            <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Member</TableHead>
@@ -501,6 +519,7 @@ export default function Team() {
               })}
             </TableBody>
           </Table>
+          )}
         </CardContent>
       </Card>
 

@@ -1,15 +1,19 @@
 import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/context/AuthContext';
-import { User, AccessLevel, ACCESS_LEVEL_CONFIG, SystemRole, SYSTEM_ROLE_CONFIG } from '@/types/auth';
+import { AccessLevel, ACCESS_LEVEL_CONFIG, SystemRole, SYSTEM_ROLE_CONFIG } from '@/types/auth';
+import { TeamMember, TeamRole } from '@/types';
+import { teamService } from '@/services/team';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Skeleton } from '@/components/ui/skeleton';
 import { 
   Shield, 
   Users, 
@@ -19,7 +23,8 @@ import {
   Crown,
   Briefcase,
   ClipboardList,
-  Eye
+  Eye,
+  Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -36,15 +41,56 @@ const SYSTEM_ROLES: { value: SystemRole; label: string; description: string }[] 
   { value: 'viewer', label: 'Viewer', description: 'Read-only access' },
 ];
 
+// Generate a random password
+function generatePassword(length = 12): string {
+  const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%';
+  let password = '';
+  for (let i = 0; i < length; i++) {
+    password += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return password;
+}
+
+// Map system role to team role (for backend API)
+const getTeamRoleFromSystemRole = (systemRole: SystemRole): TeamRole => {
+  switch (systemRole) {
+    case 'admin': return 'admin';
+    case 'project_manager': return 'editor';
+    case 'viewer': return 'viewer';
+    default: return 'viewer';
+  }
+};
+
+// Extended TeamMember with accessLevel and systemRole (backend may return these)
+interface ExtendedTeamMember extends TeamMember {
+  systemRole?: SystemRole;
+  accessLevel?: AccessLevel;
+}
+
 export function AccessLevelManager() {
-  const { user, getAllUsers, updateUserRole, updateUserSystemRole, canManageRole, addUser, removeUser } = useAuth();
+  const queryClient = useQueryClient();
+  const { user, canManageRole } = useAuth();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserName, setNewUserName] = useState('');
+  const [newUserDepartment, setNewUserDepartment] = useState('');
   const [newUserRole, setNewUserRole] = useState<AccessLevel>('viewer');
   const [newUserSystemRole, setNewUserSystemRole] = useState<SystemRole>('viewer');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const allUsers = getAllUsers();
+  // Fetch team members from backend
+  const { data: teamMembers = [], isLoading: isLoadingMembers } = useQuery({
+    queryKey: ['team'],
+    queryFn: () => teamService.getAll(),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Convert TeamMember to display format (assume backend returns systemRole/accessLevel if provided)
+  const displayMembers = teamMembers.map((member: ExtendedTeamMember) => ({
+    ...member,
+    systemRole: member.systemRole || (member.role === 'admin' ? 'admin' as SystemRole : member.role === 'editor' ? 'project_manager' as SystemRole : 'viewer' as SystemRole),
+    accessLevel: member.accessLevel || (member.role === 'admin' ? 'admin' as AccessLevel : member.role === 'editor' ? 'pm' as AccessLevel : 'viewer' as AccessLevel),
+  }));
 
   const getInitials = (name?: string | null) => {
     if (!name) return 'U';
@@ -56,7 +102,7 @@ export function AccessLevelManager() {
       .slice(0, 2);
   };
 
-  const handleAddUser = () => {
+  const handleAddUser = async () => {
     if (!newUserEmail.endsWith('@emeraldcfze.com')) {
       toast.error('Email must end with @emeraldcfze.com');
       return;
@@ -66,26 +112,86 @@ export function AccessLevelManager() {
       return;
     }
 
-    addUser({
-      email: newUserEmail,
+    const generatedPassword = generatePassword();
+    const teamRole = getTeamRoleFromSystemRole(newUserSystemRole);
+    const normalizedEmail = newUserEmail.toLowerCase().trim();
+
+    setIsSubmitting(true);
+    try {
+      await teamService.create({
       name: newUserName,
+        email: normalizedEmail,
+        role: teamRole,
+        department: newUserDepartment || 'General',
+        systemRole: newUserSystemRole,
       accessLevel: newUserRole,
-      systemRole: newUserSystemRole,
-    });
+        password: generatedPassword,
+      } as any);
+
+      // Refetch team members from backend
+      await queryClient.invalidateQueries({ queryKey: ['team'] });
 
     setNewUserEmail('');
     setNewUserName('');
+      setNewUserDepartment('');
     setNewUserRole('viewer');
     setNewUserSystemRole('viewer');
     setIsAddDialogOpen(false);
+
+      toast.success('Team member added successfully!');
+    } catch (error: any) {
+      console.error('Failed to add team member:', error);
+      const errorMessage = error.response?.data?.message 
+        || error.response?.data?.error 
+        || 'Failed to add team member. Please check your backend connection.';
+      toast.error(errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleRemoveUser = (userId: string) => {
+  const handleRemoveUser = async (userId: string) => {
     if (userId === user?.id) {
       toast.error('You cannot remove yourself');
       return;
     }
-    removeUser(userId);
+    
+    try {
+      await teamService.delete(userId);
+      await queryClient.invalidateQueries({ queryKey: ['team'] });
+      toast.success('Team member removed successfully');
+    } catch (error: any) {
+      console.error('Failed to remove team member:', error);
+      toast.error(error.response?.data?.message || 'Failed to remove team member');
+    }
+  };
+
+  const handleUpdateAccessLevel = async (userId: string, newAccessLevel: AccessLevel) => {
+    try {
+      // Note: Backend API might need to be extended to support accessLevel updates
+      // For now, we'll update the role based on accessLevel
+      const teamRole = newAccessLevel === 'admin' ? 'admin' as TeamRole : 
+                      newAccessLevel === 'pm' ? 'editor' as TeamRole : 
+                      'viewer' as TeamRole;
+      await teamService.updateRole(userId, teamRole);
+      await queryClient.invalidateQueries({ queryKey: ['team'] });
+      toast.success('Access level updated successfully');
+    } catch (error: any) {
+      console.error('Failed to update access level:', error);
+      toast.error(error.response?.data?.message || 'Failed to update access level');
+    }
+  };
+
+  const handleUpdateSystemRole = async (userId: string, newSystemRole: SystemRole) => {
+    try {
+      const teamRole = getTeamRoleFromSystemRole(newSystemRole);
+      await teamService.updateRole(userId, teamRole);
+      await queryClient.invalidateQueries({ queryKey: ['team'] });
+      toast.success('System role updated successfully');
+    } catch (error: any) {
+      console.error('Failed to update system role:', error);
+      toast.error(error.response?.data?.message || 'Failed to update system role');
+    }
   };
 
   const canAddUsers = user?.accessLevel === 'admin' || user?.accessLevel === 'bd_director';
@@ -144,6 +250,15 @@ export function AccessLevelManager() {
                   </p>
                 </div>
                 <div className="space-y-2">
+                  <Label htmlFor="department">Department</Label>
+                  <Input
+                    id="department"
+                    placeholder="Engineering"
+                    value={newUserDepartment}
+                    onChange={(e) => setNewUserDepartment(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
                   <Label>System Role</Label>
                   <Select value={newUserSystemRole} onValueChange={(v) => setNewUserSystemRole(v as SystemRole)}>
                     <SelectTrigger>
@@ -176,9 +291,15 @@ export function AccessLevelManager() {
                     </SelectContent>
                   </Select>
                 </div>
-                <Button onClick={handleAddUser} className="w-full">
-                  Add Member
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleAddUser} disabled={isSubmitting}>
+                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {isSubmitting ? 'Adding...' : 'Add Member'}
                 </Button>
+                </DialogFooter>
               </div>
             </DialogContent>
           </Dialog>
@@ -193,13 +314,20 @@ export function AccessLevelManager() {
             <CardTitle className="text-base">Team Members</CardTitle>
           </div>
           <CardDescription>
-            {allUsers.length} member{allUsers.length !== 1 ? 's' : ''} in your organization
+            {isLoadingMembers ? 'Loading...' : `${displayMembers.length} member${displayMembers.length !== 1 ? 's' : ''} in your organization`}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <ScrollArea className="h-[400px] pr-4">
+          {isLoadingMembers ? (
             <div className="space-y-3">
-              {allUsers.map((teamUser) => {
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-16 w-full" />
+              ))}
+            </div>
+          ) : (
+            <ScrollArea className="h-[400px] pr-4">
+              <div className="space-y-3">
+                {displayMembers.map((teamUser) => {
                 const RoleIcon = roleIcons[teamUser.accessLevel];
                 const config = ACCESS_LEVEL_CONFIG[teamUser.accessLevel];
                 const isCurrentUser = teamUser.id === user?.id;
@@ -224,11 +352,6 @@ export function AccessLevelManager() {
                               You
                             </Badge>
                           )}
-                          {teamUser.expiresAt && (
-                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                              Test Account
-                            </Badge>
-                          )}
                         </div>
                         <span className="text-sm text-muted-foreground">{teamUser.email}</span>
                       </div>
@@ -239,7 +362,7 @@ export function AccessLevelManager() {
                       {canEditSystemRoles && !isCurrentUser ? (
                         <Select
                           value={teamUser.systemRole || 'viewer'}
-                          onValueChange={(value) => updateUserSystemRole(teamUser.id, value as SystemRole)}
+                            onValueChange={(value) => handleUpdateSystemRole(teamUser.id, value as SystemRole)}
                         >
                           <SelectTrigger className="w-[170px] h-9">
                             <SelectValue />
@@ -262,7 +385,7 @@ export function AccessLevelManager() {
                       {canEdit ? (
                         <Select
                           value={teamUser.accessLevel}
-                          onValueChange={(value) => updateUserRole(teamUser.id, value as AccessLevel)}
+                            onValueChange={(value) => handleUpdateAccessLevel(teamUser.id, value as AccessLevel)}
                         >
                           <SelectTrigger className="w-[160px] h-9">
                             <SelectValue />
@@ -302,6 +425,7 @@ export function AccessLevelManager() {
               })}
             </div>
           </ScrollArea>
+          )}
         </CardContent>
       </Card>
 
