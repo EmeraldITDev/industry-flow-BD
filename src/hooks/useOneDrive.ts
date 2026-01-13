@@ -130,6 +130,33 @@ export function useOneDrive() {
     }
   }, []);
 
+  const listFiles = useCallback(async (folderPath?: string): Promise<OneDriveFile[]> => {
+    try {
+      return await onedriveService.listFiles(folderPath);
+    } catch (error: any) {
+      console.error('Failed to list files:', error);
+      return [];
+    }
+  }, []);
+
+  const listRecentFiles = useCallback(async (limit?: number): Promise<OneDriveFile[]> => {
+    try {
+      return await onedriveService.listRecentFiles(limit);
+    } catch (error: any) {
+      console.error('Failed to list recent files:', error);
+      return [];
+    }
+  }, []);
+
+  const searchFiles = useCallback(async (query: string): Promise<OneDriveFile[]> => {
+    try {
+      return await onedriveService.searchFiles(query);
+    } catch (error: any) {
+      console.error('Failed to search files:', error);
+      return [];
+    }
+  }, []);
+
   return {
     isConfigured: onedriveService.isConfigured(),
     isLoggedIn,
@@ -139,6 +166,9 @@ export function useOneDrive() {
     logout,
     uploadFile,
     uploadMultipleFiles,
+    listFiles,
+    listRecentFiles,
+    searchFiles,
     getFileInfo,
     getDownloadUrl,
     deleteFile,

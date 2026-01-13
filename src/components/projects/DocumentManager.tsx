@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Upload, 
   FileText, 
@@ -18,11 +19,14 @@ import {
   HardDrive,
   Plus,
   Loader2,
-  LogOut
+  LogOut,
+  FolderOpen
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { safeFormatDate } from '@/lib/dateUtils';
 import { useOneDrive } from '@/hooks/useOneDrive';
+import { OneDriveFilePicker } from '@/components/onedrive/OneDriveFilePicker';
+import { OneDriveFile } from '@/services/onedrive';
 
 interface DocumentManagerProps {
   documents: ProjectDocument[];
@@ -61,6 +65,7 @@ function getFileIcon(name: string) {
 export function DocumentManager({ documents, onDocumentsChange, readonly = false }: DocumentManagerProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isOneDriveDialogOpen, setIsOneDriveDialogOpen] = useState(false);
+  const [isFilePickerOpen, setIsFilePickerOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const oneDriveFileInputRef = useRef<HTMLInputElement>(null);
@@ -77,7 +82,10 @@ export function DocumentManager({ documents, onDocumentsChange, readonly = false
     currentUser,
     login, 
     logout, 
-    uploadFile 
+    uploadFile,
+    listFiles,
+    listRecentFiles,
+    searchFiles
   } = useOneDrive();
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -173,6 +181,23 @@ export function DocumentManager({ documents, onDocumentsChange, readonly = false
     } catch (error) {
       console.error('OneDrive upload error:', error);
     }
+  };
+
+  const handleOneDriveFilePickerSelect = (file: OneDriveFile) => {
+    const doc: ProjectDocument = {
+      id: file.id,
+      name: file.name,
+      type: newDocument.type,
+      url: file.webUrl,
+      uploadedAt: file.createdDateTime,
+      uploadedBy: currentUser?.displayName || 'OneDrive User',
+      size: file.size,
+      source: 'onedrive',
+    };
+
+    onDocumentsChange([...documents, doc]);
+    setNewDocument({ name: '', type: 'supporting', source: 'local' });
+    toast.success('OneDrive file linked to project successfully');
   };
 
 
@@ -333,31 +358,32 @@ export function DocumentManager({ documents, onDocumentsChange, readonly = false
 
       {/* OneDrive Upload Dialog */}
       <Dialog open={isOneDriveDialogOpen} onOpenChange={setIsOneDriveDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Cloud className="w-5 h-5 text-chart-1" />
-              Upload to OneDrive
+              OneDrive Integration
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 pt-4">
-            {currentUser && (
-              <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                <div>
-                  <p className="text-sm font-medium">{currentUser.displayName}</p>
-                  <p className="text-xs text-muted-foreground">{currentUser.mail || currentUser.userPrincipalName}</p>
-                </div>
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={logout}
-                >
-                  <LogOut className="w-4 h-4 mr-2" />
-                  Logout
-                </Button>
+          
+          {currentUser && (
+            <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+              <div>
+                <p className="text-sm font-medium">{currentUser.displayName}</p>
+                <p className="text-xs text-muted-foreground">{currentUser.mail || currentUser.userPrincipalName}</p>
               </div>
-            )}
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={logout}
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Logout
+              </Button>
+            </div>
+          )}
 
+          <div className="space-y-4 pt-4">
             <div className="space-y-2">
               <Label>Document Type</Label>
               <Select
@@ -378,34 +404,66 @@ export function DocumentManager({ documents, onDocumentsChange, readonly = false
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label>Select File</Label>
-              <div 
-                onClick={() => oneDriveFileInputRef.current?.click()}
-                className="border-2 border-dashed border-border rounded-lg p-8 text-center cursor-pointer hover:border-primary transition-colors"
-              >
-                <Cloud className="w-12 h-12 mx-auto mb-4 text-chart-1" />
-                <p className="text-sm font-medium mb-1">
-                  Click to select file to upload to OneDrive
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  File will be uploaded to your OneDrive and linked to this project
-                </p>
-              </div>
-              <input
-                ref={oneDriveFileInputRef}
-                type="file"
-                onChange={handleOneDriveFileSelect}
-                className="hidden"
-              />
-            </div>
+            <Tabs defaultValue="upload" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="upload">
+                  <Upload className="w-4 h-4 mr-2" />
+                  Upload New File
+                </TabsTrigger>
+                <TabsTrigger value="browse">
+                  <FolderOpen className="w-4 h-4 mr-2" />
+                  Browse OneDrive
+                </TabsTrigger>
+              </TabsList>
 
-            {isUploading && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Uploading to OneDrive...
-              </div>
-            )}
+              <TabsContent value="upload" className="mt-4 space-y-4">
+                <div className="space-y-2">
+                  <Label>Upload File to OneDrive</Label>
+                  <div 
+                    onClick={() => oneDriveFileInputRef.current?.click()}
+                    className="border-2 border-dashed border-border rounded-lg p-8 text-center cursor-pointer hover:border-primary transition-colors"
+                  >
+                    <Cloud className="w-12 h-12 mx-auto mb-4 text-chart-1" />
+                    <p className="text-sm font-medium mb-1">
+                      Click to select file to upload to OneDrive
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      File will be uploaded to your OneDrive and linked to this project
+                    </p>
+                  </div>
+                  <input
+                    ref={oneDriveFileInputRef}
+                    type="file"
+                    onChange={handleOneDriveFileSelect}
+                    className="hidden"
+                  />
+                </div>
+
+                {isUploading && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Uploading to OneDrive...
+                  </div>
+                )}
+              </TabsContent>
+
+              <TabsContent value="browse" className="mt-4">
+                <Button
+                  onClick={() => {
+                    setIsOneDriveDialogOpen(false);
+                    setIsFilePickerOpen(true);
+                  }}
+                  className="w-full"
+                  variant="outline"
+                >
+                  <FolderOpen className="w-4 h-4 mr-2" />
+                  Browse My OneDrive Files
+                </Button>
+                <p className="text-xs text-muted-foreground text-center mt-2">
+                  Link an existing file from your OneDrive to this project
+                </p>
+              </TabsContent>
+            </Tabs>
           </div>
 
           <DialogFooter>
@@ -419,6 +477,16 @@ export function DocumentManager({ documents, onDocumentsChange, readonly = false
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* OneDrive File Picker */}
+      <OneDriveFilePicker
+        open={isFilePickerOpen}
+        onOpenChange={setIsFilePickerOpen}
+        onFileSelect={handleOneDriveFilePickerSelect}
+        listFiles={listFiles}
+        listRecentFiles={listRecentFiles}
+        searchFiles={searchFiles}
+      />
     </Card>
   );
 }

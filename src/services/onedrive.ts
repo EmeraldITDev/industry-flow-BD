@@ -44,7 +44,7 @@ const initializeMsal = async (): Promise<PublicClientApplication | null> => {
 
   // If already initialized, return it
   if (msalInstance) {
-    return msalInstance;
+  return msalInstance;
   }
 
   // If initialization is in progress, wait for it
@@ -72,10 +72,10 @@ const initializeMsal = async (): Promise<PublicClientApplication | null> => {
 // Get the access token
 const getAccessToken = async (): Promise<string | null> => {
   const msal = await initializeMsal();
-  if (!msal) {
+    if (!msal) {
     console.error('MSAL not initialized. Please configure Microsoft Client ID.');
     return null;
-  }
+    }
 
   try {
     const accounts = msal.getAllAccounts();
@@ -97,8 +97,8 @@ const getAccessToken = async (): Promise<string | null> => {
     } catch (error) {
       // Silent token acquisition failed, try popup
       const response = await msal.acquireTokenPopup(request);
-      return response.accessToken;
-    }
+        return response.accessToken;
+      }
   } catch (error) {
     console.error('Error getting access token:', error);
     return null;
@@ -113,7 +113,7 @@ const isAuthenticated = (): boolean => {
 
 const isLoggedIn = isAuthenticated;
 
-// Get current user info
+  // Get current user info
 const getCurrentUser = async (): Promise<any | null> => {
   const token = await getAccessToken();
   if (!token) return null;
@@ -160,7 +160,7 @@ const logout = async (): Promise<void> => {
   }
 };
 
-// Upload file to OneDrive
+  // Upload file to OneDrive
 const uploadFile = async (file: File, folderPath: string = 'IndustryFlow'): Promise<OneDriveFile> => {
   const token = await getAccessToken();
   if (!token) {
@@ -267,6 +267,114 @@ const deleteFile = async (fileId: string): Promise<boolean> => {
   }
 };
 
+// List files in a folder
+const listFiles = async (folderPath: string = 'IndustryFlow'): Promise<OneDriveFile[]> => {
+  const token = await getAccessToken();
+  if (!token) return [];
+
+  try {
+    // Get files from specific folder
+    const folderUrl = `${GRAPH_API_ENDPOINT}/me/drive/root:/${folderPath}:/children`;
+    
+    const response = await fetch(folderUrl, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      // Folder might not exist, return empty array
+      return [];
+    }
+
+    const data = await response.json();
+    const files = data.value || [];
+
+    return files
+      .filter((item: any) => item.file) // Only files, not folders
+      .map((item: any) => ({
+        id: item.id,
+        name: item.name,
+        size: item.size,
+        webUrl: item.webUrl,
+        downloadUrl: item['@microsoft.graph.downloadUrl'],
+        createdDateTime: item.createdDateTime,
+        lastModifiedDateTime: item.lastModifiedDateTime,
+      }));
+  } catch (error) {
+    console.error('Error listing files:', error);
+    return [];
+  }
+};
+
+// List all recent files
+const listRecentFiles = async (limit: number = 20): Promise<OneDriveFile[]> => {
+  const token = await getAccessToken();
+  if (!token) return [];
+
+  try {
+    const response = await fetch(`${GRAPH_API_ENDPOINT}/me/drive/recent?$top=${limit}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) return [];
+
+    const data = await response.json();
+    const files = data.value || [];
+
+    return files
+      .filter((item: any) => item.file)
+      .map((item: any) => ({
+        id: item.id,
+        name: item.name,
+        size: item.size,
+        webUrl: item.webUrl,
+        downloadUrl: item['@microsoft.graph.downloadUrl'],
+        createdDateTime: item.createdDateTime,
+        lastModifiedDateTime: item.lastModifiedDateTime,
+      }));
+  } catch (error) {
+    console.error('Error listing recent files:', error);
+    return [];
+  }
+};
+
+// Search files
+const searchFiles = async (query: string): Promise<OneDriveFile[]> => {
+  const token = await getAccessToken();
+  if (!token) return [];
+
+  try {
+    const response = await fetch(`${GRAPH_API_ENDPOINT}/me/drive/root/search(q='${encodeURIComponent(query)}')`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) return [];
+
+    const data = await response.json();
+    const files = data.value || [];
+
+    return files
+      .filter((item: any) => item.file)
+      .map((item: any) => ({
+        id: item.id,
+        name: item.name,
+        size: item.size,
+        webUrl: item.webUrl,
+        downloadUrl: item['@microsoft.graph.downloadUrl'],
+        createdDateTime: item.createdDateTime,
+        lastModifiedDateTime: item.lastModifiedDateTime,
+      }));
+  } catch (error) {
+    console.error('Error searching files:', error);
+    return [];
+  }
+};
+
 // Get file info
 const getFileInfo = async (fileId: string): Promise<OneDriveFile | null> => {
   const token = await getAccessToken();
@@ -310,6 +418,9 @@ export const onedriveService = {
   login,
   logout,
   uploadFile,
+  listFiles,
+  listRecentFiles,
+  searchFiles,
   getFileInfo,
   getDownloadUrl,
   deleteFile,
