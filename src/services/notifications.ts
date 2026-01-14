@@ -21,13 +21,21 @@ export const notificationsService = {
     }
     try {
       const response = await api.get('/api/notifications');
-      return normalizeArray(response.data);
+      const normalized = normalizeArray(response.data);
+      console.log('[Notifications] Fetched notifications:', normalized.length);
+      return normalized;
     } catch (error: any) {
       if (error.response?.status === 401) {
         // User not logged in - this is expected, don't throw
-        console.log('Not authenticated, skipping notifications');
+        console.log('[Notifications] Not authenticated, skipping notifications');
         return [];
       }
+      console.error('[Notifications] Error fetching notifications:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        message: error.message,
+        url: error.config?.url,
+      });
       throw error;
     }
   },
