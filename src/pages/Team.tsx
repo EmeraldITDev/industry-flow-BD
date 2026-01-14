@@ -198,18 +198,23 @@ export default function Team() {
     }
   };
 
-  const handleAssignProject = (memberId: string, projectId: string) => {
-    setMembers(members.map(m => {
-      if (m.id === memberId) {
-        const currentProjects = m.assignedProjects || [];
-        const assignedProjects = currentProjects.includes(projectId)
-          ? currentProjects.filter(p => p !== projectId)
-          : [...currentProjects, projectId];
-        return { ...m, assignedProjects };
-      }
-      return m;
-    }));
-    toast.success('Project assignment updated');
+  const handleAssignProject = async (memberId: string, projectId: string) => {
+    try {
+      const member = members.find(m => m.id === memberId);
+      if (!member) return;
+      
+      const currentProjects = member.assignedProjects || [];
+      const assignedProjects = currentProjects.includes(projectId)
+        ? currentProjects.filter(p => p !== projectId)
+        : [...currentProjects, projectId];
+      
+      await teamService.assignProjects(memberId, assignedProjects);
+      await queryClient.invalidateQueries({ queryKey: ['team'] });
+      toast.success('Project assignment updated');
+    } catch (error: any) {
+      console.error('Failed to update project assignment:', error);
+      toast.error(error.response?.data?.message || 'Failed to update project assignment');
+    }
   };
 
   const getInitials = (name?: string | null) => {
@@ -439,7 +444,8 @@ export default function Team() {
             </TableHeader>
             <TableBody>
               {members.map((member) => {
-                const RoleIcon = roleIcons[member.role];
+                const RoleIcon = roleIcons[member.role] || roleIcons.viewer;
+                const roleColor = roleColors[member.role] || roleColors.viewer;
                 return (
                   <TableRow key={member.id}>
                     <TableCell>
@@ -455,7 +461,7 @@ export default function Team() {
                     </TableCell>
                     <TableCell>{member.department}</TableCell>
                     <TableCell>
-                      <Badge className={roleColors[member.role]}>
+                      <Badge className={roleColor}>
                         <RoleIcon className="mr-1 h-3 w-3" />
                         <span className="capitalize">{member.role}</span>
                       </Badge>
