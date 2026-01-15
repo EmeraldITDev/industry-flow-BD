@@ -372,6 +372,12 @@ export default function ProjectDetail() {
                     <p className="font-medium text-sm">{project.clientName}</p>
                   </div>
                 )}
+                {project.clientContact && (
+                  <div>
+                    <p className="text-xs text-muted-foreground">Client Contact</p>
+                    <p className="font-medium text-sm">{project.clientContact}</p>
+                  </div>
+                )}
                 {project.oem && (
                   <div>
                     <p className="text-xs text-muted-foreground">OEM</p>
@@ -396,6 +402,54 @@ export default function ProjectDetail() {
                     <p className="font-medium text-sm capitalize">{project.pipelineStage}</p>
                   </div>
                 )}
+                {project.product && (
+                  <div>
+                    <p className="text-xs text-muted-foreground">Product</p>
+                    <p className="font-medium text-sm">{project.product}</p>
+                  </div>
+                )}
+                {project.subProduct && (
+                  <div>
+                    <p className="text-xs text-muted-foreground">Sub Product</p>
+                    <p className="font-medium text-sm">{project.subProduct}</p>
+                  </div>
+                )}
+                {project.channelPartner && (
+                  <div>
+                    <p className="text-xs text-muted-foreground">Channel Partner</p>
+                    <p className="font-medium text-sm">{project.channelPartner}</p>
+                  </div>
+                )}
+                {project.contractValueNGN && (
+                  <div>
+                    <p className="text-xs text-muted-foreground">Contract Value (NGN)</p>
+                    <p className="font-medium text-sm">₦{project.contractValueNGN.toLocaleString()}</p>
+                  </div>
+                )}
+                {project.contractValueUSD && (
+                  <div>
+                    <p className="text-xs text-muted-foreground">Contract Value (USD)</p>
+                    <p className="font-medium text-sm">${project.contractValueUSD.toLocaleString()}</p>
+                  </div>
+                )}
+                {project.marginPercentNGN !== undefined && (
+                  <div>
+                    <p className="text-xs text-muted-foreground">Margin % (NGN)</p>
+                    <p className="font-medium text-sm">{project.marginPercentNGN}%</p>
+                  </div>
+                )}
+                {project.marginPercentUSD !== undefined && (
+                  <div>
+                    <p className="text-xs text-muted-foreground">Margin % (USD)</p>
+                    <p className="font-medium text-sm">{project.marginPercentUSD}%</p>
+                  </div>
+                )}
+                {project.riskLevel && (
+                  <div>
+                    <p className="text-xs text-muted-foreground">Risk Level</p>
+                    <Badge variant="outline" className="capitalize">{project.riskLevel}</Badge>
+                  </div>
+                )}
                 {project.budget && (
                   <div>
                     <p className="text-xs text-muted-foreground">Budget</p>
@@ -403,6 +457,12 @@ export default function ProjectDetail() {
                   </div>
                 )}
               </div>
+              {project.projectLeadComments && (
+                <div className="mt-4 pt-4 border-t">
+                  <p className="text-xs text-muted-foreground mb-2">Project Lead Comments</p>
+                  <p className="text-sm">{project.projectLeadComments}</p>
+                </div>
+              )}
             </CardContent>
           </Card>
 

@@ -35,15 +35,17 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Plus, MoreHorizontal, Shield, Edit, Eye, Trash2, Users, UserPlus, Loader2, Copy, Check } from 'lucide-react';
-import { projects } from '@/data/mockData';
+import { Plus, MoreHorizontal, Shield, Edit, Eye, Trash2, Users, UserPlus, Loader2, Copy, Check, ExternalLink } from 'lucide-react';
 import { TeamMember, TeamRole } from '@/types';
 import { toast } from 'sonner';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/context/AuthContext';
 import { AccessLevel, ACCESS_LEVEL_CONFIG, SystemRole, SYSTEM_ROLE_CONFIG } from '@/types/auth';
 import { teamService } from '@/services/team';
+import { projectsService } from '@/services/projects';
+import { tasksService } from '@/services/tasks';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Link, useNavigate } from 'react-router-dom';
 
 const SYSTEM_ROLES: { value: SystemRole; label: string; description: string }[] = [
   { value: 'admin', label: 'Admin', description: 'Full system access' },
@@ -81,10 +83,13 @@ function generatePassword(length = 12): string {
 
 export default function Team() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isCredentialsDialogOpen, setIsCredentialsDialogOpen] = useState(false);
   const [newUserCredentials, setNewUserCredentials] = useState<{ email: string; password: string } | null>(null);
   const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
+  const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
+  const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
   const [newUserName, setNewUserName] = useState('');
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserDepartment, setNewUserDepartment] = useState('');
@@ -100,6 +105,21 @@ export default function Team() {
     queryKey: ['team'],
     queryFn: () => teamService.getAll(),
     staleTime: 5 * 60 * 1000,
+  });
+
+  // Fetch projects from backend
+  const { data: allProjects = [] } = useQuery({
+    queryKey: ['projects'],
+    queryFn: () => projectsService.getAll(),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Fetch tasks for selected member
+  const { data: memberTasks = [] } = useQuery({
+    queryKey: ['tasks', selectedMember?.id],
+    queryFn: () => selectedMember ? tasksService.getAll({ assigneeId: selectedMember.id }) : Promise.resolve([]),
+    enabled: !!selectedMember && isProfileDialogOpen,
+    staleTime: 60 * 1000,
   });
 
   // Map system role to team role
@@ -450,11 +470,27 @@ export default function Team() {
                   <TableRow key={member.id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <Avatar>
-                          <AvatarFallback>{getInitials(member.name)}</AvatarFallback>
-                        </Avatar>
+                        <button
+                          onClick={() => {
+                            setSelectedMember(member);
+                            setIsProfileDialogOpen(true);
+                          }}
+                          className="cursor-pointer hover:opacity-80 transition-opacity"
+                        >
+                          <Avatar>
+                            <AvatarFallback>{getInitials(member.name)}</AvatarFallback>
+                          </Avatar>
+                        </button>
                         <div>
-                          <div className="font-medium">{member.name}</div>
+                          <button
+                            onClick={() => {
+                              setSelectedMember(member);
+                              setIsProfileDialogOpen(true);
+                            }}
+                            className="font-medium hover:underline cursor-pointer text-left"
+                          >
+                            {member.name}
+                          </button>
                           <div className="text-sm text-muted-foreground">{member.email}</div>
                         </div>
                       </div>
@@ -473,18 +509,40 @@ export default function Team() {
                             {(member.assignedProjects || []).length} Projects
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start" className="w-[200px]">
-                          {projects.map((project) => (
-                            <DropdownMenuItem
-                              key={project.id}
-                              onClick={() => handleAssignProject(member.id, project.id)}
-                            >
-                              <span className={(member.assignedProjects || []).includes(project.id) ? 'font-bold' : ''}>
-                                {(member.assignedProjects || []).includes(project.id) ? '✓ ' : ''}
-                                {project.name}
-                              </span>
-                            </DropdownMenuItem>
-                          ))}
+                        <DropdownMenuContent align="start" className="w-[250px]">
+                          {allProjects.length === 0 ? (
+                            <DropdownMenuItem disabled>No projects available</DropdownMenuItem>
+                          ) : (
+                            allProjects.map((project) => {
+                              const isAssigned = (member.assignedProjects || []).includes(project.id);
+                              return (
+                                <DropdownMenuItem
+                                  key={project.id}
+                                  onSelect={(e) => {
+                                    e.preventDefault();
+                                  }}
+                                  className="flex items-center justify-between"
+                                >
+                                  <span
+                                    onClick={() => handleAssignProject(member.id, project.id)}
+                                    className={`flex-1 ${isAssigned ? 'font-bold' : ''}`}
+                                  >
+                                    {isAssigned ? '✓ ' : ''}
+                                    {project.name}
+                                  </span>
+                                  {isAssigned && (
+                                    <Link
+                                      to={`/projects/${project.id}`}
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="ml-2 text-muted-foreground hover:text-foreground"
+                                    >
+                                      <ExternalLink className="h-3 w-3" />
+                                    </Link>
+                                  )}
+                                </DropdownMenuItem>
+                              );
+                            })
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
@@ -579,6 +637,147 @@ export default function Team() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Profile Dialog */}
+      <Dialog open={isProfileDialogOpen} onOpenChange={setIsProfileDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-3">
+              <Avatar>
+                <AvatarFallback>{selectedMember ? getInitials(selectedMember.name) : ''}</AvatarFallback>
+              </Avatar>
+              <div>
+                <div>{selectedMember?.name}</div>
+                <div className="text-sm font-normal text-muted-foreground">{selectedMember?.email}</div>
+              </div>
+            </DialogTitle>
+            <DialogDescription>
+              Manage {selectedMember?.name}'s projects and tasks
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedMember && (
+            <div className="space-y-6 mt-4">
+              {/* Member Info */}
+              <div className="grid grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg">
+                <div>
+                  <p className="text-sm text-muted-foreground">Department</p>
+                  <p className="font-medium">{selectedMember.department}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Role</p>
+                  <Badge className={roleColors[selectedMember.role] || roleColors.viewer}>
+                    {selectedMember.role}
+                  </Badge>
+                </div>
+              </div>
+
+              {/* Associated Projects */}
+              <div>
+                <h3 className="font-semibold mb-3">Associated Projects</h3>
+                <div className="space-y-2">
+                  {selectedMember.assignedProjects && selectedMember.assignedProjects.length > 0 ? (
+                    allProjects
+                      .filter(p => selectedMember.assignedProjects?.includes(p.id))
+                      .map((project) => (
+                        <div
+                          key={project.id}
+                          className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+                        >
+                          <div className="flex-1">
+                            <Link
+                              to={`/projects/${project.id}`}
+                              className="font-medium hover:underline"
+                            >
+                              {project.name}
+                            </Link>
+                            <p className="text-sm text-muted-foreground">{project.sector}</p>
+                          </div>
+                          {canManageTeam && (
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                asChild
+                              >
+                                <Link to={`/projects/${project.id}/edit`}>
+                                  <Edit className="h-4 w-4" />
+                                </Link>
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  if (confirm(`Remove ${selectedMember.name} from ${project.name}?`)) {
+                                    handleAssignProject(selectedMember.id, project.id);
+                                  }
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No projects assigned</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Associated Tasks */}
+              <div>
+                <h3 className="font-semibold mb-3">Assigned Tasks</h3>
+                <div className="space-y-2">
+                  {memberTasks.length > 0 ? (
+                    memberTasks.map((task) => (
+                      <div
+                        key={task.id}
+                        className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+                      >
+                        <div className="flex-1">
+                          <Link
+                            to={`/projects/${task.projectId}`}
+                            className="font-medium hover:underline"
+                          >
+                            {task.title}
+                          </Link>
+                          <p className="text-sm text-muted-foreground">
+                            Status: <Badge variant="outline">{task.status}</Badge>
+                          </p>
+                        </div>
+                        {canManageTeam && (
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={async () => {
+                                if (confirm(`Delete task "${task.title}"?`)) {
+                                  try {
+                                    await tasksService.delete(task.id);
+                                    toast.success('Task deleted');
+                                    queryClient.invalidateQueries({ queryKey: ['tasks', selectedMember.id] });
+                                  } catch (error: any) {
+                                    toast.error(error.response?.data?.message || 'Failed to delete task');
+                                  }
+                                }
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No tasks assigned</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

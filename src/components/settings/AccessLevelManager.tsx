@@ -168,12 +168,8 @@ export function AccessLevelManager() {
 
   const handleUpdateAccessLevel = async (userId: string, newAccessLevel: AccessLevel) => {
     try {
-      // Note: Backend API might need to be extended to support accessLevel updates
-      // For now, we'll update the role based on accessLevel
-      const teamRole = newAccessLevel === 'admin' ? 'admin' as TeamRole : 
-                      newAccessLevel === 'pm' ? 'editor' as TeamRole : 
-                      'viewer' as TeamRole;
-      await teamService.updateRole(userId, teamRole);
+      // Update accessLevel directly using the update method
+      await teamService.update(userId, { accessLevel: newAccessLevel });
       await queryClient.invalidateQueries({ queryKey: ['team'] });
       toast.success('Access level updated successfully');
     } catch (error: any) {
@@ -184,6 +180,9 @@ export function AccessLevelManager() {
 
   const handleUpdateSystemRole = async (userId: string, newSystemRole: SystemRole) => {
     try {
+      // Update systemRole directly using the update method
+      await teamService.update(userId, { systemRole: newSystemRole });
+      // Also update the team role for backward compatibility
       const teamRole = getTeamRoleFromSystemRole(newSystemRole);
       await teamService.updateRole(userId, teamRole);
       await queryClient.invalidateQueries({ queryKey: ['team'] });

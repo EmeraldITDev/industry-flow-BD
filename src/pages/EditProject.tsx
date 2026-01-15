@@ -142,6 +142,7 @@ export default function EditProject() {
         marginPercentNGN: formData.marginPercentNGN ? parseFloat(formData.marginPercentNGN) : undefined,
         marginPercentUSD: formData.marginPercentUSD ? parseFloat(formData.marginPercentUSD) : undefined,
         projectLeadComments: formData.projectLeadComments || undefined,
+        riskLevel: formData.riskLevel,
       });
       toast.success('Project updated successfully!');
       navigate(`/projects/${id}`);
@@ -251,6 +252,22 @@ export default function EditProject() {
               </div>
             </div>
 
+            <div className="space-y-2">
+              <Label>Risk Level</Label>
+              <Select value={formData.riskLevel} onValueChange={(value: RiskLevel) => setFormData({ ...formData, riskLevel: value })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {riskLevels.map((level) => (
+                    <SelectItem key={level.value} value={level.value}>
+                      {level.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Start Date *</Label>
@@ -268,6 +285,23 @@ export default function EditProject() {
               </div>
 
               <div className="space-y-2">
+                <Label>End Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className={cn('w-full justify-start text-left font-normal', !formData.endDate && 'text-muted-foreground')}>
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {formData.endDate ? format(formData.endDate, 'PPP') : 'Pick date'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar mode="single" selected={formData.endDate} onSelect={(date) => setFormData({ ...formData, endDate: date })} initialFocus />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
                 <Label>Expected Close Date</Label>
                 <Popover>
                   <PopoverTrigger asChild>
@@ -278,6 +312,21 @@ export default function EditProject() {
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0">
                     <Calendar mode="single" selected={formData.expectedCloseDate} onSelect={(date) => setFormData({ ...formData, expectedCloseDate: date })} initialFocus />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Pipeline Intake Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className={cn('w-full justify-start text-left font-normal', !formData.pipelineIntakeDate && 'text-muted-foreground')}>
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {formData.pipelineIntakeDate ? format(formData.pipelineIntakeDate, 'PPP') : 'Pick date'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar mode="single" selected={formData.pipelineIntakeDate} onSelect={(date) => setFormData({ ...formData, pipelineIntakeDate: date })} initialFocus />
                   </PopoverContent>
                 </Popover>
               </div>
@@ -333,6 +382,38 @@ export default function EditProject() {
                   placeholder="Project location"
                 />
               </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="product">Product</Label>
+                <Input
+                  id="product"
+                  value={formData.product}
+                  onChange={(e) => setFormData({ ...formData, product: e.target.value })}
+                  placeholder="Product name"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="subProduct">Sub Product</Label>
+                <Input
+                  id="subProduct"
+                  value={formData.subProduct}
+                  onChange={(e) => setFormData({ ...formData, subProduct: e.target.value })}
+                  placeholder="Sub product name"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="channelPartner">Channel Partner</Label>
+              <Input
+                id="channelPartner"
+                value={formData.channelPartner}
+                onChange={(e) => setFormData({ ...formData, channelPartner: e.target.value })}
+                placeholder="Channel partner name"
+              />
             </div>
           </CardContent>
         </Card>
