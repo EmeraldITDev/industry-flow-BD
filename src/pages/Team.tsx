@@ -208,13 +208,23 @@ export default function Team() {
 
   const handleDeleteMember = async (memberId: string) => {
     const member = members.find(m => m.id === memberId);
+    if (!member) {
+      toast.error('Member not found');
+      return;
+    }
+    
+    if (!confirm(`Are you sure you want to remove ${member.name} from the team? This action cannot be undone.`)) {
+      return;
+    }
+    
     try {
       await teamService.delete(memberId);
       await queryClient.invalidateQueries({ queryKey: ['team'] });
-      toast.success(`${member?.name} has been removed from the team`);
+      toast.success(`${member.name} has been removed from the team`);
     } catch (error: any) {
       console.error('Failed to delete member:', error);
-      toast.error(error.response?.data?.message || 'Failed to remove team member');
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to remove team member';
+      toast.error(errorMessage);
     }
   };
 
@@ -223,10 +233,11 @@ export default function Team() {
       const member = members.find(m => m.id === memberId);
       if (!member) return;
       
-      const currentProjects = member.assignedProjects || [];
-      const assignedProjects = currentProjects.includes(projectId)
-        ? currentProjects.filter(p => p !== projectId)
-        : [...currentProjects, projectId];
+      const currentProjects = (member.assignedProjects || []).map(id => String(id));
+      const projectIdStr = String(projectId);
+      const assignedProjects = currentProjects.includes(projectIdStr)
+        ? currentProjects.filter(p => p !== projectIdStr)
+        : [...currentProjects, projectIdStr];
       
       await teamService.assignProjects(memberId, assignedProjects);
       await queryClient.invalidateQueries({ queryKey: ['team'] });
@@ -514,17 +525,18 @@ export default function Team() {
                             <DropdownMenuItem disabled>No projects available</DropdownMenuItem>
                           ) : (
                             allProjects.map((project) => {
-                              const isAssigned = (member.assignedProjects || []).includes(project.id);
+                              const projectId = String(project.id);
+                              const isAssigned = (member.assignedProjects || []).map(id => String(id)).includes(projectId);
                               return (
                                 <DropdownMenuItem
-                                  key={project.id}
+                                  key={projectId}
                                   onSelect={(e) => {
                                     e.preventDefault();
                                   }}
                                   className="flex items-center justify-between"
                                 >
                                   <span
-                                    onClick={() => handleAssignProject(member.id, project.id)}
+                                    onClick={() => handleAssignProject(member.id, projectId)}
                                     className={`flex-1 ${isAssigned ? 'font-bold' : ''}`}
                                   >
                                     {isAssigned ? '✓ ' : ''}
@@ -532,7 +544,7 @@ export default function Team() {
                                   </span>
                                   {isAssigned && (
                                     <Link
-                                      to={`/projects/${project.id}`}
+                                      to={`/projects/${projectId}`}
                                       onClick={(e) => e.stopPropagation()}
                                       className="ml-2 text-muted-foreground hover:text-foreground"
                                     >
@@ -678,15 +690,17 @@ export default function Team() {
                 <div className="space-y-2">
                   {selectedMember.assignedProjects && selectedMember.assignedProjects.length > 0 ? (
                     allProjects
-                      .filter(p => selectedMember.assignedProjects?.includes(p.id))
-                      .map((project) => (
+                      .filter(p => selectedMember.assignedProjects?.includes(String(p.id)))
+                      .map((project) => {
+                        const projectId = String(project.id);
+                        return (
                         <div
-                          key={project.id}
+                          key={projectId}
                           className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
                         >
                           <div className="flex-1">
                             <Link
-                              to={`/projects/${project.id}`}
+                              to={`/projects/${projectId}`}
                               className="font-medium hover:underline"
                             >
                               {project.name}
@@ -700,7 +714,7 @@ export default function Team() {
                                 size="sm"
                                 asChild
                               >
-                                <Link to={`/projects/${project.id}/edit`}>
+                                <Link to={`/projects/${projectId}/edit`}>
                                   <Edit className="h-4 w-4" />
                                 </Link>
                               </Button>
@@ -709,7 +723,7 @@ export default function Team() {
                                 size="sm"
                                 onClick={() => {
                                   if (confirm(`Remove ${selectedMember.name} from ${project.name}?`)) {
-                                    handleAssignProject(selectedMember.id, project.id);
+                                    handleAssignProject(selectedMember.id, projectId);
                                   }
                                 }}
                               >
@@ -718,7 +732,8 @@ export default function Team() {
                             </div>
                           )}
                         </div>
-                      ))
+                        );
+                      })
                   ) : (
                     <p className="text-sm text-muted-foreground">No projects assigned</p>
                   )}
@@ -735,17 +750,17 @@ export default function Team() {
                         key={task.id}
                         className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
                       >
-                        <div className="flex-1">
-                          <Link
-                            to={`/projects/${task.projectId}`}
-                            className="font-medium hover:underline"
-                          >
-                            {task.title}
-                          </Link>
-                          <p className="text-sm text-muted-foreground">
-                            Status: <Badge variant="outline">{task.status}</Badge>
-                          </p>
-                        </div>
+                          <div className="flex-1">
+                            <Link
+                              to={`/projects/${String(task.projectId)}`}
+                              className="font-medium hover:underline"
+                            >
+                              {task.title}
+                            </Link>
+                            <p className="text-sm text-muted-foreground">
+                              Status: <Badge variant="outline">{task.status}</Badge>
+                            </p>
+                          </div>
                         {canManageTeam && (
                           <div className="flex items-center gap-2">
                             <Button

@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { Link } from 'react-router-dom';
 import { Skeleton } from '@/components/ui/skeleton';
 import { 
   Shield, 
@@ -24,8 +24,24 @@ import {
   Briefcase,
   ClipboardList,
   Eye,
-  Loader2
+  Loader2,
+  MoreHorizontal
 } from 'lucide-react';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { projectsService } from '@/services/projects';
 import { toast } from 'sonner';
 
 const roleIcons: Record<AccessLevel, React.ElementType> = {
@@ -82,6 +98,13 @@ export function AccessLevelManager() {
   const { data: teamMembers = [], isLoading: isLoadingMembers } = useQuery({
     queryKey: ['team'],
     queryFn: () => teamService.getAll(),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Fetch projects from backend
+  const { data: allProjects = [] } = useQuery({
+    queryKey: ['projects'],
+    queryFn: () => projectsService.getAll(),
     staleTime: 5 * 60 * 1000,
   });
 
@@ -156,13 +179,24 @@ export function AccessLevelManager() {
       return;
     }
     
+    const teamUser = teamMembers.find(m => m.id === userId);
+    if (!teamUser) {
+      toast.error('User not found');
+      return;
+    }
+    
+    if (!confirm(`Are you sure you want to remove ${teamUser.name} from the team? This action cannot be undone.`)) {
+      return;
+    }
+    
     try {
       await teamService.delete(userId);
       await queryClient.invalidateQueries({ queryKey: ['team'] });
-      toast.success('Team member removed successfully');
+      toast.success(`${teamUser.name} has been removed from the team`);
     } catch (error: any) {
       console.error('Failed to remove team member:', error);
-      toast.error(error.response?.data?.message || 'Failed to remove team member');
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to remove team member';
+      toast.error(errorMessage);
     }
   };
 
@@ -191,6 +225,32 @@ export function AccessLevelManager() {
       console.error('Failed to update system role:', error);
       toast.error(error.response?.data?.message || 'Failed to update system role');
     }
+  };
+
+  const handleAssignProject = async (memberId: string, projectId: string) => {
+    try {
+      const member = teamMembers.find(m => m.id === memberId);
+      if (!member) return;
+      
+      const currentProjects = (member.assignedProjects || []).map(id => String(id));
+      const projectIdStr = String(projectId);
+      const assignedProjects = currentProjects.includes(projectIdStr)
+        ? currentProjects.filter(p => p !== projectIdStr)
+        : [...currentProjects, projectIdStr];
+      
+      await teamService.assignProjects(memberId, assignedProjects);
+      await queryClient.invalidateQueries({ queryKey: ['team'] });
+      toast.success('Project assignment updated');
+    } catch (error: any) {
+      console.error('Failed to update project assignment:', error);
+      toast.error(error.response?.data?.message || 'Failed to update project assignment');
+    }
+  };
+
+  const roleColors: Record<TeamRole, string> = {
+    admin: 'bg-destructive/20 text-destructive',
+    editor: 'bg-chart-2/20 text-chart-2',
+    viewer: 'bg-muted text-muted-foreground',
   };
 
   const canAddUsers = user?.accessLevel === 'admin' || user?.accessLevel === 'bd_director';
@@ -319,106 +379,167 @@ export function AccessLevelManager() {
               ))}
             </div>
           ) : (
-            <ScrollArea className="h-[400px] pr-4">
-              <div className="space-y-3">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Member</TableHead>
+                  <TableHead>Department</TableHead>
+                  <TableHead>System Role</TableHead>
+                  <TableHead>Access Level</TableHead>
+                  <TableHead>Assigned Projects</TableHead>
+                  {canRemoveUsers && <TableHead className="w-[50px]"></TableHead>}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {displayMembers.map((teamUser) => {
-                const RoleIcon = roleIcons[teamUser.accessLevel];
-                const config = ACCESS_LEVEL_CONFIG[teamUser.accessLevel];
-                const isCurrentUser = teamUser.id === user?.id;
-                const canEdit = !isCurrentUser && canManageRole(teamUser.accessLevel);
+                  const RoleIcon = roleIcons[teamUser.accessLevel];
+                  const config = ACCESS_LEVEL_CONFIG[teamUser.accessLevel];
+                  const isCurrentUser = teamUser.id === user?.id;
+                  const canEdit = !isCurrentUser && canManageRole(teamUser.accessLevel);
+                  const memberRole = teamUser.role || 'viewer';
+                  const RoleIconTeam = memberRole === 'admin' ? Shield : memberRole === 'editor' ? Briefcase : Eye;
 
-                return (
-                  <div
-                    key={teamUser.id}
-                    className="flex items-center justify-between p-4 rounded-xl border border-border/50 bg-card/50 hover:bg-muted/30 transition-all group"
-                  >
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-10 w-10 border-2 border-border">
-                        <AvatarFallback className="bg-primary/10 text-primary font-medium">
-                          {getInitials(teamUser.name)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">{teamUser.name}</span>
-                          {isCurrentUser && (
-                            <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                              You
-                            </Badge>
-                          )}
+                  return (
+                    <TableRow key={teamUser.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <Avatar>
+                            <AvatarFallback>{getInitials(teamUser.name)}</AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <div className="font-medium flex items-center gap-2">
+                              {teamUser.name}
+                              {isCurrentUser && (
+                                <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                                  You
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="text-sm text-muted-foreground">{teamUser.email}</div>
+                          </div>
                         </div>
-                        <span className="text-sm text-muted-foreground">{teamUser.email}</span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      {/* System Role */}
-                      {canEditSystemRoles && !isCurrentUser ? (
-                        <Select
-                          value={teamUser.systemRole || 'viewer'}
+                      </TableCell>
+                      <TableCell>{teamUser.department}</TableCell>
+                      <TableCell>
+                        {canEditSystemRoles && !isCurrentUser ? (
+                          <Select
+                            value={teamUser.systemRole || 'viewer'}
                             onValueChange={(value) => handleUpdateSystemRole(teamUser.id, value as SystemRole)}
-                        >
-                          <SelectTrigger className="w-[170px] h-9">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {SYSTEM_ROLES.map((role) => (
-                              <SelectItem key={role.value} value={role.value}>
-                                {role.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      ) : (
-                        <Badge variant="secondary" className="text-xs">
-                          {SYSTEM_ROLE_CONFIG[teamUser.systemRole || 'viewer']?.label || 'Viewer'}
-                        </Badge>
-                      )}
-
-                      {/* Access Level */}
-                      {canEdit ? (
-                        <Select
-                          value={teamUser.accessLevel}
-                            onValueChange={(value) => handleUpdateAccessLevel(teamUser.id, value as AccessLevel)}
-                        >
-                          <SelectTrigger className="w-[160px] h-9">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {Object.entries(ACCESS_LEVEL_CONFIG)
-                              .filter(([key]) => canManageRole(key as AccessLevel))
-                              .map(([key, cfg]) => (
-                                <SelectItem key={key} value={key}>
-                                  <div className="flex items-center gap-2">
-                                    {cfg.label}
-                                  </div>
+                          >
+                            <SelectTrigger className="w-[170px] h-8">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {SYSTEM_ROLES.map((role) => (
+                                <SelectItem key={role.value} value={role.value}>
+                                  {role.label}
                                 </SelectItem>
                               ))}
-                          </SelectContent>
-                        </Select>
-                      ) : (
-                        <Badge variant="outline" className={`gap-1.5 ${config.color}`}>
-                          <RoleIcon className="h-3 w-3" />
-                          {config.label}
-                        </Badge>
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Badge variant="secondary" className="text-xs">
+                            {SYSTEM_ROLE_CONFIG[teamUser.systemRole || 'viewer']?.label || 'Viewer'}
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {canEdit ? (
+                          <Select
+                            value={teamUser.accessLevel}
+                            onValueChange={(value) => handleUpdateAccessLevel(teamUser.id, value as AccessLevel)}
+                          >
+                            <SelectTrigger className="w-[160px] h-8">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {Object.entries(ACCESS_LEVEL_CONFIG)
+                                .filter(([key]) => canManageRole(key as AccessLevel))
+                                .map(([key, cfg]) => (
+                                  <SelectItem key={key} value={key}>
+                                    {cfg.label}
+                                  </SelectItem>
+                                ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Badge variant="outline" className={`gap-1.5 ${config.color}`}>
+                            <RoleIcon className="h-3 w-3" />
+                            {config.label}
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="outline" size="sm">
+                              {(teamUser.assignedProjects || []).length} Projects
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="start" className="w-[250px]">
+                            {allProjects.length === 0 ? (
+                              <DropdownMenuItem disabled>No projects available</DropdownMenuItem>
+                            ) : (
+                              allProjects.map((project) => {
+                                const projectId = String(project.id);
+                                const isAssigned = (teamUser.assignedProjects || []).map(id => String(id)).includes(projectId);
+                                return (
+                                  <DropdownMenuItem
+                                    key={projectId}
+                                    onSelect={(e) => {
+                                      e.preventDefault();
+                                    }}
+                                    className="flex items-center justify-between"
+                                  >
+                                    <span
+                                      onClick={() => handleAssignProject(teamUser.id, projectId)}
+                                      className={`flex-1 ${isAssigned ? 'font-bold' : ''}`}
+                                    >
+                                      {isAssigned ? '✓ ' : ''}
+                                      {project.name}
+                                    </span>
+                                    {isAssigned && (
+                                      <Link
+                                        to={`/projects/${projectId}`}
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="ml-2 text-muted-foreground hover:text-foreground"
+                                      >
+                                        <Eye className="h-3 w-3" />
+                                      </Link>
+                                    )}
+                                  </DropdownMenuItem>
+                                );
+                              })
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                      {canRemoveUsers && (
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem 
+                                onClick={() => handleRemoveUser(teamUser.id)}
+                                className="text-destructive"
+                                disabled={isCurrentUser}
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Remove
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
                       )}
-
-                      {canRemoveUsers && !isCurrentUser && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive hover:bg-destructive/10"
-                          onClick={() => handleRemoveUser(teamUser.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </ScrollArea>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
           )}
         </CardContent>
       </Card>
