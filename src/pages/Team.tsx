@@ -15,6 +15,16 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -90,6 +100,11 @@ export default function Team() {
   const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
   const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
+  const [deleteWarningDialogOpen, setDeleteWarningDialogOpen] = useState(false);
+  const [memberToDelete, setMemberToDelete] = useState<TeamMember | null>(null);
+  const [deletionWarning, setDeletionWarning] = useState<any>(null);
+  const [isLoadingWarning, setIsLoadingWarning] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [newUserName, setNewUserName] = useState('');
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserDepartment, setNewUserDepartment] = useState('');
@@ -118,6 +133,14 @@ export default function Team() {
   const { data: memberTasks = [] } = useQuery({
     queryKey: ['tasks', selectedMember?.id],
     queryFn: () => selectedMember ? tasksService.getAll({ assigneeId: selectedMember.id }) : Promise.resolve([]),
+    enabled: !!selectedMember && isProfileDialogOpen,
+    staleTime: 60 * 1000,
+  });
+
+  // Fetch projects for selected member using the dedicated endpoint
+  const { data: memberProjects = [] } = useQuery({
+    queryKey: ['team-member-projects', selectedMember?.id],
+    queryFn: () => selectedMember ? teamService.getProjects(selectedMember.id) : Promise.resolve([]),
     enabled: !!selectedMember && isProfileDialogOpen,
     staleTime: 60 * 1000,
   });
@@ -213,18 +236,44 @@ export default function Team() {
       return;
     }
     
-    if (!confirm(`Are you sure you want to remove ${member.name} from the team? This action cannot be undone.`)) {
-      return;
-    }
-    
+    // Fetch deletion warning first
+    setIsLoadingWarning(true);
     try {
-      await teamService.delete(memberId);
+      const warning = await teamService.getDeletionWarning(memberId);
+      setDeletionWarning(warning);
+      setMemberToDelete(member);
+      setDeleteWarningDialogOpen(true);
+    } catch (error: any) {
+      console.error('Failed to fetch deletion warning:', error);
+      toast.error('Failed to check member assignments');
+    } finally {
+      setIsLoadingWarning(false);
+    }
+  };
+
+  const confirmDeleteMember = async () => {
+    if (!memberToDelete) return;
+    
+    setIsDeleting(true);
+    try {
+      const result = await teamService.delete(memberToDelete.id);
       await queryClient.invalidateQueries({ queryKey: ['team'] });
-      toast.success(`${member.name} has been removed from the team`);
+      
+      // Show success message with removal counts
+      const message = result.removedFromProjects > 0 || result.removedFromTasks > 0
+        ? `${memberToDelete.name} has been removed. Removed from ${result.removedFromProjects} project(s) and ${result.removedFromTasks} task(s).`
+        : `${memberToDelete.name} has been removed from the team`;
+      
+      toast.success(message);
+      setDeleteWarningDialogOpen(false);
+      setMemberToDelete(null);
+      setDeletionWarning(null);
     } catch (error: any) {
       console.error('Failed to delete member:', error);
       const errorMessage = error.response?.data?.message || error.message || 'Failed to remove team member';
       toast.error(errorMessage);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -688,12 +737,10 @@ export default function Team() {
               <div>
                 <h3 className="font-semibold mb-3">Associated Projects</h3>
                 <div className="space-y-2">
-                  {selectedMember.assignedProjects && selectedMember.assignedProjects.length > 0 ? (
-                    allProjects
-                      .filter(p => selectedMember.assignedProjects?.includes(String(p.id)))
-                      .map((project) => {
-                        const projectId = String(project.id);
-                        return (
+                  {memberProjects.length > 0 ? (
+                    memberProjects.map((project: any) => {
+                      const projectId = String(project.id);
+                      return (
                         <div
                           key={projectId}
                           className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
@@ -705,7 +752,7 @@ export default function Team() {
                             >
                               {project.name}
                             </Link>
-                            <p className="text-sm text-muted-foreground">{project.sector}</p>
+                            <p className="text-sm text-muted-foreground">{project.sector || 'No sector'}</p>
                           </div>
                           {canManageTeam && (
                             <div className="flex items-center gap-2">
@@ -732,8 +779,8 @@ export default function Team() {
                             </div>
                           )}
                         </div>
-                        );
-                      })
+                      );
+                    })
                   ) : (
                     <p className="text-sm text-muted-foreground">No projects assigned</p>
                   )}

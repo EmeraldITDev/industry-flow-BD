@@ -19,6 +19,22 @@ export interface TeamMemberFilters {
   role?: TeamRole;
   department?: string;
   search?: string;
+  all?: boolean; // Use ?all=true for plain array response
+}
+
+export interface DeletionWarning {
+  hasAssignments: boolean;
+  ledProjects: Array<{ id: number; name: string }>;
+  assignedProjects: Array<{ id: number; name: string }>;
+  tasks: Array<{ id: number; title: string; projectId: number; projectName: string }>;
+  warningMessage: string;
+}
+
+export interface DeleteResponse {
+  success: boolean;
+  message: string;
+  removedFromProjects: number;
+  removedFromTasks: number;
 }
 
 // Helper to normalize array responses from backend
@@ -31,7 +47,8 @@ const normalizeArray = (data: any): any[] => {
 export const teamService = {
   // Get all team members
   getAll: async (filters?: TeamMemberFilters): Promise<TeamMember[]> => {
-    const response = await api.get('/api/team', { params: filters });
+    const params = { ...filters, all: true }; // Always use all=true for plain array
+    const response = await api.get('/api/team', { params });
     return normalizeArray(response.data);
   },
 
@@ -53,9 +70,22 @@ export const teamService = {
     return response.data;
   },
 
-  // Delete team member
-  delete: async (id: string): Promise<void> => {
-    await api.delete(`/api/team/${id}`);
+  // Get projects for a specific team member
+  getProjects: async (id: string): Promise<any[]> => {
+    const response = await api.get(`/api/team/${id}/projects`);
+    return normalizeArray(response.data);
+  },
+
+  // Get deletion warning information
+  getDeletionWarning: async (id: string): Promise<DeletionWarning> => {
+    const response = await api.get(`/api/team/${id}/deletion-warning`);
+    return response.data;
+  },
+
+  // Delete team member (returns removal counts)
+  delete: async (id: string): Promise<DeleteResponse> => {
+    const response = await api.delete(`/api/team/${id}`);
+    return response.data;
   },
 
   // Update team member role

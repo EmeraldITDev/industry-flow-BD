@@ -366,22 +366,22 @@ export function DocumentManager({ documents, onDocumentsChange, readonly = false
             </DialogTitle>
           </DialogHeader>
           
-          {currentUser && (
-            <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-              <div>
-                <p className="text-sm font-medium">{currentUser.displayName}</p>
-                <p className="text-xs text-muted-foreground">{currentUser.mail || currentUser.userPrincipalName}</p>
+            {currentUser && (
+              <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                <div>
+                  <p className="text-sm font-medium">{currentUser.displayName}</p>
+                  <p className="text-xs text-muted-foreground">{currentUser.mail || currentUser.userPrincipalName}</p>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={logout}
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Logout
+                </Button>
               </div>
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={logout}
-              >
-                <LogOut className="w-4 h-4 mr-2" />
-                Logout
-              </Button>
-            </div>
-          )}
+            )}
 
           <div className="space-y-4 pt-4">
             <div className="space-y-2">
@@ -417,34 +417,34 @@ export function DocumentManager({ documents, onDocumentsChange, readonly = false
               </TabsList>
 
               <TabsContent value="upload" className="mt-4 space-y-4">
-                <div className="space-y-2">
+            <div className="space-y-2">
                   <Label>Upload File to OneDrive</Label>
-                  <div 
-                    onClick={() => oneDriveFileInputRef.current?.click()}
-                    className="border-2 border-dashed border-border rounded-lg p-8 text-center cursor-pointer hover:border-primary transition-colors"
-                  >
-                    <Cloud className="w-12 h-12 mx-auto mb-4 text-chart-1" />
-                    <p className="text-sm font-medium mb-1">
-                      Click to select file to upload to OneDrive
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      File will be uploaded to your OneDrive and linked to this project
-                    </p>
-                  </div>
-                  <input
-                    ref={oneDriveFileInputRef}
-                    type="file"
-                    onChange={handleOneDriveFileSelect}
-                    className="hidden"
-                  />
-                </div>
+              <div 
+                onClick={() => oneDriveFileInputRef.current?.click()}
+                className="border-2 border-dashed border-border rounded-lg p-8 text-center cursor-pointer hover:border-primary transition-colors"
+              >
+                <Cloud className="w-12 h-12 mx-auto mb-4 text-chart-1" />
+                <p className="text-sm font-medium mb-1">
+                  Click to select file to upload to OneDrive
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  File will be uploaded to your OneDrive and linked to this project
+                </p>
+              </div>
+              <input
+                ref={oneDriveFileInputRef}
+                type="file"
+                onChange={handleOneDriveFileSelect}
+                className="hidden"
+              />
+            </div>
 
-                {isUploading && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Uploading to OneDrive...
-                  </div>
-                )}
+            {isUploading && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Uploading to OneDrive...
+              </div>
+            )}
               </TabsContent>
 
               <TabsContent value="browse" className="mt-4">

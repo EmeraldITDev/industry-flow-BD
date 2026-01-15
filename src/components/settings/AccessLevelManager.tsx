@@ -10,6 +10,16 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Link } from 'react-router-dom';
@@ -93,11 +103,16 @@ export function AccessLevelManager() {
   const [newUserRole, setNewUserRole] = useState<AccessLevel>('viewer');
   const [newUserSystemRole, setNewUserSystemRole] = useState<SystemRole>('viewer');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deleteWarningDialogOpen, setDeleteWarningDialogOpen] = useState(false);
+  const [memberToDelete, setMemberToDelete] = useState<ExtendedTeamMember | null>(null);
+  const [deletionWarning, setDeletionWarning] = useState<any>(null);
+  const [isLoadingWarning, setIsLoadingWarning] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  // Fetch team members from backend
+  // Fetch team members from backend (using ?all=true for plain array)
   const { data: teamMembers = [], isLoading: isLoadingMembers } = useQuery({
     queryKey: ['team'],
-    queryFn: () => teamService.getAll(),
+    queryFn: () => teamService.getAll({ all: true }),
     staleTime: 5 * 60 * 1000,
   });
 
@@ -185,18 +200,44 @@ export function AccessLevelManager() {
       return;
     }
     
-    if (!confirm(`Are you sure you want to remove ${teamUser.name} from the team? This action cannot be undone.`)) {
-      return;
-    }
-    
+    // Fetch deletion warning first
+    setIsLoadingWarning(true);
     try {
-      await teamService.delete(userId);
-      await queryClient.invalidateQueries({ queryKey: ['team'] });
-      toast.success(`${teamUser.name} has been removed from the team`);
+      const warning = await teamService.getDeletionWarning(userId);
+      setDeletionWarning(warning);
+      setMemberToDelete(teamUser);
+      setDeleteWarningDialogOpen(true);
     } catch (error: any) {
-      console.error('Failed to remove team member:', error);
+      console.error('Failed to fetch deletion warning:', error);
+      toast.error('Failed to check member assignments');
+    } finally {
+      setIsLoadingWarning(false);
+    }
+  };
+
+  const confirmDeleteUser = async () => {
+    if (!memberToDelete) return;
+    
+    setIsDeleting(true);
+    try {
+      const result = await teamService.delete(memberToDelete.id);
+      await queryClient.invalidateQueries({ queryKey: ['team'] });
+      
+      // Show success message with removal counts
+      const message = result.removedFromProjects > 0 || result.removedFromTasks > 0
+        ? `${memberToDelete.name} has been removed. Removed from ${result.removedFromProjects} project(s) and ${result.removedFromTasks} task(s).`
+        : `${memberToDelete.name} has been removed from the team`;
+      
+      toast.success(message);
+      setDeleteWarningDialogOpen(false);
+      setMemberToDelete(null);
+      setDeletionWarning(null);
+    } catch (error: any) {
+      console.error('Failed to delete team member:', error);
       const errorMessage = error.response?.data?.message || error.message || 'Failed to remove team member';
       toast.error(errorMessage);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -577,6 +618,74 @@ export function AccessLevelManager() {
           );
         })}
       </div>
+
+      {/* Deletion Warning Dialog */}
+      <AlertDialog open={deleteWarningDialogOpen} onOpenChange={setDeleteWarningDialogOpen}>
+        <AlertDialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Team Member</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deletionWarning?.warningMessage || `Are you sure you want to remove ${memberToDelete?.name} from the team?`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          
+          {deletionWarning?.hasAssignments && (
+            <div className="space-y-4 my-4">
+              {(deletionWarning.ledProjects?.length > 0 || deletionWarning.assignedProjects?.length > 0) && (
+                <div>
+                  <h4 className="font-semibold text-sm mb-2">Projects:</h4>
+                  <div className="space-y-2 max-h-40 overflow-y-auto">
+                    {deletionWarning.ledProjects?.map((project: any) => (
+                      <div key={project.id} className="text-sm p-2 bg-muted/50 rounded">
+                        <span className="font-medium">{project.name}</span>
+                        <span className="text-muted-foreground ml-2">(Lead)</span>
+                      </div>
+                    ))}
+                    {deletionWarning.assignedProjects?.map((project: any) => (
+                      <div key={project.id} className="text-sm p-2 bg-muted/50 rounded">
+                        <span className="font-medium">{project.name}</span>
+                        <span className="text-muted-foreground ml-2">(Assigned)</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {deletionWarning.tasks?.length > 0 && (
+                <div>
+                  <h4 className="font-semibold text-sm mb-2">Tasks:</h4>
+                  <div className="space-y-2 max-h-40 overflow-y-auto">
+                    {deletionWarning.tasks.map((task: any) => (
+                      <div key={task.id} className="text-sm p-2 bg-muted/50 rounded">
+                        <span className="font-medium">{task.title}</span>
+                        <span className="text-muted-foreground ml-2">- {task.projectName}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteUser}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete Member'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

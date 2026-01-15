@@ -102,7 +102,7 @@ const getAccessToken = async (): Promise<string | null> => {
   } catch (error) {
     console.error('Error getting access token:', error);
     return null;
-  }
+    }
 };
 
 // Check if user is authenticated (alias for compatibility)
@@ -402,7 +402,7 @@ const getFileInfo = async (fileId: string): Promise<OneDriveFile | null> => {
   } catch (error) {
     console.error('Error getting file info:', error);
     return null;
-  }
+    }
 };
 
 // Check if OneDrive is configured

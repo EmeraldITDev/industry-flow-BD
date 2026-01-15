@@ -68,7 +68,7 @@ This guide will help you set up OneDrive integration for the Industry Flow appli
    ```env
    # Microsoft OneDrive Integration
    VITE_MICROSOFT_CLIENT_ID=12345678-1234-1234-1234-123456789012
-
+   
    # Other environment variables...
    VITE_API_BASE_URL=http://localhost:8000
    ```
@@ -84,9 +84,9 @@ npm install @azure/msal-browser
 ## Step 5: Test the Integration
 
 1. **Start Your Development Server**
-   ```bash
-   npm run dev
-   ```
+```bash
+npm run dev
+```
 
 2. **Navigate to a Project**
    - Go to any project in your application
