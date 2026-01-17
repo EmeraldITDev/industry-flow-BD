@@ -49,66 +49,66 @@ export function ProjectCard({ project }: ProjectCardProps) {
   return (
     <Link to={`/projects/${project.id}`}>
       <Card className="h-full hover:border-primary/50 hover:shadow-md transition-all cursor-pointer group">
-        <CardHeader className="pb-3">
+        <CardHeader className="p-3 sm:p-6 pb-2 sm:pb-3">
           <div className="flex items-start justify-between gap-2">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className={`text-xs px-2 py-1 rounded-md font-medium ${sectorColors[project.sector as Sector] || 'bg-muted text-muted-foreground'}`}>
-                {sectorIcons[project.sector as Sector] || '📁'} {project.sector}
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap min-w-0">
+              <span className={`text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md font-medium truncate max-w-[120px] sm:max-w-none ${sectorColors[project.sector as Sector] || 'bg-muted text-muted-foreground'}`}>
+                {sectorIcons[project.sector as Sector] || '📁'} <span className="hidden sm:inline">{project.sector}</span>
               </span>
-              <Badge variant="outline" className={statusColors[project.status] || ''}>
+              <Badge variant="outline" className={`text-[10px] sm:text-xs ${statusColors[project.status] || ''}`}>
                 {project.status}
               </Badge>
             </div>
             {showInactivityWarning && (
-              <div className="flex items-center gap-1 text-destructive">
-                <AlertTriangle className="w-4 h-4" />
-                <span className="text-xs">{daysSinceUpdate}d</span>
+              <div className="flex items-center gap-1 text-destructive shrink-0">
+                <AlertTriangle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span className="text-[10px] sm:text-xs">{daysSinceUpdate}d</span>
               </div>
             )}
           </div>
-          <h3 className="font-semibold text-lg mt-2 group-hover:text-primary transition-colors line-clamp-2">
+          <h3 className="font-semibold text-sm sm:text-lg mt-1.5 sm:mt-2 group-hover:text-primary transition-colors line-clamp-2">
             {project.name}
           </h3>
-          <Badge variant="outline" className={`w-fit ${stageColors[project.pipelineStage] || ''}`}>
+          <Badge variant="outline" className={`w-fit text-[10px] sm:text-xs ${stageColors[project.pipelineStage] || ''}`}>
             {stageLabel}
           </Badge>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-sm text-muted-foreground line-clamp-2">
+        <CardContent className="p-3 sm:p-6 pt-0 space-y-2 sm:space-y-4">
+          <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2">
             {project.description}
           </p>
           
           {/* Client & Value */}
           {(project.clientName || project.contractValueUSD) && (
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground truncate max-w-[50%]">{project.clientName || '-'}</span>
-              <div className="flex gap-2 text-xs">
+            <div className="flex items-center justify-between text-xs sm:text-sm gap-2">
+              <span className="text-muted-foreground truncate flex-1 min-w-0">{project.clientName || '-'}</span>
+              <div className="flex gap-1 sm:gap-2 text-[10px] sm:text-xs shrink-0">
                 <span className="font-medium">{formatCurrency(project.contractValueNGN, 'NGN')}</span>
-                <span className="text-muted-foreground">/</span>
-                <span className="font-medium">{formatCurrency(project.contractValueUSD, 'USD')}</span>
+                <span className="text-muted-foreground hidden sm:inline">/</span>
+                <span className="font-medium hidden sm:inline">{formatCurrency(project.contractValueUSD, 'USD')}</span>
               </div>
             </div>
           )}
           
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-sm">
+          <div className="space-y-1 sm:space-y-2">
+            <div className="flex items-center justify-between text-xs sm:text-sm">
               <span className="text-muted-foreground">Progress</span>
               <span className="font-medium">{project.progress || 0}%</span>
             </div>
-            <Progress value={project.progress || 0} className="h-2" />
+            <Progress value={project.progress || 0} className="h-1.5 sm:h-2" />
           </div>
 
-          <div className="flex items-center justify-between text-sm text-muted-foreground pt-2 border-t border-border">
-            <div className="flex items-center gap-1">
-              <Users className="w-4 h-4" />
+          <div className="flex items-center justify-between text-[10px] sm:text-sm text-muted-foreground pt-2 border-t border-border">
+            <div className="flex items-center gap-0.5 sm:gap-1">
+              <Users className="w-3 h-3 sm:w-4 sm:h-4" />
               <span>{project.teamSize || 0}</span>
             </div>
-            <div className="flex items-center gap-1">
-              <CheckSquare className="w-4 h-4" />
+            <div className="flex items-center gap-0.5 sm:gap-1">
+              <CheckSquare className="w-3 h-3 sm:w-4 sm:h-4" />
               <span>{completedTasks}/{tasks.length}</span>
             </div>
-            <div className="flex items-center gap-1">
-              <Calendar className="w-4 h-4" />
+            <div className="flex items-center gap-0.5 sm:gap-1">
+              <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
               <span>{safeFormatDate(project.startDate, 'MMM d')}</span>
             </div>
           </div>
