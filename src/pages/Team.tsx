@@ -307,11 +307,11 @@ export default function Team() {
   const viewerCount = members.filter(m => m.role === 'viewer').length;
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Team Management</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight">Team Management</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
             Manage team members and their permissions
           </p>
         </div>
@@ -460,51 +460,51 @@ export default function Team() {
       </Dialog>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 sm:gap-4 md:grid-cols-4">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Total Members</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+          <CardHeader className="flex flex-row items-center justify-between p-3 sm:p-6 pb-1 sm:pb-2">
+            <CardTitle className="text-xs sm:text-sm font-medium truncate">Total Members</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground shrink-0" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{members.length}</div>
+          <CardContent className="p-3 sm:p-6 pt-0">
+            <div className="text-lg sm:text-2xl font-bold">{members.length}</div>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Admins</CardTitle>
-            <Shield className="h-4 w-4 text-destructive" />
+          <CardHeader className="flex flex-row items-center justify-between p-3 sm:p-6 pb-1 sm:pb-2">
+            <CardTitle className="text-xs sm:text-sm font-medium">Admins</CardTitle>
+            <Shield className="h-4 w-4 text-destructive shrink-0" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{adminCount}</div>
+          <CardContent className="p-3 sm:p-6 pt-0">
+            <div className="text-lg sm:text-2xl font-bold">{adminCount}</div>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Editors</CardTitle>
-            <Edit className="h-4 w-4 text-chart-2" />
+          <CardHeader className="flex flex-row items-center justify-between p-3 sm:p-6 pb-1 sm:pb-2">
+            <CardTitle className="text-xs sm:text-sm font-medium">Editors</CardTitle>
+            <Edit className="h-4 w-4 text-chart-2 shrink-0" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{editorCount}</div>
+          <CardContent className="p-3 sm:p-6 pt-0">
+            <div className="text-lg sm:text-2xl font-bold">{editorCount}</div>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Viewers</CardTitle>
-            <Eye className="h-4 w-4 text-muted-foreground" />
+          <CardHeader className="flex flex-row items-center justify-between p-3 sm:p-6 pb-1 sm:pb-2">
+            <CardTitle className="text-xs sm:text-sm font-medium">Viewers</CardTitle>
+            <Eye className="h-4 w-4 text-muted-foreground shrink-0" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{viewerCount}</div>
+          <CardContent className="p-3 sm:p-6 pt-0">
+            <div className="text-lg sm:text-2xl font-bold">{viewerCount}</div>
           </CardContent>
         </Card>
       </div>
 
       {/* Team Members Table */}
       <Card>
-        <CardHeader>
-          <CardTitle>Team Members</CardTitle>
+        <CardHeader className="p-3 sm:p-6">
+          <CardTitle className="text-base sm:text-lg">Team Members</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-3 sm:p-6 pt-0 overflow-x-auto">
           {isLoadingMembers ? (
             <div className="space-y-3">
               {[1, 2, 3].map((i) => (
@@ -512,13 +512,14 @@ export default function Team() {
               ))}
             </div>
           ) : (
+            <div className="min-w-[600px]">
             <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Member</TableHead>
-                <TableHead>Department</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Assigned Projects</TableHead>
+                <TableHead className="text-xs sm:text-sm">Member</TableHead>
+                <TableHead className="text-xs sm:text-sm">Department</TableHead>
+                <TableHead className="text-xs sm:text-sm">Role</TableHead>
+                <TableHead className="text-xs sm:text-sm">Assigned Projects</TableHead>
                 {canManageTeam && <TableHead className="w-[50px]"></TableHead>}
               </TableRow>
             </TableHeader>
@@ -644,17 +645,18 @@ export default function Team() {
               })}
             </TableBody>
           </Table>
+          </div>
           )}
         </CardContent>
       </Card>
 
       {/* Role Permissions Info */}
       <Card>
-        <CardHeader>
-          <CardTitle>Role Permissions</CardTitle>
+        <CardHeader className="p-3 sm:p-6">
+          <CardTitle className="text-base sm:text-lg">Role Permissions</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-3">
+        <CardContent className="p-3 sm:p-6 pt-0">
+          <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
             {(['admin', 'editor', 'viewer'] as TeamRole[]).map((role) => {
               const RoleIcon = roleIcons[role];
               return (

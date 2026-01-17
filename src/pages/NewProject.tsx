@@ -170,10 +170,10 @@ export default function NewProject() {
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-6 pb-8">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 pb-8">
       <div>
-        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Create New Project</h1>
-        <p className="text-muted-foreground">Fill in the details to create a new project</p>
+        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">Create New Project</h1>
+        <p className="text-xs sm:text-sm text-muted-foreground mt-1">Fill in the details to create a new project</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">

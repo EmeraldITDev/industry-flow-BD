@@ -78,15 +78,15 @@ export default function Settings() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-background">
-      <div className="max-w-6xl mx-auto p-6 space-y-6">
+      <div className="max-w-6xl mx-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex items-center gap-3">
-          <div className="p-3 rounded-xl bg-primary/10 border border-primary/20">
-            <SettingsIcon className="h-6 w-6 text-primary" />
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="p-2 sm:p-3 rounded-xl bg-primary/10 border border-primary/20">
+            <SettingsIcon className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
-            <p className="text-sm text-muted-foreground">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Settings</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground">
               Manage your account and preferences
             </p>
           </div>
@@ -119,27 +119,27 @@ export default function Settings() {
         </Card>
 
         {/* Settings Tabs */}
-        <Tabs defaultValue="access" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-grid h-auto p-1 bg-muted/50">
-            <TabsTrigger value="access" className="gap-2 data-[state=active]:bg-background py-2.5">
-              <Shield className="h-4 w-4" />
-              <span className="hidden sm:inline">Access</span>
+        <Tabs defaultValue="access" className="space-y-4 sm:space-y-6">
+          <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-grid h-auto p-0.5 sm:p-1 bg-muted/50">
+            <TabsTrigger value="access" className="gap-1 sm:gap-2 data-[state=active]:bg-background py-2 sm:py-2.5 px-1 sm:px-3">
+              <Shield className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline text-xs sm:text-sm">Access</span>
             </TabsTrigger>
-            <TabsTrigger value="password" className="gap-2 data-[state=active]:bg-background py-2.5">
-              <Key className="h-4 w-4" />
-              <span className="hidden sm:inline">Password</span>
+            <TabsTrigger value="password" className="gap-1 sm:gap-2 data-[state=active]:bg-background py-2 sm:py-2.5 px-1 sm:px-3">
+              <Key className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline text-xs sm:text-sm">Password</span>
             </TabsTrigger>
-            <TabsTrigger value="integrations" className="gap-2 data-[state=active]:bg-background py-2.5">
-              <Link2 className="h-4 w-4" />
-              <span className="hidden sm:inline">Integrations</span>
+            <TabsTrigger value="integrations" className="gap-1 sm:gap-2 data-[state=active]:bg-background py-2 sm:py-2.5 px-1 sm:px-3">
+              <Link2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline text-xs sm:text-sm">Integrations</span>
             </TabsTrigger>
-            <TabsTrigger value="notifications" className="gap-2 data-[state=active]:bg-background py-2.5">
-              <Bell className="h-4 w-4" />
-              <span className="hidden sm:inline">Notifications</span>
+            <TabsTrigger value="notifications" className="gap-1 sm:gap-2 data-[state=active]:bg-background py-2 sm:py-2.5 px-1 sm:px-3">
+              <Bell className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline text-xs sm:text-sm">Notifications</span>
             </TabsTrigger>
-            <TabsTrigger value="appearance" className="gap-2 data-[state=active]:bg-background py-2.5">
-              <Palette className="h-4 w-4" />
-              <span className="hidden sm:inline">Appearance</span>
+            <TabsTrigger value="appearance" className="gap-1 sm:gap-2 data-[state=active]:bg-background py-2 sm:py-2.5 px-1 sm:px-3">
+              <Palette className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline text-xs sm:text-sm">Appearance</span>
             </TabsTrigger>
           </TabsList>
 

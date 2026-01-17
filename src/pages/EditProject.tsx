@@ -163,16 +163,16 @@ export default function EditProject() {
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-6 pb-8">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" asChild>
+    <div className="p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 pb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+        <Button variant="ghost" size="icon" asChild className="self-start shrink-0">
           <Link to={`/projects/${id}`}>
             <ArrowLeft className="w-5 h-5" />
           </Link>
         </Button>
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Edit Project</h1>
-          <p className="text-muted-foreground">Update project details</p>
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">Edit Project</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">Update project details</p>
         </div>
       </div>
 

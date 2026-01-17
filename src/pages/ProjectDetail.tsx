@@ -271,28 +271,28 @@ export default function ProjectDetail() {
   };
 
   return (
-    <div className="p-6 lg:p-8 space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" asChild>
+    <div className="p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+        <Button variant="ghost" size="icon" asChild className="shrink-0 self-start">
           <Link to="/projects">
             <ArrowLeft className="w-5 h-5" />
           </Link>
         </Button>
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-1">
-            <span className={`text-xs px-2 py-1 rounded-md font-medium ${sectorColors[project.sector as Sector] || 'bg-muted text-muted-foreground'}`}>
-              {sectorIcons[project.sector as Sector] || '📁'} {project.sector}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 mb-1 flex-wrap">
+            <span className={`text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md font-medium ${sectorColors[project.sector as Sector] || 'bg-muted text-muted-foreground'}`}>
+              {sectorIcons[project.sector as Sector] || '📁'} <span className="hidden sm:inline">{project.sector}</span>
             </span>
-            <Badge variant="outline" className={statusColors[project.status] || ''}>
+            <Badge variant="outline" className={`text-[10px] sm:text-xs ${statusColors[project.status] || ''}`}>
               {project.status}
             </Badge>
           </div>
-          <h1 className="text-2xl lg:text-3xl font-bold">{project.name}</h1>
+          <h1 className="text-lg sm:text-2xl lg:text-3xl font-bold line-clamp-2">{project.name}</h1>
         </div>
         {canEditProjects && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon">
+              <Button variant="outline" size="icon" className="shrink-0">
                 <MoreHorizontal className="w-5 h-5" />
               </Button>
             </DropdownMenuTrigger>
@@ -355,17 +355,17 @@ export default function ProjectDetail() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        <div className="lg:col-span-3 space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6">
+        <div className="lg:col-span-3 space-y-4 sm:space-y-6">
           <Card>
-            <CardHeader>
-              <CardTitle>About this project</CardTitle>
+            <CardHeader className="p-3 sm:p-6">
+              <CardTitle className="text-sm sm:text-base">About this project</CardTitle>
             </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">{project.description || 'No description provided.'}</p>
+            <CardContent className="p-3 sm:p-6 pt-0">
+              <p className="text-xs sm:text-sm text-muted-foreground">{project.description || 'No description provided.'}</p>
               
               {/* Additional project details */}
-              <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-4 pt-4 border-t">
+              <div className="mt-3 sm:mt-4 grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 pt-3 sm:pt-4 border-t">
                 {project.clientName && (
                   <div>
                     <p className="text-xs text-muted-foreground">Client</p>
