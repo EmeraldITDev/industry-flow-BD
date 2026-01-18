@@ -110,6 +110,63 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkSession();
   }, []);
 
+  // 30-minute inactivity logout
+  useEffect(() => {
+    if (!user) return;
+
+    const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes in milliseconds
+    let inactivityTimer: NodeJS.Timeout;
+    let lastActivityTime = Date.now();
+
+    const handleLogout = async () => {
+      try {
+        await authService.logout();
+      } catch (error) {
+        // Ignore errors, clear local state anyway
+      }
+      setUser(null);
+      toast.warning('You have been logged out due to inactivity');
+    };
+
+    const resetTimer = () => {
+      lastActivityTime = Date.now();
+      if (inactivityTimer) {
+        clearTimeout(inactivityTimer);
+      }
+      inactivityTimer = setTimeout(() => {
+        const timeSinceLastActivity = Date.now() - lastActivityTime;
+        if (timeSinceLastActivity >= INACTIVITY_TIMEOUT) {
+          handleLogout();
+        }
+      }, INACTIVITY_TIMEOUT);
+    };
+
+    // Activity event handlers
+    const handleActivity = () => {
+      resetTimer();
+    };
+
+    // Track various user activities
+    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
+    
+    events.forEach(event => {
+      window.addEventListener(event, handleActivity, { passive: true });
+    });
+
+    // Initial timer setup
+    resetTimer();
+
+    // Cleanup
+    return () => {
+      if (inactivityTimer) {
+        clearTimeout(inactivityTimer);
+      }
+      events.forEach(event => {
+        window.removeEventListener(event, handleActivity);
+      });
+    };
+  }, [user]);
+
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
 

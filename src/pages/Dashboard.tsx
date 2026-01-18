@@ -64,7 +64,6 @@ export default function Dashboard() {
             title="Total Projects" 
             value={stats.totalProjects} 
             icon={FolderKanban}
-            trend={{ value: 12, isPositive: true }}
           />
           <StatCard 
             title="Active Projects" 
@@ -75,7 +74,6 @@ export default function Dashboard() {
             title="Completed Tasks" 
             value={stats.completedTasks} 
             icon={CheckCircle}
-            trend={{ value: 8, isPositive: true }}
           />
           <StatCard 
             title="Pending Tasks" 
@@ -86,7 +84,6 @@ export default function Dashboard() {
             title="Overdue Tasks" 
             value={stats.overdueTasks} 
             icon={AlertTriangle}
-            trend={{ value: 3, isPositive: false }}
             className="col-span-2 lg:col-span-1"
           />
         </div>
