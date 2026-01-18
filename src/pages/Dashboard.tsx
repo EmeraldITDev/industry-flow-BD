@@ -7,7 +7,6 @@ import { RevenueAnalytics } from '@/components/dashboard/RevenueAnalytics';
 import { ProjectCalendar } from '@/components/calendar/ProjectCalendar';
 import { projectsService } from '@/services/projects';
 import { FolderKanban, Activity, CheckCircle, Clock, AlertTriangle, Loader2 } from 'lucide-react';
-import { DashboardStats } from '@/types';
 import { Button } from '@/components/ui/button';
 
 export default function Dashboard() {
@@ -17,15 +16,6 @@ export default function Dashboard() {
     queryFn: () => projectsService.getStats(),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
-
-  // Use backend data only - no mock fallback
-  const stats: DashboardStats = backendStats || {
-    totalProjects: 0,
-    activeProjects: 0,
-    completedTasks: 0,
-    pendingTasks: 0,
-    overdueTasks: 0,
-  };
 
   if (error) {
     return (
@@ -58,36 +48,36 @@ export default function Dashboard() {
         <div className="flex items-center justify-center py-8">
           <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
         </div>
-      ) : (
+      ) : backendStats ? (
         <div className="grid grid-cols-2 gap-2 sm:gap-4 lg:grid-cols-5">
           <StatCard 
             title="Total Projects" 
-            value={stats.totalProjects} 
+            value={backendStats.totalProjects} 
             icon={FolderKanban}
           />
           <StatCard 
             title="Active Projects" 
-            value={stats.activeProjects} 
+            value={backendStats.activeProjects} 
             icon={Activity}
           />
           <StatCard 
             title="Completed Tasks" 
-            value={stats.completedTasks} 
+            value={backendStats.completedTasks} 
             icon={CheckCircle}
           />
           <StatCard 
             title="Pending Tasks" 
-            value={stats.pendingTasks} 
+            value={backendStats.pendingTasks} 
             icon={Clock}
           />
           <StatCard 
             title="Overdue Tasks" 
-            value={stats.overdueTasks} 
+            value={backendStats.overdueTasks} 
             icon={AlertTriangle}
             className="col-span-2 lg:col-span-1"
           />
         </div>
-      )}
+      ) : null}
 
       <RevenueAnalytics />
 
