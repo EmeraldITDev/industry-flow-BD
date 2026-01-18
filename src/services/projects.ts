@@ -88,6 +88,10 @@ export const projectsService = {
   // Get project statistics/dashboard data
   getStats: async () => {
     const response = await api.get('/api/projects/stats');
-    return response.data;
+    // Handle different response structures: { data: {...} }, { total: {...} }, or direct stats object
+    const data = response.data;
+    if (data?.data) return data.data;
+    if (data?.total) return data.total;
+    return data;
   },
 };
