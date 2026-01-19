@@ -48,36 +48,36 @@ export default function Dashboard() {
         <div className="flex items-center justify-center py-8">
           <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
         </div>
-      ) : backendStats ? (
+      ) : (
         <div className="grid grid-cols-2 gap-2 sm:gap-4 lg:grid-cols-5">
           <StatCard 
             title="Total Projects" 
-            value={backendStats.totalProjects} 
+            value={backendStats?.totalProjects ?? 0} 
             icon={FolderKanban}
           />
           <StatCard 
             title="Active Projects" 
-            value={backendStats.activeProjects} 
+            value={backendStats?.activeProjects ?? 0} 
             icon={Activity}
           />
           <StatCard 
             title="Completed Tasks" 
-            value={backendStats.completedTasks} 
+            value={backendStats?.completedTasks ?? 0} 
             icon={CheckCircle}
           />
           <StatCard 
             title="Pending Tasks" 
-            value={backendStats.pendingTasks} 
+            value={backendStats?.pendingTasks ?? 0} 
             icon={Clock}
           />
           <StatCard 
             title="Overdue Tasks" 
-            value={backendStats.overdueTasks} 
+            value={backendStats?.overdueTasks ?? 0} 
             icon={AlertTriangle}
             className="col-span-2 lg:col-span-1"
           />
         </div>
-      ) : null}
+      )}
 
       <RevenueAnalytics />
 
