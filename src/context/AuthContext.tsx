@@ -27,12 +27,13 @@ const mapRoleToAccessLevel = (role: string): AccessLevel => {
     case 'bd_director':
     case 'director':
       return 'bd_director';
-    case 'pm':
+    case 'employee':
+      return 'employee';
     case 'project_manager':
-    case 'editor': // Map 'editor' to 'pm' (Project Manager) for backward compatibility
-      return 'pm';
+    case 'pm':
+      return 'project_manager';
     default:
-      return 'viewer';
+      return 'employee';
   }
 };
 
@@ -220,7 +221,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!user) return false;
     if (user.accessLevel === 'admin') return true;
     if (user.accessLevel === 'bd_director') {
-      return targetRole === 'pm' || targetRole === 'viewer';
+      return targetRole === 'employee' || targetRole === 'project_manager';
     }
     return false;
   };

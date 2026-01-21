@@ -34,8 +34,8 @@ import { toast } from 'sonner';
 const roleIcons = {
   admin: Crown,
   bd_director: Briefcase,
-  pm: ClipboardList,
-  viewer: Eye,
+  employee: ClipboardList,
+  project_manager: ClipboardList,
 };
 
 export default function Settings() {

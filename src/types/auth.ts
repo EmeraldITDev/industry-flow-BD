@@ -1,6 +1,6 @@
-export type AccessLevel = 'admin' | 'bd_director' | 'pm' | 'viewer';
+export type AccessLevel = 'admin' | 'bd_director' | 'employee' | 'project_manager';
 
-export type SystemRole = 'admin' | 'project_manager' | 'viewer';
+export type SystemRole = 'admin' | 'editor' | 'viewer';
 
 export interface User {
   id: string;
@@ -44,9 +44,9 @@ export const SYSTEM_ROLE_CONFIG: Record<SystemRole, {
       canViewTasks: true,
     },
   },
-  project_manager: {
-    label: 'Project Manager',
-    description: 'Manage projects and tasks',
+  editor: {
+    label: 'Editor',
+    description: 'Edit projects and tasks',
     permissions: {
       canCreateProjects: true,
       canEditProjects: true,
@@ -105,33 +105,34 @@ export const ACCESS_LEVEL_CONFIG: Record<AccessLevel, {
     description: 'Business development leadership with project assignment authority',
     color: 'bg-primary/10 text-primary border-primary/20',
     permissions: [
-      'Assign roles to PM and Viewer users',
+      'Assign roles to team members',
       'Approve due date adjustments',
       'Reassign projects between team members',
       'Access all project data',
       'Receive approval notifications',
     ],
   },
-  pm: {
-    label: 'Editor',
-    description: 'Edit projects and manage task progress',
-    color: 'bg-chart-3/10 text-chart-3 border-chart-3/20',
-    permissions: [
-      'Edit assigned projects',
-      'Edit task progress',
-      'Access shared documents',
-      'Edit project timelines',
-    ],
-  },
-  viewer: {
-    label: 'Viewer',
-    description: 'Read-only access to assigned projects',
-    color: 'bg-muted text-muted-foreground border-border',
+  employee: {
+    label: 'Employee',
+    description: 'Standard employee access to assigned projects',
+    color: 'bg-chart-2/10 text-chart-2 border-chart-2/20',
     permissions: [
       'View assigned projects',
-      'View task progress',
+      'Update task progress',
       'Access shared documents',
       'View project timelines',
+    ],
+  },
+  project_manager: {
+    label: 'Project Manager',
+    description: 'Project management with task and timeline control',
+    color: 'bg-chart-3/10 text-chart-3 border-chart-3/20',
+    permissions: [
+      'Manage assigned projects',
+      'Create and edit tasks',
+      'Request due date changes',
+      'View team availability',
+      'Generate project reports',
     ],
   },
 };

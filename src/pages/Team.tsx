@@ -109,7 +109,7 @@ export default function Team() {
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserDepartment, setNewUserDepartment] = useState('');
   const [newUserSystemRole, setNewUserSystemRole] = useState<SystemRole>('viewer');
-  const [newUserAccessLevel, setNewUserAccessLevel] = useState<AccessLevel>('viewer');
+  const [newUserAccessLevel, setNewUserAccessLevel] = useState<AccessLevel>('employee');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const { canManageTeam } = usePermissions();
@@ -204,7 +204,7 @@ export default function Team() {
       setNewUserEmail('');
       setNewUserDepartment('');
       setNewUserSystemRole('viewer');
-      setNewUserAccessLevel('viewer');
+      setNewUserAccessLevel('employee');
 
       toast.success('Team member added successfully!');
     } catch (error: any) {

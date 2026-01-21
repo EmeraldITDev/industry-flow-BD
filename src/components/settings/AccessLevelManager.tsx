@@ -57,13 +57,13 @@ import { toast } from 'sonner';
 const roleIcons: Record<AccessLevel, React.ElementType> = {
   admin: Crown,
   bd_director: Briefcase,
-  pm: ClipboardList,
-  viewer: Eye,
+  employee: ClipboardList,
+  project_manager: ClipboardList,
 };
 
 const SYSTEM_ROLES: { value: SystemRole; label: string; description: string }[] = [
   { value: 'admin', label: 'Admin', description: 'Full system access' },
-  { value: 'project_manager', label: 'Project Manager', description: 'Manage projects and tasks' },
+  { value: 'editor', label: 'Editor', description: 'Edit projects and tasks' },
   { value: 'viewer', label: 'Viewer', description: 'Read-only access' },
 ];
 
@@ -100,7 +100,7 @@ export function AccessLevelManager() {
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserName, setNewUserName] = useState('');
   const [newUserDepartment, setNewUserDepartment] = useState('');
-  const [newUserRole, setNewUserRole] = useState<AccessLevel>('viewer');
+  const [newUserRole, setNewUserRole] = useState<AccessLevel>('employee');
   const [newUserSystemRole, setNewUserSystemRole] = useState<SystemRole>('viewer');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deleteWarningDialogOpen, setDeleteWarningDialogOpen] = useState(false);
@@ -124,26 +124,22 @@ export function AccessLevelManager() {
   });
 
   // Convert TeamMember to display format (assume backend returns systemRole/accessLevel if provided)
-  // Map 'editor' to 'pm' (Project Manager) for backward compatibility
   const normalizeAccessLevel = (accessLevel?: string, fallbackRole?: string): AccessLevel => {
     if (accessLevel) {
       const normalized = accessLevel.toLowerCase();
-      if (normalized === 'editor' || normalized === 'pm' || normalized === 'project_manager') {
-        return 'pm';
-      }
       if (normalized === 'admin') return 'admin';
       if (normalized === 'bd_director' || normalized === 'director') return 'bd_director';
-      if (normalized === 'viewer') return 'viewer';
+      if (normalized === 'employee') return 'employee';
+      if (normalized === 'project_manager' || normalized === 'pm') return 'project_manager';
     }
     // Fallback to role mapping if accessLevel not provided
     if (fallbackRole === 'admin') return 'admin';
-    if (fallbackRole === 'editor') return 'pm';
-    return 'viewer';
+    return 'employee';
   };
 
   const displayMembers = teamMembers.map((member: ExtendedTeamMember) => ({
     ...member,
-    systemRole: member.systemRole || (member.role === 'admin' ? 'admin' as SystemRole : member.role === 'editor' ? 'project_manager' as SystemRole : 'viewer' as SystemRole),
+    systemRole: member.systemRole || (member.role === 'admin' ? 'admin' as SystemRole : member.role === 'editor' ? 'editor' as SystemRole : 'viewer' as SystemRole),
     accessLevel: normalizeAccessLevel(member.accessLevel, member.role),
   }));
 
@@ -189,7 +185,7 @@ export function AccessLevelManager() {
     setNewUserEmail('');
     setNewUserName('');
       setNewUserDepartment('');
-    setNewUserRole('viewer');
+    setNewUserRole('employee');
     setNewUserSystemRole('viewer');
     setIsAddDialogOpen(false);
 
