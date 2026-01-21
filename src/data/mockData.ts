@@ -2,7 +2,7 @@ import { Project, Task, Sector, TeamMember, PipelineStage, BusinessSegment, Proj
 
 export const sectors: Sector[] = ['Manufacturing', 'Energy', 'Oil and Gas', 'Commodity Trading'];
 
-export const businessSegments: BusinessSegment[] = ['Industrial', 'Commercial', 'Government', 'Enterprise', 'SMB'];
+export const businessSegments: BusinessSegment[] = ['EMR_MFG', 'EMR_OGP', 'EMR_Renewables', 'EMR_Trading'];
 
 export const sectorColors: Record<Sector, string> = {
   Manufacturing: 'bg-chart-1/20 text-chart-1',
