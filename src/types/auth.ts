@@ -45,8 +45,8 @@ export const SYSTEM_ROLE_CONFIG: Record<SystemRole, {
     },
   },
   project_manager: {
-    label: 'Project Manager',
-    description: 'Manage projects and tasks',
+    label: 'Editor',
+    description: 'Edit projects and tasks',
     permissions: {
       canCreateProjects: true,
       canEditProjects: true,

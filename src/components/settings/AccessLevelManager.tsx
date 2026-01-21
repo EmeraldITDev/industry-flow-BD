@@ -63,7 +63,7 @@ const roleIcons: Record<AccessLevel, React.ElementType> = {
 
 const SYSTEM_ROLES: { value: SystemRole; label: string; description: string }[] = [
   { value: 'admin', label: 'Admin', description: 'Full system access' },
-  { value: 'project_manager', label: 'Project Manager', description: 'Manage projects and tasks' },
+  { value: 'project_manager', label: 'Editor', description: 'Edit projects and tasks' },
   { value: 'viewer', label: 'Viewer', description: 'Read-only access' },
 ];
 
