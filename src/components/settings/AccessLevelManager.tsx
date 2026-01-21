@@ -63,7 +63,7 @@ const roleIcons: Record<AccessLevel, React.ElementType> = {
 
 const SYSTEM_ROLES: { value: SystemRole; label: string; description: string }[] = [
   { value: 'admin', label: 'Admin', description: 'Full system access' },
-  { value: 'project_manager', label: 'Editor', description: 'Edit projects and tasks' },
+  { value: 'project_manager', label: 'Project Manager', description: 'Manage projects and tasks' },
   { value: 'viewer', label: 'Viewer', description: 'Read-only access' },
 ];
 
@@ -124,10 +124,27 @@ export function AccessLevelManager() {
   });
 
   // Convert TeamMember to display format (assume backend returns systemRole/accessLevel if provided)
+  // Map 'editor' to 'pm' (Project Manager) for backward compatibility
+  const normalizeAccessLevel = (accessLevel?: string, fallbackRole?: string): AccessLevel => {
+    if (accessLevel) {
+      const normalized = accessLevel.toLowerCase();
+      if (normalized === 'editor' || normalized === 'pm' || normalized === 'project_manager') {
+        return 'pm';
+      }
+      if (normalized === 'admin') return 'admin';
+      if (normalized === 'bd_director' || normalized === 'director') return 'bd_director';
+      if (normalized === 'viewer') return 'viewer';
+    }
+    // Fallback to role mapping if accessLevel not provided
+    if (fallbackRole === 'admin') return 'admin';
+    if (fallbackRole === 'editor') return 'pm';
+    return 'viewer';
+  };
+
   const displayMembers = teamMembers.map((member: ExtendedTeamMember) => ({
     ...member,
     systemRole: member.systemRole || (member.role === 'admin' ? 'admin' as SystemRole : member.role === 'editor' ? 'project_manager' as SystemRole : 'viewer' as SystemRole),
-    accessLevel: member.accessLevel || (member.role === 'admin' ? 'admin' as AccessLevel : member.role === 'editor' ? 'pm' as AccessLevel : 'viewer' as AccessLevel),
+    accessLevel: normalizeAccessLevel(member.accessLevel, member.role),
   }));
 
   const getInitials = (name?: string | null) => {

@@ -29,6 +29,7 @@ const mapRoleToAccessLevel = (role: string): AccessLevel => {
       return 'bd_director';
     case 'pm':
     case 'project_manager':
+    case 'editor': // Map 'editor' to 'pm' (Project Manager) for backward compatibility
       return 'pm';
     default:
       return 'viewer';
