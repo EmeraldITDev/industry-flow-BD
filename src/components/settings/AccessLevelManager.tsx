@@ -255,11 +255,8 @@ export function AccessLevelManager() {
 
   const handleUpdateSystemRole = async (userId: string, newSystemRole: SystemRole) => {
     try {
-      // Update systemRole directly using the update method
+      // Update only the systemRole - keep accessLevel independent
       await teamService.update(userId, { systemRole: newSystemRole });
-      // Also update the team role for backward compatibility
-      const teamRole = getTeamRoleFromSystemRole(newSystemRole);
-      await teamService.updateRole(userId, teamRole);
       await queryClient.invalidateQueries({ queryKey: ['team'] });
       toast.success('System role updated successfully');
     } catch (error: any) {
