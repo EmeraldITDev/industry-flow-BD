@@ -113,15 +113,14 @@ export const ACCESS_LEVEL_CONFIG: Record<AccessLevel, {
     ],
   },
   pm: {
-    label: 'Project Manager',
-    description: 'Project management with task and timeline control',
+    label: 'Editor',
+    description: 'Edit projects and manage task progress',
     color: 'bg-chart-3/10 text-chart-3 border-chart-3/20',
     permissions: [
-      'Manage assigned projects',
-      'Create and edit tasks',
-      'Request due date changes',
-      'View team availability',
-      'Generate project reports',
+      'Edit assigned projects',
+      'Edit task progress',
+      'Access shared documents',
+      'Edit project timelines',
     ],
   },
   viewer: {
