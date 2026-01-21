@@ -26,11 +26,10 @@ export const PIPELINE_STAGES: { value: PipelineStage; label: string; order: numb
 ];
 
 export type BusinessSegment = 
-  | 'Industrial' 
-  | 'Commercial' 
-  | 'Government' 
-  | 'Enterprise' 
-  | 'SMB';
+  | 'EMR_MFG' 
+  | 'EMR_OGP' 
+  | 'EMR_Renewables' 
+  | 'EMR_Trading';
 
 export type DocumentType = 'rfq' | 'proposal' | 'contract' | 'supporting';
 
