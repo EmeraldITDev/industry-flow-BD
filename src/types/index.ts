@@ -26,13 +26,14 @@ export const PIPELINE_STAGES: { value: PipelineStage; label: string; order: numb
 ];
 
 export type BusinessSegment = 
-  | 'EMR_MFG' 
-  | 'EMR_OGP' 
+  | 'EMR_MFG'
+  | 'EMR_OGP'
   | 'EMR_Renewables'
   | 'BEDS_Services'
   | 'EMR_Services'
   | 'EMR_Healthcare'
-  | 'EMR_Trading';
+  | 'EMR_Trading'
+  | (string & {});
 
 export type DocumentType = 'rfq' | 'proposal' | 'contract' | 'supporting';
 
