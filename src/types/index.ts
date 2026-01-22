@@ -32,8 +32,7 @@ export type BusinessSegment =
   | 'BEDS_Services'
   | 'EMR_Services'
   | 'EMR_Healthcare'
-  | 'EMR_Trading'
-  | (string & {});
+  | 'EMR_Trading';
 
 export type DocumentType = 'rfq' | 'proposal' | 'contract' | 'supporting';
 
