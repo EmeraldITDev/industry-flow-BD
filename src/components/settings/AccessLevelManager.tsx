@@ -81,7 +81,7 @@ function generatePassword(length = 12): string {
 const getTeamRoleFromSystemRole = (systemRole: SystemRole): TeamRole => {
   switch (systemRole) {
     case 'admin': return 'admin';
-    case 'project_manager': return 'editor';
+    case 'editor': return 'editor';
     case 'viewer': return 'viewer';
     default: return 'viewer';
   }
