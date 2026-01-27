@@ -1,5 +1,5 @@
 import { useEffect, useCallback, useState } from 'react';
-import { Notification } from '@/types/notifications';
+import { Notification as NotificationType } from '@/types/notifications';
 
 export interface DesktopNotificationPermission {
   permission: NotificationPermission;
@@ -41,7 +41,7 @@ export function useDesktopNotifications() {
   }, [isSupported]);
 
   const showNotification = useCallback(
-    (notification: Notification) => {
+    (notification: NotificationType) => {
       if (!isSupported || permission !== 'granted' || !enabled) {
         return;
       }
