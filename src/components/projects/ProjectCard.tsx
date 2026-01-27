@@ -78,14 +78,31 @@ export function ProjectCard({ project }: ProjectCardProps) {
             {project.description}
           </p>
           
-          {/* Client & Value */}
-          {(project.clientName || project.contractValueUSD) && (
-            <div className="flex items-center justify-between text-xs sm:text-sm gap-2">
-              <span className="text-muted-foreground truncate flex-1 min-w-0">{project.clientName || '-'}</span>
-              <div className="flex gap-1 sm:gap-2 text-[10px] sm:text-xs shrink-0">
-                <span className="font-medium">{formatCurrency(project.contractValueNGN, 'NGN')}</span>
-                <span className="text-muted-foreground hidden sm:inline">/</span>
-                <span className="font-medium hidden sm:inline">{formatCurrency(project.contractValueUSD, 'USD')}</span>
+          {/* Client & Financial Values */}
+          {(project.clientName || project.contractValueUSD || project.contractValueNGN) && (
+            <div className="space-y-1.5 sm:space-y-2">
+              <div className="flex items-center justify-between text-xs sm:text-sm gap-2">
+                <span className="text-muted-foreground truncate flex-1 min-w-0">{project.clientName || '-'}</span>
+              </div>
+              <div className="flex flex-col gap-1 text-[10px] sm:text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Contract Value:</span>
+                  <div className="flex gap-1 sm:gap-2 shrink-0">
+                    <span className="font-medium">{formatCurrency(project.contractValueNGN, 'NGN')}</span>
+                    <span className="text-muted-foreground hidden sm:inline">/</span>
+                    <span className="font-medium hidden sm:inline">{formatCurrency(project.contractValueUSD, 'USD')}</span>
+                  </div>
+                </div>
+                {(project.marginValueUSD || project.marginValueNGN) && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Margin:</span>
+                    <div className="flex gap-1 sm:gap-2 shrink-0">
+                      <span className="font-medium text-chart-2">{formatCurrency(project.marginValueNGN, 'NGN')}</span>
+                      <span className="text-muted-foreground hidden sm:inline">/</span>
+                      <span className="font-medium text-chart-2 hidden sm:inline">{formatCurrency(project.marginValueUSD, 'USD')}</span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
