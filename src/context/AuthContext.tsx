@@ -46,8 +46,7 @@ const mapRoleToSystemRole = (role: string): SystemRole => {
     case 'project_manager':
     case 'bd_director':
     case 'director':
-    case 'editor':
-      return 'editor';
+      return 'project_manager';
     default:
       return 'viewer';
   }

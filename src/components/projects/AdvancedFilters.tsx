@@ -31,6 +31,7 @@ export interface FilterState {
   oem: string;
   location: string;
   channelPartner: string;
+  dealProbability: 'all' | 'low' | 'medium' | 'high' | 'critical';
   dateFrom?: Date;
   dateTo?: Date;
   minContractValue?: number;
@@ -53,6 +54,7 @@ const defaultFilters: FilterState = {
   oem: '',
   location: '',
   channelPartner: '',
+  dealProbability: 'all',
 };
 
 export function AdvancedFilters({ filters, onFiltersChange }: AdvancedFiltersProps) {
@@ -255,6 +257,25 @@ export function AdvancedFilters({ filters, onFiltersChange }: AdvancedFiltersPro
                       value={filters.channelPartner}
                       onChange={(e) => onFiltersChange({ ...filters, channelPartner: e.target.value })}
                     />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Deal Probability</Label>
+                    <Select
+                      value={filters.dealProbability}
+                      onValueChange={(value) => onFiltersChange({ ...filters, dealProbability: value as FilterState['dealProbability'] })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="All Deal Probabilities" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Deal Probabilities</SelectItem>
+                        <SelectItem value="low">Low</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="high">High</SelectItem>
+                        <SelectItem value="critical">Critical</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">

@@ -32,7 +32,7 @@ export interface CreateProjectData {
 export interface UpdateProjectData extends Partial<CreateProjectData> {
   progress?: number;
   spentBudget?: number;
-  riskLevel?: 'low' | 'medium' | 'high' | 'critical';
+  dealProbability?: 'low' | 'medium' | 'high' | 'critical';
 }
 
 export interface ProjectFilters {

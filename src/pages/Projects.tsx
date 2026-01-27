@@ -20,14 +20,18 @@ const defaultFilters: FilterState = {
   oem: '',
   location: '',
   channelPartner: '',
+  dealProbability: 'all',
 };
 
 // Mapping for sector display names
 const sectorDisplayNames: Record<string, string> = {
-  'Manufacturing': 'Manufacturing Projects',
-  'Energy': 'Energy Projects',
-  'Oil and Gas': 'Oil & Gas Projects',
-  'Commodity Trading': 'Commodity Trading Projects',
+  'EMR_OGP': 'EMR_OGP Projects',
+  'EMR_MFG': 'EMR_MFG Projects',
+  'EMR_Services': 'EMR_Services Projects',
+  'BEDS_Services': 'BEDS_Services Projects',
+  'EMR_Healthcare': 'EMR_Healthcare Projects',
+  'EMR_Renewables': 'EMR_Renewables Projects',
+  'EMR_Trading': 'EMR_Trading Projects',
 };
 
 export default function Projects() {
@@ -91,6 +95,9 @@ export default function Projects() {
       if (filters.oem && !project.oem?.toLowerCase().includes(filters.oem.toLowerCase())) return false;
       if (filters.location && !project.location?.toLowerCase().includes(filters.location.toLowerCase())) return false;
       if (filters.channelPartner && !project.channelPartner?.toLowerCase().includes(filters.channelPartner.toLowerCase())) return false;
+      
+      // Deal Probability filter
+      if (filters.dealProbability !== 'all' && project.dealProbability !== filters.dealProbability) return false;
       
       // Date filters
       if (filters.dateFrom && project.startDate && new Date(project.startDate) < filters.dateFrom) return false;

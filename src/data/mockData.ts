@@ -1,21 +1,27 @@
 import { Project, Task, Sector, TeamMember, PipelineStage, BusinessSegment, ProjectDocument } from '@/types';
 
-export const sectors: Sector[] = ['Manufacturing', 'Energy', 'Oil and Gas', 'Commodity Trading'];
+export const sectors: Sector[] = ['EMR_OGP', 'EMR_MFG', 'EMR_Services', 'BEDS_Services', 'EMR_Healthcare', 'EMR_Renewables', 'EMR_Trading'];
 
 export const businessSegments: BusinessSegment[] = ['EMR_MFG', 'EMR_OGP', 'EMR_Renewables', 'EMR_Services', 'BEDS_Services', 'EMR_Healthcare', 'EMR_Trading'];
 
 export const sectorColors: Record<Sector, string> = {
-  Manufacturing: 'bg-chart-1/20 text-chart-1',
-  Energy: 'bg-chart-2/20 text-chart-2',
-  'Oil and Gas': 'bg-chart-3/20 text-chart-3',
-  'Commodity Trading': 'bg-chart-4/20 text-chart-4',
+  EMR_OGP: 'bg-chart-1/20 text-chart-1',
+  EMR_MFG: 'bg-chart-2/20 text-chart-2',
+  EMR_Services: 'bg-chart-3/20 text-chart-3',
+  BEDS_Services: 'bg-chart-4/20 text-chart-4',
+  EMR_Healthcare: 'bg-chart-5/20 text-chart-5',
+  EMR_Renewables: 'bg-chart-1/20 text-chart-1',
+  EMR_Trading: 'bg-chart-2/20 text-chart-2',
 };
 
 export const sectorIcons: Record<Sector, string> = {
-  Manufacturing: '🏭',
-  Energy: '⚡',
-  'Oil and Gas': '🛢️',
-  'Commodity Trading': '📈',
+  EMR_OGP: '🛢️',
+  EMR_MFG: '🏭',
+  EMR_Services: '⚙️',
+  BEDS_Services: '💼',
+  EMR_Healthcare: '🏥',
+  EMR_Renewables: '⚡',
+  EMR_Trading: '📈',
 };
 
 export const stageColors: Record<PipelineStage, string> = {

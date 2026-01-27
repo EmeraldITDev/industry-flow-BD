@@ -3,6 +3,7 @@ import { useTheme } from 'next-themes';
 import { useAuth } from '@/context/AuthContext';
 import { useColorTheme, ColorTheme } from '@/context/ColorThemeContext';
 import { AccessLevelManager } from '@/components/settings/AccessLevelManager';
+import { IntegrationSettings } from '@/components/integrations/IntegrationSettings';
 import { PasswordManagement } from '@/components/settings/PasswordManagement';
 import { ACCESS_LEVEL_CONFIG } from '@/types/auth';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -16,6 +17,7 @@ import {
   Settings as SettingsIcon, 
   User, 
   Shield, 
+  Link2, 
   Bell, 
   Palette,
   Crown,
@@ -118,7 +120,7 @@ export default function Settings() {
 
         {/* Settings Tabs */}
         <Tabs defaultValue="access" className="space-y-4 sm:space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-grid h-auto p-0.5 sm:p-1 bg-muted/50">
+          <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-grid h-auto p-0.5 sm:p-1 bg-muted/50">
             <TabsTrigger value="access" className="gap-1 sm:gap-2 data-[state=active]:bg-background py-2 sm:py-2.5 px-1 sm:px-3">
               <Shield className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               <span className="hidden sm:inline text-xs sm:text-sm">Access</span>
@@ -126,6 +128,10 @@ export default function Settings() {
             <TabsTrigger value="password" className="gap-1 sm:gap-2 data-[state=active]:bg-background py-2 sm:py-2.5 px-1 sm:px-3">
               <Key className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               <span className="hidden sm:inline text-xs sm:text-sm">Password</span>
+            </TabsTrigger>
+            <TabsTrigger value="integrations" className="gap-1 sm:gap-2 data-[state=active]:bg-background py-2 sm:py-2.5 px-1 sm:px-3">
+              <Link2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline text-xs sm:text-sm">Integrations</span>
             </TabsTrigger>
             <TabsTrigger value="notifications" className="gap-1 sm:gap-2 data-[state=active]:bg-background py-2 sm:py-2.5 px-1 sm:px-3">
               <Bell className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
@@ -145,6 +151,22 @@ export default function Settings() {
           {/* Password Management Tab */}
           <TabsContent value="password" className="mt-6 animate-fade-in">
             <PasswordManagement />
+          </TabsContent>
+
+          {/* Integrations Tab */}
+          <TabsContent value="integrations" className="mt-6 animate-fade-in">
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <Link2 className="h-5 w-5 text-primary" />
+                  Integrations
+                </h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Connect external services for enhanced functionality
+                </p>
+              </div>
+              <IntegrationSettings />
+            </div>
           </TabsContent>
 
           {/* Notifications Tab */}

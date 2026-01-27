@@ -13,13 +13,13 @@ import { CalendarIcon, Loader2, ArrowLeft } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { sectors, businessSegments } from '@/data/mockData';
-import { Sector, RiskLevel, PipelineStage, BusinessSegment, PIPELINE_STAGES } from '@/types';
+import { Sector, DealProbability, PipelineStage, BusinessSegment, PIPELINE_STAGES } from '@/types';
 import { toast } from 'sonner';
 import { PipelineStageSelector } from '@/components/projects/PipelineStageSelector';
 import { projectsService } from '@/services/projects';
 import { teamService } from '@/services/team';
 
-const riskLevels: { value: RiskLevel; label: string; color: string }[] = [
+const dealProbabilities: { value: DealProbability; label: string; color: string }[] = [
   { value: 'low', label: 'Low', color: 'bg-chart-2/20 text-chart-2' },
   { value: 'medium', label: 'Medium', color: 'bg-chart-4/20 text-chart-4' },
   { value: 'high', label: 'High', color: 'bg-chart-3/20 text-chart-3' },
@@ -52,7 +52,7 @@ export default function EditProject() {
     status: 'active' as 'active' | 'on-hold' | 'completed',
     startDate: undefined as Date | undefined,
     endDate: undefined as Date | undefined,
-    riskLevel: 'low' as RiskLevel,
+    dealProbability: 'low' as DealProbability,
     pipelineStage: 'initiation' as PipelineStage,
     pipelineIntakeDate: undefined as Date | undefined,
     clientName: '',
@@ -84,7 +84,7 @@ export default function EditProject() {
         status: data.status || 'active',
         startDate: data.start_date || data.startDate ? parseISO(data.start_date || data.startDate) : undefined,
         endDate: data.end_date || data.endDate ? parseISO(data.end_date || data.endDate) : undefined,
-        riskLevel: (data.risk_level || data.riskLevel || 'low') as RiskLevel,
+        dealProbability: (data.deal_probability || data.dealProbability || data.risk_level || data.riskLevel || 'low') as DealProbability,
         pipelineStage: (data.pipeline_stage || data.pipelineStage || 'initiation') as PipelineStage,
         pipelineIntakeDate: data.pipeline_intake_date || data.pipelineIntakeDate ? parseISO(data.pipeline_intake_date || data.pipelineIntakeDate) : undefined,
         clientName: data.client_name || data.clientName || '',
@@ -142,7 +142,7 @@ export default function EditProject() {
         marginPercentNGN: formData.marginPercentNGN ? parseFloat(formData.marginPercentNGN) : undefined,
         marginPercentUSD: formData.marginPercentUSD ? parseFloat(formData.marginPercentUSD) : undefined,
         projectLeadComments: formData.projectLeadComments || undefined,
-        riskLevel: formData.riskLevel,
+        dealProbability: formData.dealProbability,
       });
       toast.success('Project updated successfully!');
       navigate(`/projects/${id}`);
@@ -253,13 +253,13 @@ export default function EditProject() {
             </div>
 
             <div className="space-y-2">
-              <Label>Risk Level</Label>
-              <Select value={formData.riskLevel} onValueChange={(value: RiskLevel) => setFormData({ ...formData, riskLevel: value })}>
+              <Label>Deal Probability</Label>
+              <Select value={formData.dealProbability} onValueChange={(value: DealProbability) => setFormData({ ...formData, dealProbability: value })}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {riskLevels.map((level) => (
+                  {dealProbabilities.map((level) => (
                     <SelectItem key={level.value} value={level.value}>
                       {level.label}
                     </SelectItem>

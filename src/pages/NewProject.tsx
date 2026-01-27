@@ -21,7 +21,7 @@ import { CalendarIcon, Plus, X, AlertTriangle, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { sectors, businessSegments } from '@/data/mockData';
-import { Sector, RiskLevel, Milestone, PipelineStage, BusinessSegment, PIPELINE_STAGES, ProjectDocument, TeamMember } from '@/types';
+import { Sector, DealProbability, Milestone, PipelineStage, BusinessSegment, PIPELINE_STAGES, ProjectDocument, TeamMember } from '@/types';
 import { toast } from 'sonner';
 import { PipelineStageSelector } from '@/components/projects/PipelineStageSelector';
 import { DocumentManager } from '@/components/projects/DocumentManager';
@@ -29,7 +29,7 @@ import { projectsService } from '@/services/projects';
 import { teamService } from '@/services/team';
 import { useAuth } from '@/context/AuthContext';
 
-const riskLevels: { value: RiskLevel; label: string; color: string }[] = [
+const dealProbabilities: { value: DealProbability; label: string; color: string }[] = [
   { value: 'low', label: 'Low', color: 'bg-chart-2/20 text-chart-2' },
   { value: 'medium', label: 'Medium', color: 'bg-chart-4/20 text-chart-4' },
   { value: 'high', label: 'High', color: 'bg-chart-3/20 text-chart-3' },
@@ -61,7 +61,7 @@ export default function NewProject() {
     status: 'active' as 'active' | 'on-hold' | 'completed',
     startDate: undefined as Date | undefined,
     endDate: undefined as Date | undefined,
-    riskLevel: 'low' as RiskLevel,
+    dealProbability: 'low' as DealProbability,
     teamMemberIds: [] as string[],
     // Pipeline fields
     pipelineStage: 'initiation' as PipelineStage,
@@ -157,6 +157,7 @@ export default function NewProject() {
         contractValueUSD: formData.contractValueUSD ? parseFloat(formData.contractValueUSD) : undefined,
         marginPercentNGN: formData.marginPercentNGN ? parseFloat(formData.marginPercentNGN) : undefined,
         marginPercentUSD: formData.marginPercentUSD ? parseFloat(formData.marginPercentUSD) : undefined,
+        dealProbability: formData.dealProbability,
         projectLeadComments: formData.projectLeadComments || undefined,
       });
       toast.success('Project created successfully!');
@@ -417,11 +418,11 @@ export default function NewProject() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label>Risk Level</Label>
-              <Select value={formData.riskLevel} onValueChange={(value: RiskLevel) => setFormData({ ...formData, riskLevel: value })}>
+              <Label>Deal Probability</Label>
+              <Select value={formData.dealProbability} onValueChange={(value: DealProbability) => setFormData({ ...formData, dealProbability: value })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {riskLevels.map((level) => (
+                  {dealProbabilities.map((level) => (
                     <SelectItem key={level.value} value={level.value}>
                       <div className={cn("flex items-center gap-2 px-2 py-0.5 rounded-md", level.color)}>
                         <AlertTriangle className="h-4 w-4" />

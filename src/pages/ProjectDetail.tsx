@@ -115,7 +115,7 @@ export default function ProjectDetail() {
         projectLeadId: data.project_lead_id || data.projectLeadId,
         assigneeId: data.assignee_id || data.assigneeId,
         projectLeadComments: data.project_lead_comments || data.projectLeadComments,
-        riskLevel: data.risk_level || data.riskLevel,
+        dealProbability: data.deal_probability || data.dealProbability || data.risk_level || data.riskLevel,
         tasks: data.tasks || [],
         milestones: data.milestones || [],
         documents: data.documents || [],
@@ -444,10 +444,10 @@ export default function ProjectDetail() {
                     <p className="font-medium text-sm">{project.marginPercentUSD}%</p>
                   </div>
                 )}
-                {project.riskLevel && (
+                {project.dealProbability && (
                   <div>
-                    <p className="text-xs text-muted-foreground">Risk Level</p>
-                    <Badge variant="outline" className="capitalize">{project.riskLevel}</Badge>
+                    <p className="text-xs text-muted-foreground">Deal Probability</p>
+                    <Badge variant="outline" className="capitalize">{project.dealProbability}</Badge>
                   </div>
                 )}
                 {project.budget && (

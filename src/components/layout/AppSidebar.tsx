@@ -8,7 +8,10 @@ import {
   Settings,
   Users,
   Calendar,
-  Plus
+  Plus,
+  Building2,
+  Heart,
+  Leaf
 } from 'lucide-react';
 import emeraldLogo from '@/assets/emerald-logo.png';
 import { NavLink, useLocation } from 'react-router-dom';
@@ -36,10 +39,13 @@ const mainNavItems = [
 ];
 
 const sectorNavItems = [
-  { title: 'Manufacturing', sector: 'Manufacturing', icon: Factory },
-  { title: 'Energy', sector: 'Energy', icon: Zap },
-  { title: 'Oil and Gas', sector: 'Oil and Gas', icon: Fuel },
-  { title: 'Commodity Trading', sector: 'Commodity Trading', icon: TrendingUp },
+  { title: 'EMR_OGP', sector: 'EMR_OGP', icon: Fuel },
+  { title: 'EMR_MFG', sector: 'EMR_MFG', icon: Factory },
+  { title: 'EMR_Services', sector: 'EMR_Services', icon: Building2 },
+  { title: 'BEDS_Services', sector: 'BEDS_Services', icon: Building2 },
+  { title: 'EMR_Healthcare', sector: 'EMR_Healthcare', icon: Heart },
+  { title: 'EMR_Renewables', sector: 'EMR_Renewables', icon: Leaf },
+  { title: 'EMR_Trading', sector: 'EMR_Trading', icon: TrendingUp },
 ];
 
 export function AppSidebar() {

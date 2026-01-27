@@ -1,4 +1,4 @@
-export type Sector = 'Manufacturing' | 'Energy' | 'Oil and Gas' | 'Commodity Trading';
+export type Sector = 'EMR_OGP' | 'EMR_MFG' | 'EMR_Services' | 'BEDS_Services' | 'EMR_Healthcare' | 'EMR_Renewables' | 'EMR_Trading';
 
 export type TaskStatus = 'todo' | 'in-progress' | 'review' | 'completed';
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
@@ -101,7 +101,7 @@ export interface Project {
   tasks: Task[];
   budget?: number;
   spentBudget?: number;
-  riskLevel?: RiskLevel;
+  dealProbability?: DealProbability;
   clientName?: string;
   clientContact?: string;
   milestones?: Milestone[];
