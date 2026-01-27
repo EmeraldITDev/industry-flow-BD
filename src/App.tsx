@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { NotificationProvider } from "@/context/NotificationContext";
 import { AuthProvider } from "@/context/AuthContext";
 import { ColorThemeProvider } from "@/context/ColorThemeContext";
+import { CurrencyProvider } from "@/context/CurrencyContext";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -36,10 +37,11 @@ const App = () => (
         <ColorThemeProvider>
           <TooltipProvider>
             <AuthProvider>
-              <NotificationProvider>
-                <Toaster />
-                <Sonner />
-                <BrowserRouter>
+              <CurrencyProvider>
+                <NotificationProvider>
+                  <Toaster />
+                  <Sonner />
+                  <BrowserRouter>
                   <Routes>
                     <Route path="/login" element={<LoginPage />} />
                     <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
@@ -53,8 +55,9 @@ const App = () => (
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                     <Route path="*" element={<NotFound />} />
                   </Routes>
-                </BrowserRouter>
-              </NotificationProvider>
+                  </BrowserRouter>
+                </NotificationProvider>
+              </CurrencyProvider>
             </AuthProvider>
           </TooltipProvider>
         </ColorThemeProvider>

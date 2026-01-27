@@ -3,13 +3,13 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { projectsService } from '@/services/projects';
 import { teamService } from '@/services/team';
 import { Project, PipelineStage, TeamMember } from '@/types';
 import { DollarSign, Users, Building2, Layers, Banknote } from 'lucide-react';
+import { useCurrency } from '@/context/CurrencyContext';
 
 type RevenueFilter = 'all' | 'pending' | 'proposal' | 'won';
 
@@ -32,7 +32,7 @@ const filterLabels: Record<RevenueFilter, string> = {
 
 export const RevenueAnalytics = () => {
   const [filter, setFilter] = useState<RevenueFilter>('all');
-  const [currency, setCurrency] = useState<'NGN' | 'USD'>('USD');
+  const { currency, formatCurrency: formatCurrencyValue, getContractValue, getMarginValue } = useCurrency();
 
   const { data: projects, isLoading: projectsLoading } = useQuery({
     queryKey: ['projects'],
@@ -64,10 +64,10 @@ export const RevenueAnalytics = () => {
       sector: p.sector,
       segment: p.businessSegment || 'N/A',
       stage: p.pipelineStage,
-      revenue: currency === 'NGN' ? (p.contractValueNGN || 0) : (p.contractValueUSD || 0),
-      margin: currency === 'NGN' ? (p.marginValueNGN || 0) : (p.marginValueUSD || 0),
+      revenue: getContractValue(p),
+      margin: getMarginValue(p),
     })).sort((a, b) => b.revenue - a.revenue);
-  }, [filteredProjects, currency]);
+  }, [filteredProjects, currency, getContractValue, getMarginValue]);
 
   const revenueByTeamMember = useMemo(() => {
     const memberRevenue: Record<string, { name: string; revenue: number; projects: number; margin: number }> = {};
@@ -80,15 +80,15 @@ export const RevenueAnalytics = () => {
           if (!memberRevenue[leadId]) {
             memberRevenue[leadId] = { name: member.name, revenue: 0, projects: 0, margin: 0 };
           }
-          memberRevenue[leadId].revenue += currency === 'NGN' ? (p.contractValueNGN || 0) : (p.contractValueUSD || 0);
-          memberRevenue[leadId].margin += currency === 'NGN' ? (p.marginValueNGN || 0) : (p.marginValueUSD || 0);
+          memberRevenue[leadId].revenue += getContractValue(p);
+          memberRevenue[leadId].margin += getMarginValue(p);
           memberRevenue[leadId].projects += 1;
         }
       }
     });
     
     return Object.values(memberRevenue).sort((a, b) => b.revenue - a.revenue);
-  }, [filteredProjects, currency, teamMembers]);
+  }, [filteredProjects, currency, teamMembers, getContractValue, getMarginValue]);
 
   const revenueByCustomer = useMemo(() => {
     const customerRevenue: Record<string, { name: string; revenue: number; projects: number; margin: number }> = {};
@@ -104,7 +104,7 @@ export const RevenueAnalytics = () => {
     });
     
     return Object.values(customerRevenue).sort((a, b) => b.revenue - a.revenue);
-  }, [filteredProjects, currency]);
+  }, [filteredProjects, currency, getContractValue, getMarginValue]);
 
   const revenueBySegment = useMemo(() => {
     const segmentRevenue: Record<string, { name: string; revenue: number; projects: number; margin: number }> = {};
@@ -114,26 +114,19 @@ export const RevenueAnalytics = () => {
       if (!segmentRevenue[segment]) {
         segmentRevenue[segment] = { name: segment, revenue: 0, projects: 0, margin: 0 };
       }
-      segmentRevenue[segment].revenue += currency === 'NGN' ? (p.contractValueNGN || 0) : (p.contractValueUSD || 0);
-      segmentRevenue[segment].margin += currency === 'NGN' ? (p.marginValueNGN || 0) : (p.marginValueUSD || 0);
+      segmentRevenue[segment].revenue += getContractValue(p);
+      segmentRevenue[segment].margin += getMarginValue(p);
       segmentRevenue[segment].projects += 1;
     });
     
     return Object.values(segmentRevenue).sort((a, b) => b.revenue - a.revenue);
-  }, [filteredProjects, currency]);
+  }, [filteredProjects, currency, getContractValue, getMarginValue]);
 
   const totalRevenue = useMemo(() => {
     return filteredProjects.reduce((sum: number, p: Project) => 
-      sum + (currency === 'NGN' ? (p.contractValueNGN || 0) : (p.contractValueUSD || 0)), 0
+      sum + getContractValue(p), 0
     );
-  }, [filteredProjects, currency]);
-
-  const formatCurrency = (value: number) => {
-    if (currency === 'NGN') {
-      return `₦${value.toLocaleString()}`;
-    }
-    return `$${value.toLocaleString()}`;
-  };
+  }, [filteredProjects, currency, getContractValue]);
 
   if (projectsLoading) {
     return (
@@ -154,18 +147,7 @@ export const RevenueAnalytics = () => {
   return (
     <Card className="bg-card border-border">
       <CardHeader className="p-3 sm:p-6 pb-2 sm:pb-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
-          <CardTitle className="text-base sm:text-lg font-semibold text-foreground">Revenue Analytics</CardTitle>
-          <Select value={currency} onValueChange={(v) => setCurrency(v as 'NGN' | 'USD')}>
-            <SelectTrigger className="w-20 sm:w-24 h-7 sm:h-8 text-xs sm:text-sm">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="USD">USD</SelectItem>
-              <SelectItem value="NGN">NGN</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        <CardTitle className="text-base sm:text-lg font-semibold text-foreground">Revenue Analytics</CardTitle>
         
         {/* Filter Buttons */}
         <div className="flex flex-wrap gap-1.5 sm:gap-2 mt-3 sm:mt-4">
@@ -185,7 +167,7 @@ export const RevenueAnalytics = () => {
         {/* Total Revenue Display */}
         <div className="mt-3 sm:mt-4 p-2.5 sm:p-4 rounded-lg bg-primary/10 border border-primary/20">
           <p className="text-[10px] sm:text-sm text-muted-foreground">Total Revenue ({filterLabels[filter]})</p>
-          <p className="text-lg sm:text-2xl font-bold text-primary">{formatCurrency(totalRevenue)}</p>
+          <p className="text-lg sm:text-2xl font-bold text-primary">{formatCurrencyValue(totalRevenue)}</p>
           <p className="text-[10px] sm:text-sm text-muted-foreground">{filteredProjects.length} projects</p>
         </div>
       </CardHeader>
@@ -229,8 +211,8 @@ export const RevenueAnalytics = () => {
                     </div>
                   </div>
                   <div className="text-right ml-2 sm:ml-4 shrink-0">
-                    <p className="font-semibold text-xs sm:text-sm text-foreground">{formatCurrency(item.revenue)}</p>
-                    <p className="text-[10px] sm:text-xs text-muted-foreground">M: {formatCurrency(item.margin)}</p>
+                    <p className="font-semibold text-xs sm:text-sm text-foreground">{formatCurrencyValue(item.revenue)}</p>
+                    <p className="text-[10px] sm:text-xs text-muted-foreground">M: {formatCurrencyValue(item.margin)}</p>
                   </div>
                 </div>
               ))}
@@ -263,8 +245,8 @@ export const RevenueAnalytics = () => {
                     <p className="text-[10px] sm:text-xs text-muted-foreground">{item.projects} project(s)</p>
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="font-semibold text-xs sm:text-sm text-foreground">{formatCurrency(item.revenue)}</p>
-                    <p className="text-[10px] sm:text-xs text-muted-foreground">M: {formatCurrency(item.margin)}</p>
+                    <p className="font-semibold text-xs sm:text-sm text-foreground">{formatCurrencyValue(item.revenue)}</p>
+                    <p className="text-[10px] sm:text-xs text-muted-foreground">M: {formatCurrencyValue(item.margin)}</p>
                   </div>
                 </div>
               ))}
@@ -278,8 +260,8 @@ export const RevenueAnalytics = () => {
                     <p className="text-[10px] sm:text-xs text-muted-foreground">{item.projects} project(s)</p>
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="font-semibold text-xs sm:text-sm text-foreground">{formatCurrency(item.revenue)}</p>
-                    <p className="text-[10px] sm:text-xs text-muted-foreground">M: {formatCurrency(item.margin)}</p>
+                    <p className="font-semibold text-xs sm:text-sm text-foreground">{formatCurrencyValue(item.revenue)}</p>
+                    <p className="text-[10px] sm:text-xs text-muted-foreground">M: {formatCurrencyValue(item.margin)}</p>
                   </div>
                 </div>
               ))}

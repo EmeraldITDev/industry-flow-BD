@@ -2,13 +2,15 @@ import { ReactNode, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from './AppSidebar';
-import { Search, LogOut, User, Settings } from 'lucide-react';
+import { Search, LogOut, User, Settings, DollarSign } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { NotificationCenter } from '@/components/notifications/NotificationCenter';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
 import { useAuth } from '@/context/AuthContext';
 import { ProfileEditDialog } from '@/components/profile/ProfileEditDialog';
+import { useCurrency } from '@/context/CurrencyContext';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,6 +28,7 @@ interface AppLayoutProps {
 
 export function AppLayout({ children }: AppLayoutProps) {
   const { user, logout } = useAuth();
+  const { currency, toggleCurrency } = useCurrency();
   const navigate = useNavigate();
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
 
@@ -62,7 +65,18 @@ export function AppLayout({ children }: AppLayoutProps) {
                 />
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
+              {/* Currency Toggle - positioned under search bar line */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={toggleCurrency}
+                className="h-8 px-3 text-xs sm:text-sm gap-1.5 sm:gap-2"
+                title={`Switch to ${currency === 'USD' ? 'NGN' : 'USD'}`}
+              >
+                <DollarSign className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span className="font-medium">{currency}</span>
+              </Button>
               <ThemeToggle />
               <NotificationCenter />
               

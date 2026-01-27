@@ -6,6 +6,7 @@ import { sectorColors, sectorIcons, stageColors } from '@/data/mockData';
 import { Calendar, Users, CheckSquare, AlertTriangle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { format, differenceInDays, isValid } from 'date-fns';
+import { useCurrency } from '@/context/CurrencyContext';
 
 interface ProjectCardProps {
   project: Project;
@@ -26,6 +27,8 @@ function safeFormatDate(dateStr: string | undefined, formatStr: string): string 
 }
 
 export function ProjectCard({ project }: ProjectCardProps) {
+  const { currency, formatCurrency, getContractValue, getMarginValue } = useCurrency();
+  
   const statusColors = {
     active: 'bg-chart-1/20 text-chart-1 border-chart-1/30',
     'on-hold': 'bg-chart-5/20 text-chart-5 border-chart-5/30',
@@ -35,6 +38,9 @@ export function ProjectCard({ project }: ProjectCardProps) {
   const tasks = Array.isArray(project.tasks) ? project.tasks : [];
   const completedTasks = tasks.filter(t => t.status === 'completed').length;
   const stageLabel = PIPELINE_STAGES.find(s => s.value === project.pipelineStage)?.label || project.pipelineStage;
+  
+  const contractValue = getContractValue(project);
+  const marginValue = getMarginValue(project);
   
   // Check for inactivity warning (3+ days)
   let daysSinceUpdate = 0;
@@ -79,28 +85,22 @@ export function ProjectCard({ project }: ProjectCardProps) {
           </p>
           
           {/* Client & Financial Values */}
-          {(project.clientName || project.contractValueUSD || project.contractValueNGN) && (
+          {(project.clientName || contractValue > 0) && (
             <div className="space-y-1.5 sm:space-y-2">
               <div className="flex items-center justify-between text-xs sm:text-sm gap-2">
                 <span className="text-muted-foreground truncate flex-1 min-w-0">{project.clientName || '-'}</span>
               </div>
               <div className="flex flex-col gap-1 text-[10px] sm:text-xs">
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Contract Value:</span>
-                  <div className="flex gap-1 sm:gap-2 shrink-0">
-                    <span className="font-medium">{formatCurrency(project.contractValueNGN, 'NGN')}</span>
-                    <span className="text-muted-foreground hidden sm:inline">/</span>
-                    <span className="font-medium hidden sm:inline">{formatCurrency(project.contractValueUSD, 'USD')}</span>
+                {contractValue > 0 && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Contract Value:</span>
+                    <span className="font-medium">{formatCurrency(contractValue)}</span>
                   </div>
-                </div>
-                {(project.marginValueUSD || project.marginValueNGN) && (
+                )}
+                {marginValue > 0 && (
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">Margin:</span>
-                    <div className="flex gap-1 sm:gap-2 shrink-0">
-                      <span className="font-medium text-chart-2">{formatCurrency(project.marginValueNGN, 'NGN')}</span>
-                      <span className="text-muted-foreground hidden sm:inline">/</span>
-                      <span className="font-medium text-chart-2 hidden sm:inline">{formatCurrency(project.marginValueUSD, 'USD')}</span>
-                    </div>
+                    <span className="font-medium text-chart-2">{formatCurrency(marginValue)}</span>
                   </div>
                 )}
               </div>

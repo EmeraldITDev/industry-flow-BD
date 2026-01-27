@@ -9,6 +9,7 @@ import { projectsService } from '@/services/projects';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Users, FolderOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useCurrency } from '@/context/CurrencyContext';
 
 export function RecentProjects() {
   const { data: projects, isLoading } = useQuery({
@@ -84,28 +85,26 @@ export function RecentProjects() {
               <p className="text-[10px] sm:text-sm text-muted-foreground line-clamp-1 mb-1.5 sm:mb-3">
                 {project.description || 'No description'}
               </p>
-              {(project.contractValueUSD || project.contractValueNGN) && (
-                <div className="mb-1.5 sm:mb-2 text-[10px] sm:text-xs">
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Value:</span>
-                    <span className="font-medium">
-                      {project.contractValueUSD ? `$${project.contractValueUSD.toLocaleString()}` : ''}
-                      {project.contractValueUSD && project.contractValueNGN ? ' / ' : ''}
-                      {project.contractValueNGN ? `₦${project.contractValueNGN.toLocaleString()}` : ''}
-                    </span>
+              {(() => {
+                const contractValue = getContractValue(project);
+                const marginValue = getMarginValue(project);
+                return contractValue > 0 || marginValue > 0 ? (
+                  <div className="mb-1.5 sm:mb-2 text-[10px] sm:text-xs">
+                    {contractValue > 0 && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Value:</span>
+                        <span className="font-medium">{formatCurrency(contractValue)}</span>
+                      </div>
+                    )}
+                    {marginValue > 0 && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Margin:</span>
+                        <span className="font-medium text-chart-2">{formatCurrency(marginValue)}</span>
+                      </div>
+                    )}
                   </div>
-                  {(project.marginValueUSD || project.marginValueNGN) && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Margin:</span>
-                      <span className="font-medium text-chart-2">
-                        {project.marginValueUSD ? `$${project.marginValueUSD.toLocaleString()}` : ''}
-                        {project.marginValueUSD && project.marginValueNGN ? ' / ' : ''}
-                        {project.marginValueNGN ? `₦${project.marginValueNGN.toLocaleString()}` : ''}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              )}
+                ) : null;
+              })()}
               <div className="flex items-center justify-between text-[10px] sm:text-sm gap-2">
                 <div className="flex items-center gap-1 text-muted-foreground">
                   <Users className="w-3 h-3 sm:w-4 sm:h-4" />

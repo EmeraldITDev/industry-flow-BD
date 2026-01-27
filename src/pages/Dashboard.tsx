@@ -10,16 +10,11 @@ import { tasksService } from '@/services/tasks';
 import { FolderKanban, Activity, CheckCircle, Clock, AlertTriangle, Loader2, DollarSign, TrendingUp, Percent } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useMemo } from 'react';
-
-function formatCurrency(value: number, currency: 'NGN' | 'USD'): string {
-  if (!value || value === 0) return currency === 'NGN' ? '₦0' : '$0';
-  const symbol = currency === 'NGN' ? '₦' : '$';
-  if (value >= 1000000) return `${symbol}${(value / 1000000).toFixed(1)}M`;
-  if (value >= 1000) return `${symbol}${(value / 1000).toFixed(0)}K`;
-  return `${symbol}${value.toLocaleString()}`;
-}
+import { useCurrency } from '@/context/CurrencyContext';
 
 export default function Dashboard() {
+  const { currency, formatCurrency, getContractValue, getMarginValue } = useCurrency();
+  
   // Fetch projects and tasks to compute stats client-side
   const { data: projects, isLoading: projectsLoading, error: projectsError } = useQuery({
     queryKey: ['projects'],
@@ -44,29 +39,18 @@ export default function Dashboard() {
     const pipelineStages: string[] = ['initiation', 'qualification', 'proposal', 'negotiation'];
     
     // Pipeline Value: Sum of contract values for deals in progress (not won/closed)
-    const pipelineValueUSD = projectList
+    const pipelineValue = projectList
       .filter(p => pipelineStages.includes(p.pipelineStage))
-      .reduce((sum, p) => sum + (p.contractValueUSD || 0), 0);
-    
-    const pipelineValueNGN = projectList
-      .filter(p => pipelineStages.includes(p.pipelineStage))
-      .reduce((sum, p) => sum + (p.contractValueNGN || 0), 0);
+      .reduce((sum, p) => sum + getContractValue(p), 0);
     
     // Sales Revenue: Sum of contract values for won/closed deals
-    const salesRevenueUSD = projectList
+    const salesRevenue = projectList
       .filter(p => wonStages.includes(p.pipelineStage))
-      .reduce((sum, p) => sum + (p.contractValueUSD || 0), 0);
-    
-    const salesRevenueNGN = projectList
-      .filter(p => wonStages.includes(p.pipelineStage))
-      .reduce((sum, p) => sum + (p.contractValueNGN || 0), 0);
+      .reduce((sum, p) => sum + getContractValue(p), 0);
     
     // Total Margin/Commission: Sum of margin values across all projects
-    const totalMarginUSD = projectList
-      .reduce((sum, p) => sum + (p.marginValueUSD || 0), 0);
-    
-    const totalMarginNGN = projectList
-      .reduce((sum, p) => sum + (p.marginValueNGN || 0), 0);
+    const totalMargin = projectList
+      .reduce((sum, p) => sum + getMarginValue(p), 0);
 
     return {
       totalProjects: projectList.length,
@@ -78,14 +62,11 @@ export default function Dashboard() {
         const dueDate = t.dueDate ? new Date(t.dueDate) : null;
         return dueDate && dueDate < now;
       }).length,
-      pipelineValueUSD,
-      pipelineValueNGN,
-      salesRevenueUSD,
-      salesRevenueNGN,
-      totalMarginUSD,
-      totalMarginNGN,
+      pipelineValue: pipelineValue,
+      salesRevenue: salesRevenue,
+      totalMargin: totalMargin,
     };
-  }, [projects, tasks]);
+  }, [projects, tasks, currency, getContractValue, getMarginValue]);
 
   const isLoading = projectsLoading || tasksLoading;
   const error = projectsError || tasksError;
@@ -155,20 +136,20 @@ export default function Dashboard() {
           {/* Financial Metrics */}
           <div className="grid grid-cols-1 gap-2 sm:gap-4 md:grid-cols-3">
             <StatCard 
-              title="Pipeline Value (USD)" 
-              value={formatCurrency(stats.pipelineValueUSD, 'USD')} 
+              title={`Pipeline Value (${currency})`}
+              value={formatCurrency(stats.pipelineValue)} 
               icon={TrendingUp}
               className="bg-primary/5 border-primary/20"
             />
             <StatCard 
-              title="Sales Revenue (USD)" 
-              value={formatCurrency(stats.salesRevenueUSD, 'USD')} 
+              title={`Sales Revenue (${currency})`}
+              value={formatCurrency(stats.salesRevenue)} 
               icon={DollarSign}
               className="bg-chart-2/5 border-chart-2/20"
             />
             <StatCard 
-              title="Total Margin (USD)" 
-              value={formatCurrency(stats.totalMarginUSD, 'USD')} 
+              title={`Total Margin (${currency})`}
+              value={formatCurrency(stats.totalMargin)} 
               icon={Percent}
               className="bg-chart-3/5 border-chart-3/20"
             />
