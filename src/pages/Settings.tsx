@@ -5,6 +5,7 @@ import { useColorTheme, ColorTheme } from '@/context/ColorThemeContext';
 import { AccessLevelManager } from '@/components/settings/AccessLevelManager';
 import { IntegrationSettings } from '@/components/integrations/IntegrationSettings';
 import { PasswordManagement } from '@/components/settings/PasswordManagement';
+import { useDesktopNotifications } from '@/hooks/useDesktopNotifications';
 import { ACCESS_LEVEL_CONFIG } from '@/types/auth';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
@@ -43,6 +44,13 @@ export default function Settings() {
   const { theme, setTheme } = useTheme();
   const { colorTheme, setColorTheme } = useColorTheme();
   const [notifications, setNotifications] = useState(true);
+  const {
+    isSupported: desktopNotificationsSupported,
+    permission: desktopNotificationPermission,
+    enabled: desktopNotificationsEnabled,
+    requestPermission: requestDesktopNotificationPermission,
+    toggleEnabled: toggleDesktopNotifications,
+  } = useDesktopNotifications();
   
   const isDarkMode = theme === 'dark';
   
@@ -195,6 +203,46 @@ export default function Settings() {
                   </div>
 
                   <Separator />
+
+                  {/* Desktop Notifications */}
+                  {desktopNotificationsSupported && (
+                    <>
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label className="text-base">Desktop Notifications</Label>
+                          <p className="text-sm text-muted-foreground">
+                            Receive real-time desktop notifications for project updates
+                          </p>
+                        </div>
+                        <Switch 
+                          checked={desktopNotificationsEnabled && desktopNotificationPermission === 'granted'} 
+                          onCheckedChange={(checked) => {
+                            if (checked && desktopNotificationPermission !== 'granted') {
+                              requestDesktopNotificationPermission();
+                            } else {
+                              toggleDesktopNotifications(checked);
+                            }
+                          }}
+                          disabled={desktopNotificationPermission === 'denied'}
+                        />
+                      </div>
+                      {desktopNotificationPermission === 'default' && (
+                        <div className="mt-2 p-3 bg-muted/50 rounded-md">
+                          <p className="text-sm text-muted-foreground">
+                            Click the switch above to enable desktop notifications. You'll be asked to grant permission.
+                          </p>
+                        </div>
+                      )}
+                      {desktopNotificationPermission === 'denied' && (
+                        <div className="mt-2 p-3 bg-destructive/10 rounded-md">
+                          <p className="text-sm text-destructive">
+                            Desktop notifications are blocked. Please enable them in your browser settings.
+                          </p>
+                        </div>
+                      )}
+                      <Separator />
+                    </>
+                  )}
 
                   <div className="space-y-4">
                     <Label className="text-base">Notify me about</Label>

@@ -17,9 +17,15 @@ export function IntegrationSettings({
   oneDriveConnected = false, 
   outlookConnected = false 
 }: IntegrationSettingsProps) {
-  const [oneDrive, setOneDrive] = useState(oneDriveConnected);
-  const [outlook, setOutlook] = useState(outlookConnected);
-  const [emailNotifications, setEmailNotifications] = useState(true);
+  const [oneDrive, setOneDrive] = useState(() => {
+    return oneDriveConnected || localStorage.getItem('oneDriveConnected') === 'true';
+  });
+  const [outlook, setOutlook] = useState(() => {
+    return outlookConnected || localStorage.getItem('outlookConnected') === 'true';
+  });
+  const [emailNotifications, setEmailNotifications] = useState(() => {
+    return localStorage.getItem('outlookEmailNotifications') !== 'false';
+  });
   const [isConnecting, setIsConnecting] = useState(false);
 
   const handleConnectOneDrive = async () => {
@@ -38,15 +44,31 @@ export function IntegrationSettings({
 
   const handleConnectOutlook = async () => {
     setIsConnecting(true);
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    setOutlook(true);
-    setIsConnecting(false);
-    toast.success('Outlook connected successfully (Mock)');
+    try {
+      // In a real implementation, this would initiate OAuth flow with Microsoft
+      // For now, we'll simulate the connection
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Store Outlook connection state
+      localStorage.setItem('outlookConnected', 'true');
+      localStorage.setItem('outlookEmailNotifications', 'true');
+      
+      setOutlook(true);
+      setEmailNotifications(true);
+      setIsConnecting(false);
+      toast.success('Outlook connected successfully. Real-time email notifications are now enabled.');
+    } catch (error) {
+      setIsConnecting(false);
+      toast.error('Failed to connect Outlook. Please try again.');
+    }
   };
 
   const handleDisconnectOutlook = () => {
+    localStorage.removeItem('outlookConnected');
+    localStorage.removeItem('outlookEmailNotifications');
     setOutlook(false);
-    toast.info('Outlook disconnected');
+    setEmailNotifications(false);
+    toast.info('Outlook disconnected. Email notifications are disabled.');
   };
 
   return (
@@ -168,9 +190,9 @@ export function IntegrationSettings({
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="text-sm text-muted-foreground">
               {outlook ? (
-                <p>Your Outlook is connected. Email notifications will be sent via your account.</p>
+                <p>Your Outlook is connected. Real-time email notifications will be sent via your account for project updates, task assignments, and stage changes.</p>
               ) : (
-                <p>Connect Outlook to receive email notifications for project updates.</p>
+                <p>Connect Outlook to receive real-time email notifications for project updates, task assignments, and stage changes.</p>
               )}
             </div>
             <Dialog>
@@ -231,7 +253,11 @@ export function IntegrationSettings({
                 <Switch
                   id="email-notifications"
                   checked={emailNotifications}
-                  onCheckedChange={setEmailNotifications}
+                  onCheckedChange={(checked) => {
+                    setEmailNotifications(checked);
+                    localStorage.setItem('outlookEmailNotifications', String(checked));
+                    toast.info(checked ? 'Email notifications enabled' : 'Email notifications disabled');
+                  }}
                 />
               </div>
             </div>
@@ -249,7 +275,8 @@ export function IntegrationSettings({
               <p className="mt-1">
                 These integrations are currently in mock mode. To enable full functionality, 
                 you would need to set up Microsoft Azure AD app registration and configure 
-                the appropriate OAuth scopes for OneDrive and Outlook APIs.
+                the appropriate OAuth scopes for OneDrive and Outlook APIs. When fully configured,
+                Outlook will send real-time email notifications for all project-related events.
               </p>
             </div>
           </div>

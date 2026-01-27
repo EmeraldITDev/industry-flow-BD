@@ -1,8 +1,9 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { Notification, NotificationType } from '@/types/notifications';
 import { notificationsService } from '@/services/notifications';
 import { authService } from '@/services/auth';
 import { toast } from 'sonner';
+import { useDesktopNotifications } from '@/hooks/useDesktopNotifications';
 
 interface NotificationContextType {
   notifications: Notification[];
@@ -31,6 +32,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const previousNotificationsRef = useRef<Set<number>>(new Set());
+  const { showNotification: showDesktopNotification } = useDesktopNotifications();
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
@@ -45,6 +48,27 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       setLoading(true);
       setError(null);
       const data = await notificationsService.getAll();
+      
+      // Check for new notifications and show desktop notifications
+      const currentNotificationIds = new Set(data.map(n => n.id));
+      const newNotifications = data.filter(
+        n => !previousNotificationsRef.current.has(n.id) && !n.read
+      );
+      
+      // Show desktop notifications for new unread notifications
+      newNotifications.forEach(notification => {
+        showDesktopNotification(notification);
+        // Also show toast for visibility
+        const config = toastConfig[notification.type];
+        toast.info(notification.title, {
+          description: notification.message,
+          duration: 5000,
+        });
+      });
+      
+      // Update previous notifications set
+      previousNotificationsRef.current = currentNotificationIds;
+      
       setNotifications(data);
     } catch (err: any) {
       // Don't show error for 401 - user just isn't logged in
@@ -57,7 +81,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [showDesktopNotification]);
 
   const markAsRead = useCallback(async (id: number) => {
     try {
