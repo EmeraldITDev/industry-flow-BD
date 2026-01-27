@@ -12,6 +12,8 @@ import { Button } from '@/components/ui/button';
 import { useCurrency } from '@/context/CurrencyContext';
 
 export function RecentProjects() {
+  const { formatCurrency, getContractValue, getMarginValue } = useCurrency();
+  
   const { data: projects, isLoading } = useQuery({
     queryKey: ['projects'],
     queryFn: () => projectsService.getAll(),

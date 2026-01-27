@@ -12,14 +12,6 @@ interface ProjectCardProps {
   project: Project;
 }
 
-function formatCurrency(value: number | undefined, currency: 'NGN' | 'USD'): string {
-  if (!value) return '-';
-  const symbol = currency === 'NGN' ? '₦' : '$';
-  if (value >= 1000000) return `${symbol}${(value / 1000000).toFixed(1)}M`;
-  if (value >= 1000) return `${symbol}${(value / 1000).toFixed(0)}K`;
-  return `${symbol}${value}`;
-}
-
 function safeFormatDate(dateStr: string | undefined, formatStr: string): string {
   if (!dateStr) return '-';
   const date = new Date(dateStr);

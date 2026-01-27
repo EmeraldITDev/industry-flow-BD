@@ -229,8 +229,8 @@ export const RevenueAnalytics = () => {
                       <p className="text-[10px] sm:text-xs text-muted-foreground">{item.projects} project(s)</p>
                     </div>
                     <div className="text-right shrink-0">
-                      <p className="font-semibold text-xs sm:text-sm text-foreground">{formatCurrency(item.revenue)}</p>
-                      <p className="text-[10px] sm:text-xs text-muted-foreground">M: {formatCurrency(item.margin)}</p>
+                      <p className="font-semibold text-xs sm:text-sm text-foreground">{formatCurrencyValue(item.revenue)}</p>
+                      <p className="text-[10px] sm:text-xs text-muted-foreground">M: {formatCurrencyValue(item.margin)}</p>
                     </div>
                   </div>
                 ))
