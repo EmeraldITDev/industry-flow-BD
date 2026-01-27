@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 
 type Currency = 'USD' | 'NGN';
 
@@ -29,21 +29,21 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     setCurrency(currency === 'USD' ? 'NGN' : 'USD');
   };
 
-  const formatCurrency = (value: number): string => {
+  const formatCurrency = useCallback((value: number): string => {
     if (!value || value === 0) return currency === 'NGN' ? '₦0' : '$0';
     const symbol = currency === 'NGN' ? '₦' : '$';
     if (value >= 1000000) return `${symbol}${(value / 1000000).toFixed(1)}M`;
     if (value >= 1000) return `${symbol}${(value / 1000).toFixed(0)}K`;
     return `${symbol}${value.toLocaleString()}`;
-  };
+  }, [currency]);
 
-  const getContractValue = (project: { contractValueUSD?: number; contractValueNGN?: number }): number => {
+  const getContractValue = useCallback((project: { contractValueUSD?: number; contractValueNGN?: number }): number => {
     return currency === 'NGN' ? (project.contractValueNGN || 0) : (project.contractValueUSD || 0);
-  };
+  }, [currency]);
 
-  const getMarginValue = (project: { marginValueUSD?: number; marginValueNGN?: number }): number => {
+  const getMarginValue = useCallback((project: { marginValueUSD?: number; marginValueNGN?: number }): number => {
     return currency === 'NGN' ? (project.marginValueNGN || 0) : (project.marginValueUSD || 0);
-  };
+  }, [currency]);
 
   return (
     <CurrencyContext.Provider
