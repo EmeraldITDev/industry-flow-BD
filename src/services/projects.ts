@@ -26,6 +26,8 @@ export interface CreateProjectData {
   contractValueUSD?: number;
   marginPercentNGN?: number;
   marginPercentUSD?: number;
+  marginValueNGN?: number;
+  marginValueUSD?: number;
   projectLeadComments?: string;
 }
 
@@ -45,21 +47,44 @@ export interface ProjectFilters {
   assigneeId?: string;
 }
 
+// Normalize project data from backend (handle both snake_case and camelCase)
+const normalizeProject = (project: any): Project => {
+  return {
+    ...project,
+    contractValueNGN: project.contract_value_ngn ?? project.contractValueNGN,
+    contractValueUSD: project.contract_value_usd ?? project.contractValueUSD,
+    marginPercentNGN: project.margin_percent_ngn ?? project.marginPercentNGN,
+    marginPercentUSD: project.margin_percent_usd ?? project.marginPercentUSD,
+    marginValueNGN: project.margin_value_ngn ?? project.marginValueNGN ?? 
+      (project.contract_value_ngn && project.margin_percent_ngn 
+        ? (project.contract_value_ngn * project.margin_percent_ngn / 100) 
+        : project.contractValueNGN && project.marginPercentNGN 
+          ? (project.contractValueNGN * project.marginPercentNGN / 100) 
+          : undefined),
+    marginValueUSD: project.margin_value_usd ?? project.marginValueUSD ?? 
+      (project.contract_value_usd && project.margin_percent_usd 
+        ? (project.contract_value_usd * project.margin_percent_usd / 100) 
+        : project.contractValueUSD && project.marginPercentUSD 
+          ? (project.contractValueUSD * project.marginPercentUSD / 100) 
+          : undefined),
+  };
+};
+
 export const projectsService = {
   // Get all projects
   getAll: async (filters?: ProjectFilters): Promise<Project[]> => {
     const response = await api.get('/api/projects', { params: filters });
     // Handle both direct array response and wrapped { data: [...] } response
     const data = response.data;
-    if (Array.isArray(data)) return data;
-    if (data && Array.isArray(data.data)) return data.data;
-    return [];
+    const projects = Array.isArray(data) ? data : (data && Array.isArray(data.data) ? data.data : []);
+    // Normalize all projects to ensure consistent field names
+    return projects.map(normalizeProject);
   },
 
   // Get single project by ID
   getById: async (id: string): Promise<Project> => {
     const response = await api.get(`/api/projects/${id}`);
-    return response.data;
+    return normalizeProject(response.data);
   },
 
   // Create new project

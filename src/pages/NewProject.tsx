@@ -133,6 +133,19 @@ export default function NewProject() {
 
     setIsSubmitting(true);
     try {
+      // Calculate margin values from contract values and margin percentages
+      const contractValueNGN = formData.contractValueNGN ? parseFloat(formData.contractValueNGN) : undefined;
+      const contractValueUSD = formData.contractValueUSD ? parseFloat(formData.contractValueUSD) : undefined;
+      const marginPercentNGN = formData.marginPercentNGN ? parseFloat(formData.marginPercentNGN) : undefined;
+      const marginPercentUSD = formData.marginPercentUSD ? parseFloat(formData.marginPercentUSD) : undefined;
+      
+      const marginValueNGN = contractValueNGN && marginPercentNGN 
+        ? (contractValueNGN * marginPercentNGN / 100) 
+        : undefined;
+      const marginValueUSD = contractValueUSD && marginPercentUSD 
+        ? (contractValueUSD * marginPercentUSD / 100) 
+        : undefined;
+
       await projectsService.create({
         name: formData.name,
         description: formData.description,
@@ -153,10 +166,12 @@ export default function NewProject() {
         projectLeadId: formData.projectLeadId || undefined,
         assigneeId: formData.assigneeId || undefined,
         channelPartner: formData.channelPartner || undefined,
-        contractValueNGN: formData.contractValueNGN ? parseFloat(formData.contractValueNGN) : undefined,
-        contractValueUSD: formData.contractValueUSD ? parseFloat(formData.contractValueUSD) : undefined,
-        marginPercentNGN: formData.marginPercentNGN ? parseFloat(formData.marginPercentNGN) : undefined,
-        marginPercentUSD: formData.marginPercentUSD ? parseFloat(formData.marginPercentUSD) : undefined,
+        contractValueNGN,
+        contractValueUSD,
+        marginPercentNGN,
+        marginPercentUSD,
+        marginValueNGN,
+        marginValueUSD,
         dealProbability: formData.dealProbability,
         projectLeadComments: formData.projectLeadComments || undefined,
       });

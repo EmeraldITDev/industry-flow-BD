@@ -141,6 +141,12 @@ export default function EditProject() {
         contractValueUSD: formData.contractValueUSD ? parseFloat(formData.contractValueUSD) : undefined,
         marginPercentNGN: formData.marginPercentNGN ? parseFloat(formData.marginPercentNGN) : undefined,
         marginPercentUSD: formData.marginPercentUSD ? parseFloat(formData.marginPercentUSD) : undefined,
+        marginValueNGN: formData.contractValueNGN && formData.marginPercentNGN 
+          ? (parseFloat(formData.contractValueNGN) * parseFloat(formData.marginPercentNGN) / 100) 
+          : undefined,
+        marginValueUSD: formData.contractValueUSD && formData.marginPercentUSD 
+          ? (parseFloat(formData.contractValueUSD) * parseFloat(formData.marginPercentUSD) / 100) 
+          : undefined,
         projectLeadComments: formData.projectLeadComments || undefined,
         dealProbability: formData.dealProbability,
       });
