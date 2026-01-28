@@ -48,18 +48,19 @@ export interface ProjectFilters {
   assigneeId?: string;
 }
 
-// Normalize project data from backend (handle both snake_case and camelCase)
+// Normalize project data from backend
+// API returns camelCase format
 const normalizeProject = (project: any): Project => {
-  // Extract financial values from both snake_case and camelCase
-  const contractValueNGN = project.contract_value_ngn ?? project.contractValueNGN ?? 0;
-  const contractValueUSD = project.contract_value_usd ?? project.contractValueUSD ?? 0;
-  const marginPercentNGN = project.margin_percent_ngn ?? project.marginPercentNGN ?? 0;
-  const marginPercentUSD = project.margin_percent_usd ?? project.marginPercentUSD ?? 0;
+  // API returns camelCase - use directly
+  const contractValueNGN = project.contractValueNGN ?? 0;
+  const contractValueUSD = project.contractValueUSD ?? 0;
+  const marginPercentNGN = project.marginPercentNGN ?? 0;
+  const marginPercentUSD = project.marginPercentUSD ?? 0;
   
   // Calculate margin values if not provided
-  const marginValueNGN = project.margin_value_ngn ?? project.marginValueNGN ?? 
+  const marginValueNGN = project.marginValueNGN ?? 
     (contractValueNGN && marginPercentNGN ? (contractValueNGN * marginPercentNGN / 100) : 0);
-  const marginValueUSD = project.margin_value_usd ?? project.marginValueUSD ?? 
+  const marginValueUSD = project.marginValueUSD ?? 
     (contractValueUSD && marginPercentUSD ? (contractValueUSD * marginPercentUSD / 100) : 0);
 
   return {
@@ -71,40 +72,6 @@ const normalizeProject = (project: any): Project => {
     marginValueNGN,
     marginValueUSD,
   };
-};
-
-// Transform camelCase financial fields to snake_case for backend API
-// Backend expects snake_case format
-const transformToBackendFormat = (data: any): any => {
-  const transformed: any = { ...data };
-  
-  // Map financial fields from camelCase to snake_case
-  if (data.contractValueNGN !== undefined) {
-    transformed.contract_value_ngn = data.contractValueNGN;
-    delete transformed.contractValueNGN;
-  }
-  if (data.contractValueUSD !== undefined) {
-    transformed.contract_value_usd = data.contractValueUSD;
-    delete transformed.contractValueUSD;
-  }
-  if (data.marginPercentNGN !== undefined) {
-    transformed.margin_percent_ngn = data.marginPercentNGN;
-    delete transformed.marginPercentNGN;
-  }
-  if (data.marginPercentUSD !== undefined) {
-    transformed.margin_percent_usd = data.marginPercentUSD;
-    delete transformed.marginPercentUSD;
-  }
-  if (data.marginValueNGN !== undefined) {
-    transformed.margin_value_ngn = data.marginValueNGN;
-    delete transformed.marginValueNGN;
-  }
-  if (data.marginValueUSD !== undefined) {
-    transformed.margin_value_usd = data.marginValueUSD;
-    delete transformed.marginValueUSD;
-  }
-  
-  return transformed;
 };
 
 export const projectsService = {
@@ -126,54 +93,56 @@ export const projectsService = {
 
   // Create new project
   create: async (data: CreateProjectData): Promise<Project> => {
-    // Transform financial fields to snake_case for backend
-    const backendData = transformToBackendFormat(data);
+    // API expects camelCase format - send data as-is
+    const requestData = { ...data };
+    
     // Remove undefined values
-    Object.keys(backendData).forEach(key => {
-      if (backendData[key] === undefined) {
-        delete backendData[key];
+    Object.keys(requestData).forEach(key => {
+      if (requestData[key] === undefined) {
+        delete requestData[key];
       }
     });
     
     // Log financial data being sent (for debugging)
-    console.log('[Projects Service] Creating project with financial data:', {
-      contract_value_ngn: backendData.contract_value_ngn,
-      contract_value_usd: backendData.contract_value_usd,
-      margin_percent_ngn: backendData.margin_percent_ngn,
-      margin_percent_usd: backendData.margin_percent_usd,
-      margin_value_ngn: backendData.margin_value_ngn,
-      margin_value_usd: backendData.margin_value_usd,
+    console.log('[Projects Service] Creating project with financial data (camelCase):', {
+      contractValueNGN: requestData.contractValueNGN,
+      contractValueUSD: requestData.contractValueUSD,
+      marginPercentNGN: requestData.marginPercentNGN,
+      marginPercentUSD: requestData.marginPercentUSD,
+      marginValueNGN: requestData.marginValueNGN,
+      marginValueUSD: requestData.marginValueUSD,
     });
     
-    const response = await api.post('/api/projects', backendData);
+    const response = await api.post('/api/projects', requestData);
     return normalizeProject(response.data);
   },
 
   // Update project
   update: async (id: string, data: UpdateProjectData): Promise<Project> => {
-    // Transform financial fields to snake_case for backend
-    const backendData = transformToBackendFormat(data);
+    // API expects camelCase format - send data as-is
+    const requestData = { ...data };
+    
     // Remove undefined values
-    Object.keys(backendData).forEach(key => {
-      if (backendData[key] === undefined) {
-        delete backendData[key];
+    Object.keys(requestData).forEach(key => {
+      if (requestData[key] === undefined) {
+        delete requestData[key];
       }
     });
     
     // Log financial data being sent (for debugging)
-    if (backendData.contract_value_ngn || backendData.contract_value_usd || 
-        backendData.margin_value_ngn || backendData.margin_value_usd) {
-      console.log('[Projects Service] Updating project with financial data:', {
-        contract_value_ngn: backendData.contract_value_ngn,
-        contract_value_usd: backendData.contract_value_usd,
-        margin_percent_ngn: backendData.margin_percent_ngn,
-        margin_percent_usd: backendData.margin_percent_usd,
-        margin_value_ngn: backendData.margin_value_ngn,
-        margin_value_usd: backendData.margin_value_usd,
+    if (requestData.contractValueNGN || requestData.contractValueUSD || 
+        requestData.marginValueNGN || requestData.marginValueUSD) {
+      console.log('[Projects Service] Updating project with financial data (camelCase):', {
+        contractValueNGN: requestData.contractValueNGN,
+        contractValueUSD: requestData.contractValueUSD,
+        marginPercentNGN: requestData.marginPercentNGN,
+        marginPercentUSD: requestData.marginPercentUSD,
+        marginValueNGN: requestData.marginValueNGN,
+        marginValueUSD: requestData.marginValueUSD,
       });
     }
     
-    const response = await api.put(`/api/projects/${id}`, backendData);
+    const response = await api.put(`/api/projects/${id}`, requestData);
     return normalizeProject(response.data);
   },
 
@@ -214,8 +183,8 @@ export const projectsService = {
         completedTasks: data?.completedTasks ?? data?.completed_tasks ?? 0,
         pendingTasks: data?.pendingTasks ?? data?.pending_tasks ?? 0,
         overdueTasks: data?.overdueTasks ?? data?.overdue_tasks ?? 0,
-        totalValueNgn: data?.totalValueNgn ?? data?.total_value_ngn ?? 0,
-        totalValueUsd: data?.totalValueUsd ?? data?.total_value_usd ?? 0,
+        totalValueNgn: data?.totalValueNgn ?? 0,
+        totalValueUsd: data?.totalValueUsd ?? 0,
         averageProgress: data?.averageProgress ?? data?.average_progress ?? 0,
         byStatus: data?.byStatus ?? data?.by_status ?? {
           active: 0,

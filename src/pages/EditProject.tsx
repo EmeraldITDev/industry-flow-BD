@@ -98,10 +98,11 @@ export default function EditProject() {
         projectLeadId: String(data.project_lead_id || data.projectLeadId || ''),
         assigneeId: String(data.assignee_id || data.assigneeId || ''),
         channelPartner: data.channel_partner || data.channelPartner || '',
-        contractValueNGN: data.contract_value_ngn || data.contractValueNGN ? String(data.contract_value_ngn || data.contractValueNGN) : '',
-        contractValueUSD: data.contract_value_usd || data.contractValueUSD ? String(data.contract_value_usd || data.contractValueUSD) : '',
-        marginPercentNGN: data.margin_percent_ngn || data.marginPercentNGN ? String(data.margin_percent_ngn || data.marginPercentNGN) : '',
-        marginPercentUSD: data.margin_percent_usd || data.marginPercentUSD ? String(data.margin_percent_usd || data.marginPercentUSD) : '',
+        // API returns camelCase format
+        contractValueNGN: data.contractValueNGN ? String(data.contractValueNGN) : '',
+        contractValueUSD: data.contractValueUSD ? String(data.contractValueUSD) : '',
+        marginPercentNGN: data.marginPercentNGN ? String(data.marginPercentNGN) : '',
+        marginPercentUSD: data.marginPercentUSD ? String(data.marginPercentUSD) : '',
         projectLeadComments: data.project_lead_comments || data.projectLeadComments || '',
       });
     }

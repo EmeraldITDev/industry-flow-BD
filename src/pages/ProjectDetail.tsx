@@ -108,22 +108,18 @@ export default function ProjectDetail() {
         product: data.product,
         subProduct: data.sub_product || data.subProduct,
         channelPartner: data.channel_partner || data.channelPartner,
-        contractValueNGN: data.contract_value_ngn || data.contractValueNGN,
-        contractValueUSD: data.contract_value_usd || data.contractValueUSD,
-        marginPercentNGN: data.margin_percent_ngn || data.marginPercentNGN,
-        marginPercentUSD: data.margin_percent_usd || data.marginPercentUSD,
-        marginValueNGN: data.margin_value_ngn || data.marginValueNGN || 
-          (data.contract_value_ngn && data.margin_percent_ngn 
-            ? (data.contract_value_ngn * data.margin_percent_ngn / 100) 
-            : data.contractValueNGN && data.marginPercentNGN 
-              ? (data.contractValueNGN * data.marginPercentNGN / 100) 
-              : undefined),
-        marginValueUSD: data.margin_value_usd || data.marginValueUSD || 
-          (data.contract_value_usd && data.margin_percent_usd 
-            ? (data.contract_value_usd * data.margin_percent_usd / 100) 
-            : data.contractValueUSD && data.marginPercentUSD 
-              ? (data.contractValueUSD * data.marginPercentUSD / 100) 
-              : undefined),
+        contractValueNGN: data.contractValueNGN,
+        contractValueUSD: data.contractValueUSD,
+        marginPercentNGN: data.marginPercentNGN,
+        marginPercentUSD: data.marginPercentUSD,
+        marginValueNGN: data.marginValueNGN || 
+          (data.contractValueNGN && data.marginPercentNGN 
+            ? (data.contractValueNGN * data.marginPercentNGN / 100) 
+            : undefined),
+        marginValueUSD: data.marginValueUSD || 
+          (data.contractValueUSD && data.marginPercentUSD 
+            ? (data.contractValueUSD * data.marginPercentUSD / 100) 
+            : undefined),
         projectLeadId: data.project_lead_id || data.projectLeadId,
         assigneeId: data.assignee_id || data.assigneeId,
         projectLeadComments: data.project_lead_comments || data.projectLeadComments,
