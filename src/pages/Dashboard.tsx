@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useEffect, useMemo } from 'react';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { SectorOverview } from '@/components/dashboard/SectorOverview';
 import { RecentProjects } from '@/components/dashboard/RecentProjects';
@@ -6,22 +7,120 @@ import { TasksSummary } from '@/components/dashboard/TasksSummary';
 import { RevenueAnalytics } from '@/components/dashboard/RevenueAnalytics';
 import { ProjectCalendar } from '@/components/calendar/ProjectCalendar';
 import { projectsService } from '@/services/projects';
+import { tasksService } from '@/services/tasks';
 import { FolderKanban, Activity, CheckCircle, Clock, AlertTriangle, Loader2, DollarSign, TrendingUp, Percent, ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCurrency } from '@/context/CurrencyContext';
-import { ProjectStats } from '@/types';
+import { ProjectStats, Project } from '@/types';
 import { Progress } from '@/components/ui/progress';
 
 export default function Dashboard() {
-  const { currency, formatCurrency } = useCurrency();
+  const { currency, formatCurrency, getContractValue } = useCurrency();
   
   // Fetch statistics from API endpoint
-  const { data: stats, isLoading, error } = useQuery<ProjectStats>({
+  const { data: apiStats, isLoading: statsLoading, error: statsError } = useQuery<ProjectStats>({
     queryKey: ['dashboard-stats'],
-    queryFn: () => projectsService.getStats(),
+    queryFn: async () => {
+      try {
+        const result = await projectsService.getStats();
+        console.log('[Dashboard] Received stats from API:', result);
+        return result;
+      } catch (err) {
+        console.error('[Dashboard] Error fetching stats:', err);
+        throw err;
+      }
+    },
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchInterval: 5 * 60 * 1000, // Auto-refresh every 5 minutes
+    retry: 1, // Retry once on failure
   });
+  
+  // Fallback: Fetch projects and tasks to compute stats client-side if API fails or returns empty
+  const { data: projects, isLoading: projectsLoading } = useQuery({
+    queryKey: ['projects'],
+    queryFn: () => projectsService.getAll(),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const { data: tasks, isLoading: tasksLoading } = useQuery({
+    queryKey: ['all-tasks'],
+    queryFn: () => tasksService.getAll(),
+    staleTime: 5 * 60 * 1000,
+  });
+  
+  // Compute fallback stats from projects/tasks if API stats are empty or unavailable
+  const fallbackStats = useMemo<ProjectStats | null>(() => {
+    if (apiStats && (apiStats.total > 0 || apiStats.totalProjects > 0)) {
+      return null; // API stats are valid, don't use fallback
+    }
+    
+    if (!projects || !tasks) return null;
+    
+    const projectList = Array.isArray(projects) ? projects : [];
+    const taskList = Array.isArray(tasks) ? tasks : [];
+    const now = new Date();
+    
+    const activeProjects = projectList.filter(p => p.status === 'active');
+    const completedProjects = projectList.filter(p => p.status === 'completed');
+    
+    // Calculate total value
+    const totalValueNgn = projectList.reduce((sum, p) => sum + (p.contractValueNGN || 0), 0);
+    const totalValueUsd = projectList.reduce((sum, p) => sum + (p.contractValueUSD || 0), 0);
+    
+    // Calculate average progress
+    const avgProgress = activeProjects.length > 0
+      ? activeProjects.reduce((sum, p) => sum + (p.progress || 0), 0) / activeProjects.length
+      : 0;
+    
+    return {
+      total: projectList.length,
+      totalProjects: projectList.length,
+      active: activeProjects.length,
+      activeProjects: activeProjects.length,
+      completed: completedProjects.length,
+      completedProjects: completedProjects.length,
+      highRisk: 0, // Would need deal probability data
+      completedTasks: taskList.filter(t => t.status === 'completed').length,
+      pendingTasks: taskList.filter(t => t.status === 'todo' || t.status === 'in-progress' || t.status === 'review').length,
+      overdueTasks: taskList.filter(t => {
+        if (t.status === 'completed') return false;
+        const dueDate = t.dueDate ? new Date(t.dueDate) : null;
+        return dueDate && dueDate < now;
+      }).length,
+      totalValueNgn,
+      totalValueUsd,
+      averageProgress: avgProgress,
+      byStatus: {
+        active: activeProjects.length,
+        on_hold: projectList.filter(p => p.status === 'on-hold').length,
+        completed: completedProjects.length,
+        cancelled: 0,
+      },
+      byStage: {},
+      byAssignee: [],
+      recent: projectList.slice(-5).reverse(),
+    };
+  }, [projects, tasks, apiStats]);
+  
+  // Use API stats if available and valid, otherwise use fallback
+  const stats = apiStats && (apiStats.total > 0 || apiStats.totalProjects > 0) 
+    ? apiStats 
+    : fallbackStats;
+  
+  const isLoading = statsLoading || (statsLoading && projectsLoading && tasksLoading);
+  const error = statsError;
+  
+  // Debug: Log stats when they change
+  useEffect(() => {
+    if (stats) {
+      console.log('[Dashboard] Current stats state:', stats);
+      console.log('[Dashboard] Total:', stats.total || stats.totalProjects);
+      console.log('[Dashboard] Active:', stats.active || stats.activeProjects);
+      console.log('[Dashboard] Total Value NGN:', stats.totalValueNgn);
+      console.log('[Dashboard] Total Value USD:', stats.totalValueUsd);
+      console.log('[Dashboard] Using fallback:', !apiStats || apiStats.total === 0);
+    }
+  }, [stats, apiStats]);
 
   if (error) {
     return (

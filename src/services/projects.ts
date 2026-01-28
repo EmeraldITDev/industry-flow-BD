@@ -190,11 +190,49 @@ export const projectsService = {
 
   // Get project statistics/dashboard data
   getStats: async (): Promise<ProjectStats> => {
-    const response = await api.get('/api/projects/stats');
-    // Handle different response structures: { data: {...} }, { total: {...} }, or direct stats object
-    const data = response.data;
-    if (data?.data) return data.data;
-    if (data?.total) return data.total;
-    return data;
+    try {
+      const response = await api.get('/api/projects/stats');
+      console.log('[Projects Service] Stats API Response:', response.data);
+      
+      // Handle different response structures: { data: {...} }, { total: {...} }, or direct stats object
+      let data = response.data;
+      
+      // If response has a 'data' property, use it
+      if (data?.data) {
+        data = data.data;
+      }
+      
+      // Normalize field names (handle both camelCase and snake_case)
+      const normalized: ProjectStats = {
+        total: data?.total ?? data?.totalProjects ?? 0,
+        totalProjects: data?.totalProjects ?? data?.total ?? 0,
+        active: data?.active ?? data?.activeProjects ?? 0,
+        activeProjects: data?.activeProjects ?? data?.active ?? 0,
+        completed: data?.completed ?? data?.completedProjects ?? 0,
+        completedProjects: data?.completedProjects ?? data?.completed ?? 0,
+        highRisk: data?.highRisk ?? data?.high_risk ?? 0,
+        completedTasks: data?.completedTasks ?? data?.completed_tasks ?? 0,
+        pendingTasks: data?.pendingTasks ?? data?.pending_tasks ?? 0,
+        overdueTasks: data?.overdueTasks ?? data?.overdue_tasks ?? 0,
+        totalValueNgn: data?.totalValueNgn ?? data?.total_value_ngn ?? 0,
+        totalValueUsd: data?.totalValueUsd ?? data?.total_value_usd ?? 0,
+        averageProgress: data?.averageProgress ?? data?.average_progress ?? 0,
+        byStatus: data?.byStatus ?? data?.by_status ?? {
+          active: 0,
+          on_hold: 0,
+          completed: 0,
+          cancelled: 0,
+        },
+        byStage: data?.byStage ?? data?.by_stage ?? {},
+        byAssignee: data?.byAssignee ?? data?.by_assignee ?? [],
+        recent: data?.recent ?? [],
+      };
+      
+      console.log('[Projects Service] Normalized Stats:', normalized);
+      return normalized;
+    } catch (error) {
+      console.error('[Projects Service] Error fetching stats:', error);
+      throw error;
+    }
   },
 };
