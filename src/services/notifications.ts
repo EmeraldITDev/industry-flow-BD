@@ -25,9 +25,14 @@ export const notificationsService = {
       console.log('[Notifications] Fetched notifications:', normalized.length);
       return normalized;
     } catch (error: any) {
-      if (error.response?.status === 401 || error.response?.status === 404) {
-        // User not logged in or endpoint doesn't exist - this is expected, don't throw
-        console.log('[Notifications] Not authenticated or endpoint not found, skipping notifications');
+      const status = error.response?.status;
+      if (status === 401 || status === 404 || status === 500) {
+        // User not logged in, endpoint doesn't exist, or server error - gracefully handle
+        if (status === 500) {
+          console.warn('[Notifications] Server error (500) - notifications endpoint may be unavailable');
+        } else {
+          console.log('[Notifications] Not authenticated or endpoint not found, skipping notifications');
+        }
         return [];
       }
       // Log error but don't throw - gracefully handle network errors

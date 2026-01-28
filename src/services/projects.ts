@@ -74,16 +74,38 @@ const normalizeProject = (project: any): Project => {
     ? (typeof project.marginValueUSD === 'string' ? parseFloat(project.marginValueUSD) || 0 : project.marginValueUSD)
     : (contractValueUSD && marginPercentUSD ? (contractValueUSD * marginPercentUSD / 100) : 0);
 
-  // Debug logging for projects with financial data
-  if ((contractValueNGN > 0 || contractValueUSD > 0) && project.id) {
-    console.log('[Projects Service] Normalized project with financial data:', {
-      projectId: project.id,
-      projectName: project.name,
-      contractValueNGN,
-      contractValueUSD,
-      marginValueNGN,
-      marginValueUSD,
-    });
+  // Debug logging for all projects to understand data structure
+  if (project.id) {
+    const hasAnyFinancialData = contractValueNGN > 0 || contractValueUSD > 0 || 
+                                marginValueNGN > 0 || marginValueUSD > 0 ||
+                                marginPercentNGN > 0 || marginPercentUSD > 0;
+    
+    if (hasAnyFinancialData) {
+      console.log('[Projects Service] Normalized project with financial data:', {
+        projectId: project.id,
+        projectName: project.name,
+        contractValueNGN,
+        contractValueUSD,
+        marginValueNGN,
+        marginValueUSD,
+        marginPercentNGN,
+        marginPercentUSD,
+        rawContractValueNGN: project.contractValueNGN,
+        rawContractValueUSD: project.contractValueUSD,
+      });
+    } else {
+      // Log projects without financial data to understand why
+      console.log('[Projects Service] Project without financial data:', {
+        projectId: project.id,
+        projectName: project.name,
+        hasContractValueNGN: 'contractValueNGN' in project,
+        hasContractValueUSD: 'contractValueUSD' in project,
+        rawContractValueNGN: project.contractValueNGN,
+        rawContractValueUSD: project.contractValueUSD,
+        rawMarginValueNGN: project.marginValueNGN,
+        rawMarginValueUSD: project.marginValueUSD,
+      });
+    }
   }
 
   return {

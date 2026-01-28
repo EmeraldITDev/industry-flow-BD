@@ -71,16 +71,20 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       
       setNotifications(data);
     } catch (err: any) {
-      // Don't show error for 401 or 404 - user just isn't logged in or endpoint doesn't exist
-      if (err.response?.status === 401 || err.response?.status === 404) {
+      const status = err.response?.status;
+      // Don't show error for 401, 404, or 500 - gracefully handle these cases
+      if (status === 401 || status === 404 || status === 500) {
         setNotifications([]);
         setError(null); // Clear error for expected cases
+        if (status === 500) {
+          console.warn('[NotificationContext] Server error (500) - notifications unavailable');
+        }
         return;
       }
       // Only log error, don't show to user unless it's a critical error
       console.error('Failed to fetch notifications:', err);
-      // Only set error for non-auth related issues
-      if (err.response?.status !== 401 && err.response?.status !== 404) {
+      // Only set error for non-expected status codes
+      if (status !== 401 && status !== 404 && status !== 500) {
         setError('Failed to load notifications');
       } else {
         setError(null);
