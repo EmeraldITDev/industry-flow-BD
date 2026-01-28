@@ -98,11 +98,12 @@ export default function EditProject() {
         projectLeadId: String(data.project_lead_id || data.projectLeadId || ''),
         assigneeId: String(data.assignee_id || data.assigneeId || ''),
         channelPartner: data.channel_partner || data.channelPartner || '',
-        // API returns camelCase format
-        contractValueNGN: data.contractValueNGN ? String(data.contractValueNGN) : '',
-        contractValueUSD: data.contractValueUSD ? String(data.contractValueUSD) : '',
-        marginPercentNGN: data.marginPercentNGN ? String(data.marginPercentNGN) : '',
-        marginPercentUSD: data.marginPercentUSD ? String(data.marginPercentUSD) : '',
+        // API returns camelCase format - convert to string for form inputs
+        // Only set to empty string if null/undefined, preserve 0 as valid value
+        contractValueNGN: data.contractValueNGN != null ? String(data.contractValueNGN) : '',
+        contractValueUSD: data.contractValueUSD != null ? String(data.contractValueUSD) : '',
+        marginPercentNGN: data.marginPercentNGN != null ? String(data.marginPercentNGN) : '',
+        marginPercentUSD: data.marginPercentUSD != null ? String(data.marginPercentUSD) : '',
         projectLeadComments: data.project_lead_comments || data.projectLeadComments || '',
       });
     }
@@ -138,14 +139,26 @@ export default function EditProject() {
         projectLeadId: formData.projectLeadId || undefined,
         assigneeId: formData.assigneeId || undefined,
         channelPartner: formData.channelPartner || undefined,
-        contractValueNGN: formData.contractValueNGN ? parseFloat(formData.contractValueNGN) : undefined,
-        contractValueUSD: formData.contractValueUSD ? parseFloat(formData.contractValueUSD) : undefined,
-        marginPercentNGN: formData.marginPercentNGN ? parseFloat(formData.marginPercentNGN) : undefined,
-        marginPercentUSD: formData.marginPercentUSD ? parseFloat(formData.marginPercentUSD) : undefined,
-        marginValueNGN: formData.contractValueNGN && formData.marginPercentNGN 
+        // Convert string values to numbers, send undefined if empty
+        contractValueNGN: formData.contractValueNGN && formData.contractValueNGN.trim() !== '' 
+          ? parseFloat(formData.contractValueNGN) 
+          : undefined,
+        contractValueUSD: formData.contractValueUSD && formData.contractValueUSD.trim() !== '' 
+          ? parseFloat(formData.contractValueUSD) 
+          : undefined,
+        marginPercentNGN: formData.marginPercentNGN && formData.marginPercentNGN.trim() !== '' 
+          ? parseFloat(formData.marginPercentNGN) 
+          : undefined,
+        marginPercentUSD: formData.marginPercentUSD && formData.marginPercentUSD.trim() !== '' 
+          ? parseFloat(formData.marginPercentUSD) 
+          : undefined,
+        // Calculate margin values if both contract value and margin percent are provided
+        marginValueNGN: formData.contractValueNGN && formData.marginPercentNGN && 
+                        formData.contractValueNGN.trim() !== '' && formData.marginPercentNGN.trim() !== ''
           ? (parseFloat(formData.contractValueNGN) * parseFloat(formData.marginPercentNGN) / 100) 
           : undefined,
-        marginValueUSD: formData.contractValueUSD && formData.marginPercentUSD 
+        marginValueUSD: formData.contractValueUSD && formData.marginPercentUSD && 
+                        formData.contractValueUSD.trim() !== '' && formData.marginPercentUSD.trim() !== ''
           ? (parseFloat(formData.contractValueUSD) * parseFloat(formData.marginPercentUSD) / 100) 
           : undefined,
         projectLeadComments: formData.projectLeadComments || undefined,
@@ -475,46 +488,75 @@ export default function EditProject() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Contract Value (NGN)</Label>
-                <Input
-                  type="number"
-                  value={formData.contractValueNGN}
-                  onChange={(e) => setFormData({ ...formData, contractValueNGN: e.target.value })}
-                  placeholder="0"
-                />
+              <div className="space-y-4 p-4 rounded-lg bg-muted/30">
+                <h4 className="font-medium">Naira (₦)</h4>
+                <div className="space-y-2">
+                  <Label>Contract/PO Value (₦)</Label>
+                  <Input 
+                    type="number" 
+                    value={formData.contractValueNGN} 
+                    onChange={(e) => setFormData({ ...formData, contractValueNGN: e.target.value })} 
+                    placeholder="0" 
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-2">
+                    <Label>Margin %</Label>
+                    <Input 
+                      type="number" 
+                      value={formData.marginPercentNGN} 
+                      onChange={(e) => setFormData({ ...formData, marginPercentNGN: e.target.value })} 
+                      placeholder="0" 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Margin Value (₦)</Label>
+                    <Input 
+                      type="number" 
+                      value={formData.contractValueNGN && formData.marginPercentNGN 
+                        ? (parseFloat(formData.contractValueNGN) * parseFloat(formData.marginPercentNGN) / 100).toFixed(2) 
+                        : ''} 
+                      readOnly 
+                      className="bg-muted cursor-not-allowed" 
+                      placeholder="Auto-calculated" 
+                    />
+                  </div>
+                </div>
               </div>
-
-              <div className="space-y-2">
-                <Label>Contract Value (USD)</Label>
-                <Input
-                  type="number"
-                  value={formData.contractValueUSD}
-                  onChange={(e) => setFormData({ ...formData, contractValueUSD: e.target.value })}
-                  placeholder="0"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Margin % (NGN)</Label>
-                <Input
-                  type="number"
-                  value={formData.marginPercentNGN}
-                  onChange={(e) => setFormData({ ...formData, marginPercentNGN: e.target.value })}
-                  placeholder="0"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Margin % (USD)</Label>
-                <Input
-                  type="number"
-                  value={formData.marginPercentUSD}
-                  onChange={(e) => setFormData({ ...formData, marginPercentUSD: e.target.value })}
-                  placeholder="0"
-                />
+              <div className="space-y-4 p-4 rounded-lg bg-muted/30">
+                <h4 className="font-medium">US Dollar ($)</h4>
+                <div className="space-y-2">
+                  <Label>Contract/PO Value ($)</Label>
+                  <Input 
+                    type="number" 
+                    value={formData.contractValueUSD} 
+                    onChange={(e) => setFormData({ ...formData, contractValueUSD: e.target.value })} 
+                    placeholder="0" 
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-2">
+                    <Label>Margin %</Label>
+                    <Input 
+                      type="number" 
+                      value={formData.marginPercentUSD} 
+                      onChange={(e) => setFormData({ ...formData, marginPercentUSD: e.target.value })} 
+                      placeholder="0" 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Margin Value ($)</Label>
+                    <Input 
+                      type="number" 
+                      value={formData.contractValueUSD && formData.marginPercentUSD 
+                        ? (parseFloat(formData.contractValueUSD) * parseFloat(formData.marginPercentUSD) / 100).toFixed(2) 
+                        : ''} 
+                      readOnly 
+                      className="bg-muted cursor-not-allowed" 
+                      placeholder="Auto-calculated" 
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           </CardContent>
