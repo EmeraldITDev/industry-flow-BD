@@ -41,6 +41,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     // Don't fetch if not authenticated
     if (!authService.isAuthenticated()) {
       setNotifications([]);
+      setError(null);
       return;
     }
     
@@ -70,25 +71,23 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       previousNotificationsRef.current = currentNotificationIds;
       
       setNotifications(data);
+      setError(null); // Clear any previous errors on success
     } catch (err: any) {
       const status = err.response?.status;
-      // Don't show error for 401, 404, or 500 - gracefully handle these cases
-      if (status === 401 || status === 404 || status === 500) {
+      // Silently handle all expected error cases - don't show errors to user
+      if (status === 401 || status === 404 || status === 500 || status === 403) {
         setNotifications([]);
-        setError(null); // Clear error for expected cases
-        if (status === 500) {
-          console.warn('[NotificationContext] Server error (500) - notifications unavailable');
+        setError(null); // Never show error for these cases
+        // Only log in development
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[NotificationContext] Notifications unavailable:', status);
         }
         return;
       }
-      // Only log error, don't show to user unless it's a critical error
-      console.error('Failed to fetch notifications:', err);
-      // Only set error for non-expected status codes
-      if (status !== 401 && status !== 404 && status !== 500) {
-        setError('Failed to load notifications');
-      } else {
-        setError(null);
-      }
+      // For unexpected errors, log but don't show to user
+      console.error('[NotificationContext] Unexpected error fetching notifications:', err);
+      setNotifications([]);
+      setError(null); // Don't show error to user
     } finally {
       setLoading(false);
     }

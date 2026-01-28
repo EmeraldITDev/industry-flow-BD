@@ -224,21 +224,26 @@ export const projectsService = {
     return response.data;
   },
 
-  // Get project statistics/dashboard data
+  // Get project statistics/dashboard data - USE API ONLY, NO MOCK DATA
   getStats: async (): Promise<ProjectStats> => {
     try {
       const response = await api.get('/api/projects/stats');
-      console.log('[Projects Service] Stats API Response:', response.data);
+      console.log('[Projects Service] Stats API Response (raw):', response.data);
       
       // Handle different response structures: { data: {...} }, { total: {...} }, or direct stats object
       let data = response.data;
       
       // If response has a 'data' property, use it
-      if (data?.data) {
+      if (data?.data && typeof data.data === 'object') {
         data = data.data;
       }
       
-      // Normalize field names (handle both camelCase and snake_case)
+      // Validate we have a valid stats object
+      if (!data || typeof data !== 'object') {
+        throw new Error('Invalid stats response format');
+      }
+      
+      // Normalize field names - API returns camelCase
       const normalized: ProjectStats = {
         total: data?.total ?? data?.totalProjects ?? 0,
         totalProjects: data?.totalProjects ?? data?.total ?? 0,
@@ -246,28 +251,38 @@ export const projectsService = {
         activeProjects: data?.activeProjects ?? data?.active ?? 0,
         completed: data?.completed ?? data?.completedProjects ?? 0,
         completedProjects: data?.completedProjects ?? data?.completed ?? 0,
-        highRisk: data?.highRisk ?? data?.high_risk ?? 0,
-        completedTasks: data?.completedTasks ?? data?.completed_tasks ?? 0,
-        pendingTasks: data?.pendingTasks ?? data?.pending_tasks ?? 0,
-        overdueTasks: data?.overdueTasks ?? data?.overdue_tasks ?? 0,
+        highRisk: data?.highRisk ?? 0,
+        completedTasks: data?.completedTasks ?? 0,
+        pendingTasks: data?.pendingTasks ?? 0,
+        overdueTasks: data?.overdueTasks ?? 0,
         totalValueNgn: data?.totalValueNgn ?? 0,
         totalValueUsd: data?.totalValueUsd ?? 0,
-        averageProgress: data?.averageProgress ?? data?.average_progress ?? 0,
-        byStatus: data?.byStatus ?? data?.by_status ?? {
+        averageProgress: data?.averageProgress ?? 0,
+        byStatus: data?.byStatus ?? {
           active: 0,
           on_hold: 0,
           completed: 0,
           cancelled: 0,
         },
-        byStage: data?.byStage ?? data?.by_stage ?? {},
-        byAssignee: data?.byAssignee ?? data?.by_assignee ?? [],
-        recent: data?.recent ?? [],
+        byStage: data?.byStage ?? {},
+        byAssignee: data?.byAssignee ?? [],
+        recent: Array.isArray(data?.recent) ? data.recent : [],
       };
       
-      console.log('[Projects Service] Normalized Stats:', normalized);
+      console.log('[Projects Service] Normalized Stats (from API):', normalized);
+      console.log('[Projects Service] Stats validation:', {
+        hasTotal: normalized.total > 0 || normalized.totalProjects > 0,
+        hasFinancial: normalized.totalValueNgn > 0 || normalized.totalValueUsd > 0,
+        hasTasks: normalized.completedTasks > 0 || normalized.pendingTasks > 0,
+      });
+      
       return normalized;
-    } catch (error) {
-      console.error('[Projects Service] Error fetching stats:', error);
+    } catch (error: any) {
+      console.error('[Projects Service] Error fetching stats:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+      });
       throw error;
     }
   },
