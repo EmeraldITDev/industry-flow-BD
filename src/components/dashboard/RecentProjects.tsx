@@ -11,18 +11,24 @@ import { ArrowRight, Users, FolderOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCurrency } from '@/context/CurrencyContext';
 
-export function RecentProjects() {
+interface RecentProjectsProps {
+  recentProjects?: Project[];
+}
+
+export function RecentProjects({ recentProjects: propRecentProjects }: RecentProjectsProps = {}) {
   const { formatCurrency, getContractValue, getMarginValue } = useCurrency();
   
+  // Use provided recent projects from stats API, or fetch all projects as fallback
   const { data: projects, isLoading } = useQuery({
     queryKey: ['projects'],
     queryFn: () => projectsService.getAll(),
     staleTime: 5 * 60 * 1000,
+    enabled: !propRecentProjects, // Only fetch if not provided via props
   });
 
-  const recentProjects = (projects || [])
+  const recentProjects = propRecentProjects || ((projects || [])
     .filter((p: Project) => p.status === 'active')
-    .slice(0, 4);
+    .slice(0, 4));
 
   const statusColors = {
     active: 'bg-chart-1/20 text-chart-1',

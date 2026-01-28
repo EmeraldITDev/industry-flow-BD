@@ -136,13 +136,55 @@ export interface Project {
   projectLeadComments?: string;
 }
 
-export interface DashboardStats {
-  totalProjects: number;
-  activeProjects: number;
+export interface ProjectStats {
+  // Primary Statistics
+  total: number;
+  totalProjects: number; // Alias for 'total' (backward compatibility)
+  active: number;
+  activeProjects: number; // Alias for 'active'
+  completed: number;
+  completedProjects: number; // Alias for 'completed'
+  highRisk: number;
+  
+  // Task Statistics
   completedTasks: number;
   pendingTasks: number;
   overdueTasks: number;
+  
+  // Financial Statistics
+  totalValueNgn: number;
+  totalValueUsd: number;
+  
+  // Project Metrics
+  averageProgress: number;
+  
+  // Breakdown Statistics
+  byStatus: {
+    active: number;
+    on_hold: number;
+    completed: number;
+    cancelled: number;
+  };
+  
+  byStage: {
+    [stageName: string]: number;
+  };
+  
+  byAssignee: Array<{
+    assignee: {
+      id: number;
+      name: string;
+      email: string;
+    } | null;
+    count: number;
+  }>;
+  
+  // Recent Projects
+  recent: Project[];
 }
+
+// Backward compatibility alias
+export interface DashboardStats extends ProjectStats {}
 
 // Integration types
 export interface IntegrationConfig {

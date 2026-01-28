@@ -1,5 +1,5 @@
 import api from './api';
-import { Project, PipelineStage, Sector, BusinessSegment, RiskLevel } from '@/types';
+import { Project, PipelineStage, Sector, BusinessSegment, RiskLevel, ProjectStats } from '@/types';
 
 export interface CreateProjectData {
   name: string;
@@ -189,7 +189,7 @@ export const projectsService = {
   },
 
   // Get project statistics/dashboard data
-  getStats: async () => {
+  getStats: async (): Promise<ProjectStats> => {
     const response = await api.get('/api/projects/stats');
     // Handle different response structures: { data: {...} }, { total: {...} }, or direct stats object
     const data = response.data;

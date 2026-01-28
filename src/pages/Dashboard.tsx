@@ -6,70 +6,22 @@ import { TasksSummary } from '@/components/dashboard/TasksSummary';
 import { RevenueAnalytics } from '@/components/dashboard/RevenueAnalytics';
 import { ProjectCalendar } from '@/components/calendar/ProjectCalendar';
 import { projectsService } from '@/services/projects';
-import { tasksService } from '@/services/tasks';
-import { FolderKanban, Activity, CheckCircle, Clock, AlertTriangle, Loader2, DollarSign, TrendingUp, Percent } from 'lucide-react';
+import { FolderKanban, Activity, CheckCircle, Clock, AlertTriangle, Loader2, DollarSign, TrendingUp, Percent, ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useMemo } from 'react';
 import { useCurrency } from '@/context/CurrencyContext';
+import { ProjectStats } from '@/types';
+import { Progress } from '@/components/ui/progress';
 
 export default function Dashboard() {
-  const { currency, formatCurrency, getContractValue, getMarginValue } = useCurrency();
+  const { currency, formatCurrency } = useCurrency();
   
-  // Fetch projects and tasks to compute stats client-side
-  const { data: projects, isLoading: projectsLoading, error: projectsError } = useQuery({
-    queryKey: ['projects'],
-    queryFn: () => projectsService.getAll(),
-    staleTime: 5 * 60 * 1000,
+  // Fetch statistics from API endpoint
+  const { data: stats, isLoading, error } = useQuery<ProjectStats>({
+    queryKey: ['dashboard-stats'],
+    queryFn: () => projectsService.getStats(),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchInterval: 5 * 60 * 1000, // Auto-refresh every 5 minutes
   });
-
-  const { data: tasks, isLoading: tasksLoading, error: tasksError } = useQuery({
-    queryKey: ['all-tasks'],
-    queryFn: () => tasksService.getAll(),
-    staleTime: 5 * 60 * 1000,
-  });
-
-  // Compute stats from actual data
-  const stats = useMemo(() => {
-    const projectList = Array.isArray(projects) ? projects : [];
-    const taskList = Array.isArray(tasks) ? tasks : [];
-    const now = new Date();
-
-    // Financial calculations
-    const wonStages: string[] = ['approval', 'execution', 'closure'];
-    const pipelineStages: string[] = ['initiation', 'qualification', 'proposal', 'negotiation'];
-    
-    // Pipeline Value: Sum of contract values for deals in progress (not won/closed)
-    const pipelineValue = projectList
-      .filter(p => pipelineStages.includes(p.pipelineStage))
-      .reduce((sum, p) => sum + getContractValue(p), 0);
-    
-    // Sales Revenue: Sum of contract values for won/closed deals
-    const salesRevenue = projectList
-      .filter(p => wonStages.includes(p.pipelineStage))
-      .reduce((sum, p) => sum + getContractValue(p), 0);
-    
-    // Total Margin/Commission: Sum of margin values across all projects
-    const totalMargin = projectList
-      .reduce((sum, p) => sum + getMarginValue(p), 0);
-
-    return {
-      totalProjects: projectList.length,
-      activeProjects: projectList.filter(p => p.status === 'active').length,
-      completedTasks: taskList.filter(t => t.status === 'completed').length,
-      pendingTasks: taskList.filter(t => t.status === 'todo' || t.status === 'in-progress' || t.status === 'review').length,
-      overdueTasks: taskList.filter(t => {
-        if (t.status === 'completed') return false;
-        const dueDate = t.dueDate ? new Date(t.dueDate) : null;
-        return dueDate && dueDate < now;
-      }).length,
-      pipelineValue: pipelineValue,
-      salesRevenue: salesRevenue,
-      totalMargin: totalMargin,
-    };
-  }, [projects, tasks, currency, getContractValue, getMarginValue]);
-
-  const isLoading = projectsLoading || tasksLoading;
-  const error = projectsError || tasksError;
 
   if (error) {
     return (
@@ -102,66 +54,79 @@ export default function Dashboard() {
         <div className="flex items-center justify-center py-8">
           <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
         </div>
-      ) : (
+      ) : stats ? (
         <>
-          <div className="grid grid-cols-2 gap-2 sm:gap-4 lg:grid-cols-5">
+          {/* Key Metrics Row */}
+          <div className="grid grid-cols-2 gap-2 sm:gap-4 lg:grid-cols-6">
             <StatCard 
               title="Total Projects" 
-              value={stats.totalProjects} 
+              value={stats.total || stats.totalProjects || 0} 
               icon={FolderKanban}
             />
             <StatCard 
               title="Active Projects" 
-              value={stats.activeProjects} 
+              value={stats.active || stats.activeProjects || 0} 
               icon={Activity}
             />
             <StatCard 
-              title="Completed Tasks" 
-              value={stats.completedTasks} 
+              title="Completed Projects" 
+              value={stats.completed || stats.completedProjects || 0} 
               icon={CheckCircle}
             />
             <StatCard 
-              title="Pending Tasks" 
-              value={stats.pendingTasks} 
-              icon={Clock}
+              title="High Risk Projects" 
+              value={stats.highRisk || 0} 
+              icon={ShieldAlert}
+              className={stats.highRisk > 0 ? "bg-destructive/5 border-destructive/20" : ""}
+            />
+            <StatCard 
+              title="Completed Tasks" 
+              value={stats.completedTasks || 0} 
+              icon={CheckCircle}
             />
             <StatCard 
               title="Overdue Tasks" 
-              value={stats.overdueTasks} 
+              value={stats.overdueTasks || 0} 
               icon={AlertTriangle}
-              className="col-span-2 lg:col-span-1"
+              className={stats.overdueTasks > 0 ? "bg-destructive/5 border-destructive/20" : ""}
             />
           </div>
 
-          {/* Financial Metrics */}
-          <div className="grid grid-cols-1 gap-2 sm:gap-4 md:grid-cols-3">
+          {/* Financial Overview */}
+          <div className="grid grid-cols-1 gap-2 sm:gap-4 md:grid-cols-2">
             <StatCard 
-              title={`Pipeline Value (${currency})`}
-              value={formatCurrency(stats.pipelineValue)} 
-              icon={TrendingUp}
+              title={`Total Revenue (NGN)`}
+              value={formatCurrency(stats.totalValueNgn || 0)} 
+              icon={DollarSign}
               className="bg-primary/5 border-primary/20"
             />
             <StatCard 
-              title={`Sales Revenue (${currency})`}
-              value={formatCurrency(stats.salesRevenue)} 
+              title={`Total Revenue (USD)`}
+              value={formatCurrency(stats.totalValueUsd || 0)} 
               icon={DollarSign}
               className="bg-chart-2/5 border-chart-2/20"
             />
-            <StatCard 
-              title={`Total Margin (${currency})`}
-              value={formatCurrency(stats.totalMargin)} 
-              icon={Percent}
-              className="bg-chart-3/5 border-chart-3/20"
-            />
           </div>
+
+          {/* Average Progress Indicator */}
+          {stats.averageProgress !== undefined && (
+            <div className="bg-card border border-border rounded-lg p-4 sm:p-6">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm sm:text-base font-semibold">Average Project Progress</h3>
+                <span className="text-sm sm:text-base font-medium">{stats.averageProgress.toFixed(1)}%</span>
+              </div>
+              <Progress value={stats.averageProgress} className="h-2 sm:h-3" />
+              <p className="text-xs sm:text-sm text-muted-foreground mt-2">Across all active projects</p>
+            </div>
+          )}
         </>
-      )}
+      ) : null}
 
       <RevenueAnalytics />
 
       <div className="grid grid-cols-1 gap-3 sm:gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-3 sm:space-y-6">
-          <RecentProjects />
+          <RecentProjects recentProjects={stats?.recent} />
           <TasksSummary />
         </div>
         <div className="space-y-3 sm:space-y-6">
