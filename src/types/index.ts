@@ -4,6 +4,7 @@ export type TaskStatus = 'todo' | 'in-progress' | 'review' | 'completed';
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
 export type TeamRole = 'admin' | 'editor' | 'viewer';
 export type RiskLevel = 'low' | 'medium' | 'high' | 'critical';
+export type DealProbability = 'low' | 'medium' | 'high' | 'critical';
 
 // Pipeline stages for deal progression
 export type PipelineStage = 
@@ -101,7 +102,7 @@ export interface Project {
   tasks: Task[];
   budget?: number;
   spentBudget?: number;
-  dealProbability?: DealProbability;
+  dealProbability?: RiskLevel;
   clientName?: string;
   clientContact?: string;
   milestones?: Milestone[];

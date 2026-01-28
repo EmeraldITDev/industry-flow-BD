@@ -21,7 +21,7 @@ import { CalendarIcon, Plus, X, AlertTriangle, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { sectors, businessSegments } from '@/data/mockData';
-import { Sector, DealProbability, Milestone, PipelineStage, BusinessSegment, PIPELINE_STAGES, ProjectDocument, TeamMember } from '@/types';
+import { Sector, RiskLevel, Milestone, PipelineStage, BusinessSegment, PIPELINE_STAGES, ProjectDocument, TeamMember } from '@/types';
 import { toast } from 'sonner';
 import { PipelineStageSelector } from '@/components/projects/PipelineStageSelector';
 import { DocumentManager } from '@/components/projects/DocumentManager';
@@ -29,7 +29,7 @@ import { projectsService } from '@/services/projects';
 import { teamService } from '@/services/team';
 import { useAuth } from '@/context/AuthContext';
 
-const dealProbabilities: { value: DealProbability; label: string; color: string }[] = [
+const dealProbabilities: { value: RiskLevel; label: string; color: string }[] = [
   { value: 'low', label: 'Low', color: 'bg-chart-2/20 text-chart-2' },
   { value: 'medium', label: 'Medium', color: 'bg-chart-4/20 text-chart-4' },
   { value: 'high', label: 'High', color: 'bg-chart-3/20 text-chart-3' },
@@ -61,7 +61,7 @@ export default function NewProject() {
     status: 'active' as 'active' | 'on-hold' | 'completed',
     startDate: undefined as Date | undefined,
     endDate: undefined as Date | undefined,
-    dealProbability: 'low' as DealProbability,
+    dealProbability: 'low' as RiskLevel,
     teamMemberIds: [] as string[],
     // Pipeline fields
     pipelineStage: 'initiation' as PipelineStage,
@@ -434,7 +434,7 @@ export default function NewProject() {
             </div>
             <div className="space-y-2">
               <Label>Deal Probability</Label>
-              <Select value={formData.dealProbability} onValueChange={(value: DealProbability) => setFormData({ ...formData, dealProbability: value })}>
+              <Select value={formData.dealProbability} onValueChange={(value: RiskLevel) => setFormData({ ...formData, dealProbability: value })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {dealProbabilities.map((level) => (

@@ -59,7 +59,7 @@ import { Link, useNavigate } from 'react-router-dom';
 
 const SYSTEM_ROLES: { value: SystemRole; label: string; description: string }[] = [
   { value: 'admin', label: 'Admin', description: 'Full system access' },
-  { value: 'project_manager', label: 'Editor', description: 'Edit projects and tasks' },
+  { value: 'editor', label: 'Editor', description: 'Edit projects and tasks' },
   { value: 'viewer', label: 'Viewer', description: 'Read-only access' },
 ];
 
@@ -149,7 +149,7 @@ export default function Team() {
   const getTeamRoleFromSystemRole = (systemRole: SystemRole): TeamRole => {
     switch (systemRole) {
       case 'admin': return 'admin';
-      case 'project_manager': return 'editor';
+      case 'editor': return 'editor';
       case 'viewer': return 'viewer';
       default: return 'viewer';
     }

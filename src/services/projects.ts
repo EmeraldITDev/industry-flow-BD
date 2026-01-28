@@ -1,5 +1,5 @@
 import api from './api';
-import { Project, PipelineStage, Sector, BusinessSegment } from '@/types';
+import { Project, PipelineStage, Sector, BusinessSegment, RiskLevel } from '@/types';
 
 export interface CreateProjectData {
   name: string;
@@ -29,6 +29,7 @@ export interface CreateProjectData {
   marginValueNGN?: number;
   marginValueUSD?: number;
   projectLeadComments?: string;
+  dealProbability?: RiskLevel;
 }
 
 export interface UpdateProjectData extends Partial<CreateProjectData> {
@@ -49,24 +50,26 @@ export interface ProjectFilters {
 
 // Normalize project data from backend (handle both snake_case and camelCase)
 const normalizeProject = (project: any): Project => {
+  // Extract financial values from both snake_case and camelCase
+  const contractValueNGN = project.contract_value_ngn ?? project.contractValueNGN ?? 0;
+  const contractValueUSD = project.contract_value_usd ?? project.contractValueUSD ?? 0;
+  const marginPercentNGN = project.margin_percent_ngn ?? project.marginPercentNGN ?? 0;
+  const marginPercentUSD = project.margin_percent_usd ?? project.marginPercentUSD ?? 0;
+  
+  // Calculate margin values if not provided
+  const marginValueNGN = project.margin_value_ngn ?? project.marginValueNGN ?? 
+    (contractValueNGN && marginPercentNGN ? (contractValueNGN * marginPercentNGN / 100) : 0);
+  const marginValueUSD = project.margin_value_usd ?? project.marginValueUSD ?? 
+    (contractValueUSD && marginPercentUSD ? (contractValueUSD * marginPercentUSD / 100) : 0);
+
   return {
     ...project,
-    contractValueNGN: project.contract_value_ngn ?? project.contractValueNGN,
-    contractValueUSD: project.contract_value_usd ?? project.contractValueUSD,
-    marginPercentNGN: project.margin_percent_ngn ?? project.marginPercentNGN,
-    marginPercentUSD: project.margin_percent_usd ?? project.marginPercentUSD,
-    marginValueNGN: project.margin_value_ngn ?? project.marginValueNGN ?? 
-      (project.contract_value_ngn && project.margin_percent_ngn 
-        ? (project.contract_value_ngn * project.margin_percent_ngn / 100) 
-        : project.contractValueNGN && project.marginPercentNGN 
-          ? (project.contractValueNGN * project.marginPercentNGN / 100) 
-          : undefined),
-    marginValueUSD: project.margin_value_usd ?? project.marginValueUSD ?? 
-      (project.contract_value_usd && project.margin_percent_usd 
-        ? (project.contract_value_usd * project.margin_percent_usd / 100) 
-        : project.contractValueUSD && project.marginPercentUSD 
-          ? (project.contractValueUSD * project.marginPercentUSD / 100) 
-          : undefined),
+    contractValueNGN,
+    contractValueUSD,
+    marginPercentNGN,
+    marginPercentUSD,
+    marginValueNGN,
+    marginValueUSD,
   };
 };
 
