@@ -57,16 +57,33 @@ export const RevenueAnalytics = () => {
   }, [projects, filter]);
 
   const revenueByProject = useMemo(() => {
-    return filteredProjects.map((p: Project) => ({
-      id: p.id,
-      name: p.name,
-      client: p.clientName || 'N/A',
-      sector: p.sector,
-      segment: p.businessSegment || 'N/A',
-      stage: p.pipelineStage,
-      revenue: getContractValue(p),
-      margin: getMarginValue(p),
-    })).sort((a, b) => b.revenue - a.revenue);
+    return filteredProjects.map((p: Project) => {
+      const revenue = getContractValue(p);
+      const margin = getMarginValue(p);
+      
+      // Debug logging for zero values
+      if (revenue === 0 && (p.contractValueNGN || p.contractValueUSD)) {
+        console.log('[RevenueAnalytics] Project has financial data but showing zero:', {
+          projectId: p.id,
+          projectName: p.name,
+          contractValueNGN: p.contractValueNGN,
+          contractValueUSD: p.contractValueUSD,
+          currency,
+          calculatedRevenue: revenue,
+        });
+      }
+      
+      return {
+        id: p.id,
+        name: p.name,
+        client: p.clientName || 'N/A',
+        sector: p.sector,
+        segment: p.businessSegment || 'N/A',
+        stage: p.pipelineStage,
+        revenue,
+        margin,
+      };
+    }).sort((a, b) => b.revenue - a.revenue);
   }, [filteredProjects, currency, getContractValue, getMarginValue]);
 
   const revenueByTeamMember = useMemo(() => {

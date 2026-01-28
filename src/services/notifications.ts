@@ -25,18 +25,20 @@ export const notificationsService = {
       console.log('[Notifications] Fetched notifications:', normalized.length);
       return normalized;
     } catch (error: any) {
-      if (error.response?.status === 401) {
-        // User not logged in - this is expected, don't throw
-        console.log('[Notifications] Not authenticated, skipping notifications');
+      if (error.response?.status === 401 || error.response?.status === 404) {
+        // User not logged in or endpoint doesn't exist - this is expected, don't throw
+        console.log('[Notifications] Not authenticated or endpoint not found, skipping notifications');
         return [];
       }
+      // Log error but don't throw - gracefully handle network errors
       console.error('[Notifications] Error fetching notifications:', {
         status: error.response?.status,
         statusText: error.response?.statusText,
         message: error.message,
         url: error.config?.url,
       });
-      throw error;
+      // Return empty array instead of throwing to prevent UI errors
+      return [];
     }
   },
 
