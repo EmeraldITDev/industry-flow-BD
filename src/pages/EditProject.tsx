@@ -76,35 +76,64 @@ export default function EditProject() {
   // Populate form when project data loads
   useEffect(() => {
     if (projectData) {
-      const data: any = (projectData as any)?.data || projectData;
+      // The projectsService.getById already normalizes data - use it directly
+      const data = projectData;
+      
+      // Helper to safely parse dates
+      const parseDate = (dateStr: string | null | undefined): Date | undefined => {
+        if (!dateStr) return undefined;
+        try {
+          return parseISO(dateStr);
+        } catch {
+          return undefined;
+        }
+      };
+      
+      // Helper to get financial value as string for form input
+      // Preserves 0 as "0", converts to "" only if null/undefined
+      const getFinancialStr = (value: number | string | null | undefined): string => {
+        if (value == null) return '';
+        if (typeof value === 'number') {
+          return value > 0 ? String(value) : '';
+        }
+        return String(value);
+      };
+      
+      console.log('[EditProject] Loading project data:', {
+        projectId: data.id,
+        contractValueNGN: data.contractValueNGN,
+        contractValueUSD: data.contractValueUSD,
+        marginPercentNGN: data.marginPercentNGN,
+        marginPercentUSD: data.marginPercentUSD,
+      });
+      
       setFormData({
         name: data.name || '',
         description: data.description || '',
         sector: data.sector || '',
         status: data.status || 'active',
-        startDate: data.start_date || data.startDate ? parseISO(data.start_date || data.startDate) : undefined,
-        endDate: data.end_date || data.endDate ? parseISO(data.end_date || data.endDate) : undefined,
-        dealProbability: (data.deal_probability || data.dealProbability || data.risk_level || data.riskLevel || 'low') as RiskLevel,
-        pipelineStage: (data.pipeline_stage || data.pipelineStage || 'initiation') as PipelineStage,
-        pipelineIntakeDate: data.pipeline_intake_date || data.pipelineIntakeDate ? parseISO(data.pipeline_intake_date || data.pipelineIntakeDate) : undefined,
-        clientName: data.client_name || data.clientName || '',
-        clientContact: data.client_contact || data.clientContact || '',
+        startDate: parseDate(data.startDate),
+        endDate: parseDate(data.endDate),
+        dealProbability: (data.dealProbability || 'low') as RiskLevel,
+        pipelineStage: (data.pipelineStage || 'initiation') as PipelineStage,
+        pipelineIntakeDate: parseDate(data.pipelineIntakeDate),
+        clientName: data.clientName || '',
+        clientContact: data.clientContact || '',
         oem: data.oem || '',
         location: data.location || '',
-        expectedCloseDate: data.expected_close_date || data.expectedCloseDate ? parseISO(data.expected_close_date || data.expectedCloseDate) : undefined,
-        businessSegment: (data.business_segment || data.businessSegment || '') as BusinessSegment | '',
+        expectedCloseDate: parseDate(data.expectedCloseDate),
+        businessSegment: (data.businessSegment || '') as BusinessSegment | '',
         product: data.product || '',
-        subProduct: data.sub_product || data.subProduct || '',
-        projectLeadId: String(data.project_lead_id || data.projectLeadId || ''),
-        assigneeId: String(data.assignee_id || data.assigneeId || ''),
-        channelPartner: data.channel_partner || data.channelPartner || '',
-        // API returns camelCase format - convert to string for form inputs
-        // Only set to empty string if null/undefined, preserve 0 as valid value
-        contractValueNGN: data.contractValueNGN != null ? String(data.contractValueNGN) : '',
-        contractValueUSD: data.contractValueUSD != null ? String(data.contractValueUSD) : '',
-        marginPercentNGN: data.marginPercentNGN != null ? String(data.marginPercentNGN) : '',
-        marginPercentUSD: data.marginPercentUSD != null ? String(data.marginPercentUSD) : '',
-        projectLeadComments: data.project_lead_comments || data.projectLeadComments || '',
+        subProduct: data.subProduct || '',
+        projectLeadId: data.projectLeadId ? String(data.projectLeadId) : '',
+        assigneeId: data.assigneeId ? String(data.assigneeId) : '',
+        channelPartner: data.channelPartner || '',
+        // Financial fields - normalized by projectsService, convert to string for form
+        contractValueNGN: getFinancialStr(data.contractValueNGN),
+        contractValueUSD: getFinancialStr(data.contractValueUSD),
+        marginPercentNGN: getFinancialStr(data.marginPercentNGN),
+        marginPercentUSD: getFinancialStr(data.marginPercentUSD),
+        projectLeadComments: data.projectLeadComments || '',
       });
     }
   }, [projectData]);

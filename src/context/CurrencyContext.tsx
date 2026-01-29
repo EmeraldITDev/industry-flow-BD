@@ -30,8 +30,8 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
   };
 
   const formatCurrency = useCallback((value: number): string => {
-    if (!value || value === 0) return currency === 'NGN' ? '₦0' : '$0';
     const symbol = currency === 'NGN' ? '₦' : '$';
+    if (!value || value === 0) return `${symbol}0`;
     if (value >= 1000000) return `${symbol}${(value / 1000000).toFixed(1)}M`;
     if (value >= 1000) return `${symbol}${(value / 1000).toFixed(0)}K`;
     return `${symbol}${value.toLocaleString()}`;

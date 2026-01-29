@@ -2,7 +2,7 @@ import { ReactNode, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from './AppSidebar';
-import { Search, LogOut, User, Settings, DollarSign } from 'lucide-react';
+import { Search, LogOut, User, Settings } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { NotificationCenter } from '@/components/notifications/NotificationCenter';
@@ -74,7 +74,9 @@ export function AppLayout({ children }: AppLayoutProps) {
                 className="h-8 px-3 text-xs sm:text-sm gap-1.5 sm:gap-2"
                 title={`Switch to ${currency === 'USD' ? 'NGN' : 'USD'}`}
               >
-                <DollarSign className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span className="w-3.5 h-3.5 sm:w-4 sm:h-4 font-bold text-center">
+                  {currency === 'NGN' ? '₦' : '$'}
+                </span>
                 <span className="font-medium">{currency}</span>
               </Button>
               <ThemeToggle />
