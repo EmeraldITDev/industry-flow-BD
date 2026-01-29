@@ -37,8 +37,7 @@ export default function MailNotificationSettings() {
     
     setIsSaving(true);
     try {
-      // Call backend to update config
-      await fetch('/api/mail/config', {
+      const response = await fetch('/api/mail/config', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -47,11 +46,23 @@ export default function MailNotificationSettings() {
         body: JSON.stringify(formData),
       });
       
-      setConfig(formData);
-      toast.success('Mail settings saved successfully');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `HTTP ${response.status}: Failed to save mail config`);
+      }
+      
+      const savedData = await response.json();
+      
+      // Update config with what was actually saved
+      const savedConfig = savedData.data ?? savedData;
+      setConfig(savedConfig);
+      setFormData(savedConfig);
+      
+      console.log('[MailNotificationSettings] Config saved successfully:', savedConfig);
+      toast.success('Mail settings saved successfully!');
     } catch (error: any) {
       console.error('Failed to save mail config:', error);
-      toast.error('Failed to save mail settings');
+      toast.error(error.message || 'Failed to save mail settings. Please check the backend.');
     } finally {
       setIsSaving(false);
     }
