@@ -161,8 +161,8 @@ export default function Dashboard() {
               const displayTotalNGN = (stats?.totalValueNgn ?? computedTotals.totalNGN) || 0;
               const displayTotalUSD = (stats?.totalValueUsd ?? computedTotals.totalUSD) || 0;
 
-              // Debug: log per-project contributions so we can spot mismatches
-              console.log('[Dashboard] Computed totals breakdown:', {
+              // Keep debug logging for diagnostics but show only computed totals in the UI
+              console.log('[Dashboard] Computed totals breakdown (displaying computed only):', {
                 computedTotals,
                 apiTotals: { totalValueNgn: stats?.totalValueNgn, totalValueUsd: stats?.totalValueUsd },
                 sampleProjects: (projectsList || []).slice(0, 6).map(p => ({ id: p.id, name: p.name, contractValueNGN: p.contractValueNGN, contractValueUSD: p.contractValueUSD }))
@@ -172,20 +172,14 @@ export default function Dashboard() {
                 <>
                   <StatCard 
                     title={`Total Revenue (NGN)`}
-                    value={<>
-                      <div>{formatCurrencyFor(displayTotalNGN, 'NGN')}</div>
-                      <div className="text-[11px] text-muted-foreground mt-1">API: {formatCurrencyFor(stats?.totalValueNgn ?? 0, 'NGN')} • Computed: {formatCurrencyFor(computedTotals.totalNGN, 'NGN')}</div>
-                    </>}
+                    value={formatCurrencyFor(computedTotals.totalNGN, 'NGN')}
                     icon={DollarSign}
                     className="bg-primary/5 border-primary/20"
                   />
 
                   <StatCard 
                     title={`Total Revenue (USD)`}
-                    value={<>
-                      <div>{formatCurrencyFor(displayTotalUSD, 'USD')}</div>
-                      <div className="text-[11px] text-muted-foreground mt-1">API: {formatCurrencyFor(stats?.totalValueUsd ?? 0, 'USD')} • Computed: {formatCurrencyFor(computedTotals.totalUSD, 'USD')}</div>
-                    </>}
+                    value={formatCurrencyFor(computedTotals.totalUSD, 'USD')}
                     icon={DollarSign}
                     className="bg-chart-2/5 border-chart-2/20"
                   />
