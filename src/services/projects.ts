@@ -261,11 +261,11 @@ export const projectsService = {
   // Update project
   update: async (id: string, data: UpdateProjectData): Promise<Project> => {
     // Build request: keep contract/margin fields explicit (no filtering) so backend can overwrite previous values
-    const requestData = { ...data };
-    
+    const requestData: Record<string, any> = { ...data };
+
     // Explicitly include financial fields even if undefined (backend should treat as null/clear)
     const financialKeys = ['contractValueNGN', 'contractValueUSD', 'marginPercentNGN', 'marginPercentUSD', 'marginValueNGN', 'marginValueUSD'];
-    
+
     // Remove undefined from non-financial fields, but keep financials explicit
     Object.keys(requestData).forEach(key => {
       if (requestData[key] === undefined && !financialKeys.includes(key)) {
@@ -279,13 +279,43 @@ export const projectsService = {
         requestData[key] = null;
       }
     });
-    
+
+    // Add snake_case aliases for backends expecting snake_case keys
+    const snakeCaseMap: Record<string, string> = {
+      contractValueNGN: 'contract_value_ngn',
+      contractValueUSD: 'contract_value_usd',
+      marginPercentNGN: 'margin_percent_ngn',
+      marginPercentUSD: 'margin_percent_usd',
+      marginValueNGN: 'margin_value_ngn',
+      marginValueUSD: 'margin_value_usd',
+      clientName: 'client_name',
+      clientContact: 'client_contact',
+      startDate: 'start_date',
+      endDate: 'end_date',
+      pipelineStage: 'pipeline_stage',
+      pipelineIntakeDate: 'pipeline_intake_date',
+      expectedCloseDate: 'expected_close_date',
+      businessSegment: 'business_segment',
+      subProduct: 'sub_product',
+      projectLeadId: 'project_lead_id',
+      assigneeId: 'assignee_id',
+      channelPartner: 'channel_partner',
+      projectLeadComments: 'project_lead_comments',
+      dealProbability: 'deal_probability',
+    };
+
+    Object.entries(snakeCaseMap).forEach(([camelKey, snakeKey]) => {
+      if (camelKey in requestData) {
+        requestData[snakeKey] = requestData[camelKey];
+      }
+    });
+
     // Log full payload being sent for debugging
     console.log('[Projects Service] Update request payload:', {
       projectId: id,
       ...requestData,
     });
-    
+
     const response = await api.put(`/api/projects/${id}`, requestData);
     return normalizeProject(response.data?.data ?? response.data);
   },
