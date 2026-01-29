@@ -3,8 +3,8 @@ export type Sector = 'EMR_OGP' | 'EMR_MFG' | 'EMR_Services' | 'BEDS_Services' | 
 export type TaskStatus = 'todo' | 'in-progress' | 'review' | 'completed';
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
 export type TeamRole = 'admin' | 'editor' | 'viewer';
-export type RiskLevel = 'low' | 'medium' | 'high' | 'critical';
-export type DealProbability = 'low' | 'medium' | 'high' | 'critical';
+export type RiskLevel = 'low' | 'medium' | 'high' | 'critical' | 'uncertain';
+export type DealProbability = 'low' | 'medium' | 'high' | 'critical' | 'uncertain';
 
 // Pipeline stages for deal progression
 export type PipelineStage = 

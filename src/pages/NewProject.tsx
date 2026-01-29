@@ -35,6 +35,7 @@ const dealProbabilities: { value: RiskLevel; label: string; color: string }[] = 
   { value: 'medium', label: 'Medium', color: 'bg-chart-4/20 text-chart-4' },
   { value: 'high', label: 'High', color: 'bg-chart-3/20 text-chart-3' },
   { value: 'critical', label: 'Critical', color: 'bg-destructive/20 text-destructive' },
+  { value: 'uncertain', label: 'Uncertain', color: 'bg-muted/50 text-muted-foreground' },
 ];
 
 export default function NewProject() {

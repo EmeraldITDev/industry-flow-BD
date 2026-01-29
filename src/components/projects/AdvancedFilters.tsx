@@ -31,7 +31,7 @@ export interface FilterState {
   oem: string;
   location: string;
   channelPartner: string;
-  dealProbability: 'all' | 'low' | 'medium' | 'high' | 'critical';
+  dealProbability: 'all' | 'low' | 'medium' | 'high' | 'critical' | 'uncertain';
   dateFrom?: Date;
   dateTo?: Date;
   minContractValue?: number;
@@ -274,6 +274,7 @@ export function AdvancedFilters({ filters, onFiltersChange }: AdvancedFiltersPro
                         <SelectItem value="medium">Medium</SelectItem>
                         <SelectItem value="high">High</SelectItem>
                         <SelectItem value="critical">Critical</SelectItem>
+                        <SelectItem value="uncertain">Uncertain</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
