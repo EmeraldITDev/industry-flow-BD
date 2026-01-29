@@ -30,7 +30,7 @@ export default function EditProject() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   // Fetch project data
   const { data: projectData, isLoading: isLoadingProject } = useQuery({
     queryKey: ['project', id],
@@ -94,54 +94,49 @@ export default function EditProject() {
 
   // Populate form when project data loads
   useEffect(() => {
-    console.log('[EditProject] useEffect triggered, projectData:', projectData);
-    
-    if (projectData && projectData.id) {
-      const data = projectData;
-      
-      console.log('[EditProject] Loading project data into form:', {
-        projectId: data.id,
-        name: data.name,
-        sector: data.sector,
-        startDate: data.startDate,
-        pipelineStage: data.pipelineStage,
-        contractValueNGN: data.contractValueNGN,
-        contractValueUSD: data.contractValueUSD,
-      });
-      
-      setFormData({
-        name: data.name || '',
-        description: data.description || '',
-        sector: (data.sector || '') as Sector | '',
-        status: data.status || 'active',
-        startDate: parseDate(data.startDate),
-        endDate: parseDate(data.endDate),
-        dealProbability: (data.dealProbability || 'low') as RiskLevel,
-        pipelineStage: (data.pipelineStage || 'initiation') as PipelineStage,
-        pipelineIntakeDate: parseDate(data.pipelineIntakeDate),
-        clientName: data.clientName || '',
-        clientContact: data.clientContact || '',
-        oem: data.oem || '',
-        location: data.location || '',
-        expectedCloseDate: parseDate(data.expectedCloseDate),
-        businessSegment: (data.businessSegment || '') as BusinessSegment | '',
-        product: data.product || '',
-        subProduct: data.subProduct || '',
-        projectLeadId: data.projectLeadId ? String(data.projectLeadId) : '',
-        assigneeId: data.assigneeId ? String(data.assigneeId) : '',
-        channelPartner: data.channelPartner || '',
-        contractValueNGN: getFinancialStr(data.contractValueNGN),
-        contractValueUSD: getFinancialStr(data.contractValueUSD),
-        marginPercentNGN: getFinancialStr(data.marginPercentNGN),
-        marginPercentUSD: getFinancialStr(data.marginPercentUSD),
-        projectLeadComments: data.projectLeadComments || '',
-      });
-    }
+    if (!projectData) return;
+
+    const data = projectData as any;
+
+    setFormData({
+      name: data.name ?? '',
+      description: data.description ?? '',
+      sector: data.sector ?? '',
+      status: data.status ?? 'active',
+
+      startDate: data.start_date ? parseISO(data.start_date) : undefined,
+      endDate: data.end_date ? parseISO(data.end_date) : undefined,
+      pipelineIntakeDate: data.pipeline_intake_date ? parseISO(data.pipeline_intake_date) : undefined,
+      expectedCloseDate: data.expected_close_date ? parseISO(data.expected_close_date) : undefined,
+
+      dealProbability: (data.risk_level ?? 'low') as RiskLevel,
+      pipelineStage: (data.pipeline_stage ?? 'initiation') as PipelineStage,
+
+      clientName: data.client_name ?? '',
+      clientContact: data.client_contact ?? '',
+      oem: data.oem ?? '',
+      location: data.location ?? '',
+      businessSegment: (data.business_segment ?? '') as BusinessSegment | '',
+      product: data.product ?? '',
+      subProduct: data.sub_product ?? '',
+
+      projectLeadId: String(data.project_lead_id ?? ''),
+      assigneeId: String(data.assignee_id ?? ''),
+      channelPartner: data.channel_partner ?? '',
+
+      contractValueNGN: data.contract_value_ngn != null ? String(data.contract_value_ngn) : '',
+      contractValueUSD: data.contract_value_usd != null ? String(data.contract_value_usd) : '',
+      marginPercentNGN: data.margin_percent_ngn != null ? String(data.margin_percent_ngn) : '',
+      marginPercentUSD: data.margin_percent_usd != null ? String(data.margin_percent_usd) : '',
+
+      projectLeadComments: data.project_lead_comments ?? '',
+    });
   }, [projectData]);
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.name || !formData.description || !formData.sector || !formData.startDate || !id) {
       toast.error('Please fill in all required fields');
       return;
@@ -170,26 +165,26 @@ export default function EditProject() {
         assigneeId: formData.assigneeId || undefined,
         channelPartner: formData.channelPartner || undefined,
         // Convert string values to numbers, send undefined if empty
-        contractValueNGN: formData.contractValueNGN && formData.contractValueNGN.trim() !== '' 
-          ? parseFloat(formData.contractValueNGN) 
+        contractValueNGN: formData.contractValueNGN && formData.contractValueNGN.trim() !== ''
+          ? parseFloat(formData.contractValueNGN)
           : undefined,
-        contractValueUSD: formData.contractValueUSD && formData.contractValueUSD.trim() !== '' 
-          ? parseFloat(formData.contractValueUSD) 
+        contractValueUSD: formData.contractValueUSD && formData.contractValueUSD.trim() !== ''
+          ? parseFloat(formData.contractValueUSD)
           : undefined,
-        marginPercentNGN: formData.marginPercentNGN && formData.marginPercentNGN.trim() !== '' 
-          ? parseFloat(formData.marginPercentNGN) 
+        marginPercentNGN: formData.marginPercentNGN && formData.marginPercentNGN.trim() !== ''
+          ? parseFloat(formData.marginPercentNGN)
           : undefined,
-        marginPercentUSD: formData.marginPercentUSD && formData.marginPercentUSD.trim() !== '' 
-          ? parseFloat(formData.marginPercentUSD) 
+        marginPercentUSD: formData.marginPercentUSD && formData.marginPercentUSD.trim() !== ''
+          ? parseFloat(formData.marginPercentUSD)
           : undefined,
         // Calculate margin values if both contract value and margin percent are provided
-        marginValueNGN: formData.contractValueNGN && formData.marginPercentNGN && 
-                        formData.contractValueNGN.trim() !== '' && formData.marginPercentNGN.trim() !== ''
-          ? (parseFloat(formData.contractValueNGN) * parseFloat(formData.marginPercentNGN) / 100) 
+        marginValueNGN: formData.contractValueNGN && formData.marginPercentNGN &&
+          formData.contractValueNGN.trim() !== '' && formData.marginPercentNGN.trim() !== ''
+          ? (parseFloat(formData.contractValueNGN) * parseFloat(formData.marginPercentNGN) / 100)
           : undefined,
-        marginValueUSD: formData.contractValueUSD && formData.marginPercentUSD && 
-                        formData.contractValueUSD.trim() !== '' && formData.marginPercentUSD.trim() !== ''
-          ? (parseFloat(formData.contractValueUSD) * parseFloat(formData.marginPercentUSD) / 100) 
+        marginValueUSD: formData.contractValueUSD && formData.marginPercentUSD &&
+          formData.contractValueUSD.trim() !== '' && formData.marginPercentUSD.trim() !== ''
+          ? (parseFloat(formData.contractValueUSD) * parseFloat(formData.marginPercentUSD) / 100)
           : undefined,
         projectLeadComments: formData.projectLeadComments || undefined,
         dealProbability: formData.dealProbability,
@@ -522,33 +517,33 @@ export default function EditProject() {
                 <h4 className="font-medium">Naira (₦)</h4>
                 <div className="space-y-2">
                   <Label>Contract/PO Value (₦)</Label>
-                  <Input 
-                    type="number" 
-                    value={formData.contractValueNGN} 
-                    onChange={(e) => setFormData({ ...formData, contractValueNGN: e.target.value })} 
-                    placeholder="0" 
+                  <Input
+                    type="number"
+                    value={formData.contractValueNGN}
+                    onChange={(e) => setFormData({ ...formData, contractValueNGN: e.target.value })}
+                    placeholder="0"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div className="space-y-2">
                     <Label>Margin %</Label>
-                    <Input 
-                      type="number" 
-                      value={formData.marginPercentNGN} 
-                      onChange={(e) => setFormData({ ...formData, marginPercentNGN: e.target.value })} 
-                      placeholder="0" 
+                    <Input
+                      type="number"
+                      value={formData.marginPercentNGN}
+                      onChange={(e) => setFormData({ ...formData, marginPercentNGN: e.target.value })}
+                      placeholder="0"
                     />
                   </div>
                   <div className="space-y-2">
                     <Label>Margin Value (₦)</Label>
-                    <Input 
-                      type="number" 
-                      value={formData.contractValueNGN && formData.marginPercentNGN 
-                        ? (parseFloat(formData.contractValueNGN) * parseFloat(formData.marginPercentNGN) / 100).toFixed(2) 
-                        : ''} 
-                      readOnly 
-                      className="bg-muted cursor-not-allowed" 
-                      placeholder="Auto-calculated" 
+                    <Input
+                      type="number"
+                      value={formData.contractValueNGN && formData.marginPercentNGN
+                        ? (parseFloat(formData.contractValueNGN) * parseFloat(formData.marginPercentNGN) / 100).toFixed(2)
+                        : ''}
+                      readOnly
+                      className="bg-muted cursor-not-allowed"
+                      placeholder="Auto-calculated"
                     />
                   </div>
                 </div>
@@ -557,33 +552,33 @@ export default function EditProject() {
                 <h4 className="font-medium">US Dollar ($)</h4>
                 <div className="space-y-2">
                   <Label>Contract/PO Value ($)</Label>
-                  <Input 
-                    type="number" 
-                    value={formData.contractValueUSD} 
-                    onChange={(e) => setFormData({ ...formData, contractValueUSD: e.target.value })} 
-                    placeholder="0" 
+                  <Input
+                    type="number"
+                    value={formData.contractValueUSD}
+                    onChange={(e) => setFormData({ ...formData, contractValueUSD: e.target.value })}
+                    placeholder="0"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div className="space-y-2">
                     <Label>Margin %</Label>
-                    <Input 
-                      type="number" 
-                      value={formData.marginPercentUSD} 
-                      onChange={(e) => setFormData({ ...formData, marginPercentUSD: e.target.value })} 
-                      placeholder="0" 
+                    <Input
+                      type="number"
+                      value={formData.marginPercentUSD}
+                      onChange={(e) => setFormData({ ...formData, marginPercentUSD: e.target.value })}
+                      placeholder="0"
                     />
                   </div>
                   <div className="space-y-2">
                     <Label>Margin Value ($)</Label>
-                    <Input 
-                      type="number" 
-                      value={formData.contractValueUSD && formData.marginPercentUSD 
-                        ? (parseFloat(formData.contractValueUSD) * parseFloat(formData.marginPercentUSD) / 100).toFixed(2) 
-                        : ''} 
-                      readOnly 
-                      className="bg-muted cursor-not-allowed" 
-                      placeholder="Auto-calculated" 
+                    <Input
+                      type="number"
+                      value={formData.contractValueUSD && formData.marginPercentUSD
+                        ? (parseFloat(formData.contractValueUSD) * parseFloat(formData.marginPercentUSD) / 100).toFixed(2)
+                        : ''}
+                      readOnly
+                      className="bg-muted cursor-not-allowed"
+                      placeholder="Auto-calculated"
                     />
                   </div>
                 </div>
