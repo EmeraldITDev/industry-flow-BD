@@ -73,44 +73,46 @@ export default function EditProject() {
     projectLeadComments: '',
   });
 
+  // Helper to safely parse dates
+  const parseDate = (dateStr: string | null | undefined): Date | undefined => {
+    if (!dateStr) return undefined;
+    try {
+      return parseISO(dateStr);
+    } catch {
+      return undefined;
+    }
+  };
+
+  // Helper to get financial value as string for form input
+  const getFinancialStr = (value: number | string | null | undefined): string => {
+    if (value == null) return '';
+    if (typeof value === 'number') {
+      return value > 0 ? String(value) : '';
+    }
+    return String(value);
+  };
+
   // Populate form when project data loads
   useEffect(() => {
-    if (projectData) {
-      // The projectsService.getById already normalizes data - use it directly
+    console.log('[EditProject] useEffect triggered, projectData:', projectData);
+    
+    if (projectData && projectData.id) {
       const data = projectData;
       
-      // Helper to safely parse dates
-      const parseDate = (dateStr: string | null | undefined): Date | undefined => {
-        if (!dateStr) return undefined;
-        try {
-          return parseISO(dateStr);
-        } catch {
-          return undefined;
-        }
-      };
-      
-      // Helper to get financial value as string for form input
-      // Preserves 0 as "0", converts to "" only if null/undefined
-      const getFinancialStr = (value: number | string | null | undefined): string => {
-        if (value == null) return '';
-        if (typeof value === 'number') {
-          return value > 0 ? String(value) : '';
-        }
-        return String(value);
-      };
-      
-      console.log('[EditProject] Loading project data:', {
+      console.log('[EditProject] Loading project data into form:', {
         projectId: data.id,
+        name: data.name,
+        sector: data.sector,
+        startDate: data.startDate,
+        pipelineStage: data.pipelineStage,
         contractValueNGN: data.contractValueNGN,
         contractValueUSD: data.contractValueUSD,
-        marginPercentNGN: data.marginPercentNGN,
-        marginPercentUSD: data.marginPercentUSD,
       });
       
       setFormData({
         name: data.name || '',
         description: data.description || '',
-        sector: data.sector || '',
+        sector: (data.sector || '') as Sector | '',
         status: data.status || 'active',
         startDate: parseDate(data.startDate),
         endDate: parseDate(data.endDate),
@@ -128,7 +130,6 @@ export default function EditProject() {
         projectLeadId: data.projectLeadId ? String(data.projectLeadId) : '',
         assigneeId: data.assigneeId ? String(data.assigneeId) : '',
         channelPartner: data.channelPartner || '',
-        // Financial fields - normalized by projectsService, convert to string for form
         contractValueNGN: getFinancialStr(data.contractValueNGN),
         contractValueUSD: getFinancialStr(data.contractValueUSD),
         marginPercentNGN: getFinancialStr(data.marginPercentNGN),
