@@ -4,7 +4,8 @@ import { cn } from '@/lib/utils';
 
 interface StatCardProps {
   title: string;
-  value: string | number;
+  // Allow richer content (string/number or node) so we can show a small subtitle
+  value: React.ReactNode;
   icon: LucideIcon;
   trend?: {
     value: number;
@@ -20,7 +21,9 @@ export function StatCard({ title, value, icon: Icon, trend, className }: StatCar
         <div className="flex items-start justify-between gap-1.5 sm:gap-2">
           <div className="min-w-0 flex-1">
             <p className="text-[10px] sm:text-sm font-medium text-muted-foreground truncate">{title}</p>
-            <p className="text-lg sm:text-2xl lg:text-3xl font-bold mt-0.5 sm:mt-2">{value}</p>
+            <div className="mt-0.5 sm:mt-2">
+              <div className="text-lg sm:text-2xl lg:text-3xl font-bold">{value}</div>
+            </div>
             {trend && (
               <p className={cn(
                 "text-[10px] sm:text-sm mt-0.5 sm:mt-2 font-medium",
