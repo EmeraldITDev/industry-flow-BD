@@ -21,6 +21,7 @@ import { CalendarIcon, Plus, X, AlertTriangle, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { sectors, businessSegments } from '@/data/mockData';
+import { parseNumberInput } from '@/lib/utils';
 import { Sector, RiskLevel, Milestone, PipelineStage, BusinessSegment, PIPELINE_STAGES, ProjectDocument, TeamMember } from '@/types';
 import { toast } from 'sonner';
 import { PipelineStageSelector } from '@/components/projects/PipelineStageSelector';
@@ -133,17 +134,17 @@ export default function NewProject() {
 
     setIsSubmitting(true);
     try {
-      // Calculate margin values from contract values and margin percentages
-      const contractValueNGN = formData.contractValueNGN ? parseFloat(formData.contractValueNGN) : undefined;
-      const contractValueUSD = formData.contractValueUSD ? parseFloat(formData.contractValueUSD) : undefined;
-      const marginPercentNGN = formData.marginPercentNGN ? parseFloat(formData.marginPercentNGN) : undefined;
-      const marginPercentUSD = formData.marginPercentUSD ? parseFloat(formData.marginPercentUSD) : undefined;
+      // Calculate margin values from contract values and margin percentages (sanitized)
+      const contractValueNGN = parseNumberInput(formData.contractValueNGN);
+      const contractValueUSD = parseNumberInput(formData.contractValueUSD);
+      const marginPercentNGN = parseNumberInput(formData.marginPercentNGN);
+      const marginPercentUSD = parseNumberInput(formData.marginPercentUSD);
       
-      const marginValueNGN = contractValueNGN && marginPercentNGN 
-        ? (contractValueNGN * marginPercentNGN / 100) 
+      const marginValueNGN = (contractValueNGN != null && marginPercentNGN != null)
+        ? (contractValueNGN * marginPercentNGN / 100)
         : undefined;
-      const marginValueUSD = contractValueUSD && marginPercentUSD 
-        ? (contractValueUSD * marginPercentUSD / 100) 
+      const marginValueUSD = (contractValueUSD != null && marginPercentUSD != null)
+        ? (contractValueUSD * marginPercentUSD / 100)
         : undefined;
 
       await projectsService.create({

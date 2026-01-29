@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 import { sectors, businessSegments } from '@/data/mockData';
 import { Sector, RiskLevel, PipelineStage, BusinessSegment, PIPELINE_STAGES } from '@/types';
 import { toast } from 'sonner';
+import { parseNumberInput } from '@/lib/utils';
 import { PipelineStageSelector } from '@/components/projects/PipelineStageSelector';
 import { projectsService } from '@/services/projects';
 import { teamService } from '@/services/team';
@@ -171,26 +172,16 @@ export default function EditProject() {
         assigneeId: formData.assigneeId || undefined,
         channelPartner: formData.channelPartner || undefined,
         // Convert string values to numbers, send undefined if empty
-        contractValueNGN: formData.contractValueNGN && formData.contractValueNGN.trim() !== ''
-          ? parseFloat(formData.contractValueNGN)
-          : undefined,
-        contractValueUSD: formData.contractValueUSD && formData.contractValueUSD.trim() !== ''
-          ? parseFloat(formData.contractValueUSD)
-          : undefined,
-        marginPercentNGN: formData.marginPercentNGN && formData.marginPercentNGN.trim() !== ''
-          ? parseFloat(formData.marginPercentNGN)
-          : undefined,
-        marginPercentUSD: formData.marginPercentUSD && formData.marginPercentUSD.trim() !== ''
-          ? parseFloat(formData.marginPercentUSD)
-          : undefined,
+        contractValueNGN: parseNumberInput(formData.contractValueNGN),
+        contractValueUSD: parseNumberInput(formData.contractValueUSD),
+        marginPercentNGN: parseNumberInput(formData.marginPercentNGN),
+        marginPercentUSD: parseNumberInput(formData.marginPercentUSD),
         // Calculate margin values if both contract value and margin percent are provided
-        marginValueNGN: formData.contractValueNGN && formData.marginPercentNGN &&
-          formData.contractValueNGN.trim() !== '' && formData.marginPercentNGN.trim() !== ''
-          ? (parseFloat(formData.contractValueNGN) * parseFloat(formData.marginPercentNGN) / 100)
+        marginValueNGN: (parseNumberInput(formData.contractValueNGN) != null && parseNumberInput(formData.marginPercentNGN) != null)
+          ? (parseNumberInput(formData.contractValueNGN)! * parseNumberInput(formData.marginPercentNGN)! / 100)
           : undefined,
-        marginValueUSD: formData.contractValueUSD && formData.marginPercentUSD &&
-          formData.contractValueUSD.trim() !== '' && formData.marginPercentUSD.trim() !== ''
-          ? (parseFloat(formData.contractValueUSD) * parseFloat(formData.marginPercentUSD) / 100)
+        marginValueUSD: (parseNumberInput(formData.contractValueUSD) != null && parseNumberInput(formData.marginPercentUSD) != null)
+          ? (parseNumberInput(formData.contractValueUSD)! * parseNumberInput(formData.marginPercentUSD)! / 100)
           : undefined,
         projectLeadComments: formData.projectLeadComments || undefined,
         dealProbability: formData.dealProbability,

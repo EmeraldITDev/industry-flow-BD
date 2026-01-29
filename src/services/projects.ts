@@ -51,12 +51,24 @@ export interface ProjectFilters {
 // Normalize project data from backend
 // API may return camelCase OR snake_case format - handle both
 const normalizeProject = (project: any): Project => {
-  // Helper to get value from either camelCase or snake_case field
+  // Helper to get numeric value from either camelCase or snake_case field.
+  // Strips formatting (commas, currency symbols, whitespace) before parsing to handle API strings like "₦1,500,000".
   const getValue = (camelKey: string, snakeKey: string): number => {
-    const value = project[camelKey] ?? project[snakeKey];
+    let value = project[camelKey] ?? project[snakeKey];
     if (value == null) return 0;
-    if (typeof value === 'string') return parseFloat(value) || 0;
-    return typeof value === 'number' ? value : 0;
+
+    if (typeof value === 'string') {
+      const cleaned = value.replace(/[^0-9.-]+/g, '');
+      if (cleaned !== value) {
+        console.log(`[Projects Service] Cleaned numeric string for ${camelKey}/${snakeKey}:`, { raw: value, cleaned });
+      }
+      return parseFloat(cleaned) || 0;
+    }
+
+    if (typeof value === 'number') return value;
+
+    // If it's another type (e.g., object), return 0
+    return 0;
   };
 
   // Get financial values from either format
