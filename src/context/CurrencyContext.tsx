@@ -29,6 +29,10 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     setCurrency(currency === 'USD' ? 'NGN' : 'USD');
   };
 
+  // Exchange rate used to convert between NGN and USD when one currency value is missing.
+  // Configure via VITE_NGN_PER_USD (e.g., 800). Default to 800 if not set.
+  const NGN_PER_USD = parseFloat(import.meta.env.VITE_NGN_PER_USD as string) || 800;
+
   const formatCurrency = useCallback((value: number): string => {
     const symbol = currency === 'NGN' ? '₦' : '$';
     if (!value || value === 0) return `${symbol}0`;
@@ -38,12 +42,68 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
   }, [currency]);
 
   const getContractValue = useCallback((project: { contractValueUSD?: number; contractValueNGN?: number }): number => {
-    return currency === 'NGN' ? (project.contractValueNGN || 0) : (project.contractValueUSD || 0);
+    const usd = project.contractValueUSD || 0;
+    const ngn = project.contractValueNGN || 0;
+
+    if (currency === 'NGN') {
+      if (ngn > 0) return ngn;
+      if (usd > 0) {
+        const converted = Math.round(usd * NGN_PER_USD);
+        console.log('[Currency] Converting USD->NGN for contract value:', { usd, NGN_PER_USD, converted });
+        return converted;
+      }
+      return 0;
+    }
+
+    // currency === 'USD'
+    if (usd > 0) return usd;
+    if (ngn > 0) {
+      const converted = parseFloat((ngn / NGN_PER_USD).toFixed(2));
+      console.log('[Currency] Converting NGN->USD for contract value:', { ngn, NGN_PER_USD, converted });
+      return converted;
+    }
+    return 0;
   }, [currency]);
 
-  const getMarginValue = useCallback((project: { marginValueUSD?: number; marginValueNGN?: number }): number => {
-    return currency === 'NGN' ? (project.marginValueNGN || 0) : (project.marginValueUSD || 0);
-  }, [currency]);
+  const getMarginValue = useCallback((project: { marginValueUSD?: number; marginValueNGN?: number; marginPercentUSD?: number; marginPercentNGN?: number; contractValueUSD?: number; contractValueNGN?: number }): number => {
+    // Prefer explicit margin values, otherwise fall back to percent * contract (with conversions if needed)
+    const mUsd = project.marginValueUSD || 0;
+    const mNgn = project.marginValueNGN || 0;
+
+    if (currency === 'NGN') {
+      if (mNgn > 0) return mNgn;
+      // Try compute from percent
+      const percent = project.marginPercentNGN ?? project.marginPercentUSD;
+      const contract = getContractValue({ contractValueNGN: project.contractValueNGN, contractValueUSD: project.contractValueUSD });
+      if (percent && contract > 0) {
+        const calculated = Math.round(contract * (percent / 100));
+        console.log('[Currency] Calculated NGN margin from percent:', { percent, contract, calculated });
+        return calculated;
+      }
+      if (mUsd > 0) {
+        const converted = Math.round(mUsd * NGN_PER_USD);
+        console.log('[Currency] Converting USD->NGN for margin value:', { mUsd, NGN_PER_USD, converted });
+        return converted;
+      }
+      return 0;
+    }
+
+    // currency === 'USD'
+    if (mUsd > 0) return mUsd;
+    const percent = project.marginPercentUSD ?? project.marginPercentNGN;
+    const contract = getContractValue({ contractValueNGN: project.contractValueNGN, contractValueUSD: project.contractValueUSD });
+    if (percent && contract > 0) {
+      const calculated = parseFloat((contract * (percent / 100)).toFixed(2));
+      console.log('[Currency] Calculated USD margin from percent:', { percent, contract, calculated });
+      return calculated;
+    }
+    if (mNgn > 0) {
+      const converted = parseFloat((mNgn / NGN_PER_USD).toFixed(2));
+      console.log('[Currency] Converting NGN->USD for margin value:', { mNgn, NGN_PER_USD, converted });
+      return converted;
+    }
+    return 0;
+  }, [currency, NGN_PER_USD, getContractValue]);
 
   return (
     <CurrencyContext.Provider
