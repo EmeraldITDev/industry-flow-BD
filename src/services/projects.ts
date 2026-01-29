@@ -49,73 +49,77 @@ export interface ProjectFilters {
 }
 
 // Normalize project data from backend
-// API returns camelCase format
+// API may return camelCase OR snake_case format - handle both
 const normalizeProject = (project: any): Project => {
-  // API returns camelCase - use directly
-  // Handle both number and string values (forms might send strings)
-  const contractValueNGN = project.contractValueNGN != null 
-    ? (typeof project.contractValueNGN === 'string' ? parseFloat(project.contractValueNGN) || 0 : project.contractValueNGN)
-    : 0;
-  const contractValueUSD = project.contractValueUSD != null
-    ? (typeof project.contractValueUSD === 'string' ? parseFloat(project.contractValueUSD) || 0 : project.contractValueUSD)
-    : 0;
-  const marginPercentNGN = project.marginPercentNGN != null
-    ? (typeof project.marginPercentNGN === 'string' ? parseFloat(project.marginPercentNGN) || 0 : project.marginPercentNGN)
-    : 0;
-  const marginPercentUSD = project.marginPercentUSD != null
-    ? (typeof project.marginPercentUSD === 'string' ? parseFloat(project.marginPercentUSD) || 0 : project.marginPercentUSD)
-    : 0;
-  
-  // Calculate margin values if not provided
-  const marginValueNGN = project.marginValueNGN != null
-    ? (typeof project.marginValueNGN === 'string' ? parseFloat(project.marginValueNGN) || 0 : project.marginValueNGN)
-    : (contractValueNGN && marginPercentNGN ? (contractValueNGN * marginPercentNGN / 100) : 0);
-  const marginValueUSD = project.marginValueUSD != null
-    ? (typeof project.marginValueUSD === 'string' ? parseFloat(project.marginValueUSD) || 0 : project.marginValueUSD)
-    : (contractValueUSD && marginPercentUSD ? (contractValueUSD * marginPercentUSD / 100) : 0);
+  // Helper to get value from either camelCase or snake_case field
+  const getValue = (camelKey: string, snakeKey: string): number => {
+    const value = project[camelKey] ?? project[snakeKey];
+    if (value == null) return 0;
+    if (typeof value === 'string') return parseFloat(value) || 0;
+    return typeof value === 'number' ? value : 0;
+  };
 
-  // Debug logging for all projects to understand data structure
-  if (project.id) {
-    const hasAnyFinancialData = contractValueNGN > 0 || contractValueUSD > 0 || 
-                                marginValueNGN > 0 || marginValueUSD > 0 ||
-                                marginPercentNGN > 0 || marginPercentUSD > 0;
-    
-    if (hasAnyFinancialData) {
-      console.log('[Projects Service] Normalized project with financial data:', {
-        projectId: project.id,
-        projectName: project.name,
-        contractValueNGN,
-        contractValueUSD,
-        marginValueNGN,
-        marginValueUSD,
-        marginPercentNGN,
-        marginPercentUSD,
-        rawContractValueNGN: project.contractValueNGN,
-        rawContractValueUSD: project.contractValueUSD,
-      });
-    } else {
-      // Log projects without financial data to understand why
-      console.log('[Projects Service] Project without financial data:', {
-        projectId: project.id,
-        projectName: project.name,
-        hasContractValueNGN: 'contractValueNGN' in project,
-        hasContractValueUSD: 'contractValueUSD' in project,
-        rawContractValueNGN: project.contractValueNGN,
-        rawContractValueUSD: project.contractValueUSD,
-        rawMarginValueNGN: project.marginValueNGN,
-        rawMarginValueUSD: project.marginValueUSD,
-      });
-    }
+  // Get financial values from either format
+  const contractValueNGN = getValue('contractValueNGN', 'contract_value_ngn');
+  const contractValueUSD = getValue('contractValueUSD', 'contract_value_usd');
+  const marginPercentNGN = getValue('marginPercentNGN', 'margin_percent_ngn');
+  const marginPercentUSD = getValue('marginPercentUSD', 'margin_percent_usd');
+  
+  // Calculate margin values - use provided value or calculate from percent
+  let marginValueNGN = getValue('marginValueNGN', 'margin_value_ngn');
+  let marginValueUSD = getValue('marginValueUSD', 'margin_value_usd');
+  
+  // If margin values are 0 but we have contract and percent, calculate them
+  if (marginValueNGN === 0 && contractValueNGN > 0 && marginPercentNGN > 0) {
+    marginValueNGN = (contractValueNGN * marginPercentNGN) / 100;
+  }
+  if (marginValueUSD === 0 && contractValueUSD > 0 && marginPercentUSD > 0) {
+    marginValueUSD = (contractValueUSD * marginPercentUSD) / 100;
   }
 
+  // Debug logging for projects with any financial data
+  const hasAnyFinancialData = contractValueNGN > 0 || contractValueUSD > 0 || 
+                              marginValueNGN > 0 || marginValueUSD > 0 ||
+                              marginPercentNGN > 0 || marginPercentUSD > 0;
+  
+  if (project.id && hasAnyFinancialData) {
+    console.log('[Projects Service] Normalized project with financial data:', {
+      projectId: project.id,
+      projectName: project.name,
+      contractValueNGN,
+      contractValueUSD,
+      marginValueNGN,
+      marginValueUSD,
+      marginPercentNGN,
+      marginPercentUSD,
+    });
+  }
+
+  // Normalize other fields that may also be snake_case
   return {
     ...project,
+    // Ensure financial fields are always present as numbers
     contractValueNGN,
     contractValueUSD,
     marginPercentNGN,
     marginPercentUSD,
     marginValueNGN,
     marginValueUSD,
+    // Normalize other common snake_case fields
+    clientName: project.clientName ?? project.client_name ?? '',
+    clientContact: project.clientContact ?? project.client_contact ?? '',
+    startDate: project.startDate ?? project.start_date ?? '',
+    endDate: project.endDate ?? project.end_date ?? '',
+    pipelineStage: project.pipelineStage ?? project.pipeline_stage ?? 'initiation',
+    pipelineIntakeDate: project.pipelineIntakeDate ?? project.pipeline_intake_date ?? null,
+    expectedCloseDate: project.expectedCloseDate ?? project.expected_close_date ?? null,
+    businessSegment: project.businessSegment ?? project.business_segment ?? '',
+    subProduct: project.subProduct ?? project.sub_product ?? '',
+    projectLeadId: project.projectLeadId ?? project.project_lead_id ?? null,
+    assigneeId: project.assigneeId ?? project.assignee_id ?? null,
+    channelPartner: project.channelPartner ?? project.channel_partner ?? '',
+    projectLeadComments: project.projectLeadComments ?? project.project_lead_comments ?? '',
+    dealProbability: project.dealProbability ?? project.deal_probability ?? project.riskLevel ?? project.risk_level ?? 'low',
   };
 };
 
