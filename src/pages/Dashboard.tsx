@@ -15,8 +15,35 @@ import { ProjectStats, Project } from '@/types';
 import { Progress } from '@/components/ui/progress';
 
 export default function Dashboard() {
-  const { currency, formatCurrency, getContractValue } = useCurrency();
+  const { currency, formatCurrency, formatCurrencyFor, getContractValue } = useCurrency();
   
+  // Also fetch projects so we can compute totals locally as a fallback
+  const { data: projectsList = [] } = useQuery({
+    queryKey: ['projects'],
+    queryFn: () => projectsService.getAll(),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Compute NGN/USD totals from projects (with conversion) as a fallback if API stats are missing or inaccurate
+  const computedTotals = useMemo(() => {
+    const NGN_PER_USD = parseFloat(import.meta.env.VITE_NGN_PER_USD as string) || 800;
+    let totalNGN = 0;
+    let totalUSD = 0;
+
+    (projectsList || []).forEach((p: Project) => {
+      const ngnRaw = Number(p.contractValueNGN ?? 0) || 0;
+      const usdRaw = Number(p.contractValueUSD ?? 0) || 0;
+
+      // NGN total: prefer NGN, otherwise convert from USD
+      totalNGN += ngnRaw > 0 ? ngnRaw : (usdRaw > 0 ? Math.round(usdRaw * NGN_PER_USD) : 0);
+
+      // USD total: prefer USD, otherwise convert from NGN
+      totalUSD += usdRaw > 0 ? usdRaw : (ngnRaw > 0 ? parseFloat((ngnRaw / NGN_PER_USD).toFixed(2)) : 0);
+    });
+
+    return { totalNGN, totalUSD };
+  }, [projectsList]);
+
   // Fetch statistics from API endpoint - USE API ONLY, NO FALLBACK TO MOCK DATA
   const { data: stats, isLoading, error } = useQuery<ProjectStats>({
     queryKey: ['dashboard-stats'],
@@ -129,18 +156,27 @@ export default function Dashboard() {
 
           {/* Financial Overview */}
           <div className="grid grid-cols-1 gap-2 sm:gap-4 md:grid-cols-2">
-            <StatCard 
-              title={`Total Revenue (NGN)`}
-              value={formatCurrency(stats.totalValueNgn ?? 0)} 
-              icon={DollarSign}
-              className="bg-primary/5 border-primary/20"
-            />
-            <StatCard 
-              title={`Total Revenue (USD)`}
-              value={formatCurrency(stats.totalValueUsd ?? 0)} 
-              icon={DollarSign}
-              className="bg-chart-2/5 border-chart-2/20"
-            />
+            {/* Compute display totals: prefer API stats, fallback to computed sums from projects */}
+            {(() => {
+              const displayTotalNGN = (stats?.totalValueNgn ?? computedTotals.totalNGN) || 0;
+              const displayTotalUSD = (stats?.totalValueUsd ?? computedTotals.totalUSD) || 0;
+              return (
+                <>
+                  <StatCard 
+                    title={`Total Revenue (NGN)`}
+                    value={formatCurrencyFor(displayTotalNGN, 'NGN')}
+                    icon={DollarSign}
+                    className="bg-primary/5 border-primary/20"
+                  />
+                  <StatCard 
+                    title={`Total Revenue (USD)`}
+                    value={formatCurrencyFor(displayTotalUSD, 'USD')}
+                    icon={DollarSign}
+                    className="bg-chart-2/5 border-chart-2/20"
+                  />
+                </>
+              );
+            })()}
           </div>
 
           {/* Average Progress Indicator */}

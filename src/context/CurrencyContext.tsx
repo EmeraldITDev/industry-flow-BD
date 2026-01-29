@@ -41,6 +41,16 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     return `${symbol}${value.toLocaleString()}`;
   }, [currency]);
 
+  // Explicit formatter that allows specifying the display currency independent of user's selected currency
+  const formatCurrencyFor = useCallback((value: number, displayCurrency?: Currency): string => {
+    const useCurrency = displayCurrency ?? currency;
+    const symbol = useCurrency === 'NGN' ? '₦' : '$';
+    if (!value || value === 0) return `${symbol}0`;
+    if (value >= 1000000) return `${symbol}${(value / 1000000).toFixed(1)}M`;
+    if (value >= 1000) return `${symbol}${(value / 1000).toFixed(0)}K`;
+    return `${symbol}${value.toLocaleString()}`;
+  }, [currency]);
+
   const getContractValue = useCallback((project: { contractValueUSD?: number; contractValueNGN?: number }): number => {
     const usd = project.contractValueUSD || 0;
     const ngn = project.contractValueNGN || 0;
@@ -112,6 +122,7 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
         setCurrency,
         toggleCurrency,
         formatCurrency,
+        formatCurrencyFor,
         getContractValue,
         getMarginValue,
       }}
