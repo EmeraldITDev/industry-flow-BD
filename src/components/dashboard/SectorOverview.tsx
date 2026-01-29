@@ -2,9 +2,10 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
-import { sectors, sectorColors, sectorIcons } from '@/data/mockData';
+import { sectorColors, sectorIcons } from '@/data/mockData';
 import { Sector, Project } from '@/types';
 import { projectsService } from '@/services/projects';
+import { useMemo } from 'react';
 
 export function SectorOverview() {
   const { data: projects, isLoading } = useQuery({
@@ -13,19 +14,27 @@ export function SectorOverview() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const sectorStats = sectors.map(sector => {
-    const sectorProjects = (projects || []).filter((p: Project) => p.sector === sector);
-    const avgProgress = sectorProjects.length 
-      ? Math.round(sectorProjects.reduce((acc: number, p: Project) => acc + (p.progress || 0), 0) / sectorProjects.length)
-      : 0;
+  // Dynamically extract unique sectors from actual projects
+  const sectorStats = useMemo(() => {
+    if (!projects || projects.length === 0) return [];
     
-    return {
-      sector,
-      projectCount: sectorProjects.length,
-      avgProgress,
-      activeCount: sectorProjects.filter((p: Project) => p.status === 'active').length,
-    };
-  });
+    // Get unique sectors from projects
+    const uniqueSectors = [...new Set(projects.map((p: Project) => p.sector).filter(Boolean))];
+    
+    return uniqueSectors.map(sector => {
+      const sectorProjects = projects.filter((p: Project) => p.sector === sector);
+      const avgProgress = sectorProjects.length 
+        ? Math.round(sectorProjects.reduce((acc: number, p: Project) => acc + (p.progress || 0), 0) / sectorProjects.length)
+        : 0;
+      
+      return {
+        sector,
+        projectCount: sectorProjects.length,
+        avgProgress,
+        activeCount: sectorProjects.filter((p: Project) => p.status === 'active').length,
+      };
+    }).sort((a, b) => b.projectCount - a.projectCount); // Sort by project count descending
+  }, [projects]);
 
   if (isLoading) {
     return (
@@ -34,9 +43,24 @@ export function SectorOverview() {
           <CardTitle className="text-base sm:text-lg">Sector Overview</CardTitle>
         </CardHeader>
         <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0 space-y-3 sm:space-y-6">
-          {sectors.map((_, i) => (
+          {[1, 2, 3, 4, 5].map((i) => (
             <Skeleton key={i} className="h-12" />
           ))}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!projects || projects.length === 0 || sectorStats.length === 0) {
+    return (
+      <Card>
+        <CardHeader className="p-3 sm:p-6">
+          <CardTitle className="text-base sm:text-lg">Sector Overview</CardTitle>
+        </CardHeader>
+        <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
+          <p className="text-sm text-muted-foreground text-center py-6">
+            No projects available
+          </p>
         </CardContent>
       </Card>
     );
