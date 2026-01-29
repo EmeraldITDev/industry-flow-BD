@@ -134,60 +134,82 @@ const normalizeProject = (project: any): Project => {
 export const projectsService = {
   // Get all projects
   getAll: async (filters?: ProjectFilters): Promise<Project[]> => {
-    const response = await api.get('/api/projects', { params: filters });
-    // Robustly unwrap arrays that might be nested inside "data" wrappers
-    const data = response.data;
+    try {
+      const response = await api.get('/api/projects', { params: filters });
+      // Robustly unwrap arrays that might be nested inside "data" wrappers
+      const data = response.data;
 
-    let projects: any[] = [];
+      let projects: any[] = [];
 
-    if (Array.isArray(data)) {
-      projects = data;
-    } else if (Array.isArray(data?.data)) {
-      projects = data.data;
-    } else if (Array.isArray(data?.data?.data)) {
-      projects = data.data.data;
-      console.warn('[Projects Service] Detected double-wrapped projects array (data.data.data)');
-    } else if (Array.isArray(data?.projects)) {
-      projects = data.projects;
-    } else if (Array.isArray(data?.results)) {
-      projects = data.results;
-    } else {
-      // Try to find any array value on the response object
-      for (const key of Object.keys(data || {})) {
-        if (Array.isArray((data as any)[key])) {
-          projects = (data as any)[key];
-          console.warn(`[Projects Service] Found projects array under key '${key}'`);
-          break;
+      if (Array.isArray(data)) {
+        projects = data;
+      } else if (Array.isArray(data?.data)) {
+        projects = data.data;
+      } else if (Array.isArray(data?.data?.data)) {
+        projects = data.data.data;
+        console.warn('[Projects Service] Detected double-wrapped projects array (data.data.data)');
+      } else if (Array.isArray(data?.projects)) {
+        projects = data.projects;
+      } else if (Array.isArray(data?.results)) {
+        projects = data.results;
+      } else {
+        // Try to find any array value on the response object
+        for (const key of Object.keys(data || {})) {
+          if (Array.isArray((data as any)[key])) {
+            projects = (data as any)[key];
+            console.warn(`[Projects Service] Found projects array under key '${key}'`);
+            break;
+          }
         }
       }
+
+      // Debug: Log raw project data to see what API returns
+      if (projects.length > 0) {
+        console.log('[Projects Service] Raw project data sample:', {
+          firstProject: projects[0],
+          hasContractValueNGN: 'contractValueNGN' in projects[0],
+          hasContractValueUSD: 'contractValueUSD' in projects[0],
+          contractValueNGN: projects[0].contractValueNGN,
+          contractValueUSD: projects[0].contractValueUSD,
+        });
+      } else {
+        console.warn('[Projects Service] No projects returned from API (projects array is empty)');
+        console.debug('[Projects Service] API raw response:', data);
+      }
+
+      // Safely normalize projects: skip items that throw during normalization
+      const normalized: Project[] = [];
+      const skipped: any[] = [];
+
+      for (let i = 0; i < projects.length; i++) {
+        try {
+          const p = normalizeProject(projects[i]);
+          normalized.push(p);
+        } catch (err: any) {
+          console.error('[Projects Service] Failed to normalize project at index', i, { item: projects[i], error: err });
+          skipped.push({ index: i, item: projects[i], error: err?.message ?? String(err) });
+          // continue with next item
+        }
+      }
+
+      if (skipped.length > 0) {
+        console.warn('[Projects Service] Some projects were skipped during normalization:', skipped.length, skipped.slice(0, 3));
+      }
+
+      // Debug: Log normalized projects
+      const projectsWithFinancialData = normalized.filter(p => (p.contractValueNGN || 0) > 0 || (p.contractValueUSD || 0) > 0);
+      if (projectsWithFinancialData.length > 0) {
+        console.log('[Projects Service] Projects with financial data:', projectsWithFinancialData.length, projectsWithFinancialData);
+      } else {
+        console.warn('[Projects Service] No projects found with financial data');
+      }
+
+      return normalized;
+    } catch (err: any) {
+      console.error('[Projects Service] Error fetching projects:', err);
+      // Re-throw a clearer error for the UI
+      throw new Error(`Failed to fetch projects: ${err?.message || String(err)}`);
     }
-
-    // Debug: Log raw project data to see what API returns
-    if (projects.length > 0) {
-      console.log('[Projects Service] Raw project data sample:', {
-        firstProject: projects[0],
-        hasContractValueNGN: 'contractValueNGN' in projects[0],
-        hasContractValueUSD: 'contractValueUSD' in projects[0],
-        contractValueNGN: projects[0].contractValueNGN,
-        contractValueUSD: projects[0].contractValueUSD,
-      });
-    } else {
-      console.warn('[Projects Service] No projects returned from API (projects array is empty)');
-      console.debug('[Projects Service] API raw response:', data);
-    }
-
-    // Normalize all projects to ensure consistent field names
-    const normalized = projects.map(normalizeProject);
-
-    // Debug: Log normalized projects
-    const projectsWithFinancialData = normalized.filter(p => (p.contractValueNGN || 0) > 0 || (p.contractValueUSD || 0) > 0);
-    if (projectsWithFinancialData.length > 0) {
-      console.log('[Projects Service] Projects with financial data:', projectsWithFinancialData.length, projectsWithFinancialData);
-    } else {
-      console.warn('[Projects Service] No projects found with financial data');
-    }
-
-    return normalized;
   },
 
   // Get single project by ID
