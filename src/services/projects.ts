@@ -1,5 +1,6 @@
 import api from './api';
 import { Project, PipelineStage, Sector, BusinessSegment, RiskLevel, ProjectStats } from '@/types';
+import { notifyAssignment } from './notificationHelper';
 
 export interface CreateProjectData {
   name: string;
@@ -255,11 +256,24 @@ export const projectsService = {
     });
     
     const response = await api.post('/api/projects', requestData);
-    return normalizeProject(response.data);
+    const createdProject = normalizeProject(response.data);
+    
+    // Send notification if project lead is assigned
+    if (createdProject.projectLeadId) {
+      await notifyAssignment({
+        type: 'project_assigned',
+        userId: createdProject.projectLeadId,
+        projectId: createdProject.id,
+        projectName: createdProject.name,
+        message: `You have been assigned as the project lead for "${createdProject.name}"`,
+      });
+    }
+    
+    return createdProject;
   },
 
   // Update project
-  update: async (id: string, data: UpdateProjectData): Promise<Project> => {
+  update: async (id: string, data: UpdateProjectData, originalProject?: Project): Promise<Project> => {
     // Build request: keep contract/margin fields explicit (no filtering) so backend can overwrite previous values
     const requestData: Record<string, any> = { ...data };
 
@@ -317,7 +331,31 @@ export const projectsService = {
     });
 
     const response = await api.put(`/api/projects/${id}`, requestData);
-    return normalizeProject(response.data?.data ?? response.data);
+    const updatedProject = normalizeProject(response.data?.data ?? response.data);
+    
+    // Send notification if project lead assignment changed
+    if (data.projectLeadId && data.projectLeadId !== originalProject?.projectLeadId) {
+      await notifyAssignment({
+        type: 'project_assigned',
+        userId: data.projectLeadId,
+        projectId: id,
+        projectName: data.name || originalProject?.name || 'Untitled Project',
+        message: `You have been assigned as the project lead for "${data.name || originalProject?.name || 'Untitled Project'}"`,
+      });
+    }
+    
+    // Send notification if assignee changed
+    if (data.assigneeId && data.assigneeId !== originalProject?.assigneeId) {
+      await notifyAssignment({
+        type: 'project_assigned',
+        userId: data.assigneeId,
+        projectId: id,
+        projectName: data.name || originalProject?.name || 'Untitled Project',
+        message: `You have been assigned to project "${data.name || originalProject?.name || 'Untitled Project'}"`,
+      });
+    }
+    
+    return updatedProject;
   },
 
   // Delete project

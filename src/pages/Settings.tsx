@@ -5,6 +5,7 @@ import { useColorTheme, ColorTheme } from '@/context/ColorThemeContext';
 import { AccessLevelManager } from '@/components/settings/AccessLevelManager';
 import { IntegrationSettings } from '@/components/integrations/IntegrationSettings';
 import { PasswordManagement } from '@/components/settings/PasswordManagement';
+import MailNotificationSettings from '@/components/settings/MailNotificationSettings';
 import { useDesktopNotifications } from '@/hooks/useDesktopNotifications';
 import { ACCESS_LEVEL_CONFIG } from '@/types/auth';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -28,7 +29,8 @@ import {
   Moon,
   Sun,
   Check,
-  Key
+  Key,
+  Mail
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -141,6 +143,10 @@ export default function Settings() {
               <Link2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               <span className="hidden sm:inline text-xs sm:text-sm">Integrations</span>
             </TabsTrigger>
+            <TabsTrigger value="mail" className="gap-1 sm:gap-2 data-[state=active]:bg-background py-2 sm:py-2.5 px-1 sm:px-3">
+              <Mail className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline text-xs sm:text-sm">Email</span>
+            </TabsTrigger>
             <TabsTrigger value="notifications" className="gap-1 sm:gap-2 data-[state=active]:bg-background py-2 sm:py-2.5 px-1 sm:px-3">
               <Bell className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               <span className="hidden sm:inline text-xs sm:text-sm">Notifications</span>
@@ -175,6 +181,11 @@ export default function Settings() {
               </div>
               <IntegrationSettings />
             </div>
+          </TabsContent>
+
+          {/* Email Notifications Tab */}
+          <TabsContent value="mail" className="mt-6 animate-fade-in">
+            <MailNotificationSettings />
           </TabsContent>
 
           {/* Notifications Tab */}

@@ -1,5 +1,6 @@
 import api from './api';
 import { Task, TaskStatus, TaskPriority, PipelineStage } from '@/types';
+import { notifyAssignment } from './notificationHelper';
 
 export interface CreateTaskData {
   title: string;
@@ -101,18 +102,50 @@ export const tasksService = {
       status: data.status ? statusToBackend(data.status) : undefined,
     };
     const response = await api.post('/api/tasks', backendData);
-    return normalizeTask(response.data);
+    const createdTask = normalizeTask(response.data);
+    
+    // Send notification if task is assigned to someone
+    if (createdTask.assigneeId) {
+      await notifyAssignment({
+        type: 'task_assigned',
+        userId: createdTask.assigneeId,
+        taskId: createdTask.id,
+        taskTitle: createdTask.title,
+        projectId: createdTask.projectId,
+        projectName: 'Project', // Will be fetched if needed
+        dueDate: createdTask.dueDate,
+        message: `You have been assigned to task "${createdTask.title}"`,
+      });
+    }
+    
+    return createdTask;
   },
 
   // Update task
-  update: async (id: string, data: UpdateTaskData): Promise<Task> => {
+  update: async (id: string, data: UpdateTaskData, originalTask?: Task): Promise<Task> => {
     // Convert status to backend format before sending
     const backendData = {
       ...data,
       status: data.status ? statusToBackend(data.status) : undefined,
     };
     const response = await api.put(`/api/tasks/${id}`, backendData);
-    return normalizeTask(response.data);
+    const updatedTask = normalizeTask(response.data);
+    
+    // Send notification if assignee changed
+    if (data.assigneeId && data.assigneeId !== originalTask?.assigneeId) {
+      await notifyAssignment({
+        type: 'task_assigned',
+        userId: data.assigneeId,
+        taskId: id,
+        taskTitle: data.title || originalTask?.title || 'Untitled Task',
+        projectId: originalTask?.projectId || '',
+        projectName: 'Project', // Will be fetched if needed
+        dueDate: data.dueDate || originalTask?.dueDate,
+        message: `You have been assigned to task "${data.title || originalTask?.title || 'Untitled Task'}"`,
+      });
+    }
+    
+    return updatedTask;
   },
 
   // Update task status only
@@ -129,8 +162,24 @@ export const tasksService = {
   },
 
   // Assign task to user
-  assign: async (id: string, assigneeId: string): Promise<Task> => {
+  assign: async (id: string, assigneeId: string, originalTask?: Task): Promise<Task> => {
     const response = await api.patch(`/api/tasks/${id}/assign`, { assigneeId });
-    return normalizeTask(response.data);
+    const assignedTask = normalizeTask(response.data);
+    
+    // Send notification
+    if (assigneeId && assigneeId !== originalTask?.assigneeId) {
+      await notifyAssignment({
+        type: 'task_assigned',
+        userId: assigneeId,
+        taskId: id,
+        taskTitle: assignedTask.title,
+        projectId: assignedTask.projectId,
+        projectName: 'Project',
+        dueDate: assignedTask.dueDate,
+        message: `You have been assigned to task "${assignedTask.title}"`,
+      });
+    }
+    
+    return assignedTask;
   },
 };
