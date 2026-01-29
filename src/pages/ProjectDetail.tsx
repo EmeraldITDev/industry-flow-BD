@@ -440,16 +440,42 @@ export default function ProjectDetail() {
                     <p className="font-medium text-sm">${project.contractValueUSD.toLocaleString()}</p>
                   </div>
                 )}
-                {project.marginPercentNGN !== undefined && (
+                {/* Margin: show both percent and value for NGN and USD, compute percent if missing */}
+                {(project.marginPercentNGN !== undefined || project.marginValueNGN !== undefined) && (
                   <div>
                     <p className="text-xs text-muted-foreground">Margin % (NGN)</p>
-                    <p className="font-medium text-sm">{project.marginPercentNGN}%</p>
+                    <p className="font-medium text-sm">
+                      {typeof project.marginPercentNGN === 'number' && project.marginPercentNGN > 0
+                        ? `${project.marginPercentNGN}%`
+                        : (project.marginValueNGN && project.contractValueNGN
+                            ? `${((project.marginValueNGN / project.contractValueNGN) * 100).toFixed(2)}%`
+                            : '0%')}
+                    </p>
+                    {project.marginValueNGN !== undefined && project.marginValueNGN > 0 && (
+                      <p className="text-xs text-muted-foreground mt-1">Margin Value (NGN)</p>
+                    )}
+                    {project.marginValueNGN !== undefined && project.marginValueNGN > 0 && (
+                      <p className="font-medium text-sm">₦{Number(project.marginValueNGN).toLocaleString()}</p>
+                    )}
                   </div>
                 )}
-                {project.marginPercentUSD !== undefined && (
+
+                {(project.marginPercentUSD !== undefined || project.marginValueUSD !== undefined) && (
                   <div>
                     <p className="text-xs text-muted-foreground">Margin % (USD)</p>
-                    <p className="font-medium text-sm">{project.marginPercentUSD}%</p>
+                    <p className="font-medium text-sm">
+                      {typeof project.marginPercentUSD === 'number' && project.marginPercentUSD > 0
+                        ? `${project.marginPercentUSD}%`
+                        : (project.marginValueUSD && project.contractValueUSD
+                            ? `${((project.marginValueUSD / project.contractValueUSD) * 100).toFixed(2)}%`
+                            : '0%')}
+                    </p>
+                    {project.marginValueUSD !== undefined && project.marginValueUSD > 0 && (
+                      <p className="text-xs text-muted-foreground mt-1">Margin Value (USD)</p>
+                    )}
+                    {project.marginValueUSD !== undefined && project.marginValueUSD > 0 && (
+                      <p className="font-medium text-sm">${Number(project.marginValueUSD).toLocaleString()}</p>
+                    )}
                   </div>
                 )}
                 {project.dealProbability && (

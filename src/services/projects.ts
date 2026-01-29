@@ -77,6 +77,14 @@ const normalizeProject = (project: any): Project => {
     marginValueUSD = (contractValueUSD * marginPercentUSD) / 100;
   }
 
+  // If margin percent is missing but we have margin value and contract value, compute percent
+  if ((marginPercentNGN === 0 || marginPercentNGN == null) && marginValueNGN > 0 && contractValueNGN > 0) {
+    marginPercentNGN = parseFloat(((marginValueNGN / contractValueNGN) * 100).toFixed(2));
+  }
+  if ((marginPercentUSD === 0 || marginPercentUSD == null) && marginValueUSD > 0 && contractValueUSD > 0) {
+    marginPercentUSD = parseFloat(((marginValueUSD / contractValueUSD) * 100).toFixed(2));
+  }
+
   // Debug logging for projects with any financial data
   const hasAnyFinancialData = contractValueNGN > 0 || contractValueUSD > 0 || 
                               marginValueNGN > 0 || marginValueUSD > 0 ||
