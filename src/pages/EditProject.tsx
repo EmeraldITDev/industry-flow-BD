@@ -34,7 +34,11 @@ export default function EditProject() {
   // Fetch project data
   const { data: projectData, isLoading: isLoadingProject } = useQuery({
     queryKey: ['project', id],
-    queryFn: () => id ? projectsService.getById(id) : Promise.reject('No ID'),
+    queryFn: async () => {
+      if (!id) throw new Error('No ID');
+      const res: any = await projectsService.getById(id);
+      return res.data.data; // 👈 THIS IS THE PROJECT
+    },
     enabled: !!id,
   });
 
