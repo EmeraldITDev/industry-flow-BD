@@ -36,8 +36,8 @@ export default function EditProject() {
     queryKey: ['project', id],
     queryFn: async () => {
       if (!id) throw new Error('No ID');
-      const res: any = await projectsService.getById(id);
-      return res.data.data; // 👈 THIS IS THE PROJECT
+      const project = await projectsService.getById(id);
+      return project; // projectsService.getById already returns the normalized project
     },
     enabled: !!id,
   });
@@ -100,7 +100,8 @@ export default function EditProject() {
   useEffect(() => {
     if (!projectData) return;
 
-    const data = projectData as any;
+    // Handle both raw project object and wrapped { data: project } responses
+    const data = (projectData as any)?.data ?? (projectData as any);
 
     setFormData({
       name: data.name ?? '',

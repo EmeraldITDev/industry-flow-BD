@@ -159,7 +159,9 @@ export const projectsService = {
   // Get single project by ID
   getById: async (id: string): Promise<Project> => {
     const response = await api.get(`/api/projects/${id}`);
-    return normalizeProject(response.data);
+    // Some APIs wrap the project as { data: project } - unwrap if present
+    const raw = response.data?.data ?? response.data;
+    return normalizeProject(raw);
   },
 
   // Create new project
