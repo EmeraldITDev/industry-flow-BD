@@ -368,7 +368,7 @@ export const projectsService = {
     return response.data;
   },
 
-  // Get project statistics/dashboard data - USE API ONLY, NO MOCK DATA
+  // Get project statistics/dashboard data - with fallback to computed stats
   getStats: async (): Promise<ProjectStats> => {
     try {
       const response = await api.get('/api/projects/stats');
@@ -422,12 +422,81 @@ export const projectsService = {
       
       return normalized;
     } catch (error: any) {
-      console.error('[Projects Service] Error fetching stats:', {
+      console.error('[Projects Service] Error fetching stats from API:', {
         message: error.message,
         status: error.response?.status,
         data: error.response?.data,
       });
-      throw error;
+      
+      // Fallback: compute stats from projects list
+      console.warn('[Projects Service] Falling back to computed stats from projects list');
+      try {
+        const projects = await projectsService.getAll();
+        
+        // Try to fetch tasks, but don't fail if unavailable
+        let tasks: any[] = [];
+        try {
+          const tasksResponse = await api.get('/api/tasks');
+          tasks = Array.isArray(tasksResponse.data) ? tasksResponse.data : 
+                  Array.isArray(tasksResponse.data?.data) ? tasksResponse.data.data : [];
+        } catch (tasksError) {
+          console.warn('[Projects Service] Could not fetch tasks for stats fallback:', tasksError);
+        }
+        
+        const NGN_PER_USD = parseFloat(import.meta.env.VITE_NGN_PER_USD as string) || 800;
+        
+        const stats: ProjectStats = {
+          total: projects.length,
+          totalProjects: projects.length,
+          active: projects.filter((p: Project) => p.status === 'active').length,
+          activeProjects: projects.filter((p: Project) => p.status === 'active').length,
+          completed: projects.filter((p: Project) => p.status === 'completed').length,
+          completedProjects: projects.filter((p: Project) => p.status === 'completed').length,
+          highRisk: projects.filter((p: Project) => 
+            p.dealProbability === 'high' || p.dealProbability === 'critical'
+          ).length,
+          completedTasks: tasks.filter((t: any) => t.status === 'completed').length,
+          pendingTasks: tasks.filter((t: any) => t.status !== 'completed').length,
+          overdueTasks: tasks.filter((t: any) => {
+            if (t.status === 'completed') return false;
+            if (!t.dueDate && !t.due_date) return false;
+            const dueDate = t.dueDate || t.due_date;
+            return new Date(dueDate) < new Date();
+          }).length,
+          totalValueNgn: projects.reduce((sum: number, p: Project) => {
+            const ngn = Number(p.contractValueNGN) || 0;
+            const usd = Number(p.contractValueUSD) || 0;
+            return sum + (ngn > 0 ? ngn : (usd > 0 ? usd * NGN_PER_USD : 0));
+          }, 0),
+          totalValueUsd: projects.reduce((sum: number, p: Project) => {
+            const ngn = Number(p.contractValueNGN) || 0;
+            const usd = Number(p.contractValueUSD) || 0;
+            return sum + (usd > 0 ? usd : (ngn > 0 ? ngn / NGN_PER_USD : 0));
+          }, 0),
+          averageProgress: projects.length > 0 
+            ? projects.reduce((sum: number, p: Project) => sum + (p.progress || 0), 0) / projects.length
+            : 0,
+          byStatus: {
+            active: projects.filter((p: Project) => p.status === 'active').length,
+            on_hold: projects.filter((p: Project) => p.status === 'on-hold').length,
+            completed: projects.filter((p: Project) => p.status === 'completed').length,
+            cancelled: 0,
+          },
+          byStage: {},
+          byAssignee: [],
+          recent: projects
+            .sort((a: Project, b: Project) => 
+              new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+            )
+            .slice(0, 5),
+        };
+        
+        console.log('[Projects Service] Computed stats from projects:', stats);
+        return stats;
+      } catch (fallbackError) {
+        console.error('[Projects Service] Fallback computation also failed:', fallbackError);
+        throw error; // Throw original error
+      }
     }
   },
 };
