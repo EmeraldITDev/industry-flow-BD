@@ -260,34 +260,34 @@ export const projectsService = {
 
   // Update project
   update: async (id: string, data: UpdateProjectData): Promise<Project> => {
-    // API expects camelCase format - send data as-is
+    // Build request: keep contract/margin fields explicit (no filtering) so backend can overwrite previous values
     const requestData = { ...data };
     
-    // Remove undefined values
+    // Explicitly include financial fields even if undefined (backend should treat as null/clear)
+    const financialKeys = ['contractValueNGN', 'contractValueUSD', 'marginPercentNGN', 'marginPercentUSD', 'marginValueNGN', 'marginValueUSD'];
+    
+    // Remove undefined from non-financial fields, but keep financials explicit
     Object.keys(requestData).forEach(key => {
-      if (requestData[key] === undefined) {
+      if (requestData[key] === undefined && !financialKeys.includes(key)) {
         delete requestData[key];
       }
     });
+
+    // Ensure financial fields are present (as null or number) so backend overwrites
+    financialKeys.forEach(key => {
+      if (!(key in requestData)) {
+        requestData[key] = null;
+      }
+    });
     
-    // Log financial data being sent (for debugging)
-    if (
-      requestData.contractValueNGN || requestData.contractValueUSD ||
-      requestData.marginPercentNGN || requestData.marginPercentUSD ||
-      requestData.marginValueNGN || requestData.marginValueUSD
-    ) {
-      console.log('[Projects Service] Updating project with financial data (camelCase):', {
-        contractValueNGN: requestData.contractValueNGN,
-        contractValueUSD: requestData.contractValueUSD,
-        marginPercentNGN: requestData.marginPercentNGN,
-        marginPercentUSD: requestData.marginPercentUSD,
-        marginValueNGN: requestData.marginValueNGN,
-        marginValueUSD: requestData.marginValueUSD,
-      });
-    }
+    // Log full payload being sent for debugging
+    console.log('[Projects Service] Update request payload:', {
+      projectId: id,
+      ...requestData,
+    });
     
     const response = await api.put(`/api/projects/${id}`, requestData);
-    return normalizeProject(response.data);
+    return normalizeProject(response.data?.data ?? response.data);
   },
 
   // Delete project
