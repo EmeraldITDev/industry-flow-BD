@@ -130,32 +130,34 @@ export default function Settings() {
 
         {/* Settings Tabs */}
         <Tabs defaultValue="access" className="space-y-4 sm:space-y-6">
-          <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-grid h-auto p-0.5 sm:p-1 bg-muted/50">
-            <TabsTrigger value="access" className="gap-1 sm:gap-2 data-[state=active]:bg-background py-2 sm:py-2.5 px-1 sm:px-3">
-              <Shield className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-              <span className="hidden sm:inline text-xs sm:text-sm">Access</span>
-            </TabsTrigger>
-            <TabsTrigger value="password" className="gap-1 sm:gap-2 data-[state=active]:bg-background py-2 sm:py-2.5 px-1 sm:px-3">
-              <Key className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-              <span className="hidden sm:inline text-xs sm:text-sm">Password</span>
-            </TabsTrigger>
-            <TabsTrigger value="integrations" className="gap-1 sm:gap-2 data-[state=active]:bg-background py-2 sm:py-2.5 px-1 sm:px-3">
-              <Link2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-              <span className="hidden sm:inline text-xs sm:text-sm">Integrations</span>
-            </TabsTrigger>
-            <TabsTrigger value="mail" className="gap-1 sm:gap-2 data-[state=active]:bg-background py-2 sm:py-2.5 px-1 sm:px-3">
-              <Mail className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-              <span className="hidden sm:inline text-xs sm:text-sm">Email</span>
-            </TabsTrigger>
-            <TabsTrigger value="notifications" className="gap-1 sm:gap-2 data-[state=active]:bg-background py-2 sm:py-2.5 px-1 sm:px-3">
-              <Bell className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-              <span className="hidden sm:inline text-xs sm:text-sm">Notifications</span>
-            </TabsTrigger>
-            <TabsTrigger value="appearance" className="gap-1 sm:gap-2 data-[state=active]:bg-background py-2 sm:py-2.5 px-1 sm:px-3">
-              <Palette className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-              <span className="hidden sm:inline text-xs sm:text-sm">Appearance</span>
-            </TabsTrigger>
-          </TabsList>
+          <div className="w-full overflow-x-auto">
+            <TabsList className="inline-flex h-auto p-0.5 sm:p-1 bg-muted/50 w-full sm:w-auto">
+              <TabsTrigger value="access" className="gap-1 sm:gap-2 data-[state=active]:bg-background py-2 sm:py-2.5 px-2 sm:px-3 whitespace-nowrap">
+                <Shield className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline text-xs sm:text-sm">Access</span>
+              </TabsTrigger>
+              <TabsTrigger value="password" className="gap-1 sm:gap-2 data-[state=active]:bg-background py-2 sm:py-2.5 px-2 sm:px-3 whitespace-nowrap">
+                <Key className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline text-xs sm:text-sm">Password</span>
+              </TabsTrigger>
+              <TabsTrigger value="integrations" className="gap-1 sm:gap-2 data-[state=active]:bg-background py-2 sm:py-2.5 px-2 sm:px-3 whitespace-nowrap">
+                <Link2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline text-xs sm:text-sm">Integrations</span>
+              </TabsTrigger>
+              <TabsTrigger value="mail" className="gap-1 sm:gap-2 data-[state=active]:bg-background py-2 sm:py-2.5 px-2 sm:px-3 whitespace-nowrap">
+                <Mail className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline text-xs sm:text-sm">Email</span>
+              </TabsTrigger>
+              <TabsTrigger value="notifications" className="gap-1 sm:gap-2 data-[state=active]:bg-background py-2 sm:py-2.5 px-2 sm:px-3 whitespace-nowrap">
+                <Bell className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline text-xs sm:text-sm">Notifications</span>
+              </TabsTrigger>
+              <TabsTrigger value="appearance" className="gap-1 sm:gap-2 data-[state=active]:bg-background py-2 sm:py-2.5 px-2 sm:px-3 whitespace-nowrap">
+                <Palette className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline text-xs sm:text-sm">Appearance</span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* Access Management Tab */}
           <TabsContent value="access" className="mt-6 animate-fade-in">
