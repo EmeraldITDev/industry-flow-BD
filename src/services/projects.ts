@@ -203,8 +203,11 @@ export const projectsService = {
     });
     
     // Log financial data being sent (for debugging)
-    if (requestData.contractValueNGN || requestData.contractValueUSD || 
-        requestData.marginValueNGN || requestData.marginValueUSD) {
+    if (
+      requestData.contractValueNGN || requestData.contractValueUSD ||
+      requestData.marginPercentNGN || requestData.marginPercentUSD ||
+      requestData.marginValueNGN || requestData.marginValueUSD
+    ) {
       console.log('[Projects Service] Updating project with financial data (camelCase):', {
         contractValueNGN: requestData.contractValueNGN,
         contractValueUSD: requestData.contractValueUSD,

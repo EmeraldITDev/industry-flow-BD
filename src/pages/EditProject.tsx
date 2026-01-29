@@ -109,32 +109,33 @@ export default function EditProject() {
       sector: data.sector ?? '',
       status: data.status ?? 'active',
 
-      startDate: data.start_date ? parseISO(data.start_date) : undefined,
-      endDate: data.end_date ? parseISO(data.end_date) : undefined,
-      pipelineIntakeDate: data.pipeline_intake_date ? parseISO(data.pipeline_intake_date) : undefined,
-      expectedCloseDate: data.expected_close_date ? parseISO(data.expected_close_date) : undefined,
+      // Prefer normalized camelCase fields but fall back to snake_case from the API
+      startDate: data.startDate ? parseISO(data.startDate) : (data.start_date ? parseISO(data.start_date) : undefined),
+      endDate: data.endDate ? parseISO(data.endDate) : (data.end_date ? parseISO(data.end_date) : undefined),
+      pipelineIntakeDate: data.pipelineIntakeDate ? parseISO(data.pipelineIntakeDate) : (data.pipeline_intake_date ? parseISO(data.pipeline_intake_date) : undefined),
+      expectedCloseDate: data.expectedCloseDate ? parseISO(data.expectedCloseDate) : (data.expected_close_date ? parseISO(data.expected_close_date) : undefined),
 
-      dealProbability: (data.risk_level ?? 'low') as RiskLevel,
-      pipelineStage: (data.pipeline_stage ?? 'initiation') as PipelineStage,
+      dealProbability: (data.dealProbability ?? data.riskLevel ?? data.risk_level ?? 'low') as RiskLevel,
+      pipelineStage: (data.pipelineStage ?? data.pipeline_stage ?? 'initiation') as PipelineStage,
 
-      clientName: data.client_name ?? '',
-      clientContact: data.client_contact ?? '',
+      clientName: data.clientName ?? data.client_name ?? '',
+      clientContact: data.clientContact ?? data.client_contact ?? '',
       oem: data.oem ?? '',
       location: data.location ?? '',
-      businessSegment: (data.business_segment ?? '') as BusinessSegment | '',
-      product: data.product ?? '',
-      subProduct: data.sub_product ?? '',
+      businessSegment: (data.businessSegment ?? data.business_segment ?? '') as BusinessSegment | '',
+      product: data.product ?? data.product ?? '',
+      subProduct: data.subProduct ?? data.sub_product ?? '',
 
-      projectLeadId: String(data.project_lead_id ?? ''),
-      assigneeId: String(data.assignee_id ?? ''),
-      channelPartner: data.channel_partner ?? '',
+      projectLeadId: String(data.projectLeadId ?? data.project_lead_id ?? ''),
+      assigneeId: String(data.assigneeId ?? data.assignee_id ?? ''),
+      channelPartner: data.channelPartner ?? data.channel_partner ?? '',
 
-      contractValueNGN: data.contract_value_ngn != null ? String(data.contract_value_ngn) : '',
-      contractValueUSD: data.contract_value_usd != null ? String(data.contract_value_usd) : '',
-      marginPercentNGN: data.margin_percent_ngn != null ? String(data.margin_percent_ngn) : '',
-      marginPercentUSD: data.margin_percent_usd != null ? String(data.margin_percent_usd) : '',
+      contractValueNGN: data.contractValueNGN != null ? String(data.contractValueNGN) : (data.contract_value_ngn != null ? String(data.contract_value_ngn) : ''),
+      contractValueUSD: data.contractValueUSD != null ? String(data.contractValueUSD) : (data.contract_value_usd != null ? String(data.contract_value_usd) : ''),
+      marginPercentNGN: data.marginPercentNGN != null ? String(data.marginPercentNGN) : (data.margin_percent_ngn != null ? String(data.margin_percent_ngn) : ''),
+      marginPercentUSD: data.marginPercentUSD != null ? String(data.marginPercentUSD) : (data.margin_percent_usd != null ? String(data.margin_percent_usd) : ''),
 
-      projectLeadComments: data.project_lead_comments ?? '',
+      projectLeadComments: data.projectLeadComments ?? data.project_lead_comments ?? '',
     });
   }, [projectData]);
 
