@@ -40,6 +40,12 @@ export const RevenueAnalytics = () => {
     staleTime: 5 * 60 * 1000,
   });
 
+  // Debugging: log projects and loading state to help diagnose missing data
+  useEffect(() => {
+    console.log('[RevenueAnalytics] projects:', projects);
+    console.log('[RevenueAnalytics] projectsLoading:', projectsLoading);
+  }, [projects, projectsLoading]);
+
   const { data: teamMembers } = useQuery({
     queryKey: ['team'],
     queryFn: () => teamService.getAll(),

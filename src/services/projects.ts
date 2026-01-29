@@ -135,10 +135,33 @@ export const projectsService = {
   // Get all projects
   getAll: async (filters?: ProjectFilters): Promise<Project[]> => {
     const response = await api.get('/api/projects', { params: filters });
-    // Handle both direct array response and wrapped { data: [...] } response
+    // Robustly unwrap arrays that might be nested inside "data" wrappers
     const data = response.data;
-    const projects = Array.isArray(data) ? data : (data && Array.isArray(data.data) ? data.data : []);
-    
+
+    let projects: any[] = [];
+
+    if (Array.isArray(data)) {
+      projects = data;
+    } else if (Array.isArray(data?.data)) {
+      projects = data.data;
+    } else if (Array.isArray(data?.data?.data)) {
+      projects = data.data.data;
+      console.warn('[Projects Service] Detected double-wrapped projects array (data.data.data)');
+    } else if (Array.isArray(data?.projects)) {
+      projects = data.projects;
+    } else if (Array.isArray(data?.results)) {
+      projects = data.results;
+    } else {
+      // Try to find any array value on the response object
+      for (const key of Object.keys(data || {})) {
+        if (Array.isArray((data as any)[key])) {
+          projects = (data as any)[key];
+          console.warn(`[Projects Service] Found projects array under key '${key}'`);
+          break;
+        }
+      }
+    }
+
     // Debug: Log raw project data to see what API returns
     if (projects.length > 0) {
       console.log('[Projects Service] Raw project data sample:', {
@@ -148,11 +171,14 @@ export const projectsService = {
         contractValueNGN: projects[0].contractValueNGN,
         contractValueUSD: projects[0].contractValueUSD,
       });
+    } else {
+      console.warn('[Projects Service] No projects returned from API (projects array is empty)');
+      console.debug('[Projects Service] API raw response:', data);
     }
-    
+
     // Normalize all projects to ensure consistent field names
     const normalized = projects.map(normalizeProject);
-    
+
     // Debug: Log normalized projects
     const projectsWithFinancialData = normalized.filter(p => (p.contractValueNGN || 0) > 0 || (p.contractValueUSD || 0) > 0);
     if (projectsWithFinancialData.length > 0) {
@@ -160,7 +186,7 @@ export const projectsService = {
     } else {
       console.warn('[Projects Service] No projects found with financial data');
     }
-    
+
     return normalized;
   },
 
