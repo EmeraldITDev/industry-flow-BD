@@ -62,10 +62,17 @@ export default function Projects() {
     queryKey: ['projects'],
     queryFn: async () => {
       try {
-        return await projectsService.getAll();
+        const projects = await projectsService.getAll();
+        console.log('[Projects Page] Loaded projects from backend:', projects.length);
+        return projects;
       } catch (err) {
-        console.error('[Projects] Error fetching projects:', err);
-        // Return empty array instead of throwing to prevent error UI
+        console.error('[Projects Page] Error fetching projects:', err);
+        // Log the full error details
+        if ((err as any)?.response) {
+          console.error('[Projects Page] Response status:', (err as any).response.status);
+          console.error('[Projects Page] Response data:', (err as any).response.data);
+        }
+        // Return empty array to show empty state instead of error
         return [];
       }
     },

@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Backend Connection</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        .test-result {
+            background: #2a2a2a;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border-left: 4px solid #4CAF50;
+        }
+        .error {
+            border-left-color: #f44336;
+        }
+        pre {
+            background: #000;
+            padding: 10px;
+            overflow-x: auto;
+            border-radius: 3px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 5px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1>Backend API Connection Test</h1>
+    <p>Testing connection to: <code>https://industry-flow-backend.onrender.com</code></p>
+    
+    <button onclick="testProjects()">Test GET /api/projects</button>
+    <button onclick="testStats()">Test GET /api/projects/stats</button>
+    <button onclick="testAuth()">Test Auth Status</button>
+    
+    <div id="results"></div>
+
+    <script>
+        const API_URL = 'https://industry-flow-backend.onrender.com';
+        const resultsDiv = document.getElementById('results');
+
+        function addResult(title, data, isError = false) {
+            const div = document.createElement('div');
+            div.className = 'test-result' + (isError ? ' error' : '');
+            div.innerHTML = `
+                <h3>${title}</h3>
+                <pre>${JSON.stringify(data, null, 2)}</pre>
+            `;
+            resultsDiv.appendChild(div);
+        }
+
+        async function testProjects() {
+            resultsDiv.innerHTML = '';
+            addResult('Testing...', { status: 'Loading projects...' });
+            
+            try {
+                const token = localStorage.getItem('authToken');
+                const headers = {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                };
+                
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
+                
+                const response = await fetch(`${API_URL}/api/projects`, {
+                    method: 'GET',
+                    headers: headers,
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                
+                addResult(`GET /api/projects - Status: ${response.status}`, {
+                    status: response.status,
+                    statusText: response.statusText,
+                    dataType: Array.isArray(data) ? 'array' : typeof data,
+                    itemCount: Array.isArray(data) ? data.length : 
+                              Array.isArray(data?.data) ? data.data.length : 'N/A',
+                    sampleData: Array.isArray(data) ? data[0] : 
+                               Array.isArray(data?.data) ? data.data[0] : data
+                }, response.status !== 200);
+            } catch (error) {
+                addResult('Error fetching projects', {
+                    error: error.message,
+                    details: error
+                }, true);
+            }
+        }
+
+        async function testStats() {
+            resultsDiv.innerHTML = '';
+            addResult('Testing...', { status: 'Loading stats...' });
+            
+            try {
+                const token = localStorage.getItem('authToken');
+                const headers = {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                };
+                
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
+                
+                const response = await fetch(`${API_URL}/api/projects/stats`, {
+                    method: 'GET',
+                    headers: headers,
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                
+                addResult(`GET /api/projects/stats - Status: ${response.status}`, {
+                    status: response.status,
+                    statusText: response.statusText,
+                    data: data
+                }, response.status !== 200);
+            } catch (error) {
+                addResult('Error fetching stats', {
+                    error: error.message,
+                    details: error
+                }, true);
+            }
+        }
+
+        async function testAuth() {
+            resultsDiv.innerHTML = '';
+            const token = localStorage.getItem('authToken');
+            const user = localStorage.getItem('user');
+            
+            addResult('Auth Status', {
+                hasToken: !!token,
+                tokenPreview: token ? token.substring(0, 50) + '...' : null,
+                user: user ? JSON.parse(user) : null
+            });
+        }
+
+        // Auto-run auth test on load
+        testAuth();
+    </script>
+</body>
+</html>
