@@ -57,9 +57,9 @@ export function AppSidebar() {
   return (
     <Sidebar className="border-r border-sidebar-border">
       <SidebarHeader className="p-4 border-b border-sidebar-border">
-        <div className="flex items-center gap-3 mb-3">
+        <NavLink to="/" className="flex items-center gap-3 mb-3">
           <img src={emeraldLogo} alt="Emerald PM" className="h-10 w-auto" />
-        </div>
+        </NavLink>
         {canCreateProjects && (
           <NavLink to="/projects/new">
             <Button className="w-full" size="sm">
