@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { SectorOverview } from '@/components/dashboard/SectorOverview';
 import { RecentProjects } from '@/components/dashboard/RecentProjects';
@@ -7,100 +7,71 @@ import { TasksSummary } from '@/components/dashboard/TasksSummary';
 import { RevenueAnalytics } from '@/components/dashboard/RevenueAnalytics';
 import { ProjectCalendar } from '@/components/calendar/ProjectCalendar';
 import { projectsService } from '@/services/projects';
-import { tasksService } from '@/services/tasks';
-import { FolderKanban, Activity, CheckCircle, Clock, AlertTriangle, Loader2, DollarSign, TrendingUp, Percent, ShieldAlert } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { FolderKanban, Activity, CheckCircle, AlertTriangle, Loader2, DollarSign, ShieldAlert } from 'lucide-react';
 import { useCurrency } from '@/context/CurrencyContext';
-import { ProjectStats, Project } from '@/types';
+import { Project } from '@/types';
 import { Progress } from '@/components/ui/progress';
+import { getStageProgress } from '@/lib/stageProgress';
 
 export default function Dashboard() {
-  const { currency, formatCurrency, formatCurrencyFor, getContractValue } = useCurrency();
+  const { formatCurrencyFor } = useCurrency();
   
-  // Also fetch projects so we can compute totals locally as a fallback
   const { data: projectsList = [] } = useQuery({
     queryKey: ['projects'],
     queryFn: () => projectsService.getAll(),
     staleTime: 5 * 60 * 1000,
   });
 
-  // Compute NGN/USD totals from projects (with conversion) as a fallback if API stats are missing or inaccurate
-  const computedTotals = useMemo(() => {
+  const computedStats = useMemo(() => {
     const NGN_PER_USD = parseFloat(import.meta.env.VITE_NGN_PER_USD as string) || 800;
+    const projects = projectsList || [];
+    
     let totalNGN = 0;
     let totalUSD = 0;
+    const active = projects.filter((p: Project) => p.status === 'active').length;
+    const completed = projects.filter((p: Project) => p.status === 'completed').length;
+    const highRisk = projects.filter((p: Project) => p.dealProbability === 'high' || p.dealProbability === 'critical').length;
 
-    (projectsList || []).forEach((p: Project) => {
+    projects.forEach((p: Project) => {
       const ngnRaw = Number(p.contractValueNGN ?? 0) || 0;
       const usdRaw = Number(p.contractValueUSD ?? 0) || 0;
-
-      // NGN total: prefer NGN, otherwise convert from USD
       totalNGN += ngnRaw > 0 ? ngnRaw : (usdRaw > 0 ? Math.round(usdRaw * NGN_PER_USD) : 0);
-
-      // USD total: prefer USD, otherwise convert from NGN
       totalUSD += usdRaw > 0 ? usdRaw : (ngnRaw > 0 ? parseFloat((ngnRaw / NGN_PER_USD).toFixed(2)) : 0);
     });
 
-    return { totalNGN, totalUSD };
+    // Calculate average progress using stage-based mapping
+    const avgProgress = projects.length > 0
+      ? projects.reduce((sum: number, p: Project) => sum + getStageProgress(p.pipelineStage, p.progress), 0) / projects.length
+      : 0;
+
+    // Count tasks across all projects
+    let completedTasks = 0;
+    let overdueTasks = 0;
+    projects.forEach((p: Project) => {
+      const tasks = Array.isArray(p.tasks) ? p.tasks : [];
+      completedTasks += tasks.filter(t => t.status === 'completed').length;
+      overdueTasks += tasks.filter(t => t.dueDate && new Date(t.dueDate) < new Date() && t.status !== 'completed').length;
+    });
+
+    const recent = [...projects]
+      .sort((a: any, b: any) => new Date(b.startDate || 0).getTime() - new Date(a.startDate || 0).getTime())
+      .slice(0, 5);
+
+    return {
+      total: projects.length,
+      active,
+      completed,
+      highRisk,
+      completedTasks,
+      overdueTasks,
+      totalNGN,
+      totalUSD,
+      averageProgress: avgProgress,
+      recent,
+    };
   }, [projectsList]);
 
-  // Fetch statistics from API endpoint with robust fallback
-  const { data: stats, isLoading, error } = useQuery<ProjectStats>({
-    queryKey: ['dashboard-stats'],
-    queryFn: async () => {
-      try {
-        const result = await projectsService.getStats();
-        console.log('[Dashboard] Received stats from API:', result);
-        
-        // Validate API response has required fields
-        if (!result || typeof result !== 'object') {
-          throw new Error('Invalid API response format');
-        }
-        
-        return result;
-      } catch (err) {
-        console.error('[Dashboard] Error fetching stats:', err);
-        // Return empty stats instead of throwing to prevent UI error
-        return {
-          total: 0,
-          totalProjects: 0,
-          active: 0,
-          activeProjects: 0,
-          completed: 0,
-          completedProjects: 0,
-          highRisk: 0,
-          completedTasks: 0,
-          pendingTasks: 0,
-          overdueTasks: 0,
-          totalValueNgn: 0,
-          totalValueUsd: 0,
-          averageProgress: 0,
-          byStatus: { active: 0, on_hold: 0, completed: 0, cancelled: 0 },
-          byStage: {},
-          byAssignee: [],
-          recent: [],
-        } as ProjectStats;
-      }
-    },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchInterval: 5 * 60 * 1000, // Auto-refresh every 5 minutes
-    retry: 1, // Retry once on failure
-  });
-  
-  // Debug: Log stats when they change
-  useEffect(() => {
-    if (stats) {
-      console.log('[Dashboard] Current stats from API:', stats);
-      console.log('[Dashboard] Total Projects:', stats.total || stats.totalProjects);
-      console.log('[Dashboard] Active Projects:', stats.active || stats.activeProjects);
-      console.log('[Dashboard] Completed Projects:', stats.completed || stats.completedProjects);
-      console.log('[Dashboard] Total Value NGN:', stats.totalValueNgn);
-      console.log('[Dashboard] Total Value USD:', stats.totalValueUsd);
-      console.log('[Dashboard] Completed Tasks:', stats.completedTasks);
-      console.log('[Dashboard] Pending Tasks:', stats.pendingTasks);
-      console.log('[Dashboard] Overdue Tasks:', stats.overdueTasks);
-    }
-  }, [stats]);
+  const isLoading = !projectsList;
 
   return (
     <div className="p-3 sm:p-6 lg:p-8 space-y-3 sm:space-y-6">
@@ -113,102 +84,83 @@ export default function Dashboard() {
         <div className="flex items-center justify-center py-8">
           <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
         </div>
-      ) : stats ? (
+      ) : (
         <>
           {/* Key Metrics Row */}
           <div className="grid grid-cols-2 gap-2 sm:gap-4 lg:grid-cols-6">
             <StatCard 
               title="Total Projects" 
-              value={stats.total ?? stats.totalProjects ?? 0} 
+              value={computedStats.total} 
               icon={FolderKanban}
+              href="/projects"
             />
             <StatCard 
               title="Active Projects" 
-              value={stats.active ?? stats.activeProjects ?? 0} 
+              value={computedStats.active} 
               icon={Activity}
+              href="/projects?status=active"
             />
             <StatCard 
               title="Completed Projects" 
-              value={stats.completed ?? stats.completedProjects ?? 0} 
+              value={computedStats.completed} 
               icon={CheckCircle}
+              href="/projects?status=completed"
             />
             <StatCard 
               title="High Risk Projects" 
-              value={stats.highRisk ?? 0} 
+              value={computedStats.highRisk} 
               icon={ShieldAlert}
-              className={(stats.highRisk ?? 0) > 0 ? "bg-destructive/5 border-destructive/20" : ""}
+              className={computedStats.highRisk > 0 ? "bg-destructive/5 border-destructive/20" : ""}
+              href="/projects?dealProbability=high"
             />
             <StatCard 
               title="Completed Tasks" 
-              value={stats.completedTasks ?? 0} 
+              value={computedStats.completedTasks} 
               icon={CheckCircle}
             />
             <StatCard 
               title="Overdue Tasks" 
-              value={stats.overdueTasks ?? 0} 
+              value={computedStats.overdueTasks} 
               icon={AlertTriangle}
-              className={(stats.overdueTasks ?? 0) > 0 ? "bg-destructive/5 border-destructive/20" : ""}
+              className={computedStats.overdueTasks > 0 ? "bg-destructive/5 border-destructive/20" : ""}
             />
           </div>
 
           {/* Financial Overview */}
           <div className="grid grid-cols-1 gap-2 sm:gap-4 md:grid-cols-2">
-            {/* Compute display totals: prefer API stats, fallback to computed sums from projects */}
-            {(() => {
-              const displayTotalNGN = (stats?.totalValueNgn ?? computedTotals.totalNGN) || 0;
-              const displayTotalUSD = (stats?.totalValueUsd ?? computedTotals.totalUSD) || 0;
-
-              // Keep debug logging for diagnostics but show only computed totals in the UI
-              console.log('[Dashboard] Computed totals breakdown (displaying computed only):', {
-                computedTotals,
-                apiTotals: { totalValueNgn: stats?.totalValueNgn, totalValueUsd: stats?.totalValueUsd },
-                sampleProjects: (projectsList || []).slice(0, 6).map(p => ({ id: p.id, name: p.name, contractValueNGN: p.contractValueNGN, contractValueUSD: p.contractValueUSD }))
-              });
-
-              return (
-                <>
-                  <StatCard 
-                    title={`Total Revenue (NGN)`}
-                    value={formatCurrencyFor(computedTotals.totalNGN, 'NGN')}
-                    icon={DollarSign}
-                    className="bg-primary/5 border-primary/20"
-                  />
-
-                  <StatCard 
-                    title={`Total Revenue (USD)`}
-                    value={formatCurrencyFor(computedTotals.totalUSD, 'USD')}
-                    icon={DollarSign}
-                    className="bg-chart-2/5 border-chart-2/20"
-                  />
-                </>
-              );
-            })()}
+            <StatCard 
+              title="Total Revenue (NGN)"
+              value={formatCurrencyFor(computedStats.totalNGN, 'NGN')}
+              icon={DollarSign}
+              className="bg-primary/5 border-primary/20"
+              href="/projects"
+            />
+            <StatCard 
+              title="Total Revenue (USD)"
+              value={formatCurrencyFor(computedStats.totalUSD, 'USD')}
+              icon={DollarSign}
+              className="bg-chart-2/5 border-chart-2/20"
+              href="/projects"
+            />
           </div>
 
           {/* Average Progress Indicator */}
-          {stats.averageProgress !== undefined && stats.averageProgress !== null && (
-            <div className="bg-card border border-border rounded-lg p-4 sm:p-6">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-sm sm:text-base font-semibold">Average Project Progress</h3>
-                <span className="text-sm sm:text-base font-medium">{stats.averageProgress.toFixed(1)}%</span>
-              </div>
-              <Progress value={stats.averageProgress} className="h-2 sm:h-3" />
-              <p className="text-xs sm:text-sm text-muted-foreground mt-2">Across all active projects</p>
+          <div className="bg-card border border-border rounded-lg p-4 sm:p-6">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm sm:text-base font-semibold">Average Project Progress</h3>
+              <span className="text-sm sm:text-base font-medium">{computedStats.averageProgress.toFixed(1)}%</span>
             </div>
-          )}
+            <Progress value={computedStats.averageProgress} className="h-2 sm:h-3" />
+            <p className="text-xs sm:text-sm text-muted-foreground mt-2">Calculated from pipeline stage across all projects</p>
+          </div>
         </>
-      ) : (
-        <div className="flex flex-col items-center justify-center py-12">
-          <p className="text-muted-foreground mb-2">No statistics available</p>
-          <p className="text-sm text-muted-foreground">Please check your connection and try again</p>
-        </div>
       )}
 
       <RevenueAnalytics />
 
       <div className="grid grid-cols-1 gap-3 sm:gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-3 sm:space-y-6">
-          <RecentProjects recentProjects={stats?.recent} />
+          <RecentProjects recentProjects={computedStats.recent} />
           <TasksSummary />
         </div>
         <div className="space-y-3 sm:space-y-6">

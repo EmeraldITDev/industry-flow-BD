@@ -485,8 +485,8 @@ export const projectsService = {
           byStage: {},
           byAssignee: [],
           recent: projects
-            .sort((a: Project, b: Project) => 
-              new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+            .sort((a: any, b: any) => 
+              new Date(b.createdAt || b.startDate || 0).getTime() - new Date(a.createdAt || a.startDate || 0).getTime()
             )
             .slice(0, 5),
         };
