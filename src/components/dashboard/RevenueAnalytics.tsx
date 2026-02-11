@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -225,19 +226,21 @@ export const RevenueAnalytics = () => {
 
             <TabsContent value="project" className="space-y-1.5 sm:space-y-2 max-h-48 sm:max-h-64 overflow-y-auto">
               {revenueByProject.map((item) => (
-                <div key={item.id} className="flex items-center justify-between p-2 sm:p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-xs sm:text-sm text-foreground truncate">{item.name}</p>
-                    <div className="flex items-center gap-1.5 sm:gap-2 mt-0.5 sm:mt-1">
-                      <Badge variant="outline" className="text-[10px] sm:text-xs px-1 sm:px-2">{item.sector}</Badge>
-                      <span className="text-[10px] sm:text-xs text-muted-foreground truncate">{item.client}</span>
+                <Link key={item.id} to={`/projects/${item.id}`} className="block">
+                  <div className="flex items-center justify-between p-2 sm:p-3 rounded-lg bg-muted/50 hover:bg-muted hover:border-primary/30 border border-transparent transition-colors cursor-pointer">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-xs sm:text-sm text-foreground truncate">{item.name}</p>
+                      <div className="flex items-center gap-1.5 sm:gap-2 mt-0.5 sm:mt-1">
+                        <Badge variant="outline" className="text-[10px] sm:text-xs px-1 sm:px-2">{item.sector}</Badge>
+                        <span className="text-[10px] sm:text-xs text-muted-foreground truncate">{item.client}</span>
+                      </div>
+                    </div>
+                    <div className="text-right ml-2 sm:ml-4 shrink-0">
+                      <p className="font-semibold text-xs sm:text-sm text-foreground">{formatCurrencyValue(item.revenue)}</p>
+                      <p className="text-[10px] sm:text-xs text-muted-foreground">M: {formatCurrencyValue(item.margin)}</p>
                     </div>
                   </div>
-                  <div className="text-right ml-2 sm:ml-4 shrink-0">
-                    <p className="font-semibold text-xs sm:text-sm text-foreground">{formatCurrencyValue(item.revenue)}</p>
-                    <p className="text-[10px] sm:text-xs text-muted-foreground">M: {formatCurrencyValue(item.margin)}</p>
-                  </div>
-                </div>
+                </Link>
               ))}
             </TabsContent>
 

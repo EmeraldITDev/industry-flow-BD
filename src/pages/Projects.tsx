@@ -35,21 +35,28 @@ const sectorDisplayNames: Record<string, string> = {
 };
 
 export default function Projects() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const sectorParam = searchParams.get('sector');
+  const statusParam = searchParams.get('status');
+  const dealProbabilityParam = searchParams.get('dealProbability');
   
   const [filters, setFilters] = useState<FilterState>(() => ({
     ...defaultFilters,
     sector: (sectorParam as Sector | 'all') || 'all',
+    status: statusParam || 'all',
+    dealProbability: (dealProbabilityParam as FilterState['dealProbability']) || 'all',
   }));
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   
-  // Update filters when sector param changes
+  // Update filters when URL params change
   useEffect(() => {
-    if (sectorParam) {
-      setFilters(prev => ({ ...prev, sector: sectorParam as Sector }));
-    }
-  }, [sectorParam]);
+    setFilters(prev => ({
+      ...prev,
+      sector: (sectorParam as Sector | 'all') || 'all',
+      status: statusParam || 'all',
+      dealProbability: (dealProbabilityParam as FilterState['dealProbability']) || 'all',
+    }));
+  }, [sectorParam, statusParam, dealProbabilityParam]);
   
   // Calculate page title based on sector filter
   const pageTitle = sectorParam && sectorDisplayNames[sectorParam] 

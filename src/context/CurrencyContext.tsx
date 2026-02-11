@@ -7,6 +7,7 @@ interface CurrencyContextType {
   setCurrency: (currency: Currency) => void;
   toggleCurrency: () => void;
   formatCurrency: (value: number) => string;
+  formatCurrencyFor: (value: number, displayCurrency?: Currency) => string;
   getContractValue: (project: { contractValueUSD?: number; contractValueNGN?: number }) => number;
   getMarginValue: (project: { marginValueUSD?: number; marginValueNGN?: number }) => number;
 }
