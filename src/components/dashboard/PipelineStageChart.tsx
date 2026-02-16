@@ -62,9 +62,13 @@ export function PipelineStageChart({ projects }: PipelineStageChartProps) {
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
             <XAxis
               dataKey="name"
-              tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
+              tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
               axisLine={{ stroke: 'hsl(var(--border))' }}
               tickLine={false}
+              interval={0}
+              angle={-30}
+              textAnchor="end"
+              height={50}
             />
             <YAxis
               tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}

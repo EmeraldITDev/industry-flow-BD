@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { SectorOverview } from '@/components/dashboard/SectorOverview';
 import { RecentProjects } from '@/components/dashboard/RecentProjects';
@@ -15,9 +15,11 @@ import { useCurrency } from '@/context/CurrencyContext';
 import { Project } from '@/types';
 import { Progress } from '@/components/ui/progress';
 import { getStageProgress } from '@/lib/stageProgress';
+import { Badge } from '@/components/ui/badge';
 
 export default function Dashboard() {
   const { formatCurrencyFor } = useCurrency();
+  const [chartFilter, setChartFilter] = useState<string | null>(null);
   
   const { data: projectsList = [] } = useQuery({
     queryKey: ['projects'],
@@ -74,6 +76,10 @@ export default function Dashboard() {
 
   const isLoading = !projectsList;
 
+  const filteredChartProjects = useMemo(() => {
+    if (!chartFilter) return projectsList;
+    return projectsList.filter((p: Project) => p.status === chartFilter || p.sector === chartFilter);
+  }, [projectsList, chartFilter]);
   return (
     <div className="p-3 sm:p-6 lg:p-8 space-y-4 sm:space-y-6">
       {/* Header */}
@@ -156,12 +162,50 @@ export default function Dashboard() {
             <p className="text-xs sm:text-sm text-muted-foreground mt-2">Calculated from pipeline stage across all projects</p>
           </div>
 
-          {/* Charts Section */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
-            <ProjectStatusChart projects={projectsList} />
-            <PipelineStageChart projects={projectsList} />
-            <RevenueBySectorChart projects={projectsList} />
-          </div>
+          {/* Charts Section with Filters */}
+          {(() => {
+            const statuses = [...new Set(projectsList.map((p: Project) => p.status))];
+            const sectors = [...new Set(projectsList.map((p: Project) => p.sector).filter(Boolean))];
+            return (
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-medium text-muted-foreground">Filter:</span>
+                  <Badge
+                    variant={chartFilter === null ? 'default' : 'outline'}
+                    className="cursor-pointer text-xs"
+                    onClick={() => setChartFilter(null)}
+                  >
+                    All
+                  </Badge>
+                  {statuses.map((s) => (
+                    <Badge
+                      key={s}
+                      variant={chartFilter === s ? 'default' : 'outline'}
+                      className="cursor-pointer text-xs capitalize"
+                      onClick={() => setChartFilter(chartFilter === s ? null : s)}
+                    >
+                      {s.replace('-', ' ')}
+                    </Badge>
+                  ))}
+                  {sectors.map((s) => (
+                    <Badge
+                      key={s}
+                      variant={chartFilter === s ? 'default' : 'outline'}
+                      className="cursor-pointer text-xs"
+                      onClick={() => setChartFilter(chartFilter === s ? null : s)}
+                    >
+                      {s}
+                    </Badge>
+                  ))}
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
+                  <ProjectStatusChart projects={filteredChartProjects} />
+                  <PipelineStageChart projects={filteredChartProjects} />
+                  <RevenueBySectorChart projects={filteredChartProjects} />
+                </div>
+              </div>
+            );
+          })()}
         </>
       )}
 

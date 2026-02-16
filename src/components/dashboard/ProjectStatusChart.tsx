@@ -70,11 +70,10 @@ export function ProjectStatusChart({ projects }: ProjectStatusChartProps) {
               data={data}
               cx="50%"
               cy="50%"
-              innerRadius={50}
-              outerRadius={80}
+              innerRadius={40}
+              outerRadius={65}
               paddingAngle={3}
               dataKey="value"
-              label={({ name, value }) => `${name}: ${value}`}
             >
               {data.map((entry) => (
                 <Cell key={entry.key} fill={STATUS_COLORS[entry.key] || 'hsl(var(--muted))'} />
@@ -82,6 +81,10 @@ export function ProjectStatusChart({ projects }: ProjectStatusChartProps) {
             </Pie>
             <Tooltip
               contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', color: 'hsl(var(--foreground))' }}
+            />
+            <Legend
+              verticalAlign="bottom"
+              formatter={(value: string) => <span style={{ color: 'hsl(var(--foreground))', fontSize: 11 }}>{value}</span>}
             />
           </PieChart>
         </ResponsiveContainer>
