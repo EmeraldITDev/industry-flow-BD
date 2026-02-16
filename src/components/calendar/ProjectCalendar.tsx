@@ -137,7 +137,7 @@ export function ProjectCalendar() {
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="space-y-4 sm:space-y-6 overflow-x-hidden">
       {/* Calendar */}
     <Card className="border-border/50">
         <CardHeader className="p-3 sm:p-6 pb-2 sm:pb-4">

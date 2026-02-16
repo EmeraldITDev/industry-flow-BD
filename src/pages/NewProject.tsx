@@ -188,7 +188,7 @@ export default function NewProject() {
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 pb-8">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 pb-8 overflow-x-hidden">
       <div>
         <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">Create New Project</h1>
         <p className="text-xs sm:text-sm text-muted-foreground mt-1">Fill in the details to create a new project</p>
@@ -253,7 +253,7 @@ export default function NewProject() {
                 rows={3}
               />
             </div>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
               <div className="space-y-2">
                 <Label>Pipeline Intake Date</Label>
                 <Popover>
@@ -545,7 +545,7 @@ export default function NewProject() {
                 <Label>Due Date</Label>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className={cn('w-[180px] justify-start text-left font-normal', !newMilestone.dueDate && 'text-muted-foreground')}>
+                    <Button variant="outline" className={cn('w-full sm:w-[180px] justify-start text-left font-normal', !newMilestone.dueDate && 'text-muted-foreground')}>
                       <CalendarIcon className="mr-2 h-4 w-4" />
                       {newMilestone.dueDate ? format(newMilestone.dueDate, 'PPP') : 'Pick date'}
                     </Button>
