@@ -63,19 +63,19 @@ export function PipelineStageSelector({
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between overflow-x-auto pb-2 -mb-2">
         {PIPELINE_STAGES.map((stage, index) => {
           const isCompleted = index < currentIndex;
           const isCurrent = stage.value === currentStage;
           
           return (
-            <div key={stage.value} className="flex-1 flex items-center">
+            <div key={stage.value} className="flex-shrink-0 flex-1 min-w-0 flex items-center">
               <button
                 type="button"
                 onClick={() => handleStageClick(stage.value)}
                 disabled={readonly}
                 className={cn(
-                  "w-full py-2 px-3 text-sm font-medium rounded-lg transition-all text-center",
+                  "w-full py-2 px-1.5 sm:px-3 text-[10px] sm:text-sm font-medium rounded-lg transition-all text-center",
                   isCurrent && stageColors[stage.value],
                   isCurrent && "ring-2 ring-offset-2 ring-primary",
                   isCompleted && "bg-primary/20 text-primary",
@@ -84,15 +84,15 @@ export function PipelineStageSelector({
                   readonly && "cursor-not-allowed opacity-60"
                 )}
               >
-                <div className="flex items-center justify-center gap-1">
-                  {isCompleted && <Check className="w-4 h-4" />}
-                  <span className="hidden sm:inline">{stage.label}</span>
-                  <span className="sm:hidden">{stage.label.slice(0, 3)}</span>
+                <div className="flex items-center justify-center gap-0.5 sm:gap-1">
+                  {isCompleted && <Check className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />}
+                  <span className="hidden sm:inline truncate">{stage.label}</span>
+                  <span className="sm:hidden truncate">{stage.label.slice(0, 3)}</span>
                 </div>
               </button>
               {index < PIPELINE_STAGES.length - 1 && (
                 <div className={cn(
-                  "h-1 w-4 mx-1",
+                  "h-1 w-2 sm:w-4 mx-0.5 sm:mx-1 flex-shrink-0",
                   index < currentIndex ? "bg-primary" : "bg-muted"
                 )} />
               )}
