@@ -168,8 +168,9 @@ export default function Dashboard() {
 
           {/* Charts Section with Filters */}
           {(() => {
+            const VALID_SECTORS = ['EMR_OGP', 'EMR_MFG', 'EMR_Services', 'BEDS_Services', 'EMR_Healthcare', 'EMR_Renewables', 'EMR_Trading'];
             const statuses = [...new Set(projectsList.map((p: Project) => p.status))];
-            const sectors = [...new Set(projectsList.map((p: Project) => p.sector).filter(Boolean))];
+            const sectors = VALID_SECTORS.filter(s => projectsList.some((p: Project) => p.sector === s));
             return (
               <div className="space-y-3">
                 <div className="flex flex-wrap items-center gap-2">
