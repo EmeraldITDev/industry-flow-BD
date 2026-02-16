@@ -75,10 +75,9 @@ export function RevenueBySectorChart({ projects }: RevenueBySectorChartProps) {
               data={data}
               cx="50%"
               cy="50%"
-              outerRadius={85}
+              outerRadius={60}
               paddingAngle={2}
               dataKey="value"
-              label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
             >
               {data.map((_, index) => (
                 <Cell key={index} fill={COLORS[index % COLORS.length]} />
@@ -87,6 +86,10 @@ export function RevenueBySectorChart({ projects }: RevenueBySectorChartProps) {
             <Tooltip
               formatter={(value: number) => formatCurrency(value)}
               contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', color: 'hsl(var(--foreground))' }}
+            />
+            <Legend
+              verticalAlign="bottom"
+              formatter={(value: string) => <span style={{ color: 'hsl(var(--foreground))', fontSize: 11 }}>{value}</span>}
             />
           </PieChart>
         </ResponsiveContainer>
