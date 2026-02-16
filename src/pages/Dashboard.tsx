@@ -8,9 +8,13 @@ import { RevenueAnalytics } from '@/components/dashboard/RevenueAnalytics';
 import { ProjectStatusChart } from '@/components/dashboard/ProjectStatusChart';
 import { PipelineStageChart } from '@/components/dashboard/PipelineStageChart';
 import { RevenueBySectorChart } from '@/components/dashboard/RevenueBySectorChart';
+import { TaskCompletionChart } from '@/components/dashboard/TaskCompletionChart';
+import { DeadlineTracker } from '@/components/dashboard/DeadlineTracker';
+import { WelcomeHeader } from '@/components/dashboard/WelcomeHeader';
+import { QuickActions } from '@/components/dashboard/QuickActions';
 import { ProjectCalendar } from '@/components/calendar/ProjectCalendar';
 import { projectsService } from '@/services/projects';
-import { FolderKanban, Activity, CheckCircle, AlertTriangle, Loader2, DollarSign, ShieldAlert, ListChecks, Clock } from 'lucide-react';
+import { FolderKanban, Activity, CheckCircle, Loader2, DollarSign, ShieldAlert, ListChecks, Clock } from 'lucide-react';
 import { useCurrency } from '@/context/CurrencyContext';
 import { Project } from '@/types';
 import { Progress } from '@/components/ui/progress';
@@ -82,11 +86,11 @@ export default function Dashboard() {
   }, [projectsList, chartFilter]);
   return (
     <div className="p-3 sm:p-6 lg:p-8 space-y-4 sm:space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-lg sm:text-2xl lg:text-3xl font-bold">Dashboard</h1>
-        <p className="text-xs sm:text-base text-muted-foreground mt-0.5 sm:mt-1">Overview of projects and tasks</p>
-      </div>
+      {/* Welcome Header */}
+      <WelcomeHeader />
+
+      {/* Quick Actions */}
+      <QuickActions />
 
       {isLoading ? (
         <div className="flex items-center justify-center py-8">
@@ -198,10 +202,11 @@ export default function Dashboard() {
                     </Badge>
                   ))}
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                   <ProjectStatusChart projects={filteredChartProjects} />
                   <PipelineStageChart projects={filteredChartProjects} />
                   <RevenueBySectorChart projects={filteredChartProjects} />
+                  <TaskCompletionChart projects={filteredChartProjects} />
                 </div>
               </div>
             );
@@ -219,6 +224,7 @@ export default function Dashboard() {
           <TasksSummary />
         </div>
         <div className="space-y-3 sm:space-y-6">
+          <DeadlineTracker projects={projectsList} />
           <ProjectCalendar />
           <SectorOverview />
         </div>
