@@ -8,7 +8,9 @@ export type DealProbability = 'low' | 'medium' | 'high' | 'critical' | 'uncertai
 
 // Pipeline stages for deal progression
 export type PipelineStage = 
+  | 'cold'
   | 'initiation' 
+  | 'opportunity'
   | 'qualification' 
   | 'proposal' 
   | 'negotiation' 
@@ -17,13 +19,15 @@ export type PipelineStage =
   | 'closure';
 
 export const PIPELINE_STAGES: { value: PipelineStage; label: string; order: number }[] = [
+  { value: 'cold', label: 'Cold', order: 0 },
   { value: 'initiation', label: 'Initiation', order: 1 },
-  { value: 'qualification', label: 'Qualification', order: 2 },
-  { value: 'proposal', label: 'Proposal', order: 3 },
-  { value: 'negotiation', label: 'Negotiation', order: 4 },
-  { value: 'approval', label: 'Won', order: 5 },
-  { value: 'execution', label: 'Execution', order: 6 },
-  { value: 'closure', label: 'Closure', order: 7 },
+  { value: 'opportunity', label: 'Opportunity', order: 2 },
+  { value: 'qualification', label: 'Qualification', order: 3 },
+  { value: 'proposal', label: 'Proposal', order: 4 },
+  { value: 'negotiation', label: 'Negotiation', order: 5 },
+  { value: 'approval', label: 'Approval / Won', order: 6 },
+  { value: 'execution', label: 'Execution', order: 7 },
+  { value: 'closure', label: 'Closure', order: 8 },
 ];
 
 export type BusinessSegment = 

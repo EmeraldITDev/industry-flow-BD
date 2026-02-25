@@ -5,6 +5,9 @@ import { EmeraldStatCard } from '@/components/dashboard/EmeraldStatCard';
 import { PipelineFunnel } from '@/components/dashboard/PipelineFunnel';
 import { TeamPerformance } from '@/components/dashboard/TeamPerformance';
 import { SegmentBreakdown } from '@/components/dashboard/SegmentBreakdown';
+import { TopClientsByValue } from '@/components/dashboard/TopClientsByValue';
+import { ProbabilityMixDonut } from '@/components/dashboard/ProbabilityMixDonut';
+import { ProductCategoryMixDonut } from '@/components/dashboard/ProductCategoryMixDonut';
 import { SectorOverview } from '@/components/dashboard/SectorOverview';
 import { RecentProjects } from '@/components/dashboard/RecentProjects';
 import { TasksSummary } from '@/components/dashboard/TasksSummary';
@@ -109,6 +112,7 @@ export default function Dashboard() {
     const pipelineByStage: Record<string, number> = {
       cold: 0,
       initiation: 0,
+      opportunity: 0,
       qualification: 0,
       proposal: 0,
       negotiation: 0,
@@ -137,6 +141,48 @@ export default function Dashboard() {
       const sector = p.sector || 'Unknown';
       bySector[sector] = (bySector[sector] || 0) + 1;
     });
+    
+    // Calculate top clients by PO value (excluding BEDS)
+    const clientValues: Record<string, number> = {};
+    projects.forEach((p: Project) => {
+      const client = p.clientName || 'Unknown';
+      // Exclude BEDS clients (assuming they contain 'BEDS' in the name)
+      if (!client.toUpperCase().includes('BEDS')) {
+        const usdValue = Number(p.contractValueUSD ?? 0) || 0;
+        clientValues[client] = (clientValues[client] || 0) + usdValue;
+      }
+    });
+    
+    // Get top 10 clients
+    const topClients = Object.entries(clientValues)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .reduce((acc, [client, value]) => {
+        acc[client] = value;
+        return acc;
+      }, {} as Record<string, number>);
+    
+    // Calculate probability distribution
+    const byProbability: Record<string, number> = {
+      low: 0,
+      medium: 0,
+      high: 0,
+      critical: 0,
+      uncertain: 0,
+    };
+    
+    projects.forEach((p: Project) => {
+      const prob = p.dealProbability || 'uncertain';
+      byProbability[prob] = (byProbability[prob] || 0) + 1;
+    });
+    
+    // Calculate product category mix by USD value
+    const byProductCategory: Record<string, number> = {};
+    projects.forEach((p: Project) => {
+      const product = p.product || 'Unknown';
+      const usdValue = Number(p.contractValueUSD ?? 0) || 0;
+      byProductCategory[product] = (byProductCategory[product] || 0) + usdValue;
+    });
 
     return {
       total: projects.length,
@@ -158,6 +204,9 @@ export default function Dashboard() {
       pipelineByStage,
       lostDeals,
       bySector,
+      topClients,
+      byProbability,
+      byProductCategory,
       averageProgress: avgProgress,
       recent,
     };
@@ -281,6 +330,7 @@ export default function Dashboard() {
               stages={[
                 { label: 'Cold', count: computedStats.pipelineByStage.cold || 0, color: 'cold' },
                 { label: 'Initiation', count: computedStats.pipelineByStage.initiation || 0, color: 'initiation' },
+                { label: 'Opportunity', count: computedStats.pipelineByStage.opportunity || 0, color: 'opportunity' },
                 { label: 'Qualification', count: computedStats.pipelineByStage.qualification || 0, color: 'qualification' },
                 { label: 'Proposal', count: computedStats.pipelineByStage.proposal || 0, color: 'proposal' },
                 { label: 'Negotiation', count: computedStats.pipelineByStage.negotiation || 0, color: 'negotiation' },
@@ -293,6 +343,23 @@ export default function Dashboard() {
 
             {/* Segment Breakdown */}
             <SegmentBreakdown data={computedStats.bySector} />
+          </div>
+
+          {/* Additional Analytics Section */}
+          <div className="flex items-center gap-2 text-[10px] font-bold tracking-[0.2em] uppercase text-emerald-accent mt-8">
+            <span>Client &amp; Product Analytics</span>
+            <div className="flex-1 h-px bg-border" />
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            {/* Top Clients by PO Value */}
+            <TopClientsByValue data={computedStats.topClients} />
+
+            {/* Probability Mix Donut */}
+            <ProbabilityMixDonut data={computedStats.byProbability} />
+
+            {/* Product Category Mix */}
+            <ProductCategoryMixDonut data={computedStats.byProductCategory} />
           </div>
 
           {/* Financial Overview */}
