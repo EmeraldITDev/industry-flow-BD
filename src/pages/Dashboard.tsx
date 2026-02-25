@@ -40,15 +40,49 @@ export default function Dashboard() {
     
     let totalNGN = 0;
     let totalUSD = 0;
+    let wonPOValueUSD = 0;
+    let wonPOValueNGN = 0;
+    let activePipelineUSD = 0;
+    let activePipelineNGN = 0;
+    let totalCommissionNGN = 0;
+    
     const active = projects.filter((p: Project) => p.status === 'active').length;
     const completed = projects.filter((p: Project) => p.status === 'completed').length;
+    const won = projects.filter((p: Project) => 
+      p.status === 'completed' || 
+      p.pipelineStage === 'approval' || 
+      p.pipelineStage === 'execution' || 
+      p.pipelineStage === 'closure'
+    ).length;
     const highRisk = projects.filter((p: Project) => p.dealProbability === 'high' || p.dealProbability === 'critical').length;
+    
+    // Count unique sectors/segments
+    const segments = [...new Set(projects.map(p => p.sector).filter(Boolean))].length;
 
     projects.forEach((p: Project) => {
       const ngnRaw = Number(p.contractValueNGN ?? 0) || 0;
       const usdRaw = Number(p.contractValueUSD ?? 0) || 0;
-      totalNGN += ngnRaw > 0 ? ngnRaw : (usdRaw > 0 ? Math.round(usdRaw * NGN_PER_USD) : 0);
-      totalUSD += usdRaw > 0 ? usdRaw : (ngnRaw > 0 ? parseFloat((ngnRaw / NGN_PER_USD).toFixed(2)) : 0);
+      const ngnValue = ngnRaw > 0 ? ngnRaw : (usdRaw > 0 ? Math.round(usdRaw * NGN_PER_USD) : 0);
+      const usdValue = usdRaw > 0 ? usdRaw : (ngnRaw > 0 ? parseFloat((ngnRaw / NGN_PER_USD).toFixed(2)) : 0);
+      
+      totalNGN += ngnValue;
+      totalUSD += usdValue;
+      
+      // Calculate won PO value (approved, executed, or closed deals)
+      if (p.status === 'completed' || p.pipelineStage === 'approval' || p.pipelineStage === 'execution' || p.pipelineStage === 'closure') {
+        wonPOValueUSD += usdValue;
+        wonPOValueNGN += ngnValue;
+      }
+      
+      // Calculate active pipeline value
+      if (p.status === 'active') {
+        activePipelineUSD += usdValue;
+        activePipelineNGN += ngnValue;
+      }
+      
+      // Calculate commission (assuming 5% commission rate - adjust as needed)
+      const commissionRate = 0.05;
+      totalCommissionNGN += ngnValue * commissionRate;
     });
 
     const avgProgress = projects.length > 0
@@ -66,16 +100,27 @@ export default function Dashboard() {
     const recent = [...projects]
       .sort((a: any, b: any) => new Date(b.startDate || 0).getTime() - new Date(a.startDate || 0).getTime())
       .slice(0, 5);
+    
+    // Calculate win rate
+    const winRate = projects.length > 0 ? (won / projects.length) * 100 : 0;
 
     return {
       total: projects.length,
       active,
       completed,
+      won,
       highRisk,
       completedTasks,
       overdueTasks,
       totalNGN,
       totalUSD,
+      wonPOValueUSD,
+      wonPOValueNGN,
+      activePipelineUSD,
+      activePipelineNGN,
+      totalCommissionNGN,
+      winRate,
+      segments,
       averageProgress: avgProgress,
       recent,
     };
@@ -90,9 +135,16 @@ export default function Dashboard() {
   
   return (
     <div className="p-3 sm:p-6 lg:p-8 space-y-3 sm:space-y-6">
-      <div>
-        <h1 className="text-lg sm:text-2xl lg:text-3xl font-bold">Dashboard</h1>
-        <p className="text-xs sm:text-base text-muted-foreground mt-0.5 sm:mt-1">Overview of projects and tasks</p>
+      {/* Header with live indicator */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-lg sm:text-2xl lg:text-3xl font-bold">Dashboard</h1>
+          <p className="text-xs sm:text-base text-muted-foreground mt-0.5 sm:mt-1">Overview of projects and tasks</p>
+        </div>
+        <div className="flex items-center gap-1.5 text-[11px] text-emerald-accent uppercase tracking-[0.1em]">
+          <div className="w-1.5 h-1.5 bg-emerald-accent rounded-full animate-pulse" />
+          Live Data
+        </div>
       </div>
 
       {isLoading && (
@@ -103,7 +155,48 @@ export default function Dashboard() {
 
       {!isLoading && (
         <>
-          {/* Key Metrics Row */}
+          {/* Section Label */}
+          <div className="flex items-center gap-2 text-[10px] font-bold tracking-[0.2em] uppercase text-emerald-accent">
+            <span>Key Performance Indicators</span>
+            <div className="flex-1 h-px bg-border" />
+          </div>
+
+          {/* KPI Cards - Emerald Style */}
+          <div className="grid grid-cols-1 gap-2 sm:gap-4 md:grid-cols-2 lg:grid-cols-5">
+            <EmeraldStatCard
+              label="Total PO Value (USD)"
+              value={formatCurrencyFor(computedStats.wonPOValueUSD, 'USD')}
+              subtitle={`${computedStats.won} won opportunities`}
+              colorScheme="won"
+              delta="Active"
+            />
+            <EmeraldStatCard
+              label="Active Pipeline (USD)"
+              value={formatCurrencyFor(computedStats.activePipelineUSD, 'USD')}
+              subtitle={`${computedStats.active} open opportunities`}
+              colorScheme="pipeline"
+            />
+            <EmeraldStatCard
+              label="Total Commission (NGN)"
+              value={formatCurrencyFor(computedStats.totalCommissionNGN, 'NGN')}
+              subtitle="Across all segments"
+              colorScheme="commission"
+            />
+            <EmeraldStatCard
+              label="Total Opportunities"
+              value={computedStats.total}
+              subtitle={`${computedStats.segments} business segments`}
+              colorScheme="leads"
+            />
+            <EmeraldStatCard
+              label="Win Rate"
+              value={`${computedStats.winRate.toFixed(1)}%`}
+              subtitle={`${computedStats.won} won / ${computedStats.total} total`}
+              colorScheme="rate"
+            />
+          </div>
+
+          {/* Additional Metrics */}
           <div className="grid grid-cols-2 gap-2 sm:gap-4 lg:grid-cols-6">
             <StatCard 
               title="Total Projects" 
