@@ -87,6 +87,7 @@ export default function Dashboard() {
     if (!chartFilter) return projectsList;
     return projectsList.filter((p: Project) => p.status === chartFilter || p.sector === chartFilter);
   }, [projectsList, chartFilter]);
+  
   return (
     <div className="p-3 sm:p-6 lg:p-8 space-y-3 sm:space-y-6">
       <div>
@@ -104,89 +105,67 @@ export default function Dashboard() {
           <div className="grid grid-cols-2 gap-2 sm:gap-4 lg:grid-cols-6">
             <StatCard 
               title="Total Projects" 
-              value={stats.total ?? stats.totalProjects ?? 0} 
+              value={computedStats.total} 
               icon={FolderKanban}
             />
             <StatCard 
               title="Active Projects" 
-              value={stats.active ?? stats.activeProjects ?? 0} 
+              value={computedStats.active} 
               icon={Activity}
             />
             <StatCard 
               title="Completed Projects" 
-              value={stats.completed ?? stats.completedProjects ?? 0} 
+              value={computedStats.completed} 
               icon={CheckCircle}
             />
             <StatCard 
               title="High Risk Projects" 
-              value={stats.highRisk ?? 0} 
+              value={computedStats.highRisk} 
               icon={ShieldAlert}
-              className={(stats.highRisk ?? 0) > 0 ? "bg-destructive/5 border-destructive/20" : ""}
+              className={computedStats.highRisk > 0 ? "bg-destructive/5 border-destructive/20" : ""}
             />
             <StatCard 
               title="Completed Tasks" 
-              value={stats.completedTasks ?? 0} 
+              value={computedStats.completedTasks} 
               icon={CheckCircle}
             />
             <StatCard 
               title="Overdue Tasks" 
-              value={stats.overdueTasks ?? 0} 
-              icon={AlertTriangle}
-              className={(stats.overdueTasks ?? 0) > 0 ? "bg-destructive/5 border-destructive/20" : ""}
+              value={computedStats.overdueTasks} 
+              icon={Clock}
+              className={computedStats.overdueTasks > 0 ? "bg-destructive/5 border-destructive/20" : ""}
             />
           </div>
 
           {/* Financial Overview */}
           <div className="grid grid-cols-1 gap-2 sm:gap-4 md:grid-cols-2">
-            {/* Compute display totals: prefer API stats, fallback to computed sums from projects */}
-            {(() => {
-              const displayTotalNGN = (stats?.totalValueNgn ?? computedTotals.totalNGN) || 0;
-              const displayTotalUSD = (stats?.totalValueUsd ?? computedTotals.totalUSD) || 0;
+            <StatCard 
+              title="Total Revenue (NGN)"
+              value={formatCurrencyFor(computedStats.totalNGN, 'NGN')}
+              icon={DollarSign}
+              className="bg-primary/5 border-primary/20"
+            />
 
-              // Keep debug logging for diagnostics but show only computed totals in the UI
-              console.log('[Dashboard] Computed totals breakdown (displaying computed only):', {
-                computedTotals,
-                apiTotals: { totalValueNgn: stats?.totalValueNgn, totalValueUsd: stats?.totalValueUsd },
-                sampleProjects: (projectsList || []).slice(0, 6).map(p => ({ id: p.id, name: p.name, contractValueNGN: p.contractValueNGN, contractValueUSD: p.contractValueUSD }))
-              });
-
-              return (
-                <>
-                  <StatCard 
-                    title={`Total Revenue (NGN)`}
-                    value={formatCurrencyFor(computedTotals.totalNGN, 'NGN')}
-                    icon={DollarSign}
-                    className="bg-primary/5 border-primary/20"
-                  />
-
-                  <StatCard 
-                    title={`Total Revenue (USD)`}
-                    value={formatCurrencyFor(computedTotals.totalUSD, 'USD')}
-                    icon={DollarSign}
-                    className="bg-chart-2/5 border-chart-2/20"
-                  />
-                </>
-              );
-            })()}
+            <StatCard 
+              title="Total Revenue (USD)"
+              value={formatCurrencyFor(computedStats.totalUSD, 'USD')}
+              icon={DollarSign}
+              className="bg-chart-2/5 border-chart-2/20"
+            />
           </div>
 
           {/* Average Progress Indicator */}
-          {stats.averageProgress !== undefined && stats.averageProgress !== null && (
+          {computedStats.averageProgress !== undefined && computedStats.averageProgress !== null && (
             <div className="bg-card border border-border rounded-lg p-4 sm:p-6">
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-sm sm:text-base font-semibold">Average Project Progress</h3>
-                <span className="text-sm sm:text-base font-medium">{stats.averageProgress.toFixed(1)}%</span>
+                <span className="text-sm sm:text-base font-medium">{computedStats.averageProgress.toFixed(1)}%</span>
               </div>
-              <Progress value={stats.averageProgress} className="h-2 sm:h-3" />
+              <Progress value={computedStats.averageProgress} className="h-2 sm:h-3" />
               <p className="text-xs sm:text-sm text-muted-foreground mt-2">Across all active projects</p>
             </div>
           )}
         </>
-      ) : (
-        <div className="flex flex-col items-center justify-center py-12">
-          <p className="text-muted-foreground mb-2">No statistics available</p>
-          <p className="text-sm text-muted-foreground">Please check your connection and try again</p>
-        </div>
       )}
 
       <RevenueAnalytics />
@@ -194,7 +173,7 @@ export default function Dashboard() {
       {/* Bottom Section */}
       <div className="grid grid-cols-1 gap-3 sm:gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-3 sm:space-y-6">
-          <RecentProjects recentProjects={stats?.recent} />
+          <RecentProjects recentProjects={computedStats.recent} />
           <TasksSummary />
         </div>
         <div className="space-y-3 sm:space-y-6">
