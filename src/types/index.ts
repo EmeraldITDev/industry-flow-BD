@@ -127,6 +127,7 @@ export interface Project {
   subProduct?: string;
   projectLeadId?: string;
   assigneeId?: string;
+  salesLead?: string;
   channelPartner?: string;
   
   // Financial fields (dual currency)

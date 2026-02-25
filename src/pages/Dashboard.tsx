@@ -8,6 +8,8 @@ import { SegmentBreakdown } from '@/components/dashboard/SegmentBreakdown';
 import { TopClientsByValue } from '@/components/dashboard/TopClientsByValue';
 import { ProbabilityMixDonut } from '@/components/dashboard/ProbabilityMixDonut';
 import { ProductCategoryMixDonut } from '@/components/dashboard/ProductCategoryMixDonut';
+import PipelineBySalesLead from '@/components/dashboard/PipelineBySalesLead';
+import TeamOpportunityLoad from '@/components/dashboard/TeamOpportunityLoad';
 import { SectorOverview } from '@/components/dashboard/SectorOverview';
 import { RecentProjects } from '@/components/dashboard/RecentProjects';
 import { TasksSummary } from '@/components/dashboard/TasksSummary';
@@ -184,6 +186,45 @@ export default function Dashboard() {
       byProductCategory[product] = (byProductCategory[product] || 0) + usdValue;
     });
 
+    // Calculate active pipeline by sales lead (Proposal + Negotiation + Qualification only)
+    const pipelineBySalesLead: Record<string, number> = {};
+    projects.forEach((p: Project) => {
+      const activeStages = ['proposal', 'negotiation', 'qualification'];
+      if (activeStages.includes(p.pipelineStage || '')) {
+        const lead = p.salesLead || 'Unassigned';
+        const usdValue = Number(p.contractValueUSD ?? 0) || 0;
+        pipelineBySalesLead[lead] = (pipelineBySalesLead[lead] || 0) + usdValue;
+      }
+    });
+
+    // Calculate team load (total deals, won, active per sales lead)
+    const teamLoadMap: Record<string, { total: number; won: number; active: number }> = {};
+    projects.forEach((p: Project) => {
+      const lead = p.salesLead || 'Unassigned';
+      if (!teamLoadMap[lead]) {
+        teamLoadMap[lead] = { total: 0, won: 0, active: 0 };
+      }
+      
+      teamLoadMap[lead].total++;
+      
+      if (p.status === 'completed' || p.pipelineStage === 'approval' || p.pipelineStage === 'execution' || p.pipelineStage === 'closure') {
+        teamLoadMap[lead].won++;
+      }
+      
+      if (p.status === 'active') {
+        teamLoadMap[lead].active++;
+      }
+    });
+
+    // Convert to array format for the table component
+    const teamLoad = Object.entries(teamLoadMap).map(([lead, stats]) => ({
+      lead,
+      totalDeals: stats.total,
+      won: stats.won,
+      active: stats.active,
+      loadPercentage: stats.total,
+    }));
+
     return {
       total: projects.length,
       active,
@@ -207,6 +248,8 @@ export default function Dashboard() {
       topClients,
       byProbability,
       byProductCategory,
+      pipelineBySalesLead,
+      teamLoad,
       averageProgress: avgProgress,
       recent,
     };
@@ -360,6 +403,25 @@ export default function Dashboard() {
 
             {/* Product Category Mix */}
             <ProductCategoryMixDonut data={computedStats.byProductCategory} />
+          </div>
+
+          {/* Team Performance & Lead Analysis Section */}
+          <div className="flex items-center gap-2 text-[10px] font-bold tracking-[0.2em] uppercase text-emerald-accent mt-8">
+            <span>Team Performance &amp; Lead Analysis</span>
+            <div className="flex-1 h-px bg-border" />
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Pipeline by Sales Lead */}
+            <PipelineBySalesLead 
+              data={Object.entries(computedStats.pipelineBySalesLead).map(([lead, value]) => ({
+                lead,
+                value: value as number,
+              }))}
+            />
+
+            {/* Team Opportunity Load */}
+            <TeamOpportunityLoad data={computedStats.teamLoad} />
           </div>
 
           {/* Financial Overview */}
