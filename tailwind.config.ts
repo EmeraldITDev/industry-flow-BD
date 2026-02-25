@@ -56,6 +56,19 @@ export default {
   				'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
   				border: 'hsl(var(--sidebar-border))',
   				ring: 'hsl(var(--sidebar-ring))'
+  			},
+  			emerald: {
+  				accent: '#00c2a8',
+  				accent2: '#0077ff',
+  				accent3: '#f0a500',
+  				accent4: '#e84393',
+  				won: '#00c2a8',
+  				proposal: '#0077ff',
+  				negotiation: '#f0a500',
+  				cold: '#3a5070',
+  				lost: '#e84393',
+  				initiation: '#8b5cf6',
+  				qualification: '#34d399'
   			}
   		},
   		borderRadius: {
@@ -79,11 +92,33 @@ export default {
   				to: {
   					height: '0'
   				}
+  			},
+  			'fade-up': {
+  				from: {
+  					opacity: '0',
+  					transform: 'translateY(16px)'
+  				},
+  				to: {
+  					opacity: '1',
+  					transform: 'translateY(0)'
+  				}
+  			},
+  			pulse: {
+  				'0%, 100%': {
+  					opacity: '1',
+  					transform: 'scale(1)'
+  				},
+  				'50%': {
+  					opacity: '0.4',
+  					transform: 'scale(1.5)'
+  				}
   			}
   		},
   		animation: {
   			'accordion-down': 'accordion-down 0.2s ease-out',
-  			'accordion-up': 'accordion-up 0.2s ease-out'
+  			'accordion-up': 'accordion-up 0.2s ease-out',
+  			'fade-up': 'fade-up 0.5s ease both',
+  			'pulse': 'pulse 2s infinite'
   		},
   		boxShadow: {
   			'2xs': 'var(--shadow-2xs)',
