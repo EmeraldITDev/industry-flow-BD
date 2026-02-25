@@ -4,6 +4,7 @@ import { StatCard } from '@/components/dashboard/StatCard';
 import { EmeraldStatCard } from '@/components/dashboard/EmeraldStatCard';
 import { PipelineFunnel } from '@/components/dashboard/PipelineFunnel';
 import { TeamPerformance } from '@/components/dashboard/TeamPerformance';
+import { SegmentBreakdown } from '@/components/dashboard/SegmentBreakdown';
 import { SectorOverview } from '@/components/dashboard/SectorOverview';
 import { RecentProjects } from '@/components/dashboard/RecentProjects';
 import { TasksSummary } from '@/components/dashboard/TasksSummary';
@@ -103,6 +104,39 @@ export default function Dashboard() {
     
     // Calculate win rate
     const winRate = projects.length > 0 ? (won / projects.length) * 100 : 0;
+    
+    // Calculate pipeline stage distribution
+    const pipelineByStage: Record<string, number> = {
+      cold: 0,
+      initiation: 0,
+      qualification: 0,
+      proposal: 0,
+      negotiation: 0,
+      approval: 0,
+      execution: 0,
+      closure: 0,
+    };
+    
+    // Calculate lost deals (on-hold status, treat as lost for funnel purposes)
+    let lostDeals = 0;
+    
+    projects.forEach((p: Project) => {
+      if (p.status === 'on-hold') {
+        lostDeals++;
+      } else if (p.pipelineStage) {
+        pipelineByStage[p.pipelineStage] = (pipelineByStage[p.pipelineStage] || 0) + 1;
+      } else {
+        // No stage specified, count as cold
+        pipelineByStage.cold++;
+      }
+    });
+    
+    // Calculate sector/segment distribution
+    const bySector: Record<string, number> = {};
+    projects.forEach((p: Project) => {
+      const sector = p.sector || 'Unknown';
+      bySector[sector] = (bySector[sector] || 0) + 1;
+    });
 
     return {
       total: projects.length,
@@ -121,6 +155,9 @@ export default function Dashboard() {
       totalCommissionNGN,
       winRate,
       segments,
+      pipelineByStage,
+      lostDeals,
+      bySector,
       averageProgress: avgProgress,
       recent,
     };
@@ -230,6 +267,32 @@ export default function Dashboard() {
               icon={Clock}
               className={computedStats.overdueTasks > 0 ? "bg-destructive/5 border-destructive/20" : ""}
             />
+          </div>
+
+          {/* Pipeline & Revenue Analysis Section */}
+          <div className="flex items-center gap-2 text-[10px] font-bold tracking-[0.2em] uppercase text-emerald-accent mt-8">
+            <span>Pipeline &amp; Revenue Analysis</span>
+            <div className="flex-1 h-px bg-border" />
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Pipeline Funnel with Donut */}
+            <PipelineFunnel
+              stages={[
+                { label: 'Cold', count: computedStats.pipelineByStage.cold || 0, color: 'cold' },
+                { label: 'Initiation', count: computedStats.pipelineByStage.initiation || 0, color: 'initiation' },
+                { label: 'Qualification', count: computedStats.pipelineByStage.qualification || 0, color: 'qualification' },
+                { label: 'Proposal', count: computedStats.pipelineByStage.proposal || 0, color: 'proposal' },
+                { label: 'Negotiation', count: computedStats.pipelineByStage.negotiation || 0, color: 'negotiation' },
+                { label: 'Approval ✓', count: computedStats.pipelineByStage.approval || 0, color: 'approval' },
+                { label: 'Execution', count: computedStats.pipelineByStage.execution || 0, color: 'execution' },
+                { label: 'Closure', count: computedStats.pipelineByStage.closure || 0, color: 'closure' },
+                { label: 'Lost ✗', count: computedStats.lostDeals || 0, color: 'lost' },
+              ]}
+            />
+
+            {/* Segment Breakdown */}
+            <SegmentBreakdown data={computedStats.bySector} />
           </div>
 
           {/* Financial Overview */}

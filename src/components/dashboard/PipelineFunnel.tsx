@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 
 interface FunnelStage {
   label: string;
@@ -21,6 +22,22 @@ const stageColors: Record<string, string> = {
   qualification: 'bg-emerald-qualification',
   won: 'bg-emerald-won',
   lost: 'bg-emerald-lost',
+  approval: 'bg-emerald-won',
+  execution: 'bg-emerald-qualification',
+  closure: 'bg-emerald-qualification',
+};
+
+const stageHexColors: Record<string, string> = {
+  cold: '#3a5070',
+  initiation: '#8b5cf6',
+  proposal: '#0077ff',
+  negotiation: '#f0a500',
+  qualification: '#34d399',
+  won: '#00c2a8',
+  lost: '#e84393',
+  approval: '#00c2a8',
+  execution: '#34d399',
+  closure: '#34d399',
 };
 
 export function PipelineFunnel({
@@ -31,6 +48,16 @@ export function PipelineFunnel({
 }: PipelineFunnelProps) {
   // Calculate max count for width percentage
   const maxCount = Math.max(...stages.map(s => s.count));
+  const totalCount = stages.reduce((sum, s) => sum + s.count, 0);
+
+  // Prepare data for donut chart
+  const donutData = stages
+    .filter(s => s.count > 0)
+    .map(s => ({
+      name: s.label,
+      value: s.count,
+      color: stageHexColors[s.color.toLowerCase()] || '#3a5070',
+    }));
 
   return (
     <div className={cn('bg-card border border-border rounded-xl p-6 animate-fade-up', className)}>
@@ -43,7 +70,7 @@ export function PipelineFunnel({
       {/* Funnel bars */}
       <div className="flex flex-col gap-2">
         {stages.map((stage, index) => {
-          const widthPercent = (stage.count / maxCount) * 100;
+          const widthPercent = maxCount > 0 ? (stage.count / maxCount) * 100 : 0;
           const minWidth = stage.count > 0 ? 'min-w-[40px]' : '';
 
           return (
@@ -75,6 +102,55 @@ export function PipelineFunnel({
           );
         })}
       </div>
+
+      {/* Mini donut chart */}
+      {donutData.length > 0 && (
+        <div className="mt-6 flex items-center gap-5">
+          <div className="w-[110px] h-[110px] flex-shrink-0">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={donutData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={35}
+                  outerRadius={52}
+                  paddingAngle={2}
+                  dataKey="value"
+                >
+                  {donutData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'hsl(var(--popover))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '6px',
+                    fontSize: '11px',
+                  }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+          
+          {/* Legend */}
+          <div className="flex flex-wrap gap-2">
+            {donutData.map((entry, index) => {
+              const percentage = totalCount > 0 ? ((entry.value / totalCount) * 100).toFixed(0) : 0;
+              return (
+                <div key={index} className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                  <div
+                    className="w-2 h-2 rounded-full"
+                    style={{ backgroundColor: entry.color }}
+                  />
+                  <span>{entry.name} {percentage}%</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
