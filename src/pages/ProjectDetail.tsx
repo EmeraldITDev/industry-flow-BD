@@ -50,7 +50,9 @@ import { format } from 'date-fns';
 import { usePermissions } from '@/hooks/usePermissions';
 import { toast } from 'sonner';
 import { safeFormatDate } from '@/lib/dateUtils';
-
+import { getStageProgress, STAGE_PROGRESS_MAP } from '@/lib/stageProgress';
+import { PIPELINE_STAGES } from '@/types';
+import { teamService } from '@/services/team';
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -69,6 +71,13 @@ export default function ProjectDetail() {
     queryFn: () => id ? tasksService.getByProject(id) : Promise.resolve([]),
     enabled: !!id,
     staleTime: 60 * 1000,
+  });
+
+  // Fetch team members for displaying project lead and team
+  const { data: teamMembers = [] } = useQuery({
+    queryKey: ['team'],
+    queryFn: () => teamService.getAll(),
+    staleTime: 5 * 60 * 1000,
   });
 
   const fetchProject = async () => {
@@ -546,9 +555,14 @@ export default function ProjectDetail() {
               <div>
                 <div className="flex items-center justify-between text-sm mb-2">
                   <span className="text-muted-foreground">Overall</span>
-                  <span className="font-medium">{project.progress || 0}%</span>
+                  <span className="font-medium">{getStageProgress(project.pipelineStage, project.progress)}%</span>
                 </div>
-                <Progress value={project.progress || 0} className="h-3" />
+                <Progress value={getStageProgress(project.pipelineStage, project.progress)} className="h-3" />
+                {project.pipelineStage && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Stage: {PIPELINE_STAGES.find(s => s.value === project.pipelineStage)?.label || project.pipelineStage}
+                  </p>
+                )}
               </div>
               <div className="pt-4 border-t border-border">
                 <div className="flex items-center justify-between text-sm">
@@ -556,6 +570,56 @@ export default function ProjectDetail() {
                   <span className="font-medium">{completedTasks}/{tasks.length}</span>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Team Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Team</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {(() => {
+                const lead = teamMembers.find((m: any) => m.id === project.projectLeadId || String(m.id) === String(project.projectLeadId));
+                const assignee = project.assigneeId && project.assigneeId !== project.projectLeadId
+                  ? teamMembers.find((m: any) => m.id === project.assigneeId || String(m.id) === String(project.assigneeId))
+                  : null;
+                return (
+                  <>
+                    {lead ? (
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-semibold text-primary">
+                          {lead.name?.charAt(0)?.toUpperCase() || 'L'}
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">{lead.name}</p>
+                          <p className="text-xs text-muted-foreground">Project Lead</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No project lead assigned</p>
+                    )}
+                    {assignee && (
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-chart-2/10 flex items-center justify-center text-xs font-semibold text-chart-2">
+                          {assignee.name?.charAt(0)?.toUpperCase() || 'A'}
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">{assignee.name}</p>
+                          <p className="text-xs text-muted-foreground">Assignee</p>
+                        </div>
+                      </div>
+                    )}
+                    <div className="pt-2 border-t border-border">
+                      <div className="flex items-center gap-2 text-sm">
+                        <Users className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-muted-foreground">Team Size:</span>
+                        <span className="font-medium">{project.teamSize || 0}</span>
+                      </div>
+                    </div>
+                  </>
+                );
+              })()}
             </CardContent>
           </Card>
 

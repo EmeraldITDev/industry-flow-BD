@@ -10,6 +10,7 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, Users, FolderOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCurrency } from '@/context/CurrencyContext';
+import { getStageProgress } from '@/lib/stageProgress';
 
 interface RecentProjectsProps {
   recentProjects?: Project[];
@@ -119,8 +120,8 @@ export function RecentProjects({ recentProjects: propRecentProjects }: RecentPro
                   <span>{project.teamSize || 0}</span>
                 </div>
                 <div className="flex items-center gap-1.5 sm:gap-2">
-                  <Progress value={project.progress || 0} className="w-10 sm:w-20 h-1 sm:h-2" />
-                  <span className="text-[10px] sm:text-xs font-medium">{project.progress || 0}%</span>
+                  <Progress value={getStageProgress(project.pipelineStage, project.progress)} className="w-10 sm:w-20 h-1 sm:h-2" />
+                  <span className="text-[10px] sm:text-xs font-medium">{getStageProgress(project.pipelineStage, project.progress)}%</span>
                 </div>
               </div>
             </Link>

@@ -7,6 +7,7 @@ import { Calendar, Users, CheckSquare, AlertTriangle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { format, differenceInDays, isValid } from 'date-fns';
 import { useCurrency } from '@/context/CurrencyContext';
+import { getStageProgress } from '@/lib/stageProgress';
 
 interface ProjectCardProps {
   project: Project;
@@ -102,9 +103,9 @@ export function ProjectCard({ project }: ProjectCardProps) {
           <div className="space-y-1 sm:space-y-2">
             <div className="flex items-center justify-between text-xs sm:text-sm">
               <span className="text-muted-foreground">Progress</span>
-              <span className="font-medium">{project.progress || 0}%</span>
+              <span className="font-medium">{getStageProgress(project.pipelineStage, project.progress)}%</span>
             </div>
-            <Progress value={project.progress || 0} className="h-1.5 sm:h-2" />
+            <Progress value={getStageProgress(project.pipelineStage, project.progress)} className="h-1.5 sm:h-2" />
           </div>
 
           <div className="flex items-center justify-between text-[10px] sm:text-sm text-muted-foreground pt-2 border-t border-border">
