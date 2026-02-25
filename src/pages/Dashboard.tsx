@@ -95,11 +95,13 @@ export default function Dashboard() {
         <p className="text-xs sm:text-base text-muted-foreground mt-0.5 sm:mt-1">Overview of projects and tasks</p>
       </div>
 
-      {isLoading ? (
+      {isLoading && (
         <div className="flex items-center justify-center py-8">
           <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
         </div>
-      ) : (
+      )}
+
+      {!isLoading && (
         <>
           {/* Key Metrics Row */}
           <div className="grid grid-cols-2 gap-2 sm:gap-4 lg:grid-cols-6">
