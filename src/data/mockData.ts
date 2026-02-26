@@ -25,6 +25,8 @@ export const sectorIcons: Record<Sector, string> = {
 };
 
 export const stageColors: Record<PipelineStage, string> = {
+  cold : 'bg-chart-1/20 text-chart-5',
+  opportunity : 'bg-chart-2/20 text-chart-5',
   initiation: 'bg-chart-5/20 text-chart-5',
   qualification: 'bg-chart-4/20 text-chart-4',
   proposal: 'bg-chart-1/20 text-chart-1',
