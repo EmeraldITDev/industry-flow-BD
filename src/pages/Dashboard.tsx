@@ -264,12 +264,9 @@ export default function Dashboard() {
   
   return (
     <div className="p-3 sm:p-6 lg:p-8 space-y-3 sm:space-y-6">
-      {/* Header with live indicator */}
+      {/* Header with welcome greeting and live indicator */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-lg sm:text-2xl lg:text-3xl font-bold">Dashboard</h1>
-          <p className="text-xs sm:text-base text-muted-foreground mt-0.5 sm:mt-1">Overview of projects and tasks</p>
-        </div>
+        <WelcomeHeader />
         <div className="flex items-center gap-1.5 text-[11px] text-emerald-accent uppercase tracking-[0.1em]">
           <div className="w-1.5 h-1.5 bg-emerald-accent rounded-full animate-pulse" />
           Live Data
