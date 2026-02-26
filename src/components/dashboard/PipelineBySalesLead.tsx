@@ -50,7 +50,7 @@ export default function PipelineBySalesLead({ data }: PipelineBySalesLeadProps) 
           />
           <YAxis 
             tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
-            tickFormatter={(value) => `$${(value / 1_000_000).toFixed(1)}M`}
+            tickFormatter={(value: any) => `$${(value / 1_000_000).toFixed(1)}M`}
           />
           <Tooltip
             contentStyle={{
