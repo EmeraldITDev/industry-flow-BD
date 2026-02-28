@@ -144,11 +144,16 @@ class ProjectController extends Controller
 
     /**
      * Create new project
+     * Converts camelCase input from frontend to snake_case for database
      */
     public function store(Request $request): JsonResponse
     {
         try {
-            $validated = $request->validate([
+            // Convert camelCase to snake_case for validation
+            $data = $request->all();
+            $convertedData = $this->convertCamelCaseToSnakeCase($data);
+            
+            $validated = validator($convertedData, [
                 'name' => 'required|string|max:255',
                 'description' => 'required|string',
                 'sector' => 'required|string',
@@ -177,7 +182,7 @@ class ProjectController extends Controller
                 'project_lead_comments' => 'nullable|string',
                 'deal_probability' => 'nullable|string',
                 'progress' => 'nullable|integer|min:0|max:100',
-            ]);
+            ])->validate();
 
             $project = Project::create($validated);
 
@@ -197,6 +202,22 @@ class ProjectController extends Controller
                 'message' => $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Convert camelCase keys to snake_case
+     */
+    private function convertCamelCaseToSnakeCase($data): array
+    {
+        $converted = [];
+        
+        foreach ($data as $key => $value) {
+            // Convert camelCase to snake_case
+            $snakeKey = strtolower(preg_replace('/([a-z])([A-Z])/', '$1_$2', $key));
+            $converted[$snakeKey] = $value;
+        }
+        
+        return $converted;
     }
 
     /**
