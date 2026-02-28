@@ -28,19 +28,20 @@ export function PipelineStageSelector({
 
   if (compact) {
     return (
-      <div className="flex items-center gap-1 flex-wrap">
+      <div className="flex items-center gap-2 flex-wrap">
         {PIPELINE_STAGES.map((stage, index) => {
           const isCompleted = index < currentIndex;
           const isCurrent = stage.value === currentStage;
+          const isLost = stage.value === 'lost';
           
           return (
-            <div key={stage.value} className="flex items-center">
+            <div key={stage.value} className="flex items-center gap-1">
               <button
                 type="button"
                 onClick={() => handleStageClick(stage.value)}
                 disabled={readonly}
                 className={cn(
-                  "px-2 py-1 text-xs rounded-md font-medium transition-all",
+                  "px-2.5 py-1 text-xs rounded-md font-medium transition-all",
                   isCurrent && stageColors[stage.value],
                   isCompleted && "bg-primary/20 text-primary",
                   !isCurrent && !isCompleted && "bg-muted/50 text-muted-foreground",
@@ -51,8 +52,8 @@ export function PipelineStageSelector({
                 {isCompleted && <Check className="w-3 h-3 inline mr-1" />}
                 {stage.label}
               </button>
-              {index < PIPELINE_STAGES.length - 1 && (
-                <ChevronRight className="w-3 h-3 text-muted-foreground mx-0.5" />
+              {index < PIPELINE_STAGES.length - 1 && !isLost && (
+                <ChevronRight className="w-3 h-3 text-muted-foreground" />
               )}
             </div>
           );
@@ -63,43 +64,57 @@ export function PipelineStageSelector({
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex items-center justify-between overflow-x-auto pb-2 -mb-2">
-        {PIPELINE_STAGES.map((stage, index) => {
+      <div className="grid grid-cols-5 gap-2 sm:gap-3">
+        {PIPELINE_STAGES.filter(s => s.value !== 'lost').map((stage, index) => {
           const isCompleted = index < currentIndex;
           const isCurrent = stage.value === currentStage;
           
           return (
-            <div key={stage.value} className="flex-shrink-0 flex-1 min-w-0 flex items-center">
-              <button
-                type="button"
-                onClick={() => handleStageClick(stage.value)}
-                disabled={readonly}
-                className={cn(
-                  "w-full py-2 px-1.5 sm:px-3 text-[10px] sm:text-sm font-medium rounded-lg transition-all text-center",
-                  isCurrent && stageColors[stage.value],
-                  isCurrent && "ring-2 ring-offset-2 ring-primary",
-                  isCompleted && "bg-primary/20 text-primary",
-                  !isCurrent && !isCompleted && "bg-muted/30 text-muted-foreground",
-                  !readonly && "hover:opacity-80 cursor-pointer",
-                  readonly && "cursor-not-allowed opacity-60"
-                )}
-              >
-                <div className="flex items-center justify-center gap-0.5 sm:gap-1">
-                  {isCompleted && <Check className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />}
-                  <span className="hidden sm:inline truncate">{stage.label}</span>
-                  <span className="sm:hidden truncate">{stage.label.slice(0, 3)}</span>
-                </div>
-              </button>
-              {index < PIPELINE_STAGES.length - 1 && (
-                <div className={cn(
-                  "h-1 w-2 sm:w-4 mx-0.5 sm:mx-1 flex-shrink-0",
-                  index < currentIndex ? "bg-primary" : "bg-muted"
-                )} />
+            <button
+              key={stage.value}
+              type="button"
+              onClick={() => handleStageClick(stage.value)}
+              disabled={readonly}
+              className={cn(
+                "py-2 px-1 sm:px-2 text-[10px] sm:text-xs font-medium rounded-lg transition-all text-center",
+                isCurrent && stageColors[stage.value],
+                isCurrent && "ring-2 ring-offset-2 ring-primary",
+                isCompleted && "bg-primary/20 text-primary",
+                !isCurrent && !isCompleted && "bg-muted/30 text-muted-foreground",
+                !readonly && "hover:opacity-80 cursor-pointer",
+                readonly && "cursor-not-allowed opacity-60"
               )}
-            </div>
+            >
+              <div className="flex items-center justify-center gap-0.5">
+                {isCompleted && <Check className="w-3 h-3 flex-shrink-0" />}
+                <span className="truncate">{stage.label}</span>
+              </div>
+            </button>
           );
         })}
       </div>
+      {/* Lost stage as separate button */}
+      {(() => {
+        const lostStage = PIPELINE_STAGES.find(s => s.value === 'lost')!;
+        const isCurrent = currentStage === 'lost';
+        return (
+          <button
+            type="button"
+            onClick={() => handleStageClick('lost')}
+            disabled={readonly}
+            className={cn(
+              "mt-1 py-2 px-3 text-xs font-medium rounded-lg transition-all text-center w-fit",
+              isCurrent && stageColors['lost'],
+              isCurrent && "ring-2 ring-offset-2 ring-destructive",
+              !isCurrent && "bg-destructive/10 text-destructive/70",
+              !readonly && "hover:opacity-80 cursor-pointer",
+              readonly && "cursor-not-allowed opacity-60"
+            )}
+          >
+            {lostStage.label}
+          </button>
+        );
+      })()}
     </div>
   );
 }

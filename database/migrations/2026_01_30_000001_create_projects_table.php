@@ -21,7 +21,7 @@ return new class extends Migration
             $table->date('end_date')->nullable();
             $table->string('client_name')->nullable();
             $table->string('client_contact')->nullable();
-            $table->string('pipeline_stage')->default('initiation');
+            $table->string('pipeline_stage')->default('cold');
             $table->date('pipeline_intake_date')->nullable();
             $table->string('oem')->nullable();
             $table->string('location')->nullable();

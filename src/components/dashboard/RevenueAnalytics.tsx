@@ -24,6 +24,7 @@ const stageToFilter: Record<PipelineStage, RevenueFilter> = {
   approval: 'won',
   execution: 'won',
   closure: 'won',
+  lost: 'pending',
 };
 
 const filterLabels: Record<RevenueFilter, string> = {
