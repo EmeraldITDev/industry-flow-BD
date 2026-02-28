@@ -14,6 +14,7 @@ export const STAGE_PROGRESS_MAP: Record<PipelineStage, number> = {
   approval: 70,
   execution: 85,
   closure: 100,
+  lost: 0,
 };
 
 /**

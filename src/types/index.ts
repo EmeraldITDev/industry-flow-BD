@@ -16,7 +16,8 @@ export type PipelineStage =
   | 'negotiation' 
   | 'approval' 
   | 'execution'
-  | 'closure';
+  | 'closure'
+  | 'lost';
 
 export const PIPELINE_STAGES: { value: PipelineStage; label: string; order: number }[] = [
   { value: 'cold', label: 'Cold', order: 0 },
@@ -28,6 +29,7 @@ export const PIPELINE_STAGES: { value: PipelineStage; label: string; order: numb
   { value: 'approval', label: 'Approval / Won', order: 6 },
   { value: 'execution', label: 'Execution', order: 7 },
   { value: 'closure', label: 'Closure', order: 8 },
+  { value: 'lost', label: 'Lost', order: 9 },
 ];
 
 export type BusinessSegment = 

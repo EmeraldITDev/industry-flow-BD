@@ -52,6 +52,10 @@ const stageTaskTemplates: Record<PipelineStage, { title: string; description: st
     { title: 'Kick-off Planning', description: 'Plan project kick-off meeting', priority: 'high' },
     { title: 'Handover to Delivery', description: 'Hand over project to delivery team', priority: 'high' },
   ],
+  lost: [
+    { title: 'Loss Review', description: 'Document reasons for lost deal and lessons learned', priority: 'medium' },
+    { title: 'Client Follow-up', description: 'Schedule follow-up for potential future opportunities', priority: 'low' },
+  ],
 };
 
 export function useStageTransition(): StageTransitionResult {
