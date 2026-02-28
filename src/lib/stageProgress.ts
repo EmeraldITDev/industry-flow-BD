@@ -5,8 +5,10 @@ import { PipelineStage } from '@/types';
  * This is the single source of truth for stage-based progress calculation.
  */
 export const STAGE_PROGRESS_MAP: Record<PipelineStage, number> = {
-  initiation: 0,
-  qualification: 20,
+  cold: 0,
+  initiation: 5,
+  opportunity: 15,
+  qualification: 25,
   proposal: 40,
   negotiation: 55,
   approval: 70,

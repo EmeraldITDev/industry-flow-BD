@@ -12,9 +12,15 @@ interface StageTransitionResult {
 
 // Task templates for each stage
 const stageTaskTemplates: Record<PipelineStage, { title: string; description: string; priority: Task['priority'] }[]> = {
+  cold: [
+    { title: 'Initial Research', description: 'Research potential client and opportunity', priority: 'low' },
+  ],
   initiation: [
     { title: 'Initial Client Meeting', description: 'Schedule and conduct initial meeting with client', priority: 'high' },
     { title: 'Gather Requirements', description: 'Document initial project requirements', priority: 'high' },
+  ],
+  opportunity: [
+    { title: 'Opportunity Assessment', description: 'Evaluate opportunity viability and alignment', priority: 'medium' },
   ],
   qualification: [
     { title: 'Technical Assessment', description: 'Evaluate technical feasibility', priority: 'high' },
