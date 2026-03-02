@@ -128,7 +128,7 @@ export default function NewProject() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.description || !formData.sector || !formData.startDate) {
+    if (!formData.name || !formData.description || !formData.sector) {
       toast.error('Please fill in all required fields');
       return;
     }
@@ -153,7 +153,7 @@ export default function NewProject() {
         description: formData.description,
         sector: formData.sector as Sector,
         status: formData.status,
-        startDate: formData.startDate.toISOString(),
+        startDate: formData.startDate?.toISOString(),
         endDate: formData.endDate?.toISOString(),
         clientName: formData.clientName || undefined,
         clientContact: formData.clientContact || undefined,
@@ -267,7 +267,7 @@ export default function NewProject() {
                 </Popover>
               </div>
               <div className="space-y-2">
-                <Label>Start Date *</Label>
+                <Label>Start Date</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button variant="outline" className={cn('w-full justify-start text-left font-normal', !formData.startDate && 'text-muted-foreground')}>
