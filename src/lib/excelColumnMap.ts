@@ -67,6 +67,8 @@ const HEADER_PATTERNS: [RegExp, string][] = [
   [/margin.*value.*usd|margin.*usd/i, 'marginValueUSD'],
   [/deal\s*prob|probability|risk/i, 'dealProbability'],
   [/comment|remark|note/i, 'projectLeadComments'],
+  [/next\s*action/i, '__nextAction'],
+  [/status\s*[\/\\&]\s*comment|status\s*comment/i, '__statusComments'],
 ];
 
 export function autoMapColumns(headers: string[]): ColumnMapping[] {
@@ -181,6 +183,17 @@ export function validateRows(
         issues.push({ row: idx + 1, field: mapping.projectField, message: issue, severity: 'warning' });
       }
     }
+
+    // Merge __nextAction and __statusComments into projectLeadComments
+    const parts: string[] = [];
+    if (result['__nextAction']) parts.push(String(result['__nextAction']));
+    if (result['__statusComments']) parts.push(String(result['__statusComments']));
+    if (parts.length > 0) {
+      const existing = result.projectLeadComments ? String(result.projectLeadComments) + ' ' : '';
+      result.projectLeadComments = existing + parts.join(' ');
+    }
+    delete result['__nextAction'];
+    delete result['__statusComments'];
 
     // Required field checks
     if (!result.name) {
