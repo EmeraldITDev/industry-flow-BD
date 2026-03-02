@@ -5,9 +5,10 @@ import { ProjectCard } from '@/components/projects/ProjectCard';
 import { AdvancedFilters, FilterState } from '@/components/projects/AdvancedFilters';
 import { projectsService } from '@/services/projects';
 import { Button } from '@/components/ui/button';
-import { Plus, Grid3X3, List, Loader2 } from 'lucide-react';
+import { Plus, Grid3X3, List, Loader2, Upload } from 'lucide-react';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Project, Sector } from '@/types';
+import { ProjectImportDialog } from '@/components/projects/ProjectImportDialog';
 
 const defaultFilters: FilterState = {
   search: '',
@@ -47,6 +48,7 @@ export default function Projects() {
     dealProbability: (dealProbabilityParam as FilterState['dealProbability']) || 'all',
   }));
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [importOpen, setImportOpen] = useState(false);
   
   // Update filters when URL params change
   useEffect(() => {
@@ -152,15 +154,23 @@ export default function Projects() {
             </Button>
           </div>
           {canCreateProjects && (
-            <Button asChild>
-              <Link to="/projects/new">
-                <Plus className="w-4 h-4 mr-2" />
-                New Project
-              </Link>
-            </Button>
+            <>
+              <Button variant="outline" onClick={() => setImportOpen(true)}>
+                <Upload className="w-4 h-4 mr-2" />
+                Import
+              </Button>
+              <Button asChild>
+                <Link to="/projects/new">
+                  <Plus className="w-4 h-4 mr-2" />
+                  New Project
+                </Link>
+              </Button>
+            </>
           )}
         </div>
       </div>
+
+      <ProjectImportDialog open={importOpen} onOpenChange={setImportOpen} />
 
       <AdvancedFilters filters={filters} onFiltersChange={setFilters} />
 

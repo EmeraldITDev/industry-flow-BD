@@ -1,0 +1,211 @@
+/**
+ * Maps Excel/CSV column headers to our Project model fields.
+ * Uses fuzzy matching so users don't need exact header names.
+ */
+
+import { PipelineStage, Sector, BusinessSegment, RiskLevel } from '@/types';
+
+export interface ColumnMapping {
+  excelHeader: string;
+  projectField: string | null;
+  label: string;
+}
+
+// Canonical project fields the system knows about
+export const PROJECT_FIELDS: { key: string; label: string; required: boolean }[] = [
+  { key: 'name', label: 'Project Name', required: true },
+  { key: 'description', label: 'Description', required: false },
+  { key: 'sector', label: 'Sector', required: true },
+  { key: 'status', label: 'Status', required: false },
+  { key: 'pipelineStage', label: 'Pipeline Stage', required: false },
+  { key: 'clientName', label: 'Client Name', required: false },
+  { key: 'clientContact', label: 'Client Contact', required: false },
+  { key: 'oem', label: 'OEM', required: false },
+  { key: 'location', label: 'Location', required: false },
+  { key: 'product', label: 'Product', required: false },
+  { key: 'subProduct', label: 'Sub Product', required: false },
+  { key: 'businessSegment', label: 'Business Segment', required: false },
+  { key: 'channelPartner', label: 'Channel Partner', required: false },
+  { key: 'startDate', label: 'Start Date', required: false },
+  { key: 'endDate', label: 'End Date', required: false },
+  { key: 'expectedCloseDate', label: 'Expected Close Date', required: false },
+  { key: 'pipelineIntakeDate', label: 'Pipeline Intake Date', required: false },
+  { key: 'contractValueNGN', label: 'Contract Value (NGN)', required: false },
+  { key: 'contractValueUSD', label: 'Contract Value (USD)', required: false },
+  { key: 'marginPercentNGN', label: 'Margin % (NGN)', required: false },
+  { key: 'marginPercentUSD', label: 'Margin % (USD)', required: false },
+  { key: 'marginValueNGN', label: 'Margin Value (NGN)', required: false },
+  { key: 'marginValueUSD', label: 'Margin Value (USD)', required: false },
+  { key: 'dealProbability', label: 'Deal Probability', required: false },
+  { key: 'projectLeadComments', label: 'Project Lead Comments', required: false },
+];
+
+// Pattern map: lowercased substrings/patterns → field key
+const HEADER_PATTERNS: [RegExp, string][] = [
+  [/project\s*name|^name$/i, 'name'],
+  [/descri/i, 'description'],
+  [/sector|business\s*unit/i, 'sector'],
+  [/^status$/i, 'status'],
+  [/pipeline\s*stage|stage/i, 'pipelineStage'],
+  [/client\s*name|customer\s*name|end\s*user/i, 'clientName'],
+  [/client\s*contact|customer\s*contact/i, 'clientContact'],
+  [/^oem$/i, 'oem'],
+  [/location|city|country/i, 'location'],
+  [/^product$|product\s*category/i, 'product'],
+  [/sub\s*product/i, 'subProduct'],
+  [/business\s*segment|segment/i, 'businessSegment'],
+  [/channel\s*partner|partner/i, 'channelPartner'],
+  [/start\s*date/i, 'startDate'],
+  [/end\s*date/i, 'endDate'],
+  [/expected\s*close|close\s*date/i, 'expectedCloseDate'],
+  [/intake\s*date|pipeline\s*intake/i, 'pipelineIntakeDate'],
+  [/contract.*ngn|po.*value.*ngn|value.*naira|contract.*naira/i, 'contractValueNGN'],
+  [/contract.*usd|po.*value.*usd|value.*dollar|contract.*dollar/i, 'contractValueUSD'],
+  [/margin.*%.*ngn|margin.*percent.*ngn/i, 'marginPercentNGN'],
+  [/margin.*%.*usd|margin.*percent.*usd/i, 'marginPercentUSD'],
+  [/margin.*value.*ngn|margin.*ngn/i, 'marginValueNGN'],
+  [/margin.*value.*usd|margin.*usd/i, 'marginValueUSD'],
+  [/deal\s*prob|probability|risk/i, 'dealProbability'],
+  [/comment|remark|note/i, 'projectLeadComments'],
+];
+
+export function autoMapColumns(headers: string[]): ColumnMapping[] {
+  const usedFields = new Set<string>();
+
+  return headers.map((header) => {
+    const trimmed = header.trim();
+    for (const [pattern, field] of HEADER_PATTERNS) {
+      if (pattern.test(trimmed) && !usedFields.has(field)) {
+        usedFields.add(field);
+        const meta = PROJECT_FIELDS.find((f) => f.key === field);
+        return { excelHeader: trimmed, projectField: field, label: meta?.label ?? field };
+      }
+    }
+    return { excelHeader: trimmed, projectField: null, label: 'Unmapped' };
+  });
+}
+
+// ---- Value normalization ----
+
+const VALID_SECTORS: Sector[] = ['EMR_OGP', 'EMR_MFG', 'EMR_Services', 'BEDS_Services', 'EMR_Healthcare', 'EMR_Renewables', 'EMR_Trading'];
+const VALID_STAGES: PipelineStage[] = ['cold', 'initiation', 'opportunity', 'qualification', 'proposal', 'negotiation', 'approval', 'execution', 'closure', 'lost'];
+const VALID_STATUSES = ['active', 'on-hold', 'completed'] as const;
+const VALID_PROBABILITIES: RiskLevel[] = ['low', 'medium', 'high', 'critical', 'uncertain'];
+
+export interface ValidationIssue {
+  row: number;
+  field: string;
+  message: string;
+  severity: 'error' | 'warning';
+}
+
+export function normalizeValue(field: string, raw: any): { value: any; issue?: string } {
+  if (raw == null || raw === '') return { value: undefined };
+
+  const str = String(raw).trim();
+
+  // Dates
+  if (['startDate', 'endDate', 'expectedCloseDate', 'pipelineIntakeDate'].includes(field)) {
+    const d = new Date(str);
+    if (isNaN(d.getTime())) {
+      // Try DD/MM/YYYY
+      const parts = str.split(/[\/\-\.]/);
+      if (parts.length === 3) {
+        const attempt = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+        if (!isNaN(attempt.getTime())) return { value: attempt.toISOString() };
+      }
+      return { value: undefined, issue: `Invalid date: "${str}"` };
+    }
+    return { value: d.toISOString() };
+  }
+
+  // Numbers
+  if (['contractValueNGN', 'contractValueUSD', 'marginPercentNGN', 'marginPercentUSD', 'marginValueNGN', 'marginValueUSD'].includes(field)) {
+    const cleaned = str.replace(/[^0-9.\-]/g, '');
+    const num = parseFloat(cleaned);
+    if (isNaN(num)) return { value: undefined, issue: `Invalid number: "${str}"` };
+    return { value: num };
+  }
+
+  // Enums
+  if (field === 'sector') {
+    const match = VALID_SECTORS.find((s) => s.toLowerCase() === str.toLowerCase());
+    if (match) return { value: match };
+    // Partial match
+    const partial = VALID_SECTORS.find((s) => s.toLowerCase().includes(str.toLowerCase()) || str.toLowerCase().includes(s.toLowerCase()));
+    if (partial) return { value: partial, issue: `Interpreted "${str}" as "${partial}"` };
+    return { value: str, issue: `Unknown sector: "${str}"` };
+  }
+
+  if (field === 'pipelineStage') {
+    const match = VALID_STAGES.find((s) => s.toLowerCase() === str.toLowerCase());
+    if (match) return { value: match };
+    return { value: 'cold', issue: `Unknown stage: "${str}", defaulting to "Cold"` };
+  }
+
+  if (field === 'status') {
+    const lower = str.toLowerCase();
+    const match = VALID_STATUSES.find((s) => s === lower);
+    if (match) return { value: match };
+    if (lower.includes('hold')) return { value: 'on-hold' };
+    if (lower.includes('complet') || lower.includes('done')) return { value: 'completed' };
+    return { value: 'active', issue: `Unknown status: "${str}", defaulting to "active"` };
+  }
+
+  if (field === 'dealProbability') {
+    const lower = str.toLowerCase();
+    const match = VALID_PROBABILITIES.find((p) => p === lower);
+    if (match) return { value: match };
+    return { value: 'low', issue: `Unknown probability: "${str}", defaulting to "low"` };
+  }
+
+  return { value: str };
+}
+
+export function validateRows(
+  rows: Record<string, any>[],
+  mappings: ColumnMapping[]
+): { validated: Record<string, any>[]; issues: ValidationIssue[] } {
+  const issues: ValidationIssue[] = [];
+  const seenNames = new Set<string>();
+
+  const validated = rows.map((row, idx) => {
+    const result: Record<string, any> = {};
+
+    for (const mapping of mappings) {
+      if (!mapping.projectField) continue;
+      const rawValue = row[mapping.excelHeader];
+      const { value, issue } = normalizeValue(mapping.projectField, rawValue);
+      if (value !== undefined) result[mapping.projectField] = value;
+      if (issue) {
+        issues.push({ row: idx + 1, field: mapping.projectField, message: issue, severity: 'warning' });
+      }
+    }
+
+    // Required field checks
+    if (!result.name) {
+      issues.push({ row: idx + 1, field: 'name', message: 'Project name is required', severity: 'error' });
+    }
+    if (!result.sector) {
+      issues.push({ row: idx + 1, field: 'sector', message: 'Sector is required', severity: 'error' });
+    }
+
+    // Duplicate check
+    if (result.name) {
+      const lower = String(result.name).toLowerCase();
+      if (seenNames.has(lower)) {
+        issues.push({ row: idx + 1, field: 'name', message: `Duplicate project name: "${result.name}"`, severity: 'warning' });
+      }
+      seenNames.add(lower);
+    }
+
+    // Defaults
+    if (!result.status) result.status = 'active';
+    if (!result.pipelineStage) result.pipelineStage = 'cold';
+    if (!result.startDate) result.startDate = new Date().toISOString();
+
+    return result;
+  });
+
+  return { validated, issues };
+}
