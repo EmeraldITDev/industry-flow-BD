@@ -144,35 +144,66 @@ const normalizeProject = (project: any): Project => {
 };
 
 export const projectsService = {
-  // Get all projects
+  // Get all projects (handles both paginated and non-paginated API responses)
   getAll: async (filters?: ProjectFilters): Promise<Project[]> => {
     try {
-      const response = await api.get('/api/projects', { params: filters });
-      // Robustly unwrap arrays that might be nested inside "data" wrappers
-      const data = response.data;
+      let allProjects: any[] = [];
+      let currentPage = 1;
+      let hasMorePages = true;
 
-      let projects: any[] = [];
+      while (hasMorePages) {
+        const response = await api.get('/api/projects', {
+          params: { ...filters, page: currentPage, per_page: 500 },
+        });
+        const data = response.data;
 
-      if (Array.isArray(data)) {
-        projects = data;
-      } else if (Array.isArray(data?.data)) {
-        projects = data.data;
-      } else if (Array.isArray(data?.data?.data)) {
-        projects = data.data.data;
-        console.warn('[Projects Service] Detected double-wrapped projects array (data.data.data)');
-      } else if (Array.isArray(data?.projects)) {
-        projects = data.projects;
-      } else if (Array.isArray(data?.results)) {
-        projects = data.results;
-      } else {
-        // Try to find any array value on the response object
-        for (const key of Object.keys(data || {})) {
-          if (Array.isArray((data as any)[key])) {
-            projects = (data as any)[key];
-            console.warn(`[Projects Service] Found projects array under key '${key}'`);
-            break;
+        let projects: any[] = [];
+
+        if (Array.isArray(data)) {
+          projects = data;
+          hasMorePages = false; // Non-paginated response
+        } else if (Array.isArray(data?.data)) {
+          projects = data.data;
+          // Check for Laravel-style pagination metadata
+          if (data.last_page != null || data.next_page_url != null) {
+            hasMorePages = currentPage < (data.last_page ?? 1);
+            currentPage++;
+          } else {
+            hasMorePages = false;
           }
+        } else if (Array.isArray(data?.data?.data)) {
+          projects = data.data.data;
+          const meta = data.data;
+          hasMorePages = currentPage < (meta.last_page ?? 1);
+          currentPage++;
+          console.warn('[Projects Service] Detected double-wrapped paginated response');
+        } else if (Array.isArray(data?.projects)) {
+          projects = data.projects;
+          hasMorePages = false;
+        } else if (Array.isArray(data?.results)) {
+          projects = data.results;
+          hasMorePages = false;
+        } else {
+          // Try to find any array value on the response object
+          for (const key of Object.keys(data || {})) {
+            if (Array.isArray((data as any)[key])) {
+              projects = (data as any)[key];
+              console.warn(`[Projects Service] Found projects array under key '${key}'`);
+              break;
+            }
+          }
+          hasMorePages = false;
         }
+
+        allProjects = allProjects.concat(projects);
+
+        // Safety: if we got 0 results, stop
+        if (projects.length === 0) hasMorePages = false;
+      }
+
+      const projects = allProjects;
+      if (currentPage > 2) {
+        console.log(`[Projects Service] Fetched ${currentPage - 1} pages, total ${projects.length} projects`);
       }
 
       // Debug: Log raw project data to see what API returns
@@ -186,7 +217,7 @@ export const projectsService = {
         });
       } else {
         console.warn('[Projects Service] No projects returned from API (projects array is empty)');
-        console.debug('[Projects Service] API raw response:', data);
+        console.debug('[Projects Service] API returned 0 projects');
       }
 
       // Safely normalize projects: skip items that throw during normalization
