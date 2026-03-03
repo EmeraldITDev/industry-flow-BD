@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { sectorColors, sectorIcons, stageColors } from '@/data/mockData';
 import { Calendar, Users, CheckSquare, AlertTriangle } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Link } from 'react-router-dom';
 import { format, differenceInDays, isValid } from 'date-fns';
 import { useCurrency } from '@/context/CurrencyContext';
@@ -11,6 +12,9 @@ import { getStageProgress } from '@/lib/stageProgress';
 
 interface ProjectCardProps {
   project: Project;
+  selectable?: boolean;
+  selected?: boolean;
+  onSelectToggle?: (id: string) => void;
 }
 
 function safeFormatDate(dateStr: string | undefined, formatStr: string): string {
@@ -19,7 +23,7 @@ function safeFormatDate(dateStr: string | undefined, formatStr: string): string 
   return isValid(date) ? format(date, formatStr) : '-';
 }
 
-export function ProjectCard({ project }: ProjectCardProps) {
+export function ProjectCard({ project, selectable, selected, onSelectToggle }: ProjectCardProps) {
   const { currency, formatCurrency, getContractValue, getMarginValue } = useCurrency();
   
   const statusColors = {
@@ -35,7 +39,6 @@ export function ProjectCard({ project }: ProjectCardProps) {
   const contractValue = getContractValue(project);
   const marginValue = getMarginValue(project);
   
-  // Check for inactivity warning (3+ days)
   let daysSinceUpdate = 0;
   if (project.lastStageUpdate) {
     const updateDate = new Date(project.lastStageUpdate);
@@ -45,85 +48,104 @@ export function ProjectCard({ project }: ProjectCardProps) {
   }
   const showInactivityWarning = daysSinceUpdate >= 3 && project.status === 'active' && project.pipelineStage !== 'closure';
 
-  return (
-    <Link to={`/projects/${project.id}`}>
-      <Card className="h-full hover:border-primary/50 hover:shadow-md transition-all cursor-pointer group">
-        <CardHeader className="p-3 sm:p-6 pb-2 sm:pb-3">
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap min-w-0">
-              <span className={`text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md font-medium truncate max-w-[120px] sm:max-w-none ${sectorColors[project.sector as Sector] || 'bg-muted text-muted-foreground'}`}>
-                {sectorIcons[project.sector as Sector] || '📁'} <span className="hidden sm:inline">{project.sector}</span>
-              </span>
-              <Badge variant="outline" className={`text-[10px] sm:text-xs ${statusColors[project.status] || ''}`}>
-                {project.status}
-              </Badge>
-            </div>
-            {showInactivityWarning && (
-              <div className="flex items-center gap-1 text-destructive shrink-0">
-                <AlertTriangle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                <span className="text-[10px] sm:text-xs">{daysSinceUpdate}d</span>
-              </div>
-            )}
+  const card = (
+    <Card className={`h-full hover:border-primary/50 hover:shadow-md transition-all cursor-pointer group relative ${selected ? 'border-primary ring-2 ring-primary/20' : ''}`}>
+      {selectable && (
+        <div
+          className="absolute top-2 left-2 z-10"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onSelectToggle?.(project.id);
+          }}
+        >
+          <Checkbox checked={selected} />
+        </div>
+      )}
+      <CardHeader className={`p-3 sm:p-6 pb-2 sm:pb-3 ${selectable ? 'pl-9' : ''}`}>
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap min-w-0">
+            <span className={`text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md font-medium truncate max-w-[120px] sm:max-w-none ${sectorColors[project.sector as Sector] || 'bg-muted text-muted-foreground'}`}>
+              {sectorIcons[project.sector as Sector] || '📁'} <span className="hidden sm:inline">{project.sector}</span>
+            </span>
+            <Badge variant="outline" className={`text-[10px] sm:text-xs ${statusColors[project.status] || ''}`}>
+              {project.status}
+            </Badge>
           </div>
-          <h3 className="font-semibold text-sm sm:text-lg mt-1.5 sm:mt-2 group-hover:text-primary transition-colors line-clamp-2">
-            {project.name}
-          </h3>
-          <Badge variant="outline" className={`w-fit text-[10px] sm:text-xs ${stageColors[project.pipelineStage] || ''}`}>
-            {stageLabel}
-          </Badge>
-        </CardHeader>
-        <CardContent className="p-3 sm:p-6 pt-0 space-y-2 sm:space-y-4">
-          <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2">
-            {project.description}
-          </p>
-          
-          {/* Client & Financial Values */}
-          {(project.clientName || contractValue > 0) && (
-            <div className="space-y-1.5 sm:space-y-2">
-              <div className="flex items-center justify-between text-xs sm:text-sm gap-2">
-                <span className="text-muted-foreground truncate flex-1 min-w-0">{project.clientName || '-'}</span>
-              </div>
-              <div className="flex flex-col gap-1 text-[10px] sm:text-xs">
-                {contractValue > 0 && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Contract Value:</span>
-                    <span className="font-medium">{formatCurrency(contractValue)}</span>
-                  </div>
-                )}
-                {marginValue > 0 && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Margin:</span>
-                    <span className="font-medium text-chart-2">{formatCurrency(marginValue)}</span>
-                  </div>
-                )}
-              </div>
+          {showInactivityWarning && (
+            <div className="flex items-center gap-1 text-destructive shrink-0">
+              <AlertTriangle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span className="text-[10px] sm:text-xs">{daysSinceUpdate}d</span>
             </div>
           )}
-          
-          <div className="space-y-1 sm:space-y-2">
-            <div className="flex items-center justify-between text-xs sm:text-sm">
-              <span className="text-muted-foreground">Progress</span>
-              <span className="font-medium">{getStageProgress(project.pipelineStage, project.progress)}%</span>
+        </div>
+        <h3 className="font-semibold text-sm sm:text-lg mt-1.5 sm:mt-2 group-hover:text-primary transition-colors line-clamp-2">
+          {project.name}
+        </h3>
+        <Badge variant="outline" className={`w-fit text-[10px] sm:text-xs ${stageColors[project.pipelineStage] || ''}`}>
+          {stageLabel}
+        </Badge>
+      </CardHeader>
+      <CardContent className="p-3 sm:p-6 pt-0 space-y-2 sm:space-y-4">
+        <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2">
+          {project.description}
+        </p>
+        
+        {(project.clientName || contractValue > 0) && (
+          <div className="space-y-1.5 sm:space-y-2">
+            <div className="flex items-center justify-between text-xs sm:text-sm gap-2">
+              <span className="text-muted-foreground truncate flex-1 min-w-0">{project.clientName || '-'}</span>
             </div>
-            <Progress value={getStageProgress(project.pipelineStage, project.progress)} className="h-1.5 sm:h-2" />
+            <div className="flex flex-col gap-1 text-[10px] sm:text-xs">
+              {contractValue > 0 && (
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Contract Value:</span>
+                  <span className="font-medium">{formatCurrency(contractValue)}</span>
+                </div>
+              )}
+              {marginValue > 0 && (
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Margin:</span>
+                  <span className="font-medium text-chart-2">{formatCurrency(marginValue)}</span>
+                </div>
+              )}
+            </div>
           </div>
+        )}
+        
+        <div className="space-y-1 sm:space-y-2">
+          <div className="flex items-center justify-between text-xs sm:text-sm">
+            <span className="text-muted-foreground">Progress</span>
+            <span className="font-medium">{getStageProgress(project.pipelineStage, project.progress)}%</span>
+          </div>
+          <Progress value={getStageProgress(project.pipelineStage, project.progress)} className="h-1.5 sm:h-2" />
+        </div>
 
-          <div className="flex items-center justify-between text-[10px] sm:text-sm text-muted-foreground pt-2 border-t border-border">
-            <div className="flex items-center gap-0.5 sm:gap-1">
-              <Users className="w-3 h-3 sm:w-4 sm:h-4" />
-              <span>{project.teamSize || 0}</span>
-            </div>
-            <div className="flex items-center gap-0.5 sm:gap-1">
-              <CheckSquare className="w-3 h-3 sm:w-4 sm:h-4" />
-              <span>{completedTasks}/{tasks.length}</span>
-            </div>
-            <div className="flex items-center gap-0.5 sm:gap-1">
-              <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
-              <span>{safeFormatDate(project.startDate, 'MMM d')}</span>
-            </div>
+        <div className="flex items-center justify-between text-[10px] sm:text-sm text-muted-foreground pt-2 border-t border-border">
+          <div className="flex items-center gap-0.5 sm:gap-1">
+            <Users className="w-3 h-3 sm:w-4 sm:h-4" />
+            <span>{project.teamSize || 0}</span>
           </div>
-        </CardContent>
-      </Card>
-    </Link>
+          <div className="flex items-center gap-0.5 sm:gap-1">
+            <CheckSquare className="w-3 h-3 sm:w-4 sm:h-4" />
+            <span>{completedTasks}/{tasks.length}</span>
+          </div>
+          <div className="flex items-center gap-0.5 sm:gap-1">
+            <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
+            <span>{safeFormatDate(project.startDate, 'MMM d')}</span>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
+
+  if (selectable) {
+    return (
+      <div onClick={() => onSelectToggle?.(project.id)} className="cursor-pointer">
+        {card}
+      </div>
+    );
+  }
+
+  return <Link to={`/projects/${project.id}`}>{card}</Link>;
 }
