@@ -162,28 +162,56 @@ export function ProjectImportDialog({ open, onOpenChange }: Props) {
     });
   };
 
-  // ---- Import with batching & progress ----
+  // ---- Import with batching, progress & duplicate detection ----
   const [importProgress, setImportProgress] = useState({ current: 0, total: 0 });
 
   const handleImport = async () => {
     setIsImporting(true);
     let success = 0;
     let failed = 0;
+    let skipped = 0;
+
+    // Fetch existing project names to skip duplicates
+    let existingNames = new Set<string>();
+    try {
+      const existing = await projectsService.getAll();
+      existingNames = new Set(existing.map((p) => String(p.name ?? '').toLowerCase().trim()));
+    } catch (err) {
+      console.warn('Could not fetch existing projects for dedup:', err);
+    }
 
     // Collect valid rows
     const validRows = validated
       .map((row, idx) => ({ row, idx }))
       .filter(({ idx }) => !issues.some((issue) => issue.row === idx + 1 && issue.severity === 'error'));
 
-    const total = validRows.length;
+    // Filter out duplicates
+    const newRows = validRows.filter(({ row }) => {
+      const name = String(row.name ?? '').toLowerCase().trim();
+      if (existingNames.has(name)) {
+        skipped++;
+        return false;
+      }
+      // Also prevent importing the same name twice within this batch
+      existingNames.add(name);
+      return true;
+    });
+
+    const total = newRows.length;
     setImportProgress({ current: 0, total });
+
+    if (total === 0 && skipped > 0) {
+      toast.info(`All ${skipped} project(s) already exist in the system — nothing to import.`);
+      setImportResults({ success: 0, failed: 0 });
+      setIsImporting(false);
+      return;
+    }
 
     // Process in batches to avoid timeouts / freezing
     const BATCH_SIZE = 10;
-    for (let b = 0; b < validRows.length; b += BATCH_SIZE) {
-      const batch = validRows.slice(b, b + BATCH_SIZE);
+    for (let b = 0; b < newRows.length; b += BATCH_SIZE) {
+      const batch = newRows.slice(b, b + BATCH_SIZE);
 
-      // Run batch concurrently
       const results = await Promise.allSettled(
         batch.map(({ row }) => projectsService.create(row as CreateProjectData))
       );
@@ -198,22 +226,25 @@ export function ProjectImportDialog({ open, onOpenChange }: Props) {
       }
 
       setImportProgress({ current: Math.min(b + BATCH_SIZE, total), total });
-
-      // Yield to UI thread between batches
       await new Promise((resolve) => setTimeout(resolve, 50));
     }
 
-    // Count rows that had errors (skipped)
+    // Count rows that had validation errors
     failed += validated.length - validRows.length;
 
     setImportResults({ success, failed });
     setIsImporting(false);
     queryClient.invalidateQueries({ queryKey: ['projects'] });
 
+    const parts: string[] = [];
+    if (success > 0) parts.push(`${success} imported`);
+    if (skipped > 0) parts.push(`${skipped} skipped (duplicates)`);
+    if (failed > 0) parts.push(`${failed} failed`);
+
     if (success > 0) {
-      toast.success(`${success} project(s) imported successfully${failed > 0 ? `, ${failed} failed` : ''}`);
+      toast.success(parts.join(', '));
     } else {
-      toast.error('No projects were imported');
+      toast.info(parts.join(', ') || 'No projects were imported');
     }
   };
 
