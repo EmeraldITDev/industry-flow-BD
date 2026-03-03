@@ -17,7 +17,6 @@ type RevenueFilter = 'all' | 'pending' | 'proposal' | 'won';
 const stageToFilter: Record<PipelineStage, RevenueFilter> = {
   cold: 'pending',
   initiation: 'pending',
-  opportunity: 'pending',
   qualification: 'pending',
   proposal: 'proposal',
   negotiation: 'proposal',

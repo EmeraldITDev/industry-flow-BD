@@ -19,9 +19,6 @@ const stageTaskTemplates: Record<PipelineStage, { title: string; description: st
     { title: 'Initial Client Meeting', description: 'Schedule and conduct initial meeting with client', priority: 'high' },
     { title: 'Gather Requirements', description: 'Document initial project requirements', priority: 'high' },
   ],
-  opportunity: [
-    { title: 'Opportunity Assessment', description: 'Evaluate opportunity viability and alignment', priority: 'medium' },
-  ],
   qualification: [
     { title: 'Technical Assessment', description: 'Evaluate technical feasibility', priority: 'high' },
     { title: 'Budget Estimation', description: 'Prepare preliminary budget estimate', priority: 'medium' },

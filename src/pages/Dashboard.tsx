@@ -1,5 +1,5 @@
 import React from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { EmeraldStatCard } from '@/components/dashboard/EmeraldStatCard';
@@ -24,7 +24,9 @@ import { WelcomeHeader } from '@/components/dashboard/WelcomeHeader';
 import { QuickActions } from '@/components/dashboard/QuickActions';
 import { ProjectCalendar } from '@/components/calendar/ProjectCalendar';
 import { projectsService } from '@/services/projects';
-import { FolderKanban, Activity, CheckCircle, Loader2, DollarSign, ShieldAlert, ListChecks, Clock } from 'lucide-react';
+import { FolderKanban, Activity, CheckCircle, Loader2, DollarSign, ShieldAlert, ListChecks, Clock, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { useCurrency } from '@/context/CurrencyContext';
 import { Project } from '@/types';
 import { Progress } from '@/components/ui/progress';
@@ -34,12 +36,18 @@ import { Badge } from '@/components/ui/badge';
 export default function Dashboard() {
   const { formatCurrencyFor } = useCurrency();
   const [chartFilter, setChartFilter] = useState<string | null>(null);
+  const queryClient = useQueryClient();
   
-  const { data: projectsList = [] } = useQuery({
+  const { data: projectsList = [], isFetching } = useQuery({
     queryKey: ['projects'],
     queryFn: () => projectsService.getAll(),
     staleTime: 5 * 60 * 1000,
   });
+
+  const handleRefresh = () => {
+    queryClient.invalidateQueries({ queryKey: ['projects'] });
+    queryClient.invalidateQueries({ queryKey: ['projectStats'] });
+  };
 
   const computedStats = useMemo(() => {
     const NGN_PER_USD = parseFloat(import.meta.env.VITE_NGN_PER_USD as string) || 800;
@@ -115,7 +123,6 @@ export default function Dashboard() {
     const pipelineByStage: Record<string, number> = {
       cold: 0,
       initiation: 0,
-      opportunity: 0,
       qualification: 0,
       proposal: 0,
       negotiation: 0,
@@ -268,9 +275,15 @@ export default function Dashboard() {
       {/* Header with welcome greeting and live indicator */}
       <div className="flex items-center justify-between">
         <WelcomeHeader />
-        <div className="flex items-center gap-1.5 text-[11px] text-emerald-accent uppercase tracking-[0.1em]">
-          <div className="w-1.5 h-1.5 bg-emerald-accent rounded-full animate-pulse" />
-          Live Data
+        <div className="flex items-center gap-3">
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isFetching}>
+            <RefreshCw className={cn("w-4 h-4 mr-2", isFetching && "animate-spin")} />
+            Refresh
+          </Button>
+          <div className="flex items-center gap-1.5 text-[11px] text-emerald-accent uppercase tracking-[0.1em]">
+            <div className="w-1.5 h-1.5 bg-emerald-accent rounded-full animate-pulse" />
+            Live Data
+          </div>
         </div>
       </div>
 
@@ -371,7 +384,6 @@ export default function Dashboard() {
               stages={[
                 { label: 'Cold', count: computedStats.pipelineByStage.cold || 0, color: 'cold' },
                 { label: 'Initiation', count: computedStats.pipelineByStage.initiation || 0, color: 'initiation' },
-                { label: 'Opportunity', count: computedStats.pipelineByStage.opportunity || 0, color: 'opportunity' },
                 { label: 'Qualification', count: computedStats.pipelineByStage.qualification || 0, color: 'qualification' },
                 { label: 'Proposal', count: computedStats.pipelineByStage.proposal || 0, color: 'proposal' },
                 { label: 'Negotiation', count: computedStats.pipelineByStage.negotiation || 0, color: 'negotiation' },

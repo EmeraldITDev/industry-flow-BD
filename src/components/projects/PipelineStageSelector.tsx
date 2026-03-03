@@ -16,13 +16,9 @@ export function PipelineStageSelector({
   readonly = false,
   compact = false 
 }: PipelineStageSelectorProps) {
-  const currentIndex = PIPELINE_STAGES.findIndex(s => s.value === currentStage);
-
   const handleStageClick = (stage: PipelineStage) => {
     if (readonly || !onStageChange) return;
-    // Don't do anything if clicking current stage
     if (stage === currentStage) return;
-    // Allow direct selection of any stage
     onStageChange(stage);
   };
 
@@ -30,7 +26,6 @@ export function PipelineStageSelector({
     return (
       <div className="flex items-center gap-2 flex-wrap">
         {PIPELINE_STAGES.map((stage, index) => {
-          const isCompleted = index < currentIndex;
           const isCurrent = stage.value === currentStage;
           const isLost = stage.value === 'lost';
           
@@ -43,13 +38,12 @@ export function PipelineStageSelector({
                 className={cn(
                   "px-2.5 py-1 text-xs rounded-md font-medium transition-all",
                   isCurrent && stageColors[stage.value],
-                  isCompleted && "bg-primary/20 text-primary",
-                  !isCurrent && !isCompleted && "bg-muted/50 text-muted-foreground",
+                  !isCurrent && "bg-muted/50 text-muted-foreground",
                   !readonly && "hover:opacity-80 cursor-pointer",
                   readonly && "cursor-not-allowed opacity-60"
                 )}
               >
-                {isCompleted && <Check className="w-3 h-3 inline mr-1" />}
+                {isCurrent && <Check className="w-3 h-3 inline mr-1" />}
                 {stage.label}
               </button>
               {index < PIPELINE_STAGES.length - 1 && !isLost && (
@@ -64,9 +58,8 @@ export function PipelineStageSelector({
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="grid grid-cols-5 gap-2 sm:gap-3">
-        {PIPELINE_STAGES.filter(s => s.value !== 'lost').map((stage, index) => {
-          const isCompleted = index < currentIndex;
+      <div className="grid grid-cols-4 gap-2 sm:gap-3">
+        {PIPELINE_STAGES.filter(s => s.value !== 'lost').map((stage) => {
           const isCurrent = stage.value === currentStage;
           
           return (
@@ -79,14 +72,13 @@ export function PipelineStageSelector({
                 "py-2 px-1 sm:px-2 text-[10px] sm:text-xs font-medium rounded-lg transition-all text-center",
                 isCurrent && stageColors[stage.value],
                 isCurrent && "ring-2 ring-offset-2 ring-primary",
-                isCompleted && "bg-primary/20 text-primary",
-                !isCurrent && !isCompleted && "bg-muted/30 text-muted-foreground",
+                !isCurrent && "bg-muted/30 text-muted-foreground",
                 !readonly && "hover:opacity-80 cursor-pointer",
                 readonly && "cursor-not-allowed opacity-60"
               )}
             >
               <div className="flex items-center justify-center gap-0.5">
-                {isCompleted && <Check className="w-3 h-3 flex-shrink-0" />}
+                {isCurrent && <Check className="w-3 h-3 flex-shrink-0" />}
                 <span className="truncate">{stage.label}</span>
               </div>
             </button>

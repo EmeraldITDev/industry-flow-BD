@@ -6,8 +6,7 @@ import { PipelineStage } from '@/types';
  */
 export const STAGE_PROGRESS_MAP: Record<PipelineStage, number> = {
   cold: 0,
-  initiation: 5,
-  opportunity: 15,
+  initiation: 10,
   qualification: 25,
   proposal: 40,
   negotiation: 55,
