@@ -87,12 +87,15 @@ const HEADER_PATTERNS: [RegExp, string][] = [
   [/end\s*date/i, 'endDate'],
   [/expected\s*close|close\s*date/i, 'expectedCloseDate'],
   [/intake\s*date|pipeline\s*intake/i, 'pipelineIntakeDate'],
-  [/contract.*value.*[\₦(₦)ngn]|po.*value.*[\₦(₦)ngn]|value.*naira|contract.*naira/i, 'contractValueNGN'],
-  [/contract.*value.*[\$usd]|po.*value.*[\$usd]|value.*dollar|contract.*dollar/i, 'contractValueUSD'],
-  [/margin\s*%.*[\₦(₦)ngn]|margin.*percent.*ngn/i, 'marginPercentNGN'],
-  [/margin\s*%.*[\$usd]|margin.*percent.*usd/i, 'marginPercentUSD'],
-  [/margin.*commission.*value.*[\₦(₦)ngn]|margin.*value.*[\₦(₦)ngn]|margin.*ngn/i, 'marginValueNGN'],
-  [/margin.*commission.*value.*[\$usd]|margin.*value.*[\$usd]|margin.*usd/i, 'marginValueUSD'],
+  // Financial columns — flexible matching for ₦/NGN/Naira and $/USD/Dollar
+  [/contract.*value.*(\u20a6|ngn|naira|\(.*\u20a6)/i, 'contractValueNGN'],
+  [/contract.*value.*(\$|usd|dollar|\(.*\$)/i, 'contractValueUSD'],
+  [/(po|contract).*value.*(\u20a6|ngn|naira|\(.*\u20a6)/i, 'contractValueNGN'],
+  [/(po|contract).*value.*(\$|usd|dollar|\(.*\$)/i, 'contractValueUSD'],
+  [/margin\s*%.*(\u20a6|ngn|\(.*\u20a6)/i, 'marginPercentNGN'],
+  [/margin\s*%.*(\$|usd|\(.*\$)/i, 'marginPercentUSD'],
+  [/margin.*(commi|value).*(\u20a6|ngn|\(.*\u20a6)/i, 'marginValueNGN'],
+  [/margin.*(commi|value).*(\$|usd|\(.*\$)/i, 'marginValueUSD'],
   [/prob\s*%|deal\s*prob|probability/i, 'dealProbability'],
   [/next\s*action/i, '__nextAction'],
   [/status\s*[\/\\&]\s*comment|status\s*comment/i, '__statusComments'],
@@ -117,6 +120,43 @@ export function autoMapColumns(headers: string[]): ColumnMapping[] {
 
 // ---- Value normalization ----
 
+/**
+ * Parse a number that may contain currency symbols, thousand separators, or locale-specific formats.
+ * Handles: $1,234.56  |  ₦1,500,000  |  1.234,56 (European)  |  89%  |  plain numbers
+ */
+function parseLocalizedNumber(raw: any): number | null {
+  if (raw == null || raw === '') return null;
+  if (typeof raw === 'number') return raw;
+
+  let cleaned = String(raw).trim();
+
+  // Remove currency symbols (₦ $ € £ ¥ R) and spaces
+  cleaned = cleaned.replace(/[\u20A6$€£¥R\s]/g, '');
+  // Remove trailing %
+  cleaned = cleaned.replace(/%$/, '');
+
+  if (cleaned === '') return null;
+
+  const lastDot = cleaned.lastIndexOf('.');
+  const lastComma = cleaned.lastIndexOf(',');
+
+  if (lastDot === -1 && lastComma === -1) {
+    const n = parseFloat(cleaned);
+    return isNaN(n) ? null : n;
+  }
+
+  if (lastComma > lastDot) {
+    // European: 1.234,56 → comma is decimal
+    cleaned = cleaned.replace(/\./g, '').replace(',', '.');
+  } else {
+    // US/UK: 1,234.56 → dot is decimal
+    cleaned = cleaned.replace(/,/g, '');
+  }
+
+  const n = parseFloat(cleaned);
+  return isNaN(n) ? null : n;
+}
+
 const VALID_SECTORS: Sector[] = ['EMR_OGP', 'EMR_MFG', 'EMR_Services', 'BEDS_Services', 'EMR_Healthcare', 'EMR_Renewables', 'EMR_Trading'];
 const VALID_STAGES: PipelineStage[] = ['cold', 'initiation', 'opportunity', 'qualification', 'proposal', 'negotiation', 'approval', 'execution', 'closure', 'lost'];
 const VALID_STATUSES = ['active', 'on-hold', 'completed'] as const;
@@ -138,7 +178,6 @@ export function normalizeValue(field: string, raw: any): { value: any; issue?: s
   if (['startDate', 'endDate', 'expectedCloseDate', 'pipelineIntakeDate'].includes(field)) {
     const d = new Date(str);
     if (isNaN(d.getTime())) {
-      // Try DD/MM/YYYY
       const parts = str.split(/[\/\-\.]/);
       if (parts.length === 3) {
         const attempt = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
@@ -149,11 +188,10 @@ export function normalizeValue(field: string, raw: any): { value: any; issue?: s
     return { value: d.toISOString() };
   }
 
-  // Numbers
+  // Numbers — use locale-aware parser
   if (['contractValueNGN', 'contractValueUSD', 'marginPercentNGN', 'marginPercentUSD', 'marginValueNGN', 'marginValueUSD'].includes(field)) {
-    const cleaned = str.replace(/[^0-9.\-]/g, '');
-    const num = parseFloat(cleaned);
-    if (isNaN(num)) return { value: undefined, issue: `Invalid number: "${str}"` };
+    const num = parseLocalizedNumber(raw);
+    if (num === null) return { value: undefined, issue: `Invalid number: "${str}"` };
     return { value: num };
   }
 
