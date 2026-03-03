@@ -104,11 +104,20 @@ export function ProjectImportDialog({ open, onOpenChange }: Props) {
 
         // Detect actual header row (skip title/banner rows)
         const headerIdx = detectHeaderRow(json);
-        const hdrs = (json[headerIdx] as string[]).map((h) => String(h).trim()).filter(Boolean);
+        // IMPORTANT: Do NOT filter(Boolean) headers — empty columns must keep their index
+        // so data columns stay aligned. We track which indices have real headers.
+        const rawHdrs = (json[headerIdx] as any[]).map((h) => String(h ?? '').trim());
+        const hdrs = rawHdrs.filter(Boolean); // for display / mapping only
+        const hdrIndexMap = rawHdrs.reduce<Record<string, number>>((acc, h, i) => {
+          if (h) acc[h] = i;
+          return acc;
+        }, {});
+
         const rows = json.slice(headerIdx + 1).filter((r) => r.some((c: any) => c !== '')).map((r) => {
           const obj: Record<string, any> = {};
-          hdrs.forEach((h, i) => {
-            obj[h] = r[i];
+          // Use the original column index for each header so values stay aligned
+          hdrs.forEach((h) => {
+            obj[h] = r[hdrIndexMap[h]];
           });
           return obj;
         });
@@ -153,28 +162,49 @@ export function ProjectImportDialog({ open, onOpenChange }: Props) {
     });
   };
 
-  // ---- Import ----
+  // ---- Import with batching & progress ----
+  const [importProgress, setImportProgress] = useState({ current: 0, total: 0 });
+
   const handleImport = async () => {
     setIsImporting(true);
     let success = 0;
     let failed = 0;
 
-    for (let i = 0; i < validated.length; i++) {
-      const row = validated[i];
-      // Skip rows with errors
-      if (issues.some((issue) => issue.row === i + 1 && issue.severity === 'error')) {
-        failed++;
-        continue;
+    // Collect valid rows
+    const validRows = validated
+      .map((row, idx) => ({ row, idx }))
+      .filter(({ idx }) => !issues.some((issue) => issue.row === idx + 1 && issue.severity === 'error'));
+
+    const total = validRows.length;
+    setImportProgress({ current: 0, total });
+
+    // Process in batches to avoid timeouts / freezing
+    const BATCH_SIZE = 10;
+    for (let b = 0; b < validRows.length; b += BATCH_SIZE) {
+      const batch = validRows.slice(b, b + BATCH_SIZE);
+
+      // Run batch concurrently
+      const results = await Promise.allSettled(
+        batch.map(({ row }) => projectsService.create(row as CreateProjectData))
+      );
+
+      for (const r of results) {
+        if (r.status === 'fulfilled') {
+          success++;
+        } else {
+          console.error('Import failed:', r.reason);
+          failed++;
+        }
       }
 
-      try {
-        await projectsService.create(row as CreateProjectData);
-        success++;
-      } catch (err: any) {
-        console.error(`Failed to import row ${i + 1}:`, err);
-        failed++;
-      }
+      setImportProgress({ current: Math.min(b + BATCH_SIZE, total), total });
+
+      // Yield to UI thread between batches
+      await new Promise((resolve) => setTimeout(resolve, 50));
     }
+
+    // Count rows that had errors (skipped)
+    failed += validated.length - validRows.length;
 
     setImportResults({ success, failed });
     setIsImporting(false);
@@ -441,7 +471,7 @@ export function ProjectImportDialog({ open, onOpenChange }: Props) {
                 <Button onClick={handleImport} disabled={isImporting || validRowCount === 0}>
                   {isImporting ? (
                     <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Importing...
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Importing {importProgress.current}/{importProgress.total}...
                     </>
                   ) : (
                     `Import ${validRowCount} Project(s)`
