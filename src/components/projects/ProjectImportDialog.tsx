@@ -53,6 +53,7 @@ import {
   PROJECT_FIELDS,
   validateRows,
   ValidationIssue,
+  detectHeaderRow,
 } from '@/lib/excelColumnMap';
 
 type Step = 'upload' | 'mapping' | 'preview';
@@ -101,8 +102,10 @@ export function ProjectImportDialog({ open, onOpenChange }: Props) {
           return;
         }
 
-        const hdrs = (json[0] as string[]).map((h) => String(h).trim()).filter(Boolean);
-        const rows = json.slice(1).filter((r) => r.some((c: any) => c !== '')).map((r) => {
+        // Detect actual header row (skip title/banner rows)
+        const headerIdx = detectHeaderRow(json);
+        const hdrs = (json[headerIdx] as string[]).map((h) => String(h).trim()).filter(Boolean);
+        const rows = json.slice(headerIdx + 1).filter((r) => r.some((c: any) => c !== '')).map((r) => {
           const obj: Record<string, any> = {};
           hdrs.forEach((h, i) => {
             obj[h] = r[i];
