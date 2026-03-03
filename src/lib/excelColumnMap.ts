@@ -39,6 +39,7 @@ export const PROJECT_FIELDS: { key: string; label: string; required: boolean }[]
   { key: 'marginValueUSD', label: 'Margin Value (USD)', required: false },
   { key: 'dealProbability', label: 'Deal Probability', required: false },
   { key: 'projectLeadComments', label: 'Project Lead Comments', required: false },
+  { key: 'assignee', label: 'Assignee', required: false },
 ];
 
 // Known header keywords used to detect the real header row
@@ -100,6 +101,7 @@ const HEADER_PATTERNS: [RegExp, string][] = [
   [/next\s*action/i, '__nextAction'],
   [/status\s*[\/\\&]\s*comment|status\s*comment/i, '__statusComments'],
   [/comment|remark|note/i, 'projectLeadComments'],
+  [/^assignee$|assigned\s*to/i, 'assignee'],
 ];
 
 export function autoMapColumns(headers: string[]): ColumnMapping[] {
