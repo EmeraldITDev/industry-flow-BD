@@ -26,6 +26,7 @@ export const PROJECT_FIELDS: { key: string; label: string; required: boolean }[]
   { key: 'subProduct', label: 'Sub Product', required: false },
   { key: 'businessSegment', label: 'Business Segment', required: false },
   { key: 'channelPartner', label: 'Channel Partner', required: false },
+  { key: 'projectLead', label: 'Project Lead', required: false },
   { key: 'startDate', label: 'Start Date', required: false },
   { key: 'endDate', label: 'End Date', required: false },
   { key: 'expectedCloseDate', label: 'Expected Close Date', required: false },
@@ -40,35 +41,62 @@ export const PROJECT_FIELDS: { key: string; label: string; required: boolean }[]
   { key: 'projectLeadComments', label: 'Project Lead Comments', required: false },
 ];
 
+// Known header keywords used to detect the real header row
+const HEADER_KEYWORDS = ['project name', 'name', 'sector', 'pipeline stage', 'stage', 'client', 'description', 'product', 'oem', 'location', 'contract', 'margin'];
+
+/**
+ * Detect the actual header row index by scoring each row against known keywords.
+ * Skips title/banner rows that often appear at the top of corporate spreadsheets.
+ */
+export function detectHeaderRow(rows: any[][]): number {
+  let bestIdx = 0;
+  let bestScore = 0;
+  const limit = Math.min(rows.length, 10); // only check first 10 rows
+  for (let i = 0; i < limit; i++) {
+    const row = rows[i];
+    if (!Array.isArray(row)) continue;
+    const score = row.reduce((acc: number, cell: any) => {
+      const val = String(cell ?? '').toLowerCase().trim();
+      return acc + (HEADER_KEYWORDS.some((kw) => val.includes(kw)) ? 1 : 0);
+    }, 0);
+    if (score > bestScore) {
+      bestScore = score;
+      bestIdx = i;
+    }
+  }
+  return bestIdx;
+}
+
 // Pattern map: lowercased substrings/patterns → field key
 const HEADER_PATTERNS: [RegExp, string][] = [
   [/project\s*name|^name$/i, 'name'],
   [/descri/i, 'description'],
-  [/sector|business\s*unit/i, 'sector'],
+  [/^sector$/i, 'sector'],
   [/^status$/i, 'status'],
-  [/pipeline\s*stage|stage/i, 'pipelineStage'],
-  [/client\s*name|customer\s*name|end\s*user/i, 'clientName'],
+  [/pipeline\s*stage|^stage$/i, 'pipelineStage'],
+  [/^client$|client\s*name|customer\s*name|end\s*user/i, 'clientName'],
   [/client\s*contact|customer\s*contact/i, 'clientContact'],
   [/^oem$/i, 'oem'],
   [/location|city|country/i, 'location'],
   [/^product$|product\s*category/i, 'product'],
   [/sub\s*product/i, 'subProduct'],
-  [/business\s*segment|segment/i, 'businessSegment'],
+  [/business\s*segment|^segment$/i, 'businessSegment'],
   [/channel\s*partner|partner/i, 'channelPartner'],
+  [/project\s*lead|sales\s*lead|lead/i, 'projectLead'],
   [/start\s*date/i, 'startDate'],
   [/end\s*date/i, 'endDate'],
   [/expected\s*close|close\s*date/i, 'expectedCloseDate'],
   [/intake\s*date|pipeline\s*intake/i, 'pipelineIntakeDate'],
-  [/contract.*ngn|po.*value.*ngn|value.*naira|contract.*naira/i, 'contractValueNGN'],
-  [/contract.*usd|po.*value.*usd|value.*dollar|contract.*dollar/i, 'contractValueUSD'],
-  [/margin.*%.*ngn|margin.*percent.*ngn/i, 'marginPercentNGN'],
-  [/margin.*%.*usd|margin.*percent.*usd/i, 'marginPercentUSD'],
-  [/margin.*value.*ngn|margin.*ngn/i, 'marginValueNGN'],
-  [/margin.*value.*usd|margin.*usd/i, 'marginValueUSD'],
-  [/deal\s*prob|probability|risk/i, 'dealProbability'],
-  [/comment|remark|note/i, 'projectLeadComments'],
+  [/contract.*value.*[\₦(₦)ngn]|po.*value.*[\₦(₦)ngn]|value.*naira|contract.*naira/i, 'contractValueNGN'],
+  [/contract.*value.*[\$usd]|po.*value.*[\$usd]|value.*dollar|contract.*dollar/i, 'contractValueUSD'],
+  [/margin\s*%.*[\₦(₦)ngn]|margin.*percent.*ngn/i, 'marginPercentNGN'],
+  [/margin\s*%.*[\$usd]|margin.*percent.*usd/i, 'marginPercentUSD'],
+  [/margin.*commission.*value.*[\₦(₦)ngn]|margin.*value.*[\₦(₦)ngn]|margin.*ngn/i, 'marginValueNGN'],
+  [/margin.*commission.*value.*[\$usd]|margin.*value.*[\$usd]|margin.*usd/i, 'marginValueUSD'],
+  [/prob\s*%|deal\s*prob|probability/i, 'dealProbability'],
   [/next\s*action/i, '__nextAction'],
   [/status\s*[\/\\&]\s*comment|status\s*comment/i, '__statusComments'],
+  [/comment|remark|note/i, 'projectLeadComments'],
 ];
 
 export function autoMapColumns(headers: string[]): ColumnMapping[] {
@@ -140,8 +168,15 @@ export function normalizeValue(field: string, raw: any): { value: any; issue?: s
   }
 
   if (field === 'pipelineStage') {
-    const match = VALID_STAGES.find((s) => s.toLowerCase() === str.toLowerCase());
+    const lower = str.toLowerCase();
+    // Map common aliases
+    if (lower === 'won') return { value: 'closure' };
+    if (lower === 'lost' || lower === 'dead') return { value: 'lost' };
+    const match = VALID_STAGES.find((s) => s.toLowerCase() === lower);
     if (match) return { value: match };
+    // Partial match
+    const partial = VALID_STAGES.find((s) => lower.includes(s.toLowerCase()));
+    if (partial) return { value: partial, issue: `Interpreted "${str}" as "${partial}"` };
     return { value: 'cold', issue: `Unknown stage: "${str}", defaulting to "Cold"` };
   }
 
