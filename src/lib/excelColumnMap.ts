@@ -251,6 +251,7 @@ export function validateRows(
     if (!result.status) result.status = 'active';
     if (!result.pipelineStage) result.pipelineStage = 'cold';
     if (!result.startDate) result.startDate = new Date().toISOString();
+    if (!result.description) result.description = result.name ? `Project: ${result.name}` : 'Imported project';
 
     return result;
   });
