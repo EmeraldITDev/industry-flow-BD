@@ -258,7 +258,7 @@ export function ProjectImportDialog({ open, onOpenChange }: Props) {
 
         {/* ---- STEP: Mapping ---- */}
         {step === 'mapping' && (
-          <ScrollArea className="flex-1 max-h-[50vh]">
+          <div className="flex-1 max-h-[50vh] overflow-y-auto">
             <div className="space-y-1 p-1">
               <p className="text-sm text-muted-foreground mb-3">
                 File: <span className="font-medium text-foreground">{fileName}</span> — {rawRows.length} row(s) detected
@@ -305,12 +305,12 @@ export function ProjectImportDialog({ open, onOpenChange }: Props) {
                 </TableBody>
               </Table>
             </div>
-          </ScrollArea>
+          </div>
         )}
 
         {/* ---- STEP: Preview ---- */}
         {step === 'preview' && !importResults && (
-          <ScrollArea className="flex-1 max-h-[50vh]">
+          <div className="flex-1 max-h-[50vh] overflow-y-auto">
             <div className="space-y-3 p-1">
               {/* Summary badges */}
               <div className="flex items-center gap-3 flex-wrap">
@@ -396,7 +396,7 @@ export function ProjectImportDialog({ open, onOpenChange }: Props) {
                 </TableBody>
               </Table>
             </div>
-          </ScrollArea>
+          </div>
         )}
 
         {/* ---- Import Results ---- */}
