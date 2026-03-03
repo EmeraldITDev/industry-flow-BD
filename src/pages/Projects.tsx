@@ -1,14 +1,17 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ProjectCard } from '@/components/projects/ProjectCard';
 import { AdvancedFilters, FilterState } from '@/components/projects/AdvancedFilters';
 import { projectsService } from '@/services/projects';
 import { Button } from '@/components/ui/button';
-import { Plus, Grid3X3, List, Loader2, Upload } from 'lucide-react';
+import { Plus, Grid3X3, List, Loader2, Upload, Trash2, X } from 'lucide-react';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Project, Sector } from '@/types';
 import { ProjectImportDialog } from '@/components/projects/ProjectImportDialog';
+import { Checkbox } from '@/components/ui/checkbox';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { toast } from 'sonner';
 
 const defaultFilters: FilterState = {
   search: '',
@@ -37,6 +40,7 @@ const sectorDisplayNames: Record<string, string> = {
 
 export default function Projects() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const queryClient = useQueryClient();
   const sectorParam = searchParams.get('sector');
   const statusParam = searchParams.get('status');
   const dealProbabilityParam = searchParams.get('dealProbability');
@@ -49,6 +53,9 @@ export default function Projects() {
   }));
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [importOpen, setImportOpen] = useState(false);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isDeleting, setIsDeleting] = useState(false);
   
   // Update filters when URL params change
   useEffect(() => {
@@ -76,12 +83,10 @@ export default function Projects() {
         return projects;
       } catch (err) {
         console.error('[Projects Page] Error fetching projects:', err);
-        // Log the full error details
         if ((err as any)?.response) {
           console.error('[Projects Page] Response status:', (err as any).response.status);
           console.error('[Projects Page] Response data:', (err as any).response.data);
         }
-        // Return empty array to show empty state instead of error
         return [];
       }
     },
@@ -135,6 +140,53 @@ export default function Projects() {
     });
   }, [projects, filters]);
 
+  // Selection helpers
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filteredProjects.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredProjects.map(p => p.id)));
+    }
+  };
+
+  const exitSelectMode = () => {
+    setSelectMode(false);
+    setSelectedIds(new Set());
+  };
+
+  const handleBulkDelete = async () => {
+    const ids = Array.from(selectedIds);
+    setIsDeleting(true);
+    let success = 0;
+    let failed = 0;
+
+    const BATCH = 10;
+    for (let i = 0; i < ids.length; i += BATCH) {
+      const batch = ids.slice(i, i + BATCH);
+      const results = await Promise.allSettled(batch.map(id => projectsService.delete(id)));
+      results.forEach(r => r.status === 'fulfilled' ? success++ : failed++);
+    }
+
+    queryClient.invalidateQueries({ queryKey: ['projects'] });
+    queryClient.invalidateQueries({ queryKey: ['projectStats'] });
+    setIsDeleting(false);
+    exitSelectMode();
+
+    if (failed === 0) {
+      toast.success(`${success} project(s) deleted successfully`);
+    } else {
+      toast.warning(`${success} deleted, ${failed} failed`);
+    }
+  };
+
   return (
     <div className="p-4 md:p-6 lg:p-8 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -155,6 +207,17 @@ export default function Projects() {
           </div>
           {canCreateProjects && (
             <>
+              {!selectMode ? (
+                <Button variant="outline" size="sm" onClick={() => setSelectMode(true)}>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Select
+                </Button>
+              ) : (
+                <Button variant="outline" size="sm" onClick={exitSelectMode}>
+                  <X className="w-4 h-4 mr-2" />
+                  Cancel
+                </Button>
+              )}
               <Button variant="outline" onClick={() => setImportOpen(true)}>
                 <Upload className="w-4 h-4 mr-2" />
                 Import
@@ -170,6 +233,42 @@ export default function Projects() {
         </div>
       </div>
 
+      {/* Bulk action bar */}
+      {selectMode && (
+        <div className="flex items-center gap-3 p-3 rounded-lg bg-muted border border-border">
+          <Checkbox
+            checked={filteredProjects.length > 0 && selectedIds.size === filteredProjects.length}
+            onCheckedChange={toggleSelectAll}
+          />
+          <span className="text-sm text-muted-foreground">
+            {selectedIds.size} of {filteredProjects.length} selected
+          </span>
+          <div className="flex-1" />
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" size="sm" disabled={selectedIds.size === 0 || isDeleting}>
+                {isDeleting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
+                Delete {selectedIds.size > 0 ? `(${selectedIds.size})` : ''}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete {selectedIds.size} project(s)?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action cannot be undone. All selected projects and their associated data will be permanently removed.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleBulkDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+      )}
+
       <ProjectImportDialog open={importOpen} onOpenChange={setImportOpen} />
 
       <AdvancedFilters filters={filters} onFiltersChange={setFilters} />
@@ -181,7 +280,13 @@ export default function Projects() {
       ) : (
         <div className={viewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6" : "space-y-4"}>
           {filteredProjects.map(project => (
-            <ProjectCard key={project.id} project={project} />
+            <ProjectCard
+              key={project.id}
+              project={project}
+              selectable={selectMode}
+              selected={selectedIds.has(project.id)}
+              onSelectToggle={toggleSelect}
+            />
           ))}
         </div>
       )}
