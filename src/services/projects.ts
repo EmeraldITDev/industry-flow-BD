@@ -265,8 +265,7 @@ export const projectsService = {
 
   // Create new project
   create: async (data: CreateProjectData): Promise<Project> => {
-    // API expects camelCase format - send data as-is
-    const requestData = { ...data };
+    const requestData: Record<string, any> = { ...data };
     
     // Remove undefined values
     Object.keys(requestData).forEach(key => {
@@ -274,15 +273,45 @@ export const projectsService = {
         delete requestData[key];
       }
     });
+
+    // Add snake_case aliases for Laravel backend
+    const snakeCaseMap: Record<string, string> = {
+      contractValueNGN: 'contract_value_ngn',
+      contractValueUSD: 'contract_value_usd',
+      marginPercentNGN: 'margin_percent_ngn',
+      marginPercentUSD: 'margin_percent_usd',
+      marginValueNGN: 'margin_value_ngn',
+      marginValueUSD: 'margin_value_usd',
+      clientName: 'client_name',
+      clientContact: 'client_contact',
+      startDate: 'start_date',
+      endDate: 'end_date',
+      pipelineStage: 'pipeline_stage',
+      pipelineIntakeDate: 'pipeline_intake_date',
+      expectedCloseDate: 'expected_close_date',
+      businessSegment: 'business_segment',
+      subProduct: 'sub_product',
+      projectLeadId: 'project_lead_id',
+      assigneeId: 'assignee_id',
+      channelPartner: 'channel_partner',
+      projectLeadComments: 'project_lead_comments',
+      dealProbability: 'deal_probability',
+    };
+
+    Object.entries(snakeCaseMap).forEach(([camelKey, snakeKey]) => {
+      if (camelKey in requestData) {
+        requestData[snakeKey] = requestData[camelKey];
+      }
+    });
     
     // Log financial data being sent (for debugging)
-    console.log('[Projects Service] Creating project with financial data (camelCase):', {
-      contractValueNGN: requestData.contractValueNGN,
-      contractValueUSD: requestData.contractValueUSD,
-      marginPercentNGN: requestData.marginPercentNGN,
-      marginPercentUSD: requestData.marginPercentUSD,
-      marginValueNGN: requestData.marginValueNGN,
-      marginValueUSD: requestData.marginValueUSD,
+    console.log('[Projects Service] Creating project with data:', {
+      contract_value_ngn: requestData.contract_value_ngn,
+      contract_value_usd: requestData.contract_value_usd,
+      margin_percent_ngn: requestData.margin_percent_ngn,
+      margin_percent_usd: requestData.margin_percent_usd,
+      margin_value_ngn: requestData.margin_value_ngn,
+      margin_value_usd: requestData.margin_value_usd,
     });
     
     const response = await api.post('/api/projects', requestData);
