@@ -158,7 +158,7 @@ function parseLocalizedNumber(raw: any): number | null {
 }
 
 const VALID_SECTORS: Sector[] = ['EMR_OGP', 'EMR_MFG', 'EMR_Services', 'BEDS_Services', 'EMR_Healthcare', 'EMR_Renewables', 'EMR_Trading'];
-const VALID_STAGES: PipelineStage[] = ['cold', 'initiation', 'opportunity', 'qualification', 'proposal', 'negotiation', 'approval', 'execution', 'closure', 'lost'];
+const VALID_STAGES: PipelineStage[] = ['cold', 'initiation', 'qualification', 'proposal', 'negotiation', 'approval', 'execution', 'closure', 'lost'];
 const VALID_STATUSES = ['active', 'on-hold', 'completed'] as const;
 const VALID_PROBABILITIES: RiskLevel[] = ['low', 'medium', 'high', 'critical', 'uncertain'];
 

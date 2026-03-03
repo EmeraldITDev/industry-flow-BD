@@ -1,11 +1,12 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { cn } from '@/lib/utils';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ProjectCard } from '@/components/projects/ProjectCard';
 import { AdvancedFilters, FilterState } from '@/components/projects/AdvancedFilters';
 import { projectsService } from '@/services/projects';
 import { Button } from '@/components/ui/button';
-import { Plus, Grid3X3, List, Loader2, Upload, Trash2, X } from 'lucide-react';
+import { Plus, Grid3X3, List, Loader2, Upload, Trash2, X, RefreshCw } from 'lucide-react';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Project, Sector } from '@/types';
 import { ProjectImportDialog } from '@/components/projects/ProjectImportDialog';
@@ -74,7 +75,7 @@ export default function Projects() {
   const { canCreateProjects } = usePermissions();
 
   // Fetch projects from backend with error handling
-  const { data: backendProjects, isLoading, error } = useQuery({
+  const { data: backendProjects, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ['projects'],
     queryFn: async () => {
       try {
@@ -205,6 +206,10 @@ export default function Projects() {
               <List className="w-4 h-4" />
             </Button>
           </div>
+          <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
+            <RefreshCw className={cn("w-4 h-4 mr-2", isFetching && "animate-spin")} />
+            Refresh
+          </Button>
           {canCreateProjects && (
             <>
               {!selectMode ? (
