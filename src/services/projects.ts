@@ -53,19 +53,22 @@ export interface ProjectFilters {
 const normalizeProject = (project: any): Project => {
   // Helper to get numeric value from either camelCase or snake_case field.
   // Strips formatting (commas, currency symbols, whitespace) before parsing to handle API strings like "₦1,500,000".
-  const getValue = (camelKey: string, snakeKey: string): number => {
+  const getValue = (camelKey: string, snakeKey: string, debugLabel?: string): number => {
     let value = project[camelKey] ?? project[snakeKey];
     if (value == null) return 0;
 
     if (typeof value === 'string') {
       const cleaned = value.replace(/[^0-9.-]+/g, '');
-      if (cleaned !== value) {
-        console.log(`[Projects Service] Cleaned numeric string for ${camelKey}/${snakeKey}:`, { raw: value, cleaned });
+      if (cleaned !== value && cleaned) {
+        console.debug(`[Projects Service] Cleaned numeric string for ${camelKey}/${snakeKey}:`, { raw: value, cleaned });
       }
-      return parseFloat(cleaned) || 0;
+      const parsed = parseFloat(cleaned) || 0;
+      return isFinite(parsed) ? parsed : 0;
     }
 
-    if (typeof value === 'number') return value;
+    if (typeof value === 'number') {
+      return isFinite(value) ? value : 0;
+    }
 
     // If it's another type (e.g., object), return 0
     return 0;
@@ -239,13 +242,37 @@ export const projectsService = {
         console.warn('[Projects Service] Some projects were skipped during normalization:', skipped.length, skipped.slice(0, 3));
       }
 
-      // Debug: Log normalized projects
+      // Debug: Log normalized projects with verbose financial data report
       const projectsWithFinancialData = normalized.filter(p => (p.contractValueNGN || 0) > 0 || (p.contractValueUSD || 0) > 0);
+      
+      console.group('[Projects Service] Financial Data Report');
+      console.log(`Total projects: ${normalized.length}`);
+      console.log(`Projects with contract values: ${projectsWithFinancialData.length}`);
+      
       if (projectsWithFinancialData.length > 0) {
-        console.log('[Projects Service] Projects with financial data:', projectsWithFinancialData.length, projectsWithFinancialData);
+        console.log('✅ Financial data is available:', projectsWithFinancialData.map(p => ({
+          id: p.id,
+          name: p.name,
+          contractValueNGN: p.contractValueNGN,
+          contractValueUSD: p.contractValueUSD,
+          marginValueNGN: p.marginValueNGN,
+          marginValueUSD: p.marginValueUSD,
+        })));
       } else {
-        console.warn('[Projects Service] No projects found with financial data');
+        console.warn('⚠️  No projects have contract/PO values yet');
+        console.warn('This is expected if:');
+        console.warn('  1. Backend database wasnt seeded with sample data');
+        console.warn('  2. No projects have been created yet');
+        console.warn('  3. Projects were created before financial fields existed');
+        console.log('Sample from first project:', normalized[0] ? {
+          id: normalized[0].id,
+          name: normalized[0].name,
+          contractValueNGN: normalized[0].contractValueNGN,
+          contractValueUSD: normalized[0].contractValueUSD,
+          hasFinancialFields: !!(normalized[0].contractValueNGN || normalized[0].contractValueUSD),
+        } : 'No projects');
       }
+      console.groupEnd();
 
       return normalized;
     } catch (err: any) {

@@ -67,6 +67,7 @@ export function RecentProjects({ recentProjects: propRecentProjects }: RecentPro
           <div className="text-center py-8">
             <FolderOpen className="w-12 h-12 mx-auto text-muted-foreground mb-2" />
             <p className="text-muted-foreground">No active projects yet</p>
+            <p className="text-[10px] sm:text-xs text-muted-foreground/70 mt-1">Create a project and set its status to "active" to see it here</p>
             <Button variant="link" asChild className="mt-2">
               <Link to="/projects/new">Create your first project</Link>
             </Button>
