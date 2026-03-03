@@ -126,23 +126,32 @@ export function autoMapColumns(headers: string[]): ColumnMapping[] {
  */
 function parseLocalizedNumber(raw: any): number | null {
   if (raw == null || raw === '') return null;
-  if (typeof raw === 'number') return raw;
+  if (typeof raw === 'number') return Number.isFinite(raw) ? raw : null;
 
   let cleaned = String(raw).trim();
-
-  // Remove currency symbols (₦ $ € £ ¥ R) and spaces
-  cleaned = cleaned.replace(/[\u20A6$€£¥R\s]/g, '');
-  // Remove trailing %
-  cleaned = cleaned.replace(/%$/, '');
-
   if (cleaned === '') return null;
+
+  // Accounting negatives: (1,234.56)
+  const isNegativeByParens = /^\(.*\)$/.test(cleaned);
+  cleaned = cleaned.replace(/[()]/g, '');
+
+  // Remove currency words/symbols and spacing
+  cleaned = cleaned
+    .replace(/(?:\bngn\b|\busd\b|\bnaira\b|\bdollar(?:s)?\b|\u20A6|\$|€|£|¥)/gi, '')
+    .replace(/[\u00A0\s]/g, '')
+    .replace(/%$/, '')
+    // Keep only number-related characters after stripping labels
+    .replace(/[^\d.,-]/g, '');
+
+  if (cleaned === '' || cleaned === '-') return null;
 
   const lastDot = cleaned.lastIndexOf('.');
   const lastComma = cleaned.lastIndexOf(',');
 
   if (lastDot === -1 && lastComma === -1) {
     const n = parseFloat(cleaned);
-    return isNaN(n) ? null : n;
+    if (isNaN(n)) return null;
+    return isNegativeByParens ? -Math.abs(n) : n;
   }
 
   if (lastComma > lastDot) {
@@ -154,7 +163,8 @@ function parseLocalizedNumber(raw: any): number | null {
   }
 
   const n = parseFloat(cleaned);
-  return isNaN(n) ? null : n;
+  if (isNaN(n)) return null;
+  return isNegativeByParens ? -Math.abs(n) : n;
 }
 
 const VALID_SECTORS: Sector[] = ['EMR_OGP', 'EMR_MFG', 'EMR_Services', 'BEDS_Services', 'EMR_Healthcare', 'EMR_Renewables', 'EMR_Trading'];
