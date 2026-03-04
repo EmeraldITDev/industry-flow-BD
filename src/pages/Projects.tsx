@@ -22,6 +22,7 @@ const defaultFilters: FilterState = {
   businessSegment: 'all',
   projectLead: 'all',
   assignee: 'all',
+  clientName: '',
   oem: '',
   location: '',
   channelPartner: '',
@@ -122,6 +123,7 @@ export default function Projects() {
       if (filters.assignee !== 'all' && project.assigneeId !== filters.assignee) return false;
       
       // Text filters
+      if (filters.clientName && !project.clientName?.toLowerCase().includes(filters.clientName.toLowerCase())) return false;
       if (filters.oem && !project.oem?.toLowerCase().includes(filters.oem.toLowerCase())) return false;
       if (filters.location && !project.location?.toLowerCase().includes(filters.location.toLowerCase())) return false;
       if (filters.channelPartner && !project.channelPartner?.toLowerCase().includes(filters.channelPartner.toLowerCase())) return false;
