@@ -177,7 +177,8 @@ export default function Dashboard() {
     // Product category mix by opportunity count
     const byProductCategory: Record<string, number> = {};
     projects.forEach((p: Project) => {
-      const product = p.product || 'Unknown';
+      const product = (p.product && p.product.trim()) ? p.product.trim() : null;
+      if (!product || product.toLowerCase() === 'nan' || product.toLowerCase() === 'undefined') return;
       byProductCategory[product] = (byProductCategory[product] || 0) + 1;
     });
 
