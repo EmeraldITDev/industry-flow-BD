@@ -28,6 +28,7 @@ export interface FilterState {
   businessSegment: BusinessSegment | 'all';
   projectLead: string;
   assignee: string;
+  clientName: string;
   oem: string;
   location: string;
   channelPartner: string;
@@ -51,6 +52,7 @@ const defaultFilters: FilterState = {
   businessSegment: 'all',
   projectLead: 'all',
   assignee: 'all',
+  clientName: '',
   oem: '',
   location: '',
   channelPartner: '',
@@ -230,6 +232,15 @@ export function AdvancedFilters({ filters, onFiltersChange }: AdvancedFiltersPro
                         ))}
                       </SelectContent>
                     </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Client</Label>
+                    <Input
+                      placeholder="Filter by client name"
+                      value={filters.clientName}
+                      onChange={(e) => onFiltersChange({ ...filters, clientName: e.target.value })}
+                    />
                   </div>
 
                   <div className="space-y-2">
@@ -414,6 +425,15 @@ export function AdvancedFilters({ filters, onFiltersChange }: AdvancedFiltersPro
               <X 
                 className="w-3 h-3 cursor-pointer" 
                 onClick={() => onFiltersChange({ ...filters, projectLead: 'all' })}
+              />
+            </Badge>
+          )}
+          {filters.clientName && (
+            <Badge variant="secondary" className="gap-1">
+              Client: {filters.clientName}
+              <X 
+                className="w-3 h-3 cursor-pointer" 
+                onClick={() => onFiltersChange({ ...filters, clientName: '' })}
               />
             </Badge>
           )}
