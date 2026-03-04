@@ -361,7 +361,7 @@ export default function Dashboard() {
               value={computedStats.highRisk.toLocaleString()} 
               icon={ShieldAlert}
               className={computedStats.highRisk > 0 ? "bg-destructive/5 border-destructive/20" : ""}
-              href="/projects?risk=high"
+              href="/projects?probability=high"
             />
           </div>
 
