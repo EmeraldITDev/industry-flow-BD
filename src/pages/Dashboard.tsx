@@ -342,33 +342,39 @@ export default function Dashboard() {
               title="Total Projects" 
               value={computedStats.total.toLocaleString()} 
               icon={FolderKanban}
+              href="/projects"
             />
             <StatCard 
               title="Active Projects" 
               value={computedStats.active.toLocaleString()} 
               icon={Activity}
+              href="/projects?status=active"
             />
             <StatCard 
               title="Completed Projects" 
               value={computedStats.completed.toLocaleString()} 
               icon={CheckCircle}
+              href="/projects?status=completed"
             />
             <StatCard 
               title="High Risk Projects" 
               value={computedStats.highRisk.toLocaleString()} 
               icon={ShieldAlert}
               className={computedStats.highRisk > 0 ? "bg-destructive/5 border-destructive/20" : ""}
+              href="/projects?risk=high"
             />
             <StatCard 
               title="Completed Tasks" 
               value={computedStats.completedTasks.toLocaleString()} 
               icon={CheckCircle}
+              href="/projects"
             />
             <StatCard 
               title="Overdue Tasks" 
               value={computedStats.overdueTasks.toLocaleString()} 
               icon={Clock}
               className={computedStats.overdueTasks > 0 ? "bg-destructive/5 border-destructive/20" : ""}
+              href="/projects"
             />
           </div>
 
