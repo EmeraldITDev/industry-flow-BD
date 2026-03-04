@@ -1,5 +1,6 @@
 import { cn } from '@/lib/utils';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+import { PIPELINE_STAGES } from '@/types';
 
 interface ProbabilityMixDonutProps {
   data: Record<string, number>;
@@ -8,36 +9,34 @@ interface ProbabilityMixDonutProps {
   className?: string;
 }
 
-const probabilityColors: Record<string, string> = {
-  medium: '#0077ff',
-  high: '#00c2a8',
-  uncertain: '#3a5070',
-  low: '#e84393',
-  critical: '#f0a500',
-};
-
-const probabilityLabels: Record<string, string> = {
-  medium: 'Medium',
-  high: 'High',
-  uncertain: 'Uncertain',
-  low: 'Low',
-  critical: 'Critical',
+const stageColors: Record<string, string> = {
+  cold: '#64748b',
+  initiation: '#8b5cf6',
+  qualification: '#0077ff',
+  proposal: '#00c2a8',
+  negotiation: '#f0a500',
+  approval: '#22c55e',
+  execution: '#3b82f6',
+  closure: '#10b981',
+  lost: '#e84393',
 };
 
 export function ProbabilityMixDonut({
   data,
-  title = 'Opportunity Probability Mix',
-  subtitle = 'Confidence levels across all deals',
+  title = 'Pipeline Stage Distribution',
+  subtitle = 'Projects by pipeline stage',
   className,
 }: ProbabilityMixDonutProps) {
-  // Transform data for recharts
   const chartData = Object.entries(data)
     .filter(([_, count]) => count > 0)
-    .map(([probability, count]) => ({
-      name: probabilityLabels[probability] || probability,
-      value: count,
-      color: probabilityColors[probability] || '#3a5070',
-    }))
+    .map(([stage, count]) => {
+      const stageInfo = PIPELINE_STAGES.find(s => s.value === stage);
+      return {
+        name: stageInfo?.label || stage,
+        value: count,
+        color: stageColors[stage] || '#3a5070',
+      };
+    })
     .sort((a, b) => b.value - a.value);
 
   const renderCustomLegend = (props: any) => {
@@ -59,13 +58,11 @@ export function ProbabilityMixDonut({
 
   return (
     <div className={cn('bg-card border border-border rounded-xl p-6 animate-fade-up', className)}>
-      {/* Title */}
       <div className="mb-1">
         <h3 className="text-[13px] font-bold font-sans">{title}</h3>
       </div>
       <div className="text-[11px] text-muted-foreground mb-5">{subtitle}</div>
 
-      {/* Chart */}
       <div className="h-[260px]">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
@@ -89,6 +86,7 @@ export function ProbabilityMixDonut({
                 borderRadius: '6px',
                 fontSize: '11px',
               }}
+              formatter={(value: number) => [value, 'Projects']}
             />
             <Legend content={renderCustomLegend} />
           </PieChart>
