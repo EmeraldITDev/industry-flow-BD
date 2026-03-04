@@ -5,6 +5,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { sectorColors, sectorIcons } from '@/data/mockData';
 import { Sector, Project } from '@/types';
 import { projectsService } from '@/services/projects';
+import { getStageProgress } from '@/lib/stageProgress';
 import { useMemo } from 'react';
 
 export function SectorOverview() {
@@ -24,7 +25,7 @@ export function SectorOverview() {
     return uniqueSectors.map(sector => {
       const sectorProjects = projects.filter((p: Project) => p.sector === sector);
       const avgProgress = sectorProjects.length 
-        ? Math.round(sectorProjects.reduce((acc: number, p: Project) => acc + (p.progress || 0), 0) / sectorProjects.length)
+        ? Math.round(sectorProjects.reduce((acc: number, p: Project) => acc + getStageProgress(p.pipelineStage, p.progress), 0) / sectorProjects.length)
         : 0;
       
       return {
