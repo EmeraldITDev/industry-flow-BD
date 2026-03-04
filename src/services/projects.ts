@@ -22,6 +22,7 @@ export interface CreateProjectData {
   subProduct?: string;
   projectLeadId?: string;
   assigneeId?: string;
+  salesLead?: string;
   channelPartner?: string;
   contractValueNGN?: number;
   contractValueUSD?: number;
@@ -140,6 +141,7 @@ const normalizeProject = (project: any): Project => {
     subProduct: project.subProduct ?? project.sub_product ?? '',
     projectLeadId: project.projectLeadId ?? project.project_lead_id ?? null,
     assigneeId: project.assigneeId ?? project.assignee_id ?? null,
+    salesLead: project.salesLead ?? project.sales_lead ?? null,
     channelPartner: project.channelPartner ?? project.channel_partner ?? '',
     projectLeadComments: project.projectLeadComments ?? project.project_lead_comments ?? '',
     dealProbability: project.dealProbability ?? project.deal_probability ?? project.riskLevel ?? project.risk_level ?? 'low',
