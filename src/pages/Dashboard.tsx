@@ -24,7 +24,7 @@ import { WelcomeHeader } from '@/components/dashboard/WelcomeHeader';
 import { QuickActions } from '@/components/dashboard/QuickActions';
 import { ProjectCalendar } from '@/components/calendar/ProjectCalendar';
 import { projectsService } from '@/services/projects';
-import { FolderKanban, Activity, CheckCircle, Loader2, DollarSign, ShieldAlert, ListChecks, Clock, RefreshCw } from 'lucide-react';
+import { FolderKanban, CheckCircle, Loader2, DollarSign, ListChecks, Clock, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useCurrency } from '@/context/CurrencyContext';
