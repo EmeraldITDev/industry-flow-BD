@@ -5,24 +5,16 @@ interface PipelineBySalesLeadProps {
 }
 
 export default function PipelineBySalesLead({ data }: PipelineBySalesLeadProps) {
-  // Sort by value descending
   const sortedData = [...data].sort((a, b) => b.value - a.value);
 
-  // Format value in millions
-  const formatValue = (value: number) => {
-    const millions = value / 1_000_000;
-    return `$${millions.toFixed(1)}M`;
-  };
-
-  // Color mapping for leads
   const getColor = (index: number) => {
     const colors = [
-      'hsl(var(--emerald-won))',      // Orange for top
-      'hsl(var(--emerald-accent))',   // Blue for second
-      'hsl(var(--emerald-initiation))', // Teal for third
-      'hsl(var(--emerald-proposal))',  // Purple for fourth
-      'hsl(var(--emerald-negotiation))', // Pink for fifth
-      'hsl(var(--emerald-qualification))', // Others
+      'hsl(var(--emerald-won))',
+      'hsl(var(--emerald-accent))',
+      'hsl(var(--emerald-initiation))',
+      'hsl(var(--emerald-proposal))',
+      'hsl(var(--emerald-negotiation))',
+      'hsl(var(--emerald-qualification))',
     ];
     return colors[index] || colors[colors.length - 1];
   };
@@ -31,10 +23,10 @@ export default function PipelineBySalesLead({ data }: PipelineBySalesLeadProps) 
     <div className="card p-4">
       <div className="space-y-1 mb-4">
         <h3 className="text-sm font-semibold text-card-foreground">
-          Pipeline by Sales Lead (Active Deals)
+          Pipeline by Sales Lead
         </h3>
         <p className="text-xs text-muted-foreground">
-          Proposal + Negotiation + Qualification stage only
+          Number of projects managed per lead
         </p>
       </div>
 
@@ -50,7 +42,7 @@ export default function PipelineBySalesLead({ data }: PipelineBySalesLeadProps) 
           />
           <YAxis 
             tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
-            tickFormatter={(value: any) => `$${(value / 1_000_000).toFixed(1)}M`}
+            allowDecimals={false}
           />
           <Tooltip
             contentStyle={{
@@ -59,7 +51,7 @@ export default function PipelineBySalesLead({ data }: PipelineBySalesLeadProps) 
               borderRadius: '6px',
               fontSize: '12px',
             }}
-            formatter={(value: number) => [formatValue(value), 'Pipeline Value']}
+            formatter={(value: number) => [value, 'Projects']}
             labelStyle={{ color: 'hsl(var(--popover-foreground))' }}
           />
           <Bar 

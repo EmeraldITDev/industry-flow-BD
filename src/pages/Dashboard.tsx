@@ -23,6 +23,7 @@ import { DeadlineTracker } from '@/components/dashboard/DeadlineTracker';
 import { WelcomeHeader } from '@/components/dashboard/WelcomeHeader';
 import { QuickActions } from '@/components/dashboard/QuickActions';
 import { ProjectCalendar } from '@/components/calendar/ProjectCalendar';
+import { DashboardFilters, DashboardFilterState, defaultDashboardFilters, applyDashboardFilters } from '@/components/dashboard/DashboardFilters';
 import { projectsService } from '@/services/projects';
 import { FolderKanban, CheckCircle, Loader2, DollarSign, ListChecks, Clock, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -36,6 +37,7 @@ import { Badge } from '@/components/ui/badge';
 export default function Dashboard() {
   const { formatCurrencyFor } = useCurrency();
   const [chartFilter, setChartFilter] = useState<string | null>(null);
+  const [dashboardFilters, setDashboardFilters] = useState<DashboardFilterState>(defaultDashboardFilters);
   const queryClient = useQueryClient();
   
   const { data: projectsList = [], isFetching } = useQuery({
@@ -49,9 +51,14 @@ export default function Dashboard() {
     queryClient.invalidateQueries({ queryKey: ['projectStats'] });
   };
 
+  // Apply dashboard filters
+  const filteredProjects = useMemo(() => {
+    return applyDashboardFilters(projectsList, dashboardFilters);
+  }, [projectsList, dashboardFilters]);
+
   const computedStats = useMemo(() => {
     const NGN_PER_USD = parseFloat(import.meta.env.VITE_NGN_PER_USD as string) || 800;
-    const projects = projectsList || [];
+    const projects = filteredProjects || [];
     
     let totalNGN = 0;
     let totalUSD = 0;
@@ -60,6 +67,8 @@ export default function Dashboard() {
     let activePipelineUSD = 0;
     let activePipelineNGN = 0;
     let totalCommissionNGN = 0;
+    let totalMarginNGN = 0;
+    let totalMarginUSD = 0;
     
     const active = projects.filter((p: Project) => p.status === 'active').length;
     const completed = projects.filter((p: Project) => p.status === 'completed').length;
@@ -71,7 +80,6 @@ export default function Dashboard() {
     ).length;
     const highRisk = projects.filter((p: Project) => p.dealProbability === 'high' || p.dealProbability === 'critical').length;
     
-    // Count unique sectors/segments
     const segments = [...new Set(projects.map(p => p.sector).filter(Boolean))].length;
 
     projects.forEach((p: Project) => {
@@ -83,19 +91,20 @@ export default function Dashboard() {
       totalNGN += ngnValue;
       totalUSD += usdValue;
       
-      // Calculate won PO value (approved, executed, or closed deals)
+      // Margin values
+      totalMarginNGN += Number(p.marginValueNGN ?? 0) || 0;
+      totalMarginUSD += Number(p.marginValueUSD ?? 0) || 0;
+      
       if (p.status === 'completed' || p.pipelineStage === 'approval' || p.pipelineStage === 'execution' || p.pipelineStage === 'closure') {
         wonPOValueUSD += usdValue;
         wonPOValueNGN += ngnValue;
       }
       
-      // Calculate active pipeline value
       if (p.status === 'active') {
         activePipelineUSD += usdValue;
         activePipelineNGN += ngnValue;
       }
       
-      // Calculate commission (assuming 5% commission rate - adjust as needed)
       const commissionRate = 0.05;
       totalCommissionNGN += ngnValue * commissionRate;
     });
@@ -116,22 +125,13 @@ export default function Dashboard() {
       .sort((a: any, b: any) => new Date(b.startDate || 0).getTime() - new Date(a.startDate || 0).getTime())
       .slice(0, 5);
     
-    // Calculate win rate
     const winRate = projects.length > 0 ? (won / projects.length) * 100 : 0;
     
-    // Calculate pipeline stage distribution
     const pipelineByStage: Record<string, number> = {
-      cold: 0,
-      initiation: 0,
-      qualification: 0,
-      proposal: 0,
-      negotiation: 0,
-      approval: 0,
-      execution: 0,
-      closure: 0,
+      cold: 0, initiation: 0, qualification: 0, proposal: 0,
+      negotiation: 0, approval: 0, execution: 0, closure: 0,
     };
     
-    // Calculate lost deals (on-hold status, treat as lost for funnel purposes)
     let lostDeals = 0;
     
     projects.forEach((p: Project) => {
@@ -140,30 +140,25 @@ export default function Dashboard() {
       } else if (p.pipelineStage) {
         pipelineByStage[p.pipelineStage] = (pipelineByStage[p.pipelineStage] || 0) + 1;
       } else {
-        // No stage specified, count as cold
         pipelineByStage.cold++;
       }
     });
     
-    // Calculate sector/segment distribution
     const bySector: Record<string, number> = {};
     projects.forEach((p: Project) => {
       const sector = p.sector || 'Unknown';
       bySector[sector] = (bySector[sector] || 0) + 1;
     });
     
-    // Calculate top clients by PO value (excluding BEDS)
     const clientValues: Record<string, number> = {};
     projects.forEach((p: Project) => {
       const client = p.clientName || 'Unknown';
-      // Exclude BEDS clients (assuming they contain 'BEDS' in the name)
       if (!client.toUpperCase().includes('BEDS')) {
         const usdValue = Number(p.contractValueUSD ?? 0) || 0;
         clientValues[client] = (clientValues[client] || 0) + usdValue;
       }
     });
     
-    // Get top 10 clients
     const topClients = Object.entries(clientValues)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 10)
@@ -172,21 +167,14 @@ export default function Dashboard() {
         return acc;
       }, {} as Record<string, number>);
     
-    // Calculate probability distribution
-    const byProbability: Record<string, number> = {
-      low: 0,
-      medium: 0,
-      high: 0,
-      critical: 0,
-      uncertain: 0,
-    };
-    
+    // Pipeline stage distribution (for donut)
+    const byPipelineStage: Record<string, number> = {};
     projects.forEach((p: Project) => {
-      const prob = p.dealProbability || 'uncertain';
-      byProbability[prob] = (byProbability[prob] || 0) + 1;
+      const stage = p.pipelineStage || 'cold';
+      byPipelineStage[stage] = (byPipelineStage[stage] || 0) + 1;
     });
     
-    // Calculate product category mix by USD value
+    // Product category mix by USD value (project count)
     const byProductCategory: Record<string, number> = {};
     projects.forEach((p: Project) => {
       const product = p.product || 'Unknown';
@@ -194,85 +182,46 @@ export default function Dashboard() {
       byProductCategory[product] = (byProductCategory[product] || 0) + usdValue;
     });
 
-    // Calculate active pipeline by sales lead (Proposal + Negotiation + Qualification only)
+    // Pipeline by sales lead: count of projects per lead
     const pipelineBySalesLead: Record<string, number> = {};
     projects.forEach((p: Project) => {
-      const activeStages = ['proposal', 'negotiation', 'qualification'];
-      if (activeStages.includes(p.pipelineStage || '')) {
-        const lead = p.salesLead || 'Unassigned';
-        const usdValue = Number(p.contractValueUSD ?? 0) || 0;
-        pipelineBySalesLead[lead] = (pipelineBySalesLead[lead] || 0) + usdValue;
-      }
+      const lead = p.salesLead || 'Unassigned';
+      pipelineBySalesLead[lead] = (pipelineBySalesLead[lead] || 0) + 1;
     });
 
-    // Calculate team load (total deals, won, active per sales lead)
+    // Team load
     const teamLoadMap: Record<string, { total: number; won: number; active: number }> = {};
     projects.forEach((p: Project) => {
       const lead = p.salesLead || 'Unassigned';
-      if (!teamLoadMap[lead]) {
-        teamLoadMap[lead] = { total: 0, won: 0, active: 0 };
-      }
-      
+      if (!teamLoadMap[lead]) teamLoadMap[lead] = { total: 0, won: 0, active: 0 };
       teamLoadMap[lead].total++;
-      
       if (p.status === 'completed' || p.pipelineStage === 'approval' || p.pipelineStage === 'execution' || p.pipelineStage === 'closure') {
         teamLoadMap[lead].won++;
       }
-      
-      if (p.status === 'active') {
-        teamLoadMap[lead].active++;
-      }
+      if (p.status === 'active') teamLoadMap[lead].active++;
     });
 
-    // Convert to array format for the table component
     const teamLoad = Object.entries(teamLoadMap).map(([lead, stats]) => ({
-      lead,
-      totalDeals: stats.total,
-      won: stats.won,
-      active: stats.active,
-      loadPercentage: stats.total,
+      lead, totalDeals: stats.total, won: stats.won, active: stats.active, loadPercentage: stats.total,
     }));
 
     return {
-      total: projects.length,
-      active,
-      completed,
-      won,
-      highRisk,
-      completedTasks,
-      overdueTasks,
-      totalNGN,
-      totalUSD,
-      wonPOValueUSD,
-      wonPOValueNGN,
-      activePipelineUSD,
-      activePipelineNGN,
-      totalCommissionNGN,
-      winRate,
-      segments,
-      pipelineByStage,
-      lostDeals,
-      bySector,
-      topClients,
-      byProbability,
-      byProductCategory,
-      pipelineBySalesLead,
-      teamLoad,
-      averageProgress: avgProgress,
-      recent,
+      total: projects.length, active, completed, won, highRisk,
+      completedTasks, overdueTasks,
+      totalNGN, totalUSD, wonPOValueUSD, wonPOValueNGN,
+      activePipelineUSD, activePipelineNGN,
+      totalCommissionNGN, totalMarginNGN, totalMarginUSD,
+      winRate, segments, pipelineByStage, lostDeals,
+      bySector, topClients, byPipelineStage, byProductCategory,
+      pipelineBySalesLead, teamLoad, averageProgress: avgProgress, recent,
     };
-  }, [projectsList]);
+  }, [filteredProjects]);
 
   const isLoading = !projectsList;
-
-  const filteredChartProjects = useMemo(() => {
-    if (!chartFilter) return projectsList;
-    return projectsList.filter((p: Project) => p.status === chartFilter || p.sector === chartFilter);
-  }, [projectsList, chartFilter]);
   
   return (
     <div className="p-3 sm:p-6 lg:p-8 space-y-3 sm:space-y-6">
-      {/* Header with welcome greeting and live indicator */}
+      {/* Header */}
       <div className="flex items-center justify-between">
         <WelcomeHeader />
         <div className="flex items-center gap-3">
@@ -295,13 +244,12 @@ export default function Dashboard() {
 
       {!isLoading && (
         <>
-          {/* Section Label */}
+          {/* KPI Section */}
           <div className="flex items-center gap-2 text-[10px] font-bold tracking-[0.2em] uppercase text-emerald-accent">
             <span>Key Performance Indicators</span>
             <div className="flex-1 h-px bg-border" />
           </div>
 
-          {/* KPI Cards - Emerald Style */}
           <div className="grid grid-cols-1 gap-2 sm:gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
             <EmeraldStatCard
               label="Total PO Value (USD)"
@@ -336,8 +284,8 @@ export default function Dashboard() {
             />
           </div>
 
-          {/* Additional Metrics */}
-          <div className="grid grid-cols-1 gap-2 sm:gap-4 sm:grid-cols-2">
+          {/* New Summary Cards: Total PO Value NGN, Total Margin USD, Total Margin NGN */}
+          <div className="grid grid-cols-1 gap-2 sm:gap-4 sm:grid-cols-2 md:grid-cols-4">
             <StatCard 
               title="Total Projects" 
               value={computedStats.total.toLocaleString()} 
@@ -345,10 +293,22 @@ export default function Dashboard() {
               href="/projects"
             />
             <StatCard 
-              title="Completed" 
-              value={computedStats.completed.toLocaleString()} 
-              icon={CheckCircle}
-              href="/projects?status=completed"
+              title="Total PO Value (₦)" 
+              value={formatCurrencyFor(computedStats.totalNGN, 'NGN')} 
+              icon={DollarSign}
+              className="bg-primary/5 border-primary/20"
+            />
+            <StatCard 
+              title="Total Margin Value ($)" 
+              value={formatCurrencyFor(computedStats.totalMarginUSD, 'USD')} 
+              icon={DollarSign}
+              className="bg-chart-2/5 border-chart-2/20"
+            />
+            <StatCard 
+              title="Total Margin Value (₦)" 
+              value={formatCurrencyFor(computedStats.totalMarginNGN, 'NGN')} 
+              icon={DollarSign}
+              className="bg-chart-3/5 border-chart-3/20"
             />
           </div>
 
@@ -358,8 +318,14 @@ export default function Dashboard() {
             <div className="flex-1 h-px bg-border" />
           </div>
 
+          {/* Dashboard Filters */}
+          <DashboardFilters
+            filters={dashboardFilters}
+            onFiltersChange={setDashboardFilters}
+            projects={projectsList}
+          />
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {/* Pipeline Funnel with Donut */}
             <PipelineFunnel
               stages={[
                 { label: 'Cold', count: computedStats.pipelineByStage.cold || 0, color: 'cold' },
@@ -373,44 +339,34 @@ export default function Dashboard() {
                 { label: 'Lost ✗', count: computedStats.lostDeals || 0, color: 'lost' },
               ]}
             />
-
-            {/* Segment Breakdown */}
             <SegmentBreakdown data={computedStats.bySector} />
           </div>
 
-          {/* Additional Analytics Section */}
+          {/* Client & Product Analytics */}
           <div className="flex items-center gap-2 text-[10px] font-bold tracking-[0.2em] uppercase text-emerald-accent mt-8">
             <span>Client &amp; Product Analytics</span>
             <div className="flex-1 h-px bg-border" />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            {/* Top Clients by PO Value */}
             <TopClientsByValue data={computedStats.topClients} />
-
-            {/* Probability Mix Donut */}
-            <ProbabilityMixDonut data={computedStats.byProbability} />
-
-            {/* Product Category Mix */}
+            <ProbabilityMixDonut data={computedStats.byPipelineStage} />
             <ProductCategoryMixDonut data={computedStats.byProductCategory} />
           </div>
 
-          {/* Team Performance & Lead Analysis Section */}
+          {/* Team Performance & Lead Analysis */}
           <div className="flex items-center gap-2 text-[10px] font-bold tracking-[0.2em] uppercase text-emerald-accent mt-8">
             <span>Team Performance &amp; Lead Analysis</span>
             <div className="flex-1 h-px bg-border" />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {/* Pipeline by Sales Lead */}
             <PipelineBySalesLead 
               data={Object.entries(computedStats.pipelineBySalesLead).map(([lead, value]) => ({
                 lead,
                 value: value as number,
               }))}
             />
-
-            {/* Team Opportunity Load */}
             <TeamOpportunityLoad data={computedStats.teamLoad} />
           </div>
 
@@ -422,7 +378,6 @@ export default function Dashboard() {
               icon={DollarSign}
               className="bg-primary/5 border-primary/20"
             />
-
             <StatCard 
               title="Total Revenue (USD)"
               value={formatCurrencyFor(computedStats.totalUSD, 'USD')}
@@ -431,7 +386,7 @@ export default function Dashboard() {
             />
           </div>
 
-          {/* Average Progress Indicator */}
+          {/* Average Progress */}
           {computedStats.averageProgress !== undefined && computedStats.averageProgress !== null && (
             <div className="bg-card border border-border rounded-lg p-4 sm:p-6">
               <div className="flex items-center justify-between mb-2">
@@ -454,7 +409,7 @@ export default function Dashboard() {
           <TasksSummary />
         </div>
         <div className="space-y-3 sm:space-y-6">
-          <DeadlineTracker projects={projectsList} />
+          <DeadlineTracker projects={filteredProjects} />
           <ProjectCalendar />
           <SectorOverview />
         </div>
