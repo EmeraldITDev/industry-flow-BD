@@ -31,12 +31,18 @@ interface DashboardFiltersProps {
 }
 
 export function DashboardFilters({ filters, onFiltersChange, projects }: DashboardFiltersProps) {
-  // Extract unique project leads
+  // Extract unique project leads from salesLead field
   const uniqueLeads = useMemo(() => {
     const leads = new Set<string>();
     projects.forEach(p => {
       if (p.salesLead) leads.add(p.salesLead);
     });
+    // Also check for assignee names as fallback lead references
+    if (leads.size === 0) {
+      projects.forEach(p => {
+        if (p.assigneeId) leads.add(p.assigneeId);
+      });
+    }
     return Array.from(leads).sort();
   }, [projects]);
 

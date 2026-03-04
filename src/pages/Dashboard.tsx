@@ -174,12 +174,11 @@ export default function Dashboard() {
       byPipelineStage[stage] = (byPipelineStage[stage] || 0) + 1;
     });
     
-    // Product category mix by USD value (project count)
+    // Product category mix by opportunity count
     const byProductCategory: Record<string, number> = {};
     projects.forEach((p: Project) => {
       const product = p.product || 'Unknown';
-      const usdValue = Number(p.contractValueUSD ?? 0) || 0;
-      byProductCategory[product] = (byProductCategory[product] || 0) + usdValue;
+      byProductCategory[product] = (byProductCategory[product] || 0) + 1;
     });
 
     // Pipeline by sales lead: count of projects per lead
@@ -294,19 +293,19 @@ export default function Dashboard() {
             />
             <StatCard 
               title="Total PO Value (₦)" 
-              value={formatCurrencyFor(computedStats.totalNGN, 'NGN')} 
+              value={computedStats.totalNGN.toLocaleString('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 })} 
               icon={DollarSign}
               className="bg-primary/5 border-primary/20"
             />
             <StatCard 
-              title="Total Margin Value ($)" 
-              value={formatCurrencyFor(computedStats.totalMarginUSD, 'USD')} 
+              title="Total Margin ($)" 
+              value={`$${computedStats.totalMarginUSD.toLocaleString(undefined, { maximumFractionDigits: 0 })}`} 
               icon={DollarSign}
               className="bg-chart-2/5 border-chart-2/20"
             />
             <StatCard 
-              title="Total Margin Value (₦)" 
-              value={formatCurrencyFor(computedStats.totalMarginNGN, 'NGN')} 
+              title="Total Margin (₦)" 
+              value={`₦${computedStats.totalMarginNGN.toLocaleString(undefined, { maximumFractionDigits: 0 })}`} 
               icon={DollarSign}
               className="bg-chart-3/5 border-chart-3/20"
             />
