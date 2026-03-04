@@ -22,12 +22,12 @@ export function StatCard({ title, value, icon: Icon, trend, className, href }: S
       href && "cursor-pointer hover:border-primary/50 hover:shadow-md",
       className
     )}>
-      <CardContent className="p-2.5 sm:p-4 lg:p-6">
-        <div className="flex items-start justify-between gap-1.5 sm:gap-2">
+      <CardContent className="p-3 sm:p-4 lg:p-6">
+        <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
-            <p className="text-[10px] sm:text-sm font-medium text-muted-foreground">{title}</p>
-            <div className="mt-0.5 sm:mt-2">
-              <div className="text-lg sm:text-2xl lg:text-3xl font-bold">{value}</div>
+            <p className="text-[10px] sm:text-xs font-medium text-muted-foreground truncate">{title}</p>
+            <div className="mt-1 sm:mt-2">
+              <div className="text-base sm:text-xl lg:text-2xl font-bold truncate">{value}</div>
             </div>
             {trend && (
               <p className={cn(

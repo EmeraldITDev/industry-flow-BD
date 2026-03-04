@@ -36,15 +36,15 @@ const getProductColor = (product: string): string => {
 export function ProductCategoryMixDonut({
   data,
   title = 'Product Category Mix',
-  subtitle = 'By USD contract value',
+  subtitle = 'Number of opportunities per category',
   className,
 }: ProductCategoryMixDonutProps) {
-  // Transform data for recharts
+  // Transform data for recharts - now showing opportunity count
   const chartData = Object.entries(data)
     .filter(([_, value]) => value > 0)
     .map(([product, value]) => ({
       name: product,
-      value: value / 1000000, // Convert to millions
+      value,
       color: getProductColor(product),
     }))
     .sort((a, b) => b.value - a.value);
@@ -98,7 +98,7 @@ export function ProductCategoryMixDonut({
                 borderRadius: '6px',
                 fontSize: '11px',
               }}
-              formatter={(value: number) => [`$${value.toFixed(1)}M`, 'Value']}
+              formatter={(value: number) => [value, 'Opportunities']}
             />
             <Legend content={renderCustomLegend} />
           </PieChart>
