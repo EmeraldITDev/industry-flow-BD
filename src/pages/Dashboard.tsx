@@ -293,19 +293,19 @@ export default function Dashboard() {
             />
             <StatCard 
               title="Total PO Value (₦)" 
-              value={computedStats.totalNGN.toLocaleString('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 })} 
+              value={formatCurrencyFor(computedStats.totalNGN, 'NGN')} 
               icon={DollarSign}
               className="bg-primary/5 border-primary/20"
             />
             <StatCard 
               title="Total Margin ($)" 
-              value={`$${computedStats.totalMarginUSD.toLocaleString(undefined, { maximumFractionDigits: 0 })}`} 
+              value={formatCurrencyFor(computedStats.totalMarginUSD, 'USD')} 
               icon={DollarSign}
               className="bg-chart-2/5 border-chart-2/20"
             />
             <StatCard 
               title="Total Margin (₦)" 
-              value={`₦${computedStats.totalMarginNGN.toLocaleString(undefined, { maximumFractionDigits: 0 })}`} 
+              value={formatCurrencyFor(computedStats.totalMarginNGN, 'NGN')} 
               icon={DollarSign}
               className="bg-chart-3/5 border-chart-3/20"
             />
