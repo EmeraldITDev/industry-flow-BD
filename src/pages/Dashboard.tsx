@@ -337,7 +337,7 @@ export default function Dashboard() {
           </div>
 
           {/* Additional Metrics */}
-          <div className="grid grid-cols-2 gap-2 sm:gap-4 lg:grid-cols-6">
+          <div className="grid grid-cols-2 gap-2 sm:gap-4 lg:grid-cols-4">
             <StatCard 
               title="Total Projects" 
               value={computedStats.total.toLocaleString()} 
@@ -351,30 +351,17 @@ export default function Dashboard() {
               href="/projects?status=active"
             />
             <StatCard 
-              title="Completed Projects" 
+              title="Completed" 
               value={computedStats.completed.toLocaleString()} 
               icon={CheckCircle}
               href="/projects?status=completed"
             />
             <StatCard 
-              title="High Risk Projects" 
+              title="High Risk" 
               value={computedStats.highRisk.toLocaleString()} 
               icon={ShieldAlert}
               className={computedStats.highRisk > 0 ? "bg-destructive/5 border-destructive/20" : ""}
               href="/projects?risk=high"
-            />
-            <StatCard 
-              title="Completed Tasks" 
-              value={computedStats.completedTasks.toLocaleString()} 
-              icon={CheckCircle}
-              href="/projects"
-            />
-            <StatCard 
-              title="Overdue Tasks" 
-              value={computedStats.overdueTasks.toLocaleString()} 
-              icon={Clock}
-              className={computedStats.overdueTasks > 0 ? "bg-destructive/5 border-destructive/20" : ""}
-              href="/projects"
             />
           </div>
 
