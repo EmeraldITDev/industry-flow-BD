@@ -27,7 +27,7 @@ export function StatCard({ title, value, icon: Icon, trend, className, href }: S
           <div className="min-w-0 flex-1">
             <p className="text-[10px] sm:text-xs font-medium text-muted-foreground truncate">{title}</p>
             <div className="mt-1 sm:mt-2">
-              <div className="text-base sm:text-xl lg:text-2xl font-bold truncate">{value}</div>
+              <div className="text-sm sm:text-lg lg:text-xl font-bold break-all">{value}</div>
             </div>
             {trend && (
               <p className={cn(
