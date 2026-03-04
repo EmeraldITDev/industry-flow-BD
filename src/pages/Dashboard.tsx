@@ -302,7 +302,7 @@ export default function Dashboard() {
           </div>
 
           {/* KPI Cards - Emerald Style */}
-          <div className="grid grid-cols-1 gap-2 sm:gap-4 md:grid-cols-2 lg:grid-cols-5">
+          <div className="grid grid-cols-1 gap-2 sm:gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
             <EmeraldStatCard
               label="Total PO Value (USD)"
               value={formatCurrencyFor(computedStats.wonPOValueUSD, 'USD')}
@@ -337,7 +337,7 @@ export default function Dashboard() {
           </div>
 
           {/* Additional Metrics */}
-          <div className="grid grid-cols-2 gap-2 sm:gap-4 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-2 sm:gap-4 sm:grid-cols-2">
             <StatCard 
               title="Total Projects" 
               value={computedStats.total.toLocaleString()} 
@@ -345,23 +345,10 @@ export default function Dashboard() {
               href="/projects"
             />
             <StatCard 
-              title="Active Projects" 
-              value={computedStats.active.toLocaleString()} 
-              icon={Activity}
-              href="/projects?status=active"
-            />
-            <StatCard 
               title="Completed" 
               value={computedStats.completed.toLocaleString()} 
               icon={CheckCircle}
               href="/projects?status=completed"
-            />
-            <StatCard 
-              title="High Risk" 
-              value={computedStats.highRisk.toLocaleString()} 
-              icon={ShieldAlert}
-              className={computedStats.highRisk > 0 ? "bg-destructive/5 border-destructive/20" : ""}
-              href="/projects?probability=high"
             />
           </div>
 
