@@ -81,17 +81,20 @@ export function PipelineFunnel({
               </div>
 
               {/* Bar */}
-              <div className="flex-1 bg-card border border-border/50 rounded h-7 overflow-hidden">
+              <div className="flex-1 bg-card border border-border/50 rounded h-7 overflow-hidden relative">
                 <div
                   className={cn(
-                    'h-full rounded flex items-center px-2.5 text-[11px] font-medium text-white/90 transition-all duration-1000 ease-out',
+                    'h-full rounded transition-all duration-1000 ease-out',
                     stageColors[stage.color.toLowerCase()] || 'bg-emerald-accent',
                     minWidth
                   )}
                   style={{ width: `${widthPercent}%` }}
-                >
-                  {stage.count > 0 && `${stage.count} ${stage.count === 1 ? 'opportunity' : 'opportunities'}`}
-                </div>
+                />
+                {stage.count > 0 && (
+                  <span className="absolute inset-0 flex items-center px-2.5 text-[11px] font-medium text-white/90 truncate pointer-events-none">
+                    {stage.count.toLocaleString()} {stage.count === 1 ? 'opportunity' : 'opportunities'}
+                  </span>
+                )}
               </div>
 
               {/* Count */}
