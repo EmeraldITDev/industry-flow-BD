@@ -47,6 +47,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { projectsService, CreateProjectData } from '@/services/projects';
+import { teamService } from '@/services/team';
 import {
   autoMapColumns,
   ColumnMapping,
@@ -171,14 +172,49 @@ export function ProjectImportDialog({ open, onOpenChange }: Props) {
     let failed = 0;
     let skipped = 0;
 
-    // Fetch existing project names to skip duplicates
+    // Fetch existing project names to skip duplicates + team members for lead resolution
     let existingNames = new Set<string>();
+    let teamMembers: Array<{ id: string; name: string }> = [];
     try {
-      const existing = await projectsService.getAll();
+      const [existing, members] = await Promise.all([
+        projectsService.getAll(),
+        teamService.getAll().catch(() => []),
+      ]);
       existingNames = new Set(existing.map((p) => String(p.name ?? '').toLowerCase().trim()));
+      teamMembers = members.map((m) => ({ id: String(m.id), name: String(m.name ?? '') }));
+      console.log('[Import] Loaded team members for lead resolution:', teamMembers.map(m => m.name));
     } catch (err) {
       console.warn('Could not fetch existing projects for dedup:', err);
     }
+
+    // Helper: fuzzy-match a name string to a team member ID
+    const resolveLeadId = (name: string | undefined): string | undefined => {
+      if (!name || teamMembers.length === 0) return undefined;
+      const lower = name.toLowerCase().trim();
+      // Exact match
+      const exact = teamMembers.find((m) => m.name.toLowerCase().trim() === lower);
+      if (exact) return exact.id;
+      // Partial match (name contains or is contained)
+      const partial = teamMembers.find(
+        (m) => m.name.toLowerCase().includes(lower) || lower.includes(m.name.toLowerCase())
+      );
+      if (partial) {
+        console.log(`[Import] Fuzzy-matched lead "${name}" → "${partial.name}" (ID: ${partial.id})`);
+        return partial.id;
+      }
+      // Try matching last name or first name
+      const nameParts = lower.split(/\s+/);
+      const byPart = teamMembers.find((m) => {
+        const memberParts = m.name.toLowerCase().split(/\s+/);
+        return nameParts.some((p) => p.length > 2 && memberParts.some((mp) => mp === p));
+      });
+      if (byPart) {
+        console.log(`[Import] Matched lead by name part "${name}" → "${byPart.name}" (ID: ${byPart.id})`);
+        return byPart.id;
+      }
+      console.warn(`[Import] Could not resolve project lead: "${name}"`);
+      return undefined;
+    };
 
     // Collect valid rows
     const validRows = validated
@@ -213,7 +249,27 @@ export function ProjectImportDialog({ open, onOpenChange }: Props) {
       const batch = newRows.slice(b, b + BATCH_SIZE);
 
       const results = await Promise.allSettled(
-        batch.map(({ row }) => projectsService.create(row as CreateProjectData))
+        batch.map(({ row }) => {
+          // Resolve project lead name → ID
+          const enriched = { ...row };
+          if (enriched.projectLead && !enriched.projectLeadId) {
+            const resolvedId = resolveLeadId(String(enriched.projectLead));
+            if (resolvedId) {
+              enriched.projectLeadId = resolvedId;
+            }
+          }
+          // Also resolve assignee name → ID
+          if (enriched.assignee && !enriched.assigneeId) {
+            const resolvedId = resolveLeadId(String(enriched.assignee));
+            if (resolvedId) {
+              enriched.assigneeId = resolvedId;
+            }
+          }
+          // Remove raw name fields that backend doesn't accept
+          delete enriched.projectLead;
+          delete enriched.assignee;
+          return projectsService.create(enriched as CreateProjectData);
+        })
       );
 
       for (const r of results) {

@@ -27,6 +27,7 @@ export const PROJECT_FIELDS: { key: string; label: string; required: boolean }[]
   { key: 'businessSegment', label: 'Business Segment', required: false },
   { key: 'channelPartner', label: 'Channel Partner', required: false },
   { key: 'projectLead', label: 'Project Lead', required: false },
+  { key: 'salesLead', label: 'Sales Lead', required: false },
   { key: 'startDate', label: 'Start Date', required: false },
   { key: 'endDate', label: 'End Date', required: false },
   { key: 'expectedCloseDate', label: 'Expected Close Date', required: false },
@@ -83,7 +84,8 @@ const HEADER_PATTERNS: [RegExp, string][] = [
   [/sub\s*product/i, 'subProduct'],
   [/business\s*segment|^segment$/i, 'businessSegment'],
   [/channel\s*partner|partner/i, 'channelPartner'],
-  [/project\s*lead|sales\s*lead|lead/i, 'projectLead'],
+  [/project\s*lead|sales\s*lead|^lead$/i, 'projectLead'],
+  [/^sales\s*person|^sales\s*rep/i, 'salesLead'],
   [/start\s*date/i, 'startDate'],
   [/end\s*date/i, 'endDate'],
   [/expected\s*close|close\s*date/i, 'expectedCloseDate'],
@@ -129,6 +131,9 @@ export function autoMapColumns(headers: string[]): ColumnMapping[] {
 function parseLocalizedNumber(raw: any): number | null {
   if (raw == null || raw === '') return null;
   if (typeof raw === 'number') return Number.isFinite(raw) ? raw : null;
+
+  // Handle Date objects that xlsx may return for formatted cells
+  if (raw instanceof Date) return null;
 
   let cleaned = String(raw).trim();
   if (cleaned === '') return null;
