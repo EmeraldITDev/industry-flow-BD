@@ -324,7 +324,7 @@ export default function Dashboard() {
             />
             <EmeraldStatCard
               label="Total Opportunities"
-              value={computedStats.total}
+              value={computedStats.total.toLocaleString()}
               subtitle={`${computedStats.segments} business segments`}
               colorScheme="leads"
             />
@@ -340,33 +340,33 @@ export default function Dashboard() {
           <div className="grid grid-cols-2 gap-2 sm:gap-4 lg:grid-cols-6">
             <StatCard 
               title="Total Projects" 
-              value={computedStats.total} 
+              value={computedStats.total.toLocaleString()} 
               icon={FolderKanban}
             />
             <StatCard 
               title="Active Projects" 
-              value={computedStats.active} 
+              value={computedStats.active.toLocaleString()} 
               icon={Activity}
             />
             <StatCard 
               title="Completed Projects" 
-              value={computedStats.completed} 
+              value={computedStats.completed.toLocaleString()} 
               icon={CheckCircle}
             />
             <StatCard 
               title="High Risk Projects" 
-              value={computedStats.highRisk} 
+              value={computedStats.highRisk.toLocaleString()} 
               icon={ShieldAlert}
               className={computedStats.highRisk > 0 ? "bg-destructive/5 border-destructive/20" : ""}
             />
             <StatCard 
               title="Completed Tasks" 
-              value={computedStats.completedTasks} 
+              value={computedStats.completedTasks.toLocaleString()} 
               icon={CheckCircle}
             />
             <StatCard 
               title="Overdue Tasks" 
-              value={computedStats.overdueTasks} 
+              value={computedStats.overdueTasks.toLocaleString()} 
               icon={Clock}
               className={computedStats.overdueTasks > 0 ? "bg-destructive/5 border-destructive/20" : ""}
             />
