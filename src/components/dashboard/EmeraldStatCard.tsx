@@ -6,7 +6,7 @@ interface EmeraldStatCardProps {
   value: string | number;
   subtitle?: string;
   delta?: string;
-  colorScheme?: 'won' | 'pipeline' | 'commission' | 'leads' | 'rate';
+  colorScheme?: 'won' | 'pipeline' | 'commission' | 'commission_usd' | 'leads' | 'rate';
   icon?: LucideIcon;
   className?: string;
 }
@@ -26,6 +26,11 @@ const colorSchemes = {
     gradient: 'from-emerald-accent3 to-yellow-400',
     bgAccent: 'bg-emerald-accent3/15',
     textAccent: 'text-emerald-accent3',
+  },
+  commission_usd: {
+    gradient: 'from-blue-400 to-cyan-400',
+    bgAccent: 'bg-blue-400/15',
+    textAccent: 'text-blue-400',
   },
   leads: {
     gradient: 'from-emerald-accent4 to-pink-300',
