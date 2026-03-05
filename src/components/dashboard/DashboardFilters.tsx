@@ -227,11 +227,24 @@ export function DashboardFilters({ filters, onFiltersChange, projects, teamMembe
 }
 
 /** Helper: filter projects based on dashboard filters */
-export function applyDashboardFilters(projects: Project[], filters: DashboardFilterState): Project[] {
+export function applyDashboardFilters(
+  projects: Project[],
+  filters: DashboardFilterState,
+  teamMembers?: Array<{ id: string | number; name: string }>
+): Project[] {
+  const teamNameMap = new Map<string, string>();
+  (teamMembers || []).forEach(m => teamNameMap.set(String(m.id), m.name));
+
   return projects.filter(p => {
     if (filters.projectLeads.length > 0) {
-      const lead = p.salesLead || p.projectLeadId || p.assigneeId || '';
-      if (!filters.projectLeads.includes(lead)) return false;
+      let leadName = '';
+      if (p.salesLead && typeof p.salesLead === 'string' && p.salesLead.trim()) {
+        leadName = p.salesLead.trim();
+      } else {
+        const leadId = p.projectLeadId || p.assigneeId;
+        if (leadId) leadName = teamNameMap.get(String(leadId)) || '';
+      }
+      if (!filters.projectLeads.includes(leadName)) return false;
     }
     if (filters.pipelineStages.length > 0 && !filters.pipelineStages.includes(p.pipelineStage)) return false;
     if (filters.businessSegments.length > 0) {
