@@ -67,8 +67,13 @@ export default function Dashboard() {
     let activePipelineUSD = 0;
     let activePipelineNGN = 0;
     let totalCommissionNGN = 0;
+    let totalCommissionUSD = 0;
     let totalMarginNGN = 0;
     let totalMarginUSD = 0;
+    let sumMarginPercentUSD = 0;
+    let countMarginPercentUSD = 0;
+    let sumMarginPercentNGN = 0;
+    let countMarginPercentNGN = 0;
     
     const active = projects.filter((p: Project) => p.status === 'active').length;
     const completed = projects.filter((p: Project) => p.status === 'completed').length;
@@ -95,6 +100,12 @@ export default function Dashboard() {
       totalMarginNGN += Number(p.marginValueNGN ?? 0) || 0;
       totalMarginUSD += Number(p.marginValueUSD ?? 0) || 0;
       
+      // Margin percentages - sum individual project margin %
+      const mPctUSD = Number(p.marginPercentUSD ?? 0) || 0;
+      const mPctNGN = Number(p.marginPercentNGN ?? 0) || 0;
+      if (mPctUSD > 0) { sumMarginPercentUSD += mPctUSD; countMarginPercentUSD++; }
+      if (mPctNGN > 0) { sumMarginPercentNGN += mPctNGN; countMarginPercentNGN++; }
+      
       if (p.status === 'completed' || p.pipelineStage === 'approval' || p.pipelineStage === 'execution' || p.pipelineStage === 'closure') {
         wonPOValueUSD += usdValue;
         wonPOValueNGN += ngnValue;
@@ -107,6 +118,7 @@ export default function Dashboard() {
       
       const commissionRate = 0.05;
       totalCommissionNGN += ngnValue * commissionRate;
+      totalCommissionUSD += usdValue * commissionRate;
     });
 
     const avgProgress = projects.length > 0
@@ -210,7 +222,9 @@ export default function Dashboard() {
       completedTasks, overdueTasks,
       totalNGN, totalUSD, wonPOValueUSD, wonPOValueNGN,
       activePipelineUSD, activePipelineNGN,
-      totalCommissionNGN, totalMarginNGN, totalMarginUSD,
+      totalCommissionNGN, totalCommissionUSD, totalMarginNGN, totalMarginUSD,
+      avgMarginPercentUSD: countMarginPercentUSD > 0 ? sumMarginPercentUSD / countMarginPercentUSD : 0,
+      avgMarginPercentNGN: countMarginPercentNGN > 0 ? sumMarginPercentNGN / countMarginPercentNGN : 0,
       winRate, segments, pipelineByStage, lostDeals,
       bySector, topClients, byPipelineStage, byProductCategory,
       pipelineBySalesLead, teamLoad, averageProgress: avgProgress, recent,
@@ -250,7 +264,7 @@ export default function Dashboard() {
             <div className="flex-1 h-px bg-border" />
           </div>
 
-          <div className="grid grid-cols-1 gap-2 sm:gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+          <div className="grid grid-cols-1 gap-2 sm:gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
             <EmeraldStatCard
               label="Total PO Value (USD)"
               value={formatCurrencyFor(computedStats.wonPOValueUSD, 'USD')}
@@ -269,6 +283,12 @@ export default function Dashboard() {
               value={formatCurrencyFor(computedStats.totalCommissionNGN, 'NGN')}
               subtitle="Across all segments"
               colorScheme="commission"
+            />
+            <EmeraldStatCard
+              label="Total Commission (USD)"
+              value={formatCurrencyFor(computedStats.totalCommissionUSD, 'USD')}
+              subtitle="Across all segments"
+              colorScheme="commission_usd"
             />
             <EmeraldStatCard
               label="Total Opportunities"
@@ -299,14 +319,14 @@ export default function Dashboard() {
               className="bg-primary/5 border-primary/20"
             />
             <StatCard 
-              title="Total Margin ($)" 
-              value={formatCurrencyFor(computedStats.totalMarginUSD, 'USD')} 
+              title="Margin % (USD)" 
+              value={`${computedStats.avgMarginPercentUSD.toFixed(0)}%`} 
               icon={DollarSign}
               className="bg-chart-2/5 border-chart-2/20"
             />
             <StatCard 
-              title="Total Margin (₦)" 
-              value={formatCurrencyFor(computedStats.totalMarginNGN, 'NGN')} 
+              title="Margin % (NGN)" 
+              value={`${computedStats.avgMarginPercentNGN.toFixed(0)}%`} 
               icon={DollarSign}
               className="bg-chart-3/5 border-chart-3/20"
             />

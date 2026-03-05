@@ -31,18 +31,13 @@ interface DashboardFiltersProps {
 }
 
 export function DashboardFilters({ filters, onFiltersChange, projects }: DashboardFiltersProps) {
-  // Extract unique project leads from salesLead field
+  // Extract unique project leads from multiple possible fields
   const uniqueLeads = useMemo(() => {
     const leads = new Set<string>();
     projects.forEach(p => {
-      if (p.salesLead) leads.add(p.salesLead);
+      const lead = p.salesLead || p.projectLeadId || p.assigneeId;
+      if (lead && lead.trim()) leads.add(lead.trim());
     });
-    // Also check for assignee names as fallback lead references
-    if (leads.size === 0) {
-      projects.forEach(p => {
-        if (p.assigneeId) leads.add(p.assigneeId);
-      });
-    }
     return Array.from(leads).sort();
   }, [projects]);
 
@@ -216,7 +211,10 @@ export function DashboardFilters({ filters, onFiltersChange, projects }: Dashboa
 /** Helper: filter projects based on dashboard filters */
 export function applyDashboardFilters(projects: Project[], filters: DashboardFilterState): Project[] {
   return projects.filter(p => {
-    if (filters.projectLeads.length > 0 && !filters.projectLeads.includes(p.salesLead || '')) return false;
+    if (filters.projectLeads.length > 0) {
+      const lead = p.salesLead || p.projectLeadId || p.assigneeId || '';
+      if (!filters.projectLeads.includes(lead)) return false;
+    }
     if (filters.pipelineStages.length > 0 && !filters.pipelineStages.includes(p.pipelineStage)) return false;
     if (filters.businessSegments.length > 0) {
       const seg = (p.businessSegment || p.sector) as string;

@@ -3,10 +3,8 @@ import { useTheme } from 'next-themes';
 import { useAuth } from '@/context/AuthContext';
 import { useColorTheme, ColorTheme } from '@/context/ColorThemeContext';
 import { AccessLevelManager } from '@/components/settings/AccessLevelManager';
-import { IntegrationSettings } from '@/components/integrations/IntegrationSettings';
 import { PasswordManagement } from '@/components/settings/PasswordManagement';
 import MailNotificationSettings from '@/components/settings/MailNotificationSettings';
-import { useDesktopNotifications } from '@/hooks/useDesktopNotifications';
 import { ACCESS_LEVEL_CONFIG } from '@/types/auth';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
@@ -19,13 +17,10 @@ import {
   Settings as SettingsIcon, 
   User, 
   Shield, 
-  Link2, 
-  Bell, 
   Palette,
   Crown,
   Briefcase,
   ClipboardList,
-  Eye,
   Moon,
   Sun,
   Check,
@@ -45,14 +40,6 @@ export default function Settings() {
   const { user } = useAuth();
   const { theme, setTheme } = useTheme();
   const { colorTheme, setColorTheme } = useColorTheme();
-  const [notifications, setNotifications] = useState(true);
-  const {
-    isSupported: desktopNotificationsSupported,
-    permission: desktopNotificationPermission,
-    enabled: desktopNotificationsEnabled,
-    requestPermission: requestDesktopNotificationPermission,
-    toggleEnabled: toggleDesktopNotifications,
-  } = useDesktopNotifications();
   
   const isDarkMode = theme === 'dark';
   
@@ -140,17 +127,9 @@ export default function Settings() {
                 <Key className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 <span className="hidden sm:inline text-xs sm:text-sm">Password</span>
               </TabsTrigger>
-              <TabsTrigger value="integrations" className="gap-1 sm:gap-2 data-[state=active]:bg-background py-2 sm:py-2.5 px-2 sm:px-3 whitespace-nowrap">
-                <Link2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                <span className="hidden sm:inline text-xs sm:text-sm">Integrations</span>
-              </TabsTrigger>
               <TabsTrigger value="mail" className="gap-1 sm:gap-2 data-[state=active]:bg-background py-2 sm:py-2.5 px-2 sm:px-3 whitespace-nowrap">
                 <Mail className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 <span className="hidden sm:inline text-xs sm:text-sm">Email</span>
-              </TabsTrigger>
-              <TabsTrigger value="notifications" className="gap-1 sm:gap-2 data-[state=active]:bg-background py-2 sm:py-2.5 px-2 sm:px-3 whitespace-nowrap">
-                <Bell className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                <span className="hidden sm:inline text-xs sm:text-sm">Notifications</span>
               </TabsTrigger>
               <TabsTrigger value="appearance" className="gap-1 sm:gap-2 data-[state=active]:bg-background py-2 sm:py-2.5 px-2 sm:px-3 whitespace-nowrap">
                 <Palette className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
@@ -169,117 +148,9 @@ export default function Settings() {
             <PasswordManagement />
           </TabsContent>
 
-          {/* Integrations Tab */}
-          <TabsContent value="integrations" className="mt-6 animate-fade-in">
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-lg font-semibold flex items-center gap-2">
-                  <Link2 className="h-5 w-5 text-primary" />
-                  Integrations
-                </h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Connect external services for enhanced functionality
-                </p>
-              </div>
-              <IntegrationSettings />
-            </div>
-          </TabsContent>
-
           {/* Email Notifications Tab */}
           <TabsContent value="mail" className="mt-6 animate-fade-in">
             <MailNotificationSettings />
-          </TabsContent>
-
-          {/* Notifications Tab */}
-          <TabsContent value="notifications" className="mt-6 animate-fade-in">
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-lg font-semibold flex items-center gap-2">
-                  <Bell className="h-5 w-5 text-primary" />
-                  Notification Preferences
-                </h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Configure how and when you receive notifications
-                </p>
-              </div>
-
-              <Card className="border-border/50">
-                <CardContent className="pt-6 space-y-6">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label className="text-base">Email Notifications</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Receive email alerts for important updates
-                      </p>
-                    </div>
-                    <Switch checked={notifications} onCheckedChange={setNotifications} />
-                  </div>
-
-                  <Separator />
-
-                  {/* Desktop Notifications */}
-                  {desktopNotificationsSupported && (
-                    <>
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label className="text-base">Desktop Notifications</Label>
-                          <p className="text-sm text-muted-foreground">
-                            Receive real-time desktop notifications for project updates
-                          </p>
-                        </div>
-                        <Switch 
-                          checked={desktopNotificationsEnabled && desktopNotificationPermission === 'granted'} 
-                          onCheckedChange={(checked) => {
-                            if (checked && desktopNotificationPermission !== 'granted') {
-                              requestDesktopNotificationPermission();
-                            } else {
-                              toggleDesktopNotifications(checked);
-                            }
-                          }}
-                          disabled={desktopNotificationPermission === 'denied'}
-                        />
-                      </div>
-                      {desktopNotificationPermission === 'default' && (
-                        <div className="mt-2 p-3 bg-muted/50 rounded-md">
-                          <p className="text-sm text-muted-foreground">
-                            Click the switch above to enable desktop notifications. You'll be asked to grant permission.
-                          </p>
-                        </div>
-                      )}
-                      {desktopNotificationPermission === 'denied' && (
-                        <div className="mt-2 p-3 bg-destructive/10 rounded-md">
-                          <p className="text-sm text-destructive">
-                            Desktop notifications are blocked. Please enable them in your browser settings.
-                          </p>
-                        </div>
-                      )}
-                      <Separator />
-                    </>
-                  )}
-
-                  <div className="space-y-4">
-                    <Label className="text-base">Notify me about</Label>
-                    <div className="space-y-3">
-                      {[
-                        { label: 'Project assignments', description: 'When you are assigned to a new project' },
-                        { label: 'Due date changes', description: 'When project deadlines are modified' },
-                        { label: 'Task updates', description: 'When tasks you own are updated' },
-                        { label: 'Stage transitions', description: 'When projects move to a new stage' },
-                        { label: 'Team changes', description: 'When team members are added or removed' },
-                      ].map((item) => (
-                        <div key={item.label} className="flex items-center justify-between py-2">
-                          <div>
-                            <span className="text-sm font-medium">{item.label}</span>
-                            <p className="text-xs text-muted-foreground">{item.description}</p>
-                          </div>
-                          <Switch defaultChecked />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
           </TabsContent>
 
           {/* Appearance Tab */}
