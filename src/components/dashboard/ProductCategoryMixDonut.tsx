@@ -75,13 +75,13 @@ export function ProductCategoryMixDonut({
       <div className="text-[11px] text-muted-foreground mb-5">{subtitle}</div>
 
       {/* Chart */}
-      <div className="h-[260px]">
+      <div className="h-[300px]">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
               data={chartData}
               cx="50%"
-              cy="45%"
+              cy="50%"
               innerRadius={55}
               outerRadius={85}
               paddingAngle={2}
