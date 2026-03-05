@@ -66,6 +66,16 @@ export default function Dashboard() {
   const computedStats = useMemo(() => {
     const NGN_PER_USD = parseFloat(import.meta.env.VITE_NGN_PER_USD as string) || 800;
     const projects = filteredProjects || [];
+
+    // Build team name lookup
+    const teamNameMap = new Map<string, string>();
+    teamMembers.forEach((m: any) => teamNameMap.set(String(m.id), m.name));
+    const resolveLeadName = (p: Project) => {
+      if (p.salesLead && typeof p.salesLead === 'string' && p.salesLead.trim()) return p.salesLead.trim();
+      const leadId = p.projectLeadId || p.assigneeId;
+      if (leadId) return teamNameMap.get(String(leadId)) || 'Unassigned';
+      return 'Unassigned';
+    };
     
     let totalNGN = 0;
     let totalUSD = 0;
@@ -204,14 +214,14 @@ export default function Dashboard() {
     // Pipeline by sales lead: count of projects per lead
     const pipelineBySalesLead: Record<string, number> = {};
     projects.forEach((p: Project) => {
-      const lead = p.salesLead || 'Unassigned';
+      const lead = resolveLeadName(p);
       pipelineBySalesLead[lead] = (pipelineBySalesLead[lead] || 0) + 1;
     });
 
     // Team load
     const teamLoadMap: Record<string, { total: number; won: number; active: number }> = {};
     projects.forEach((p: Project) => {
-      const lead = p.salesLead || 'Unassigned';
+      const lead = resolveLeadName(p);
       if (!teamLoadMap[lead]) teamLoadMap[lead] = { total: 0, won: 0, active: 0 };
       teamLoadMap[lead].total++;
       if (p.status === 'completed' || p.pipelineStage === 'approval' || p.pipelineStage === 'execution' || p.pipelineStage === 'closure') {
@@ -236,7 +246,7 @@ export default function Dashboard() {
       bySector, topClients, byPipelineStage, byProductCategory,
       pipelineBySalesLead, teamLoad, averageProgress: avgProgress, recent,
     };
-  }, [filteredProjects]);
+  }, [filteredProjects, teamMembers]);
 
   const isLoading = !projectsList;
   
