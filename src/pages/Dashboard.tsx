@@ -25,6 +25,7 @@ import { QuickActions } from '@/components/dashboard/QuickActions';
 import { ProjectCalendar } from '@/components/calendar/ProjectCalendar';
 import { DashboardFilters, DashboardFilterState, defaultDashboardFilters, applyDashboardFilters } from '@/components/dashboard/DashboardFilters';
 import { projectsService } from '@/services/projects';
+import { teamService } from '@/services/team';
 import { FolderKanban, CheckCircle, Loader2, DollarSign, ListChecks, Clock, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -46,6 +47,12 @@ export default function Dashboard() {
     staleTime: 5 * 60 * 1000,
   });
 
+  const { data: teamMembers = [] } = useQuery({
+    queryKey: ['team'],
+    queryFn: () => teamService.getAll(),
+    staleTime: 5 * 60 * 1000,
+  });
+
   const handleRefresh = () => {
     queryClient.invalidateQueries({ queryKey: ['projects'] });
     queryClient.invalidateQueries({ queryKey: ['projectStats'] });
@@ -53,8 +60,8 @@ export default function Dashboard() {
 
   // Apply dashboard filters
   const filteredProjects = useMemo(() => {
-    return applyDashboardFilters(projectsList, dashboardFilters);
-  }, [projectsList, dashboardFilters]);
+    return applyDashboardFilters(projectsList, dashboardFilters, teamMembers);
+  }, [projectsList, dashboardFilters, teamMembers]);
 
   const computedStats = useMemo(() => {
     const NGN_PER_USD = parseFloat(import.meta.env.VITE_NGN_PER_USD as string) || 800;
@@ -264,7 +271,7 @@ export default function Dashboard() {
             <div className="flex-1 h-px bg-border" />
           </div>
 
-          <div className="grid grid-cols-1 gap-2 sm:gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
+          <div className="grid grid-cols-1 gap-2 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <EmeraldStatCard
               label="Total PO Value (USD)"
               value={formatCurrencyFor(computedStats.wonPOValueUSD, 'USD')}
@@ -343,6 +350,7 @@ export default function Dashboard() {
             filters={dashboardFilters}
             onFiltersChange={setDashboardFilters}
             projects={projectsList}
+            teamMembers={teamMembers}
           />
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
