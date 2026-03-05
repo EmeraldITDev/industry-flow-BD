@@ -28,18 +28,36 @@ interface DashboardFiltersProps {
   filters: DashboardFilterState;
   onFiltersChange: (filters: DashboardFilterState) => void;
   projects: Project[];
+  teamMembers?: Array<{ id: string | number; name: string }>;
 }
 
-export function DashboardFilters({ filters, onFiltersChange, projects }: DashboardFiltersProps) {
-  // Extract unique project leads from multiple possible fields
+export function DashboardFilters({ filters, onFiltersChange, projects, teamMembers = [] }: DashboardFiltersProps) {
+  // Build a map from team member ID to name
+  const teamNameMap = useMemo(() => {
+    const map = new Map<string, string>();
+    teamMembers.forEach(m => {
+      map.set(String(m.id), m.name);
+    });
+    return map;
+  }, [teamMembers]);
+
+  // Extract unique project leads, resolving IDs to names via team members
   const uniqueLeads = useMemo(() => {
     const leads = new Set<string>();
     projects.forEach(p => {
-      const lead = p.salesLead || p.projectLeadId || p.assigneeId;
-      if (lead && typeof lead === 'string' && lead.trim()) leads.add(lead.trim());
+      // Try salesLead first (string name), then resolve projectLeadId/assigneeId via team
+      if (p.salesLead && typeof p.salesLead === 'string' && p.salesLead.trim()) {
+        leads.add(p.salesLead.trim());
+      } else {
+        const leadId = p.projectLeadId || p.assigneeId;
+        if (leadId) {
+          const name = teamNameMap.get(String(leadId));
+          if (name) leads.add(name);
+        }
+      }
     });
     return Array.from(leads).sort();
-  }, [projects]);
+  }, [projects, teamNameMap]);
 
   // Extract unique start dates (by month)
   const uniqueMonths = useMemo(() => {
