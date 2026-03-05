@@ -60,8 +60,8 @@ export default function Dashboard() {
 
   // Apply dashboard filters
   const filteredProjects = useMemo(() => {
-    return applyDashboardFilters(projectsList, dashboardFilters);
-  }, [projectsList, dashboardFilters]);
+    return applyDashboardFilters(projectsList, dashboardFilters, teamMembers);
+  }, [projectsList, dashboardFilters, teamMembers]);
 
   const computedStats = useMemo(() => {
     const NGN_PER_USD = parseFloat(import.meta.env.VITE_NGN_PER_USD as string) || 800;
