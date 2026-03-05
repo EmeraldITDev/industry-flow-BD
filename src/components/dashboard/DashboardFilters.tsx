@@ -36,7 +36,7 @@ export function DashboardFilters({ filters, onFiltersChange, projects }: Dashboa
     const leads = new Set<string>();
     projects.forEach(p => {
       const lead = p.salesLead || p.projectLeadId || p.assigneeId;
-      if (lead && lead.trim()) leads.add(lead.trim());
+      if (lead && typeof lead === 'string' && lead.trim()) leads.add(lead.trim());
     });
     return Array.from(leads).sort();
   }, [projects]);
