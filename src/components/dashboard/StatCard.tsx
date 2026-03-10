@@ -16,7 +16,7 @@ interface StatCardProps {
   href?: string;
 }
 
-export function StatCard({ title, value, icon: Icon, trend, className, href }: StatCardProps) {
+export function StatCard({ title, value, icon: Icon, iconSymbol, trend, className, href }: StatCardProps) {
   const content = (
     <Card className={cn(
       "relative overflow-hidden transition-all",
