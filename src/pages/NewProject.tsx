@@ -60,7 +60,7 @@ export default function NewProject() {
     name: '',
     description: '',
     sector: '' as Sector | '',
-    status: 'active' as 'active' | 'on-hold' | 'completed',
+    status: 'active' as 'active' | 'on-hold' | 'completed' | 'inactive',
     startDate: undefined as Date | undefined,
     endDate: undefined as Date | undefined,
     dealProbability: 'low' as RiskLevel,
