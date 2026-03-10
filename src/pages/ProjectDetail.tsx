@@ -141,6 +141,7 @@ export default function ProjectDetail() {
         milestones: data.milestones || [],
         documents: data.documents || [],
         stageHistory: data.stage_history || data.stageHistory || [],
+        teamMemberIds: (data.team_member_ids || data.teamMemberIds || []).map((id: any) => String(id)),
       };
       
       console.log('Mapped project:', mappedProject);
