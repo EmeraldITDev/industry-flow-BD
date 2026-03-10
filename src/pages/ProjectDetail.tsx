@@ -592,7 +592,7 @@ export default function ProjectDetail() {
             <CardContent className="space-y-3">
               {(() => {
                 const lead = teamMembers.find((m: any) => m.id === project.projectLeadId || String(m.id) === String(project.projectLeadId));
-                const assignee = project.assigneeId && project.assigneeId !== project.projectLeadId
+               const assignee = project.assigneeId
                   ? teamMembers.find((m: any) => m.id === project.assigneeId || String(m.id) === String(project.assigneeId))
                   : null;
                 return (
