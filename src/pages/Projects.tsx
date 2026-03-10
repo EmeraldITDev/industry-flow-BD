@@ -331,7 +331,7 @@ export default function Projects() {
       {!isLoading && filteredProjects.length === 0 && (
         <div className="text-center py-12">
           <p className="text-muted-foreground">No projects match your filters.</p>
-          <Button variant="link" onClick={() => setFilters(defaultFilters)}>Clear filters</Button>
+          <Button variant="link" onClick={() => handleFiltersChange(defaultFilters)}>Clear filters</Button>
         </div>
       )}
     </div>
