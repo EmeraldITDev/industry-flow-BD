@@ -301,10 +301,8 @@ export default function ProjectDetail() {
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-        <Button variant="ghost" size="icon" asChild className="shrink-0 self-start">
-          <Link to="/projects">
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
+        <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="shrink-0 self-start">
+          <ArrowLeft className="w-5 h-5" />
         </Button>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 sm:gap-2 mb-1 flex-wrap">
