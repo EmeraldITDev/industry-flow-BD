@@ -328,24 +328,25 @@ export default function ProjectDetail() {
                 Edit Project
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              {project.status !== 'active' && (
-                <DropdownMenuItem onClick={() => handleStatusChange('active')}>
-                  <PlayCircle className="w-4 h-4 mr-2" />
-                  Set Active
-                </DropdownMenuItem>
-              )}
-              {project.status !== 'on-hold' && (
-                <DropdownMenuItem onClick={() => handleStatusChange('on-hold')}>
-                  <PauseCircle className="w-4 h-4 mr-2" />
-                  Put On Hold
-                </DropdownMenuItem>
-              )}
-              {project.status !== 'completed' && (
-                <DropdownMenuItem onClick={() => handleStatusChange('completed')}>
-                  <CheckCircle2 className="w-4 h-4 mr-2" />
-                  Mark Completed
-                </DropdownMenuItem>
-              )}
+              {(() => {
+                const allowed = project.pipelineStage 
+                  ? getAllowedStatusesForStage(project.pipelineStage) 
+                  : (['active', 'on-hold', 'completed', 'inactive'] as ProjectStatus[]);
+                const statusIcons: Record<string, React.ReactNode> = {
+                  active: <PlayCircle className="w-4 h-4 mr-2" />,
+                  'on-hold': <PauseCircle className="w-4 h-4 mr-2" />,
+                  completed: <CheckCircle2 className="w-4 h-4 mr-2" />,
+                  inactive: <PauseCircle className="w-4 h-4 mr-2" />,
+                };
+                return allowed
+                  .filter(s => s !== project.status)
+                  .map(status => (
+                    <DropdownMenuItem key={status} onClick={() => handleStatusChange(status)}>
+                      {statusIcons[status]}
+                      {getStatusLabel(status)}
+                    </DropdownMenuItem>
+                  ));
+              })()}
               <DropdownMenuSeparator />
               <DropdownMenuItem 
                 className="text-destructive focus:text-destructive"
