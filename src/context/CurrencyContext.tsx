@@ -34,22 +34,27 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
   // Configure via VITE_NGN_PER_USD (e.g., 800). Default to 800 if not set.
   const NGN_PER_USD = parseFloat(import.meta.env.VITE_NGN_PER_USD as string) || 800;
 
+  const abbreviateValue = (value: number, symbol: string): string => {
+    if (!value || value === 0) return `${symbol}0`;
+    const abs = Math.abs(value);
+    const sign = value < 0 ? '-' : '';
+    if (abs >= 1_000_000_000_000) return `${sign}${symbol}${(abs / 1_000_000_000_000).toFixed(2)}T`;
+    if (abs >= 1_000_000_000) return `${sign}${symbol}${(abs / 1_000_000_000).toFixed(2)}B`;
+    if (abs >= 1_000_000) return `${sign}${symbol}${(abs / 1_000_000).toFixed(2)}M`;
+    if (abs >= 1_000) return `${sign}${symbol}${(abs / 1_000).toFixed(2)}K`;
+    return `${sign}${symbol}${abs.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
+
   const formatCurrency = useCallback((value: number): string => {
     const symbol = currency === 'NGN' ? '₦' : '$';
-    if (!value || value === 0) return `${symbol}0`;
-    if (value >= 1000000) return `${symbol}${(value / 1000000).toFixed(2)}M`;
-    if (value >= 1000) return `${symbol}${(value / 1000).toFixed(2)}K`;
-    return `${symbol}${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    return abbreviateValue(value, symbol);
   }, [currency]);
 
   // Explicit formatter that allows specifying the display currency independent of user's selected currency
   const formatCurrencyFor = useCallback((value: number, displayCurrency?: Currency): string => {
     const useCurrency = displayCurrency ?? currency;
     const symbol = useCurrency === 'NGN' ? '₦' : '$';
-    if (!value || value === 0) return `${symbol}0`;
-    if (value >= 1000000) return `${symbol}${(value / 1000000).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}M`;
-    if (value >= 1000) return `${symbol}${(value / 1000).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}K`;
-    return `${symbol}${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    return abbreviateValue(value, symbol);
   }, [currency]);
 
   const getContractValue = useCallback((project: { contractValueUSD?: number; contractValueNGN?: number }): number => {
