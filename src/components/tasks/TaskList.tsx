@@ -14,6 +14,7 @@ interface TaskListProps {
   title?: string;
   onTaskUpdate?: (taskId: string, updates: Partial<Task>) => void;
   onTaskDelete?: (taskId: string) => void;
+  onTaskEdit?: (task: Task) => void;
 }
 
 export function TaskList({ tasks, title, onTaskUpdate, onTaskDelete }: TaskListProps) {
