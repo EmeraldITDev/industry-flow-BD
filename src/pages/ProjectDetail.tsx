@@ -226,7 +226,8 @@ export default function ProjectDetail() {
 
   const handleTaskCreated = () => {
     refetchTasks();
-    fetchProject(); // Refresh project to update task count
+    fetchProject();
+    queryClient.invalidateQueries({ queryKey: ['projects'] });
   };
 
   const handleTaskMove = async (taskId: string, newStatus: TaskStatus) => {
