@@ -121,8 +121,20 @@ const normalizeProject = (project: any): Project => {
   }
 
   // Normalize other fields that may also be snake_case
+  const pipelineStage = (project.pipelineStage ?? project.pipeline_stage ?? 'initiation') as PipelineStage;
+  let status = (project.status ?? 'active') as ProjectStatus;
+
+  // Auto-correct status based on pipeline stage validation rules
+  if (!isValidStageStatus(pipelineStage, status)) {
+    const correctedStatus = getDefaultStatusForStage(pipelineStage);
+    console.warn(`[Projects Service] Auto-correcting status for project "${project.name}" (id: ${project.id}): "${status}" → "${correctedStatus}" (stage: ${pipelineStage})`);
+    status = correctedStatus;
+  }
+
   return {
     ...project,
+    // Enforced status
+    status,
     // Ensure financial fields are always present as numbers
     contractValueNGN,
     contractValueUSD,
@@ -130,12 +142,12 @@ const normalizeProject = (project: any): Project => {
     marginPercentUSD,
     marginValueNGN,
     marginValueUSD,
-    // Normalize other common snake_case fields
+    // Normalized fields
     clientName: project.clientName ?? project.client_name ?? '',
     clientContact: project.clientContact ?? project.client_contact ?? '',
     startDate: project.startDate ?? project.start_date ?? '',
     endDate: project.endDate ?? project.end_date ?? '',
-    pipelineStage: project.pipelineStage ?? project.pipeline_stage ?? 'initiation',
+    pipelineStage,
     pipelineIntakeDate: project.pipelineIntakeDate ?? project.pipeline_intake_date ?? null,
     expectedCloseDate: project.expectedCloseDate ?? project.expected_close_date ?? null,
     businessSegment: project.businessSegment ?? project.business_segment ?? '',
