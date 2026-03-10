@@ -416,6 +416,7 @@ export default function Dashboard() {
               title="Total Revenue (NGN)"
               value={formatCurrencyFor(computedStats.totalNGN, 'NGN')}
               icon={DollarSign}
+              iconSymbol="₦"
               className="bg-primary/5 border-primary/20"
             />
             <StatCard 
