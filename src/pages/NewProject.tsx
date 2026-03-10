@@ -481,9 +481,10 @@ export default function NewProject() {
               </div>
               <div className="space-y-2">
                 <Label>Assignee</Label>
-                <Select value={formData.assigneeId} onValueChange={(value) => setFormData({ ...formData, assigneeId: value })}>
+                <Select value={formData.assigneeId || '__none__'} onValueChange={(value) => setFormData({ ...formData, assigneeId: value === '__none__' ? '' : value })}>
                   <SelectTrigger><SelectValue placeholder={isLoadingTeam ? "Loading..." : "Select assignee"} /></SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="__none__">— No Assignee —</SelectItem>
                     {isLoadingTeam ? (
                       <div className="py-2 px-2 text-sm text-muted-foreground">Loading team members...</div>
                     ) : teamMembers.length === 0 ? (
