@@ -600,9 +600,18 @@ export default function ProjectDetail() {
             <CardContent className="space-y-3">
               {(() => {
                 const lead = teamMembers.find((m: any) => m.id === project.projectLeadId || String(m.id) === String(project.projectLeadId));
-               const assignee = project.assigneeId
+                const assignee = project.assigneeId
                   ? teamMembers.find((m: any) => m.id === project.assigneeId || String(m.id) === String(project.assigneeId))
                   : null;
+                
+                // Get team members excluding lead and assignee
+                const leadId = project.projectLeadId ? String(project.projectLeadId) : null;
+                const assigneeIdStr = project.assigneeId ? String(project.assigneeId) : null;
+                const otherMembers = (project.teamMemberIds || [])
+                  .filter(id => id !== leadId && id !== assigneeIdStr)
+                  .map(id => teamMembers.find((m: any) => String(m.id) === id))
+                  .filter(Boolean);
+
                 return (
                   <>
                     {lead ? (
@@ -631,6 +640,24 @@ export default function ProjectDetail() {
                     ) : (
                       <p className="text-sm text-muted-foreground">No assignee assigned</p>
                     )}
+
+                    {/* Other Team Members */}
+                    {otherMembers.length > 0 && (
+                      <div className="pt-2 border-t border-border space-y-2">
+                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Team Members</p>
+                        <div className="flex flex-wrap gap-2">
+                          {otherMembers.map((member: any) => (
+                            <div key={member.id} className="flex items-center gap-2 bg-muted/50 rounded-full px-3 py-1.5">
+                              <div className="w-5 h-5 rounded-full bg-accent flex items-center justify-center text-[10px] font-semibold text-accent-foreground">
+                                {member.name?.charAt(0)?.toUpperCase()}
+                              </div>
+                              <span className="text-xs font-medium">{member.name}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     <div className="pt-2 border-t border-border">
                       <div className="flex items-center gap-2 text-sm">
                         <Users className="w-4 h-4 text-muted-foreground" />

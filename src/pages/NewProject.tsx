@@ -176,7 +176,8 @@ export default function NewProject() {
         marginValueUSD,
         dealProbability: formData.dealProbability,
         projectLeadComments: formData.projectLeadComments || undefined,
-      });
+        teamMemberIds: formData.teamMemberIds.length > 0 ? formData.teamMemberIds : undefined,
+      } as any);
       toast.success('Project created successfully!');
       navigate('/projects');
     } catch (error: any) {

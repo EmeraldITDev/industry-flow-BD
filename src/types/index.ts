@@ -139,6 +139,7 @@ export interface Project {
   marginValueUSD?: number;
   
   projectLeadComments?: string;
+  teamMemberIds?: string[];
 }
 
 export interface ProjectStats {
