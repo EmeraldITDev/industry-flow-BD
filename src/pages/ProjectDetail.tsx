@@ -213,10 +213,11 @@ export default function ProjectDetail() {
     );
   }
 
-  const statusColors = {
+  const statusColors: Record<string, string> = {
     active: 'bg-chart-1/20 text-chart-1 border-chart-1/30',
     'on-hold': 'bg-chart-5/20 text-chart-5 border-chart-5/30',
     completed: 'bg-chart-2/20 text-chart-2 border-chart-2/30',
+    inactive: 'bg-muted text-muted-foreground border-border',
   };
 
   // Use tasks from API or fallback to project.tasks
