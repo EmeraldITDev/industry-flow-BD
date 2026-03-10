@@ -134,6 +134,7 @@ export default function ProjectDetail() {
             : undefined),
         projectLeadId: data.project_lead_id || data.projectLeadId,
         assigneeId: data.assignee_id || data.assigneeId,
+        salesLead: data.sales_lead || data.salesLead,
         projectLeadComments: data.project_lead_comments || data.projectLeadComments,
         dealProbability: data.deal_probability || data.dealProbability || data.risk_level || data.riskLevel,
         tasks: data.tasks || [],
@@ -448,6 +449,12 @@ export default function ProjectDetail() {
                     <p className="font-medium text-sm">{project.channelPartner}</p>
                   </div>
                 )}
+                {project.salesLead && (
+                  <div>
+                    <p className="text-xs text-muted-foreground">Sales Lead</p>
+                    <p className="font-medium text-sm">{project.salesLead}</p>
+                  </div>
+                )}
                 {project.contractValueNGN && (
                   <div>
                     <p className="text-xs text-muted-foreground">Contract Value (NGN)</p>
@@ -592,7 +599,7 @@ export default function ProjectDetail() {
             <CardContent className="space-y-3">
               {(() => {
                 const lead = teamMembers.find((m: any) => m.id === project.projectLeadId || String(m.id) === String(project.projectLeadId));
-                const assignee = project.assigneeId && project.assigneeId !== project.projectLeadId
+               const assignee = project.assigneeId
                   ? teamMembers.find((m: any) => m.id === project.assigneeId || String(m.id) === String(project.assigneeId))
                   : null;
                 return (
@@ -610,7 +617,7 @@ export default function ProjectDetail() {
                     ) : (
                       <p className="text-sm text-muted-foreground">No project lead assigned</p>
                     )}
-                    {assignee && (
+                    {assignee ? (
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-chart-2/10 flex items-center justify-center text-xs font-semibold text-chart-2">
                           {assignee.name?.charAt(0)?.toUpperCase() || 'A'}
@@ -620,6 +627,8 @@ export default function ProjectDetail() {
                           <p className="text-xs text-muted-foreground">Assignee</p>
                         </div>
                       </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No assignee assigned</p>
                     )}
                     <div className="pt-2 border-t border-border">
                       <div className="flex items-center gap-2 text-sm">
