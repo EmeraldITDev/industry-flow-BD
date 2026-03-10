@@ -292,12 +292,13 @@ export default function NewProject() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="status">Status</Label>
-                <Select value={formData.status} onValueChange={(value: 'active' | 'on-hold' | 'completed') => setFormData({ ...formData, status: value })}>
+                <Select value={formData.status} onValueChange={(value: 'active' | 'on-hold' | 'completed' | 'inactive') => setFormData({ ...formData, status: value })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="active">Active</SelectItem>
                     <SelectItem value="on-hold">On Hold</SelectItem>
                     <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

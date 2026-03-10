@@ -290,6 +290,7 @@ export default function EditProject() {
                     <SelectItem value="active">Active</SelectItem>
                     <SelectItem value="on-hold">On Hold</SelectItem>
                     <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
