@@ -277,13 +277,20 @@ export default function ProjectDetail() {
     }
   };
 
-  const handleStatusChange = async (newStatus: 'active' | 'on-hold' | 'completed') => {
+  const handleStatusChange = async (newStatus: ProjectStatus) => {
     if (!id || !project) return;
+    
+    // Validate against pipeline stage
+    if (project.pipelineStage && !isValidStageStatus(project.pipelineStage, newStatus)) {
+      const allowed = getAllowedStatusesForStage(project.pipelineStage).map(getStatusLabel).join(', ');
+      toast.error(`Cannot set "${getStatusLabel(newStatus)}" for stage "${project.pipelineStage}". Allowed: ${allowed}`);
+      return;
+    }
     
     try {
       await projectsService.update(id, { status: newStatus });
       setProject({ ...project, status: newStatus });
-      toast.success(`Project status updated to ${newStatus}`);
+      toast.success(`Project status updated to ${getStatusLabel(newStatus)}`);
       queryClient.invalidateQueries({ queryKey: ['projects'] });
     } catch (err: any) {
       console.error('Failed to update project status:', err);
