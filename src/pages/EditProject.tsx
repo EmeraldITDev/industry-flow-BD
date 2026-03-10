@@ -487,11 +487,12 @@ export default function EditProject() {
 
               <div className="space-y-2">
                 <Label>Assignee</Label>
-                <Select value={formData.assigneeId} onValueChange={(value) => setFormData({ ...formData, assigneeId: value })}>
+                <Select value={formData.assigneeId || '__none__'} onValueChange={(value) => setFormData({ ...formData, assigneeId: value === '__none__' ? '' : value })}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select assignee" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="__none__">— No Assignee —</SelectItem>
                     {teamMembers.map((member: any) => (
                       <SelectItem key={member.id} value={String(member.id)}>
                         {member.name}
