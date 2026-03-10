@@ -1,6 +1,7 @@
 import api from './api';
 import { Project, PipelineStage, Sector, BusinessSegment, RiskLevel, ProjectStats } from '@/types';
 import { notifyAssignment } from './notificationHelper';
+import { getDefaultStatusForStage, isValidStageStatus, type ProjectStatus } from '@/lib/stageStatusRules';
 
 export interface CreateProjectData {
   name: string;
