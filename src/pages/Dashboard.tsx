@@ -315,7 +315,7 @@ export default function Dashboard() {
             />
             <EmeraldStatCard
               label="Win Rate"
-              value={`${computedStats.winRate.toFixed(1)}%`}
+              value={`${computedStats.winRate.toFixed(2)}%`}
               subtitle={`${computedStats.won} won / ${computedStats.total} total`}
               colorScheme="rate"
             />
@@ -338,13 +338,13 @@ export default function Dashboard() {
             />
             <StatCard 
               title="Margin % (USD)" 
-              value={`${computedStats.avgMarginPercentUSD.toFixed(0)}%`} 
+              value={`${computedStats.avgMarginPercentUSD.toFixed(2)}%`} 
               icon={DollarSign}
               className="bg-chart-2/5 border-chart-2/20"
             />
             <StatCard 
               title="Margin % (NGN)" 
-              value={`${computedStats.avgMarginPercentNGN.toFixed(0)}%`} 
+              value={`${computedStats.avgMarginPercentNGN.toFixed(2)}%`} 
               icon={DollarSign}
               iconSymbol="₦"
               className="bg-chart-3/5 border-chart-3/20"
