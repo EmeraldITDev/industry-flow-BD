@@ -31,7 +31,15 @@ export function AppLayout({ children }: AppLayoutProps) {
   const { user, logout } = useAuth();
   const { currency, toggleCurrency } = useCurrency();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    await queryClient.invalidateQueries();
+    setTimeout(() => setIsRefreshing(false), 800);
+  }, [queryClient]);
 
   const getInitials = (name?: string | null) => {
     if (!name) return 'U';
