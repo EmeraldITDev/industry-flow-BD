@@ -106,9 +106,9 @@ export default function Projects() {
       if (filters.pipelineStages.length > 0 && !filters.pipelineStages.includes(project.pipelineStage)) return false;
       if (filters.businessSegments.length > 0 && !filters.businessSegments.includes(project.businessSegment)) return false;
       
-      // Team filters
-      if (filters.projectLeads.length > 0 && (!project.projectLeadId || !filters.projectLeads.includes(project.projectLeadId))) return false;
-      if (filters.assignees.length > 0 && (!project.assigneeId || !filters.assignees.includes(project.assigneeId))) return false;
+      // Team filters (compare as strings since backend may return numeric IDs)
+      if (filters.projectLeads.length > 0 && (!project.projectLeadId || !filters.projectLeads.includes(String(project.projectLeadId)))) return false;
+      if (filters.assignees.length > 0 && (!project.assigneeId || !filters.assignees.includes(String(project.assigneeId)))) return false;
       
       // Multi-select text filters
       if (filters.clientNames.length > 0 && (!project.clientName || !filters.clientNames.includes(project.clientName.trim()))) return false;
