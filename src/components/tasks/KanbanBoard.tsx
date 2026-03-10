@@ -22,7 +22,7 @@ const columns: { status: TaskStatus; title: string; icon: React.ElementType; col
   { status: 'completed', title: 'Completed', icon: CheckCircle2, color: 'border-t-chart-1' },
 ];
 
-export function KanbanBoard({ tasks: initialTasks, onTaskMove, onTaskDelete }: KanbanBoardProps) {
+export function KanbanBoard({ tasks: initialTasks, onTaskMove, onTaskDelete, onTaskEdit }: KanbanBoardProps) {
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
 
   // Sync with prop changes (e.g., when new tasks are added)
