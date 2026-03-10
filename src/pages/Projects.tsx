@@ -308,7 +308,7 @@ export default function Projects() {
 
       <ProjectImportDialog open={importOpen} onOpenChange={setImportOpen} />
 
-      <AdvancedFilters filters={filters} onFiltersChange={setFilters} projects={projects} teamMembers={teamMembersList} />
+      <AdvancedFilters filters={filters} onFiltersChange={handleFiltersChange} projects={projects} teamMembers={teamMembersList} />
 
       {isLoading ? (
         <div className="flex items-center justify-center py-12">
