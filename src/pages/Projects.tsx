@@ -76,24 +76,26 @@ export default function Projects() {
     : 'Projects';
   const { canCreateProjects } = usePermissions();
 
-  // Fetch projects from backend with error handling
+  // Fetch projects from backend
   const { data: backendProjects, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ['projects'],
     queryFn: async () => {
       try {
         const projects = await projectsService.getAll();
-        console.log('[Projects Page] Loaded projects from backend:', projects.length);
         return projects;
       } catch (err) {
         console.error('[Projects Page] Error fetching projects:', err);
-        if ((err as any)?.response) {
-          console.error('[Projects Page] Response status:', (err as any).response.status);
-          console.error('[Projects Page] Response data:', (err as any).response.data);
-        }
         return [];
       }
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Fetch team members for filter dropdowns
+  const { data: teamMembersList = [] } = useQuery({
+    queryKey: ['team'],
+    queryFn: () => teamService.getAll(),
+    staleTime: 5 * 60 * 1000,
   });
 
   // Use backend data only - no mock fallback
