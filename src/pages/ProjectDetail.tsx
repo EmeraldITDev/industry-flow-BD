@@ -610,7 +610,7 @@ export default function ProjectDetail() {
                     ) : (
                       <p className="text-sm text-muted-foreground">No project lead assigned</p>
                     )}
-                    {assignee && (
+                    {assignee ? (
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-chart-2/10 flex items-center justify-center text-xs font-semibold text-chart-2">
                           {assignee.name?.charAt(0)?.toUpperCase() || 'A'}
@@ -620,6 +620,8 @@ export default function ProjectDetail() {
                           <p className="text-xs text-muted-foreground">Assignee</p>
                         </div>
                       </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No assignee assigned</p>
                     )}
                     <div className="pt-2 border-t border-border">
                       <div className="flex items-center gap-2 text-sm">
