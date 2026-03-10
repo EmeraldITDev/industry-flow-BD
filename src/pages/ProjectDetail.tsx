@@ -448,6 +448,12 @@ export default function ProjectDetail() {
                     <p className="font-medium text-sm">{project.channelPartner}</p>
                   </div>
                 )}
+                {project.salesLead && (
+                  <div>
+                    <p className="text-xs text-muted-foreground">Sales Lead</p>
+                    <p className="font-medium text-sm">{project.salesLead}</p>
+                  </div>
+                )}
                 {project.contractValueNGN && (
                   <div>
                     <p className="text-xs text-muted-foreground">Contract Value (NGN)</p>
