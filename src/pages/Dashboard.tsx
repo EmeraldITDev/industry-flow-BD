@@ -315,7 +315,7 @@ export default function Dashboard() {
             />
             <EmeraldStatCard
               label="Win Rate"
-              value={`${computedStats.winRate.toFixed(1)}%`}
+              value={`${computedStats.winRate.toFixed(2)}%`}
               subtitle={`${computedStats.won} won / ${computedStats.total} total`}
               colorScheme="rate"
             />
