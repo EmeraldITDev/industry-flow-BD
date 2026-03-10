@@ -419,7 +419,6 @@ export default function Dashboard() {
               iconSymbol="₦"
               className="bg-primary/5 border-primary/20"
             />
-            />
             <StatCard 
               title="Total Revenue (USD)"
               value={formatCurrencyFor(computedStats.totalUSD, 'USD')}
