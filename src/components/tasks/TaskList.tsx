@@ -120,6 +120,16 @@ export function TaskList({ tasks, title, onTaskUpdate, onTaskDelete, onTaskEdit 
                       </AvatarFallback>
                     </Avatar>
                   )}
+                    {onTaskEdit && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-accent"
+                        onClick={() => onTaskEdit(task)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    )}
                     {onTaskDelete && (
                       <Button
                         variant="ghost"
