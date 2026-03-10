@@ -548,12 +548,14 @@ export default function ProjectDetail() {
                 tasks={tasks} 
                 onTaskMove={handleTaskMove}
                 onTaskDelete={handleTaskDelete}
+                onTaskEdit={(task) => setEditingTask(task)}
               />
             </TabsContent>
             <TabsContent value="list" className="mt-0">
               <TaskList 
                 tasks={tasks}
                 onTaskDelete={handleTaskDelete}
+                onTaskEdit={(task) => setEditingTask(task)}
               />
             </TabsContent>
           </Tabs>
@@ -564,6 +566,14 @@ export default function ProjectDetail() {
             onOpenChange={setAddTaskOpen}
             projectId={id || ''}
             onTaskCreated={handleTaskCreated}
+          />
+
+          {/* Edit Task Dialog */}
+          <EditTaskDialog
+            open={!!editingTask}
+            onOpenChange={(open) => { if (!open) setEditingTask(null); }}
+            task={editingTask}
+            onTaskUpdated={handleTaskCreated}
           />
         </div>
 
