@@ -338,7 +338,7 @@ export default function Dashboard() {
             />
             <StatCard 
               title="Margin % (USD)" 
-              value={`${computedStats.avgMarginPercentUSD.toFixed(0)}%`} 
+              value={`${computedStats.avgMarginPercentUSD.toFixed(2)}%`} 
               icon={DollarSign}
               className="bg-chart-2/5 border-chart-2/20"
             />
