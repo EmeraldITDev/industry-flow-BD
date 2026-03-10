@@ -170,7 +170,7 @@ export default function EditProject() {
         product: formData.product || undefined,
         subProduct: formData.subProduct || undefined,
         projectLeadId: formData.projectLeadId || undefined,
-        assigneeId: formData.assigneeId || undefined,
+        assigneeId: formData.assigneeId || null,
         channelPartner: formData.channelPartner || undefined,
         // Convert string values to numbers, send undefined if empty
         contractValueNGN: parseNumberInput(formData.contractValueNGN),
