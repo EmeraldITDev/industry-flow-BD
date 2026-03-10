@@ -17,7 +17,7 @@ interface TaskListProps {
   onTaskEdit?: (task: Task) => void;
 }
 
-export function TaskList({ tasks, title, onTaskUpdate, onTaskDelete }: TaskListProps) {
+export function TaskList({ tasks, title, onTaskUpdate, onTaskDelete, onTaskEdit }: TaskListProps) {
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [noteValue, setNoteValue] = useState('');
 
