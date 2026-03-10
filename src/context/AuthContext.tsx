@@ -118,7 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!user) return;
 
     const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes in milliseconds
-    let inactivityTimer: NodeJS.Timeout;
+    let inactivityTimer: ReturnType<typeof setTimeout>;
     let lastActivityTime = Date.now();
 
     const handleLogout = async () => {

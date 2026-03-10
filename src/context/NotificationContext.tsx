@@ -79,7 +79,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         setNotifications([]);
         setError(null); // Never show error for these cases
         // Only log in development
-        if (process.env.NODE_ENV === 'development') {
+        if (import.meta.env.DEV) {
           console.log('[NotificationContext] Notifications unavailable:', status);
         }
         return;
