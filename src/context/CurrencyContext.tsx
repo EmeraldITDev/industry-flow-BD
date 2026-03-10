@@ -47,9 +47,9 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     const useCurrency = displayCurrency ?? currency;
     const symbol = useCurrency === 'NGN' ? '₦' : '$';
     if (!value || value === 0) return `${symbol}0`;
-    if (value >= 1000000) return `${symbol}${(value / 1000000).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}M`;
-    if (value >= 1000) return `${symbol}${(value / 1000).toLocaleString(undefined, { maximumFractionDigits: 0 })}K`;
-    return `${symbol}${value.toLocaleString()}`;
+    if (value >= 1000000) return `${symbol}${(value / 1000000).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}M`;
+    if (value >= 1000) return `${symbol}${(value / 1000).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}K`;
+    return `${symbol}${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   }, [currency]);
 
   const getContractValue = useCallback((project: { contractValueUSD?: number; contractValueNGN?: number }): number => {
