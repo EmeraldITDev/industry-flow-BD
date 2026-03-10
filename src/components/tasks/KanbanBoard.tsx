@@ -12,6 +12,7 @@ interface KanbanBoardProps {
   tasks: Task[];
   onTaskMove?: (taskId: string, newStatus: TaskStatus) => void;
   onTaskDelete?: (taskId: string) => void;
+  onTaskEdit?: (task: Task) => void;
 }
 
 const columns: { status: TaskStatus; title: string; icon: React.ElementType; color: string }[] = [
