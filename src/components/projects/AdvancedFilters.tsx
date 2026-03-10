@@ -7,9 +7,9 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { MultiSearchableSelect } from '@/components/ui/multi-searchable-select';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { 
   Filter, 
@@ -24,17 +24,17 @@ import { ALL_PROJECT_STATUSES, getStatusLabel } from '@/lib/stageStatusRules';
 
 export interface FilterState {
   search: string;
-  sector: Sector | 'all';
-  status: string;
-  pipelineStage: PipelineStage | 'all';
-  businessSegment: BusinessSegment | 'all';
-  projectLead: string;
-  assignee: string;
-  clientName: string;
-  oem: string;
-  location: string;
-  channelPartner: string;
-  dealProbability: 'all' | 'low' | 'medium' | 'high' | 'critical' | 'uncertain';
+  sectors: string[];
+  statuses: string[];
+  pipelineStages: string[];
+  businessSegments: string[];
+  projectLeads: string[];
+  assignees: string[];
+  clientNames: string[];
+  oems: string[];
+  locations: string[];
+  channelPartners: string[];
+  dealProbabilities: string[];
   dateFrom?: Date;
   dateTo?: Date;
   minContractValue?: number;
@@ -48,19 +48,19 @@ interface AdvancedFiltersProps {
   teamMembers?: TeamMember[];
 }
 
-const defaultFilters: FilterState = {
+export const defaultFilters: FilterState = {
   search: '',
-  sector: 'all',
-  status: 'all',
-  pipelineStage: 'all',
-  businessSegment: 'all',
-  projectLead: 'all',
-  assignee: 'all',
-  clientName: '',
-  oem: '',
-  location: '',
-  channelPartner: '',
-  dealProbability: 'all',
+  sectors: [],
+  statuses: [],
+  pipelineStages: [],
+  businessSegments: [],
+  projectLeads: [],
+  assignees: [],
+  clientNames: [],
+  oems: [],
+  locations: [],
+  channelPartners: [],
+  dealProbabilities: [],
 };
 
 export function AdvancedFilters({ filters, onFiltersChange, projects = [], teamMembers = [] }: AdvancedFiltersProps) {
@@ -69,7 +69,7 @@ export function AdvancedFilters({ filters, onFiltersChange, projects = [], teamM
 
   const activeFilterCount = Object.entries(filters).filter(([key, value]) => {
     if (key === 'search') return false;
-    if (typeof value === 'string') return value !== '' && value !== 'all';
+    if (Array.isArray(value)) return value.length > 0;
     if (typeof value === 'number') return value !== undefined;
     return value !== undefined;
   }).length;
@@ -92,12 +92,9 @@ export function AdvancedFilters({ filters, onFiltersChange, projects = [], teamM
       const id = p.projectLeadId;
       if (id) leadIds.add(String(id));
     });
-    return [
-      { value: 'all', label: 'All Project Leads' },
-      ...Array.from(leadIds)
-        .map((id) => ({ value: id, label: teamNameMap.get(id) || `Lead #${id}` }))
-        .sort((a, b) => a.label.localeCompare(b.label)),
-    ];
+    return Array.from(leadIds)
+      .map((id) => ({ value: id, label: teamNameMap.get(id) || `Lead #${id}` }))
+      .sort((a, b) => a.label.localeCompare(b.label));
   }, [projects, teamNameMap]);
 
   // Extract unique assignees from projects using team data
@@ -107,12 +104,9 @@ export function AdvancedFilters({ filters, onFiltersChange, projects = [], teamM
       const id = p.assigneeId;
       if (id) assigneeIds.add(String(id));
     });
-    return [
-      { value: 'all', label: 'All Assignees' },
-      ...Array.from(assigneeIds)
-        .map((id) => ({ value: id, label: teamNameMap.get(id) || `Assignee #${id}` }))
-        .sort((a, b) => a.label.localeCompare(b.label)),
-    ];
+    return Array.from(assigneeIds)
+      .map((id) => ({ value: id, label: teamNameMap.get(id) || `Assignee #${id}` }))
+      .sort((a, b) => a.label.localeCompare(b.label));
   }, [projects, teamNameMap]);
 
   // Extract unique clients
@@ -121,10 +115,7 @@ export function AdvancedFilters({ filters, onFiltersChange, projects = [], teamM
     projects.forEach((p) => {
       if (p.clientName?.trim()) clients.add(p.clientName.trim());
     });
-    return [
-      { value: '', label: 'All Clients' },
-      ...Array.from(clients).sort().map((c) => ({ value: c, label: c })),
-    ];
+    return Array.from(clients).sort().map((c) => ({ value: c, label: c }));
   }, [projects]);
 
   // Extract unique OEMs
@@ -133,10 +124,7 @@ export function AdvancedFilters({ filters, onFiltersChange, projects = [], teamM
     projects.forEach((p) => {
       if (p.oem?.trim()) oems.add(p.oem.trim());
     });
-    return [
-      { value: '', label: 'All OEMs' },
-      ...Array.from(oems).sort().map((o) => ({ value: o, label: o })),
-    ];
+    return Array.from(oems).sort().map((o) => ({ value: o, label: o }));
   }, [projects]);
 
   // Extract unique locations
@@ -145,10 +133,7 @@ export function AdvancedFilters({ filters, onFiltersChange, projects = [], teamM
     projects.forEach((p) => {
       if (p.location?.trim()) locations.add(p.location.trim());
     });
-    return [
-      { value: '', label: 'All Locations' },
-      ...Array.from(locations).sort().map((l) => ({ value: l, label: l })),
-    ];
+    return Array.from(locations).sort().map((l) => ({ value: l, label: l }));
   }, [projects]);
 
   // Extract unique channel partners
@@ -157,13 +142,30 @@ export function AdvancedFilters({ filters, onFiltersChange, projects = [], teamM
     projects.forEach((p) => {
       if (p.channelPartner?.trim()) partners.add(p.channelPartner.trim());
     });
-    return [
-      { value: '', label: 'All Channel Partners' },
-      ...Array.from(partners).sort().map((cp) => ({ value: cp, label: cp })),
-    ];
+    return Array.from(partners).sort().map((cp) => ({ value: cp, label: cp }));
   }, [projects]);
 
-  const statuses = ['all', ...ALL_PROJECT_STATUSES];
+  const pipelineStageOptions = PIPELINE_STAGES.map((stage) => ({
+    value: stage.value,
+    label: stage.label,
+  }));
+
+  const sectorOptions = sectors.map((s) => ({ value: s, label: s }));
+
+  const segmentOptions = businessSegments.map((s) => ({ value: s, label: s }));
+
+  const statusOptions = ALL_PROJECT_STATUSES.map((s) => ({
+    value: s,
+    label: getStatusLabel(s as any),
+  }));
+
+  const dealProbabilityOptions = [
+    { value: 'low', label: 'Low' },
+    { value: 'medium', label: 'Medium' },
+    { value: 'high', label: 'High' },
+    { value: 'critical', label: 'Critical' },
+    { value: 'uncertain', label: 'Uncertain' },
+  ];
 
   return (
     <div className="space-y-4">
@@ -206,82 +208,53 @@ export function AdvancedFilters({ filters, onFiltersChange, projects = [], teamM
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label>Pipeline Stage</Label>
-                  <Select
-                    value={filters.pipelineStage}
-                    onValueChange={(value) => onFiltersChange({ ...filters, pipelineStage: value as PipelineStage | 'all' })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="All Stages" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Stages</SelectItem>
-                      {PIPELINE_STAGES.map((stage) => (
-                        <SelectItem key={stage.value} value={stage.value}>{stage.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <MultiSearchableSelect
+                    values={filters.pipelineStages}
+                    onValuesChange={(values) => onFiltersChange({ ...filters, pipelineStages: values })}
+                    options={pipelineStageOptions}
+                    placeholder="All Stages"
+                    searchPlaceholder="Search stages..."
+                  />
                 </div>
 
                 <div className="space-y-2">
                   <Label>Business Segment</Label>
-                  <Select
-                    value={filters.businessSegment}
-                    onValueChange={(value) => onFiltersChange({ ...filters, businessSegment: value as BusinessSegment | 'all' })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="All Segments" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Segments</SelectItem>
-                      {businessSegments.map((segment) => (
-                        <SelectItem key={segment} value={segment}>{segment}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <MultiSearchableSelect
+                    values={filters.businessSegments}
+                    onValuesChange={(values) => onFiltersChange({ ...filters, businessSegments: values })}
+                    options={segmentOptions}
+                    placeholder="All Segments"
+                    searchPlaceholder="Search segments..."
+                  />
                 </div>
 
                 <div className="space-y-2">
                   <Label>Sector</Label>
-                  <Select
-                    value={filters.sector}
-                    onValueChange={(value) => onFiltersChange({ ...filters, sector: value as Sector | 'all' })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="All Sectors" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Sectors</SelectItem>
-                      {sectors.map((sector) => (
-                        <SelectItem key={sector} value={sector}>{sector}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <MultiSearchableSelect
+                    values={filters.sectors}
+                    onValuesChange={(values) => onFiltersChange({ ...filters, sectors: values })}
+                    options={sectorOptions}
+                    placeholder="All Sectors"
+                    searchPlaceholder="Search sectors..."
+                  />
                 </div>
 
                 <div className="space-y-2">
                   <Label>Status</Label>
-                  <Select
-                    value={filters.status}
-                    onValueChange={(value) => onFiltersChange({ ...filters, status: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="All Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {statuses.map((status) => (
-                        <SelectItem key={status} value={status} className="capitalize">
-                          {status === 'all' ? 'All Status' : getStatusLabel(status as any)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <MultiSearchableSelect
+                    values={filters.statuses}
+                    onValuesChange={(values) => onFiltersChange({ ...filters, statuses: values })}
+                    options={statusOptions}
+                    placeholder="All Status"
+                    searchPlaceholder="Search statuses..."
+                  />
                 </div>
 
                 <div className="space-y-2">
                   <Label>Project Lead</Label>
-                  <SearchableSelect
-                    value={filters.projectLead}
-                    onValueChange={(value) => onFiltersChange({ ...filters, projectLead: value })}
+                  <MultiSearchableSelect
+                    values={filters.projectLeads}
+                    onValuesChange={(values) => onFiltersChange({ ...filters, projectLeads: values })}
                     options={projectLeadOptions}
                     placeholder="All Project Leads"
                     searchPlaceholder="Search project leads..."
@@ -290,9 +263,9 @@ export function AdvancedFilters({ filters, onFiltersChange, projects = [], teamM
 
                 <div className="space-y-2">
                   <Label>Assignee</Label>
-                  <SearchableSelect
-                    value={filters.assignee}
-                    onValueChange={(value) => onFiltersChange({ ...filters, assignee: value })}
+                  <MultiSearchableSelect
+                    values={filters.assignees}
+                    onValuesChange={(values) => onFiltersChange({ ...filters, assignees: values })}
                     options={assigneeOptions}
                     placeholder="All Assignees"
                     searchPlaceholder="Search assignees..."
@@ -311,9 +284,9 @@ export function AdvancedFilters({ filters, onFiltersChange, projects = [], teamM
                 <CollapsibleContent className="space-y-4 pt-4">
                   <div className="space-y-2">
                     <Label>Client</Label>
-                    <SearchableSelect
-                      value={filters.clientName}
-                      onValueChange={(value) => onFiltersChange({ ...filters, clientName: value })}
+                    <MultiSearchableSelect
+                      values={filters.clientNames}
+                      onValuesChange={(values) => onFiltersChange({ ...filters, clientNames: values })}
                       options={clientOptions}
                       placeholder="All Clients"
                       searchPlaceholder="Search clients..."
@@ -322,9 +295,9 @@ export function AdvancedFilters({ filters, onFiltersChange, projects = [], teamM
 
                   <div className="space-y-2">
                     <Label>OEM</Label>
-                    <SearchableSelect
-                      value={filters.oem}
-                      onValueChange={(value) => onFiltersChange({ ...filters, oem: value })}
+                    <MultiSearchableSelect
+                      values={filters.oems}
+                      onValuesChange={(values) => onFiltersChange({ ...filters, oems: values })}
                       options={oemOptions}
                       placeholder="All OEMs"
                       searchPlaceholder="Search OEMs..."
@@ -333,9 +306,9 @@ export function AdvancedFilters({ filters, onFiltersChange, projects = [], teamM
 
                   <div className="space-y-2">
                     <Label>Location</Label>
-                    <SearchableSelect
-                      value={filters.location}
-                      onValueChange={(value) => onFiltersChange({ ...filters, location: value })}
+                    <MultiSearchableSelect
+                      values={filters.locations}
+                      onValuesChange={(values) => onFiltersChange({ ...filters, locations: values })}
                       options={locationOptions}
                       placeholder="All Locations"
                       searchPlaceholder="Search locations..."
@@ -344,9 +317,9 @@ export function AdvancedFilters({ filters, onFiltersChange, projects = [], teamM
 
                   <div className="space-y-2">
                     <Label>Channel Partner</Label>
-                    <SearchableSelect
-                      value={filters.channelPartner}
-                      onValueChange={(value) => onFiltersChange({ ...filters, channelPartner: value })}
+                    <MultiSearchableSelect
+                      values={filters.channelPartners}
+                      onValuesChange={(values) => onFiltersChange({ ...filters, channelPartners: values })}
                       options={channelPartnerOptions}
                       placeholder="All Channel Partners"
                       searchPlaceholder="Search channel partners..."
@@ -355,22 +328,13 @@ export function AdvancedFilters({ filters, onFiltersChange, projects = [], teamM
 
                   <div className="space-y-2">
                     <Label>Deal Probability</Label>
-                    <Select
-                      value={filters.dealProbability}
-                      onValueChange={(value) => onFiltersChange({ ...filters, dealProbability: value as FilterState['dealProbability'] })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="All Deal Probabilities" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Deal Probabilities</SelectItem>
-                        <SelectItem value="low">Low</SelectItem>
-                        <SelectItem value="medium">Medium</SelectItem>
-                        <SelectItem value="high">High</SelectItem>
-                        <SelectItem value="critical">Critical</SelectItem>
-                        <SelectItem value="uncertain">Uncertain</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <MultiSearchableSelect
+                      values={filters.dealProbabilities}
+                      onValuesChange={(values) => onFiltersChange({ ...filters, dealProbabilities: values })}
+                      options={dealProbabilityOptions}
+                      placeholder="All Deal Probabilities"
+                      searchPlaceholder="Search probabilities..."
+                    />
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
@@ -466,96 +430,72 @@ export function AdvancedFilters({ filters, onFiltersChange, projects = [], teamM
       {/* Active Filter Tags */}
       {activeFilterCount > 0 && (
         <div className="flex flex-wrap gap-2">
-          {filters.sector !== 'all' && (
-            <Badge variant="secondary" className="gap-1">
-              Sector: {filters.sector}
-              <X 
-                className="w-3 h-3 cursor-pointer" 
-                onClick={() => onFiltersChange({ ...filters, sector: 'all' })}
-              />
+          {filters.sectors.map((s) => (
+            <Badge key={`sector-${s}`} variant="secondary" className="gap-1">
+              Sector: {s}
+              <X className="w-3 h-3 cursor-pointer" onClick={() => onFiltersChange({ ...filters, sectors: filters.sectors.filter(v => v !== s) })} />
             </Badge>
-          )}
-          {filters.status !== 'all' && (
-            <Badge variant="secondary" className="gap-1 capitalize">
-              Status: {filters.status}
-              <X 
-                className="w-3 h-3 cursor-pointer" 
-                onClick={() => onFiltersChange({ ...filters, status: 'all' })}
-              />
+          ))}
+          {filters.statuses.map((s) => (
+            <Badge key={`status-${s}`} variant="secondary" className="gap-1 capitalize">
+              Status: {getStatusLabel(s as any)}
+              <X className="w-3 h-3 cursor-pointer" onClick={() => onFiltersChange({ ...filters, statuses: filters.statuses.filter(v => v !== s) })} />
             </Badge>
-          )}
-          {filters.pipelineStage !== 'all' && (
-            <Badge variant="secondary" className="gap-1 capitalize">
-              Stage: {PIPELINE_STAGES.find(s => s.value === filters.pipelineStage)?.label}
-              <X 
-                className="w-3 h-3 cursor-pointer" 
-                onClick={() => onFiltersChange({ ...filters, pipelineStage: 'all' })}
-              />
+          ))}
+          {filters.pipelineStages.map((s) => (
+            <Badge key={`stage-${s}`} variant="secondary" className="gap-1 capitalize">
+              Stage: {PIPELINE_STAGES.find(ps => ps.value === s)?.label || s}
+              <X className="w-3 h-3 cursor-pointer" onClick={() => onFiltersChange({ ...filters, pipelineStages: filters.pipelineStages.filter(v => v !== s) })} />
             </Badge>
-          )}
-          {filters.businessSegment !== 'all' && (
-            <Badge variant="secondary" className="gap-1">
-              Segment: {filters.businessSegment}
-              <X 
-                className="w-3 h-3 cursor-pointer" 
-                onClick={() => onFiltersChange({ ...filters, businessSegment: 'all' })}
-              />
+          ))}
+          {filters.businessSegments.map((s) => (
+            <Badge key={`segment-${s}`} variant="secondary" className="gap-1">
+              Segment: {s}
+              <X className="w-3 h-3 cursor-pointer" onClick={() => onFiltersChange({ ...filters, businessSegments: filters.businessSegments.filter(v => v !== s) })} />
             </Badge>
-          )}
-          {filters.projectLead !== 'all' && (
-            <Badge variant="secondary" className="gap-1">
-              Lead: {projectLeadOptions.find(o => o.value === filters.projectLead)?.label}
-              <X 
-                className="w-3 h-3 cursor-pointer" 
-                onClick={() => onFiltersChange({ ...filters, projectLead: 'all' })}
-              />
+          ))}
+          {filters.projectLeads.map((s) => (
+            <Badge key={`lead-${s}`} variant="secondary" className="gap-1">
+              Lead: {projectLeadOptions.find(o => o.value === s)?.label || s}
+              <X className="w-3 h-3 cursor-pointer" onClick={() => onFiltersChange({ ...filters, projectLeads: filters.projectLeads.filter(v => v !== s) })} />
             </Badge>
-          )}
-          {filters.assignee !== 'all' && (
-            <Badge variant="secondary" className="gap-1">
-              Assignee: {assigneeOptions.find(o => o.value === filters.assignee)?.label}
-              <X 
-                className="w-3 h-3 cursor-pointer" 
-                onClick={() => onFiltersChange({ ...filters, assignee: 'all' })}
-              />
+          ))}
+          {filters.assignees.map((s) => (
+            <Badge key={`assignee-${s}`} variant="secondary" className="gap-1">
+              Assignee: {assigneeOptions.find(o => o.value === s)?.label || s}
+              <X className="w-3 h-3 cursor-pointer" onClick={() => onFiltersChange({ ...filters, assignees: filters.assignees.filter(v => v !== s) })} />
             </Badge>
-          )}
-          {filters.clientName && (
-            <Badge variant="secondary" className="gap-1">
-              Client: {filters.clientName}
-              <X 
-                className="w-3 h-3 cursor-pointer" 
-                onClick={() => onFiltersChange({ ...filters, clientName: '' })}
-              />
+          ))}
+          {filters.clientNames.map((s) => (
+            <Badge key={`client-${s}`} variant="secondary" className="gap-1">
+              Client: {s}
+              <X className="w-3 h-3 cursor-pointer" onClick={() => onFiltersChange({ ...filters, clientNames: filters.clientNames.filter(v => v !== s) })} />
             </Badge>
-          )}
-          {filters.oem && (
-            <Badge variant="secondary" className="gap-1">
-              OEM: {filters.oem}
-              <X 
-                className="w-3 h-3 cursor-pointer" 
-                onClick={() => onFiltersChange({ ...filters, oem: '' })}
-              />
+          ))}
+          {filters.oems.map((s) => (
+            <Badge key={`oem-${s}`} variant="secondary" className="gap-1">
+              OEM: {s}
+              <X className="w-3 h-3 cursor-pointer" onClick={() => onFiltersChange({ ...filters, oems: filters.oems.filter(v => v !== s) })} />
             </Badge>
-          )}
-          {filters.location && (
-            <Badge variant="secondary" className="gap-1">
-              Location: {filters.location}
-              <X 
-                className="w-3 h-3 cursor-pointer" 
-                onClick={() => onFiltersChange({ ...filters, location: '' })}
-              />
+          ))}
+          {filters.locations.map((s) => (
+            <Badge key={`loc-${s}`} variant="secondary" className="gap-1">
+              Location: {s}
+              <X className="w-3 h-3 cursor-pointer" onClick={() => onFiltersChange({ ...filters, locations: filters.locations.filter(v => v !== s) })} />
             </Badge>
-          )}
-          {filters.channelPartner && (
-            <Badge variant="secondary" className="gap-1">
-              Partner: {filters.channelPartner}
-              <X 
-                className="w-3 h-3 cursor-pointer" 
-                onClick={() => onFiltersChange({ ...filters, channelPartner: '' })}
-              />
+          ))}
+          {filters.channelPartners.map((s) => (
+            <Badge key={`partner-${s}`} variant="secondary" className="gap-1">
+              Partner: {s}
+              <X className="w-3 h-3 cursor-pointer" onClick={() => onFiltersChange({ ...filters, channelPartners: filters.channelPartners.filter(v => v !== s) })} />
             </Badge>
-          )}
+          ))}
+          {filters.dealProbabilities.map((s) => (
+            <Badge key={`prob-${s}`} variant="secondary" className="gap-1 capitalize">
+              Probability: {s}
+              <X className="w-3 h-3 cursor-pointer" onClick={() => onFiltersChange({ ...filters, dealProbabilities: filters.dealProbabilities.filter(v => v !== s) })} />
+            </Badge>
+          ))}
         </div>
       )}
     </div>

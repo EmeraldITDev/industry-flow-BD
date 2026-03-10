@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ProjectCard } from '@/components/projects/ProjectCard';
-import { AdvancedFilters, FilterState } from '@/components/projects/AdvancedFilters';
+import { AdvancedFilters, FilterState, defaultFilters } from '@/components/projects/AdvancedFilters';
 import { projectsService } from '@/services/projects';
 import { teamService } from '@/services/team';
 import { Button } from '@/components/ui/button';
@@ -14,21 +14,6 @@ import { ProjectImportDialog } from '@/components/projects/ProjectImportDialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-
-const defaultFilters: FilterState = {
-  search: '',
-  sector: 'all',
-  status: 'all',
-  pipelineStage: 'all',
-  businessSegment: 'all',
-  projectLead: 'all',
-  assignee: 'all',
-  clientName: '',
-  oem: '',
-  location: '',
-  channelPartner: '',
-  dealProbability: 'all',
-};
 
 // Mapping for sector display names
 const sectorDisplayNames: Record<string, string> = {
@@ -50,9 +35,9 @@ export default function Projects() {
   
   const [filters, setFilters] = useState<FilterState>(() => ({
     ...defaultFilters,
-    sector: (sectorParam as Sector | 'all') || 'all',
-    status: statusParam || 'all',
-    dealProbability: (dealProbabilityParam as FilterState['dealProbability']) || 'all',
+    sectors: sectorParam ? [sectorParam] : [],
+    statuses: statusParam ? [statusParam] : [],
+    dealProbabilities: dealProbabilityParam ? [dealProbabilityParam] : [],
   }));
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [importOpen, setImportOpen] = useState(false);
@@ -64,9 +49,9 @@ export default function Projects() {
   useEffect(() => {
     setFilters(prev => ({
       ...prev,
-      sector: (sectorParam as Sector | 'all') || 'all',
-      status: statusParam || 'all',
-      dealProbability: (dealProbabilityParam as FilterState['dealProbability']) || 'all',
+      sectors: sectorParam ? [sectorParam] : [],
+      statuses: statusParam ? [statusParam] : [],
+      dealProbabilities: dealProbabilityParam ? [dealProbabilityParam] : [],
     }));
   }, [sectorParam, statusParam, dealProbabilityParam]);
   
@@ -115,24 +100,24 @@ export default function Projects() {
         if (!matchesSearch) return false;
       }
       
-      // Basic filters
-      if (filters.sector !== 'all' && project.sector !== filters.sector) return false;
-      if (filters.status !== 'all' && project.status !== filters.status) return false;
-      if (filters.pipelineStage !== 'all' && project.pipelineStage !== filters.pipelineStage) return false;
-      if (filters.businessSegment !== 'all' && project.businessSegment !== filters.businessSegment) return false;
+      // Multi-select filters (empty array = no filter / show all)
+      if (filters.sectors.length > 0 && !filters.sectors.includes(project.sector)) return false;
+      if (filters.statuses.length > 0 && !filters.statuses.includes(project.status)) return false;
+      if (filters.pipelineStages.length > 0 && !filters.pipelineStages.includes(project.pipelineStage)) return false;
+      if (filters.businessSegments.length > 0 && !filters.businessSegments.includes(project.businessSegment)) return false;
       
       // Team filters
-      if (filters.projectLead !== 'all' && project.projectLeadId !== filters.projectLead) return false;
-      if (filters.assignee !== 'all' && project.assigneeId !== filters.assignee) return false;
+      if (filters.projectLeads.length > 0 && (!project.projectLeadId || !filters.projectLeads.includes(project.projectLeadId))) return false;
+      if (filters.assignees.length > 0 && (!project.assigneeId || !filters.assignees.includes(project.assigneeId))) return false;
       
-      // Text filters
-      if (filters.clientName && !project.clientName?.toLowerCase().includes(filters.clientName.toLowerCase())) return false;
-      if (filters.oem && !project.oem?.toLowerCase().includes(filters.oem.toLowerCase())) return false;
-      if (filters.location && !project.location?.toLowerCase().includes(filters.location.toLowerCase())) return false;
-      if (filters.channelPartner && !project.channelPartner?.toLowerCase().includes(filters.channelPartner.toLowerCase())) return false;
+      // Multi-select text filters
+      if (filters.clientNames.length > 0 && (!project.clientName || !filters.clientNames.includes(project.clientName.trim()))) return false;
+      if (filters.oems.length > 0 && (!project.oem || !filters.oems.includes(project.oem.trim()))) return false;
+      if (filters.locations.length > 0 && (!project.location || !filters.locations.includes(project.location.trim()))) return false;
+      if (filters.channelPartners.length > 0 && (!project.channelPartner || !filters.channelPartners.includes(project.channelPartner.trim()))) return false;
       
       // Deal Probability filter
-      if (filters.dealProbability !== 'all' && project.dealProbability !== filters.dealProbability) return false;
+      if (filters.dealProbabilities.length > 0 && (!project.dealProbability || !filters.dealProbabilities.includes(project.dealProbability))) return false;
       
       // Date filters
       if (filters.dateFrom && project.startDate && new Date(project.startDate) < filters.dateFrom) return false;
