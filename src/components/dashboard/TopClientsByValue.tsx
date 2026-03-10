@@ -43,7 +43,7 @@ export function TopClientsByValue({
               type="number"
               tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
               axisLine={{ stroke: 'hsl(var(--border))' }}
-              tickFormatter={(value) => `$${value}M`}
+              tickFormatter={(value) => `$${value.toFixed(2)}M`}
             />
             <YAxis
               type="category"
