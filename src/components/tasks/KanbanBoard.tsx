@@ -3,7 +3,7 @@ import { Task, TaskStatus } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Calendar, Circle, Clock, AlertCircle, CheckCircle2, Trash2 } from 'lucide-react';
+import { Calendar, Circle, Clock, AlertCircle, CheckCircle2, Trash2, Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { safeFormatDate } from '@/lib/dateUtils';
