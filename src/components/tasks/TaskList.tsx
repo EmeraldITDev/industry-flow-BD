@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Textarea } from '@/components/ui/textarea';
-import { Calendar, AlertCircle, StickyNote, Check, X, Trash2 } from 'lucide-react';
+import { Calendar, AlertCircle, StickyNote, Check, X, Trash2, Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { safeFormatDate, isOverdue as checkOverdue } from '@/lib/dateUtils';
