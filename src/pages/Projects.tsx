@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -26,36 +26,78 @@ const sectorDisplayNames: Record<string, string> = {
   'EMR_Trading': 'EMR_Trading Projects',
 };
 
+// Array filter keys that map to URL params (comma-separated)
+const ARRAY_FILTER_KEYS: (keyof FilterState)[] = [
+  'sectors', 'statuses', 'pipelineStages', 'businessSegments',
+  'projectLeads', 'assignees', 'clientNames', 'oems',
+  'locations', 'channelPartners', 'dealProbabilities',
+];
+
+function filtersFromParams(params: URLSearchParams): FilterState {
+  const f: FilterState = { ...defaultFilters };
+  const search = params.get('search');
+  if (search) f.search = search;
+
+  for (const key of ARRAY_FILTER_KEYS) {
+    const raw = params.get(key);
+    if (raw) (f as any)[key] = raw.split(',').filter(Boolean);
+  }
+
+  // Legacy single-value params (from dashboard deep links)
+  if (f.sectors.length === 0 && params.get('sector')) f.sectors = [params.get('sector')!];
+  if (f.statuses.length === 0 && params.get('status')) f.statuses = [params.get('status')!];
+  if (f.dealProbabilities.length === 0 && params.get('dealProbability')) f.dealProbabilities = [params.get('dealProbability')!];
+
+  const dateFrom = params.get('dateFrom');
+  const dateTo = params.get('dateTo');
+  if (dateFrom) f.dateFrom = new Date(dateFrom);
+  if (dateTo) f.dateTo = new Date(dateTo);
+
+  const minVal = params.get('minContractValue');
+  const maxVal = params.get('maxContractValue');
+  if (minVal) f.minContractValue = Number(minVal);
+  if (maxVal) f.maxContractValue = Number(maxVal);
+
+  return f;
+}
+
+function filtersToParams(filters: FilterState): URLSearchParams {
+  const params = new URLSearchParams();
+
+  if (filters.search) params.set('search', filters.search);
+
+  for (const key of ARRAY_FILTER_KEYS) {
+    const arr = (filters as any)[key] as string[];
+    if (arr && arr.length > 0) params.set(key, arr.join(','));
+  }
+
+  if (filters.dateFrom) params.set('dateFrom', filters.dateFrom.toISOString());
+  if (filters.dateTo) params.set('dateTo', filters.dateTo.toISOString());
+  if (filters.minContractValue) params.set('minContractValue', String(filters.minContractValue));
+  if (filters.maxContractValue) params.set('maxContractValue', String(filters.maxContractValue));
+
+  return params;
+}
+
 export default function Projects() {
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
-  const sectorParam = searchParams.get('sector');
-  const statusParam = searchParams.get('status');
-  const dealProbabilityParam = searchParams.get('dealProbability');
-  
-  const [filters, setFilters] = useState<FilterState>(() => ({
-    ...defaultFilters,
-    sectors: sectorParam ? [sectorParam] : [],
-    statuses: statusParam ? [statusParam] : [],
-    dealProbabilities: dealProbabilityParam ? [dealProbabilityParam] : [],
-  }));
+
+  // Derive filters from URL — single source of truth
+  const filters = useMemo(() => filtersFromParams(searchParams), [searchParams]);
+
+  const handleFiltersChange = useCallback((newFilters: FilterState) => {
+    setSearchParams(filtersToParams(newFilters), { replace: true });
+  }, [setSearchParams]);
+
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [importOpen, setImportOpen] = useState(false);
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isDeleting, setIsDeleting] = useState(false);
   
-  // Update filters when URL params change
-  useEffect(() => {
-    setFilters(prev => ({
-      ...prev,
-      sectors: sectorParam ? [sectorParam] : [],
-      statuses: statusParam ? [statusParam] : [],
-      dealProbabilities: dealProbabilityParam ? [dealProbabilityParam] : [],
-    }));
-  }, [sectorParam, statusParam, dealProbabilityParam]);
-  
   // Calculate page title based on sector filter
+  const sectorParam = filters.sectors.length === 1 ? filters.sectors[0] : null;
   const pageTitle = sectorParam && sectorDisplayNames[sectorParam] 
     ? sectorDisplayNames[sectorParam] 
     : 'Projects';
@@ -266,7 +308,7 @@ export default function Projects() {
 
       <ProjectImportDialog open={importOpen} onOpenChange={setImportOpen} />
 
-      <AdvancedFilters filters={filters} onFiltersChange={setFilters} projects={projects} teamMembers={teamMembersList} />
+      <AdvancedFilters filters={filters} onFiltersChange={handleFiltersChange} projects={projects} teamMembers={teamMembersList} />
 
       {isLoading ? (
         <div className="flex items-center justify-center py-12">
@@ -289,7 +331,7 @@ export default function Projects() {
       {!isLoading && filteredProjects.length === 0 && (
         <div className="text-center py-12">
           <p className="text-muted-foreground">No projects match your filters.</p>
-          <Button variant="link" onClick={() => setFilters(defaultFilters)}>Clear filters</Button>
+          <Button variant="link" onClick={() => handleFiltersChange(defaultFilters)}>Clear filters</Button>
         </div>
       )}
     </div>
