@@ -75,7 +75,19 @@ export function AppLayout({ children }: AppLayoutProps) {
               </div>
             </div>
             <div className="flex items-center gap-2 sm:gap-3">
-              {/* Currency Toggle - positioned under search bar line */}
+              {/* Universal Refresh Button */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className="h-8 px-3 text-xs sm:text-sm gap-1.5"
+                title="Refresh data"
+              >
+                <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                <span className="hidden sm:inline">Refresh</span>
+              </Button>
+              {/* Currency Toggle */}
               <Button
                 variant="outline"
                 size="sm"
