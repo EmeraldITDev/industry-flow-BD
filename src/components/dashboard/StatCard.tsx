@@ -7,6 +7,7 @@ interface StatCardProps {
   title: string;
   value: React.ReactNode;
   icon: LucideIcon;
+  iconSymbol?: string;
   trend?: {
     value: number;
     isPositive: boolean;
@@ -15,7 +16,7 @@ interface StatCardProps {
   href?: string;
 }
 
-export function StatCard({ title, value, icon: Icon, trend, className, href }: StatCardProps) {
+export function StatCard({ title, value, icon: Icon, iconSymbol, trend, className, href }: StatCardProps) {
   const content = (
     <Card className={cn(
       "relative overflow-hidden transition-all",
@@ -39,7 +40,11 @@ export function StatCard({ title, value, icon: Icon, trend, className, href }: S
             )}
           </div>
           <div className="p-1.5 sm:p-3 rounded-lg bg-primary/10 shrink-0">
-            <Icon className="w-3.5 h-3.5 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-primary" />
+            {iconSymbol ? (
+              <span className="text-sm sm:text-lg lg:text-xl font-bold text-primary">{iconSymbol}</span>
+            ) : (
+              <Icon className="w-3.5 h-3.5 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-primary" />
+            )}
           </div>
         </div>
       </CardContent>

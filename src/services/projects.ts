@@ -6,7 +6,7 @@ export interface CreateProjectData {
   name: string;
   description: string;
   sector: Sector;
-  status?: 'active' | 'on-hold' | 'completed';
+  status?: 'active' | 'on-hold' | 'completed' | 'inactive';
   startDate: string;
   endDate?: string;
   budget?: number;

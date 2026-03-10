@@ -55,7 +55,7 @@ export default function EditProject() {
     name: '',
     description: '',
     sector: '' as Sector | '',
-    status: 'active' as 'active' | 'on-hold' | 'completed',
+    status: 'active' as 'active' | 'on-hold' | 'completed' | 'inactive',
     startDate: undefined as Date | undefined,
     endDate: undefined as Date | undefined,
     dealProbability: 'low' as RiskLevel,
@@ -290,6 +290,7 @@ export default function EditProject() {
                     <SelectItem value="active">Active</SelectItem>
                     <SelectItem value="on-hold">On Hold</SelectItem>
                     <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

@@ -333,6 +333,7 @@ export default function Dashboard() {
               title="Total PO Value (₦)" 
               value={formatCurrencyFor(computedStats.totalNGN, 'NGN')} 
               icon={DollarSign}
+              iconSymbol="₦"
               className="bg-primary/5 border-primary/20"
             />
             <StatCard 
@@ -345,6 +346,7 @@ export default function Dashboard() {
               title="Margin % (NGN)" 
               value={`${computedStats.avgMarginPercentNGN.toFixed(0)}%`} 
               icon={DollarSign}
+              iconSymbol="₦"
               className="bg-chart-3/5 border-chart-3/20"
             />
           </div>

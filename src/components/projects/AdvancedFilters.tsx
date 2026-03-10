@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { Sector, PipelineStage, BusinessSegment, PIPELINE_STAGES } from '@/types';
-import { sectors, businessSegments, teamMembers } from '@/data/mockData';
+import { useState, useMemo } from 'react';
+import { Sector, PipelineStage, BusinessSegment, PIPELINE_STAGES, Project, TeamMember } from '@/types';
+import { sectors, businessSegments } from '@/data/mockData';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,6 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import { 
   Filter, 
   X, 
@@ -19,6 +20,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { ALL_PROJECT_STATUSES, getStatusLabel } from '@/lib/stageStatusRules';
 
 export interface FilterState {
   search: string;
@@ -42,6 +44,8 @@ export interface FilterState {
 interface AdvancedFiltersProps {
   filters: FilterState;
   onFiltersChange: (filters: FilterState) => void;
+  projects?: Project[];
+  teamMembers?: TeamMember[];
 }
 
 const defaultFilters: FilterState = {
@@ -59,7 +63,7 @@ const defaultFilters: FilterState = {
   dealProbability: 'all',
 };
 
-export function AdvancedFilters({ filters, onFiltersChange }: AdvancedFiltersProps) {
+export function AdvancedFilters({ filters, onFiltersChange, projects = [], teamMembers = [] }: AdvancedFiltersProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
 
@@ -74,7 +78,92 @@ export function AdvancedFilters({ filters, onFiltersChange }: AdvancedFiltersPro
     onFiltersChange(defaultFilters);
   };
 
-  const statuses = ['all', 'active', 'on-hold', 'completed'];
+  // Build team member options from real data
+  const teamNameMap = useMemo(() => {
+    const map = new Map<string, string>();
+    teamMembers.forEach((m) => map.set(String(m.id), m.name));
+    return map;
+  }, [teamMembers]);
+
+  // Extract unique project leads from projects using team data
+  const projectLeadOptions = useMemo(() => {
+    const leadIds = new Set<string>();
+    projects.forEach((p) => {
+      const id = p.projectLeadId;
+      if (id) leadIds.add(String(id));
+    });
+    return [
+      { value: 'all', label: 'All Project Leads' },
+      ...Array.from(leadIds)
+        .map((id) => ({ value: id, label: teamNameMap.get(id) || `Lead #${id}` }))
+        .sort((a, b) => a.label.localeCompare(b.label)),
+    ];
+  }, [projects, teamNameMap]);
+
+  // Extract unique assignees from projects using team data
+  const assigneeOptions = useMemo(() => {
+    const assigneeIds = new Set<string>();
+    projects.forEach((p) => {
+      const id = p.assigneeId;
+      if (id) assigneeIds.add(String(id));
+    });
+    return [
+      { value: 'all', label: 'All Assignees' },
+      ...Array.from(assigneeIds)
+        .map((id) => ({ value: id, label: teamNameMap.get(id) || `Assignee #${id}` }))
+        .sort((a, b) => a.label.localeCompare(b.label)),
+    ];
+  }, [projects, teamNameMap]);
+
+  // Extract unique clients
+  const clientOptions = useMemo(() => {
+    const clients = new Set<string>();
+    projects.forEach((p) => {
+      if (p.clientName?.trim()) clients.add(p.clientName.trim());
+    });
+    return [
+      { value: '', label: 'All Clients' },
+      ...Array.from(clients).sort().map((c) => ({ value: c, label: c })),
+    ];
+  }, [projects]);
+
+  // Extract unique OEMs
+  const oemOptions = useMemo(() => {
+    const oems = new Set<string>();
+    projects.forEach((p) => {
+      if (p.oem?.trim()) oems.add(p.oem.trim());
+    });
+    return [
+      { value: '', label: 'All OEMs' },
+      ...Array.from(oems).sort().map((o) => ({ value: o, label: o })),
+    ];
+  }, [projects]);
+
+  // Extract unique locations
+  const locationOptions = useMemo(() => {
+    const locations = new Set<string>();
+    projects.forEach((p) => {
+      if (p.location?.trim()) locations.add(p.location.trim());
+    });
+    return [
+      { value: '', label: 'All Locations' },
+      ...Array.from(locations).sort().map((l) => ({ value: l, label: l })),
+    ];
+  }, [projects]);
+
+  // Extract unique channel partners
+  const channelPartnerOptions = useMemo(() => {
+    const partners = new Set<string>();
+    projects.forEach((p) => {
+      if (p.channelPartner?.trim()) partners.add(p.channelPartner.trim());
+    });
+    return [
+      { value: '', label: 'All Channel Partners' },
+      ...Array.from(partners).sort().map((cp) => ({ value: cp, label: cp })),
+    ];
+  }, [projects]);
+
+  const statuses = ['all', ...ALL_PROJECT_STATUSES];
 
   return (
     <div className="space-y-4">
@@ -116,43 +205,6 @@ export function AdvancedFilters({ filters, onFiltersChange }: AdvancedFiltersPro
               {/* Basic Filters */}
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label>Sector</Label>
-                  <Select
-                    value={filters.sector}
-                    onValueChange={(value) => onFiltersChange({ ...filters, sector: value as Sector | 'all' })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="All Sectors" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Sectors</SelectItem>
-                      {sectors.map((sector) => (
-                        <SelectItem key={sector} value={sector}>{sector}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Status</Label>
-                  <Select
-                    value={filters.status}
-                    onValueChange={(value) => onFiltersChange({ ...filters, status: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="All Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {statuses.map((status) => (
-                        <SelectItem key={status} value={status} className="capitalize">
-                          {status === 'all' ? 'All Status' : status}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
                   <Label>Pipeline Stage</Label>
                   <Select
                     value={filters.pipelineStage}
@@ -187,6 +239,65 @@ export function AdvancedFilters({ filters, onFiltersChange }: AdvancedFiltersPro
                     </SelectContent>
                   </Select>
                 </div>
+
+                <div className="space-y-2">
+                  <Label>Sector</Label>
+                  <Select
+                    value={filters.sector}
+                    onValueChange={(value) => onFiltersChange({ ...filters, sector: value as Sector | 'all' })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Sectors" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Sectors</SelectItem>
+                      {sectors.map((sector) => (
+                        <SelectItem key={sector} value={sector}>{sector}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Status</Label>
+                  <Select
+                    value={filters.status}
+                    onValueChange={(value) => onFiltersChange({ ...filters, status: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {statuses.map((status) => (
+                        <SelectItem key={status} value={status} className="capitalize">
+                          {status === 'all' ? 'All Status' : getStatusLabel(status as any)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Project Lead</Label>
+                  <SearchableSelect
+                    value={filters.projectLead}
+                    onValueChange={(value) => onFiltersChange({ ...filters, projectLead: value })}
+                    options={projectLeadOptions}
+                    placeholder="All Project Leads"
+                    searchPlaceholder="Search project leads..."
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Assignee</Label>
+                  <SearchableSelect
+                    value={filters.assignee}
+                    onValueChange={(value) => onFiltersChange({ ...filters, assignee: value })}
+                    options={assigneeOptions}
+                    placeholder="All Assignees"
+                    searchPlaceholder="Search assignees..."
+                  />
+                </div>
               </div>
 
               {/* Advanced Filters */}
@@ -199,74 +310,46 @@ export function AdvancedFilters({ filters, onFiltersChange }: AdvancedFiltersPro
                 </CollapsibleTrigger>
                 <CollapsibleContent className="space-y-4 pt-4">
                   <div className="space-y-2">
-                    <Label>Project Lead</Label>
-                    <Select
-                      value={filters.projectLead}
-                      onValueChange={(value) => onFiltersChange({ ...filters, projectLead: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="All Project Leads" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Project Leads</SelectItem>
-                        {teamMembers.map((member) => (
-                          <SelectItem key={member.id} value={member.id}>{member.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Assignee</Label>
-                    <Select
-                      value={filters.assignee}
-                      onValueChange={(value) => onFiltersChange({ ...filters, assignee: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="All Assignees" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Assignees</SelectItem>
-                        {teamMembers.map((member) => (
-                          <SelectItem key={member.id} value={member.id}>{member.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
                     <Label>Client</Label>
-                    <Input
-                      placeholder="Filter by client name"
+                    <SearchableSelect
                       value={filters.clientName}
-                      onChange={(e) => onFiltersChange({ ...filters, clientName: e.target.value })}
+                      onValueChange={(value) => onFiltersChange({ ...filters, clientName: value })}
+                      options={clientOptions}
+                      placeholder="All Clients"
+                      searchPlaceholder="Search clients..."
                     />
                   </div>
 
                   <div className="space-y-2">
                     <Label>OEM</Label>
-                    <Input
-                      placeholder="Filter by OEM"
+                    <SearchableSelect
                       value={filters.oem}
-                      onChange={(e) => onFiltersChange({ ...filters, oem: e.target.value })}
+                      onValueChange={(value) => onFiltersChange({ ...filters, oem: value })}
+                      options={oemOptions}
+                      placeholder="All OEMs"
+                      searchPlaceholder="Search OEMs..."
                     />
                   </div>
 
                   <div className="space-y-2">
                     <Label>Location</Label>
-                    <Input
-                      placeholder="Filter by location"
+                    <SearchableSelect
                       value={filters.location}
-                      onChange={(e) => onFiltersChange({ ...filters, location: e.target.value })}
+                      onValueChange={(value) => onFiltersChange({ ...filters, location: value })}
+                      options={locationOptions}
+                      placeholder="All Locations"
+                      searchPlaceholder="Search locations..."
                     />
                   </div>
 
                   <div className="space-y-2">
                     <Label>Channel Partner</Label>
-                    <Input
-                      placeholder="Filter by channel partner"
+                    <SearchableSelect
                       value={filters.channelPartner}
-                      onChange={(e) => onFiltersChange({ ...filters, channelPartner: e.target.value })}
+                      onValueChange={(value) => onFiltersChange({ ...filters, channelPartner: value })}
+                      options={channelPartnerOptions}
+                      placeholder="All Channel Partners"
+                      searchPlaceholder="Search channel partners..."
                     />
                   </div>
 
@@ -421,10 +504,19 @@ export function AdvancedFilters({ filters, onFiltersChange }: AdvancedFiltersPro
           )}
           {filters.projectLead !== 'all' && (
             <Badge variant="secondary" className="gap-1">
-              Lead: {teamMembers.find(m => m.id === filters.projectLead)?.name}
+              Lead: {projectLeadOptions.find(o => o.value === filters.projectLead)?.label}
               <X 
                 className="w-3 h-3 cursor-pointer" 
                 onClick={() => onFiltersChange({ ...filters, projectLead: 'all' })}
+              />
+            </Badge>
+          )}
+          {filters.assignee !== 'all' && (
+            <Badge variant="secondary" className="gap-1">
+              Assignee: {assigneeOptions.find(o => o.value === filters.assignee)?.label}
+              <X 
+                className="w-3 h-3 cursor-pointer" 
+                onClick={() => onFiltersChange({ ...filters, assignee: 'all' })}
               />
             </Badge>
           )}
@@ -452,6 +544,15 @@ export function AdvancedFilters({ filters, onFiltersChange }: AdvancedFiltersPro
               <X 
                 className="w-3 h-3 cursor-pointer" 
                 onClick={() => onFiltersChange({ ...filters, location: '' })}
+              />
+            </Badge>
+          )}
+          {filters.channelPartner && (
+            <Badge variant="secondary" className="gap-1">
+              Partner: {filters.channelPartner}
+              <X 
+                className="w-3 h-3 cursor-pointer" 
+                onClick={() => onFiltersChange({ ...filters, channelPartner: '' })}
               />
             </Badge>
           )}

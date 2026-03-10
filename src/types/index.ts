@@ -98,7 +98,7 @@ export interface Project {
   name: string;
   description: string;
   sector: Sector;
-  status: 'active' | 'on-hold' | 'completed';
+  status: 'active' | 'on-hold' | 'completed' | 'inactive';
   progress: number;
   startDate: string;
   endDate?: string;

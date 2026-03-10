@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ProjectCard } from '@/components/projects/ProjectCard';
 import { AdvancedFilters, FilterState } from '@/components/projects/AdvancedFilters';
 import { projectsService } from '@/services/projects';
+import { teamService } from '@/services/team';
 import { Button } from '@/components/ui/button';
 import { Plus, Grid3X3, List, Loader2, Upload, Trash2, X, RefreshCw } from 'lucide-react';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -75,24 +76,26 @@ export default function Projects() {
     : 'Projects';
   const { canCreateProjects } = usePermissions();
 
-  // Fetch projects from backend with error handling
+  // Fetch projects from backend
   const { data: backendProjects, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ['projects'],
     queryFn: async () => {
       try {
         const projects = await projectsService.getAll();
-        console.log('[Projects Page] Loaded projects from backend:', projects.length);
         return projects;
       } catch (err) {
         console.error('[Projects Page] Error fetching projects:', err);
-        if ((err as any)?.response) {
-          console.error('[Projects Page] Response status:', (err as any).response.status);
-          console.error('[Projects Page] Response data:', (err as any).response.data);
-        }
         return [];
       }
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Fetch team members for filter dropdowns
+  const { data: teamMembersList = [] } = useQuery({
+    queryKey: ['team'],
+    queryFn: () => teamService.getAll(),
+    staleTime: 5 * 60 * 1000,
   });
 
   // Use backend data only - no mock fallback
@@ -278,7 +281,7 @@ export default function Projects() {
 
       <ProjectImportDialog open={importOpen} onOpenChange={setImportOpen} />
 
-      <AdvancedFilters filters={filters} onFiltersChange={setFilters} />
+      <AdvancedFilters filters={filters} onFiltersChange={setFilters} projects={projects} teamMembers={teamMembersList} />
 
       {isLoading ? (
         <div className="flex items-center justify-center py-12">

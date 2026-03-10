@@ -1,3 +1,4 @@
+import React from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -53,6 +54,8 @@ import { safeFormatDate } from '@/lib/dateUtils';
 import { getStageProgress, STAGE_PROGRESS_MAP } from '@/lib/stageProgress';
 import { PIPELINE_STAGES } from '@/types';
 import { teamService } from '@/services/team';
+import { getAllowedStatusesForStage, getDefaultStatusForStage, getStatusLabel, isValidStageStatus, type ProjectStatus } from '@/lib/stageStatusRules';
+
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -211,10 +214,11 @@ export default function ProjectDetail() {
     );
   }
 
-  const statusColors = {
+  const statusColors: Record<string, string> = {
     active: 'bg-chart-1/20 text-chart-1 border-chart-1/30',
     'on-hold': 'bg-chart-5/20 text-chart-5 border-chart-5/30',
     completed: 'bg-chart-2/20 text-chart-2 border-chart-2/30',
+    inactive: 'bg-muted text-muted-foreground border-border',
   };
 
   // Use tasks from API or fallback to project.tasks
@@ -223,7 +227,8 @@ export default function ProjectDetail() {
 
   const handleTaskCreated = () => {
     refetchTasks();
-    fetchProject(); // Refresh project to update task count
+    fetchProject();
+    queryClient.invalidateQueries({ queryKey: ['projects'] });
   };
 
   const handleTaskMove = async (taskId: string, newStatus: TaskStatus) => {
@@ -273,13 +278,20 @@ export default function ProjectDetail() {
     }
   };
 
-  const handleStatusChange = async (newStatus: 'active' | 'on-hold' | 'completed') => {
+  const handleStatusChange = async (newStatus: ProjectStatus) => {
     if (!id || !project) return;
+    
+    // Validate against pipeline stage
+    if (project.pipelineStage && !isValidStageStatus(project.pipelineStage, newStatus)) {
+      const allowed = getAllowedStatusesForStage(project.pipelineStage).map(getStatusLabel).join(', ');
+      toast.error(`Cannot set "${getStatusLabel(newStatus)}" for stage "${project.pipelineStage}". Allowed: ${allowed}`);
+      return;
+    }
     
     try {
       await projectsService.update(id, { status: newStatus });
       setProject({ ...project, status: newStatus });
-      toast.success(`Project status updated to ${newStatus}`);
+      toast.success(`Project status updated to ${getStatusLabel(newStatus)}`);
       queryClient.invalidateQueries({ queryKey: ['projects'] });
     } catch (err: any) {
       console.error('Failed to update project status:', err);
@@ -290,10 +302,8 @@ export default function ProjectDetail() {
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-        <Button variant="ghost" size="icon" asChild className="shrink-0 self-start">
-          <Link to="/projects">
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
+        <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="shrink-0 self-start">
+          <ArrowLeft className="w-5 h-5" />
         </Button>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 sm:gap-2 mb-1 flex-wrap">
@@ -319,24 +329,25 @@ export default function ProjectDetail() {
                 Edit Project
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              {project.status !== 'active' && (
-                <DropdownMenuItem onClick={() => handleStatusChange('active')}>
-                  <PlayCircle className="w-4 h-4 mr-2" />
-                  Set Active
-                </DropdownMenuItem>
-              )}
-              {project.status !== 'on-hold' && (
-                <DropdownMenuItem onClick={() => handleStatusChange('on-hold')}>
-                  <PauseCircle className="w-4 h-4 mr-2" />
-                  Put On Hold
-                </DropdownMenuItem>
-              )}
-              {project.status !== 'completed' && (
-                <DropdownMenuItem onClick={() => handleStatusChange('completed')}>
-                  <CheckCircle2 className="w-4 h-4 mr-2" />
-                  Mark Completed
-                </DropdownMenuItem>
-              )}
+              {(() => {
+                const allowed = project.pipelineStage 
+                  ? getAllowedStatusesForStage(project.pipelineStage) 
+                  : (['active', 'on-hold', 'completed', 'inactive'] as ProjectStatus[]);
+                const statusIcons: Record<string, React.ReactNode> = {
+                  active: <PlayCircle className="w-4 h-4 mr-2" />,
+                  'on-hold': <PauseCircle className="w-4 h-4 mr-2" />,
+                  completed: <CheckCircle2 className="w-4 h-4 mr-2" />,
+                  inactive: <PauseCircle className="w-4 h-4 mr-2" />,
+                };
+                return allowed
+                  .filter(s => s !== project.status)
+                  .map(status => (
+                    <DropdownMenuItem key={status} onClick={() => handleStatusChange(status)}>
+                      {statusIcons[status]}
+                      {getStatusLabel(status)}
+                    </DropdownMenuItem>
+                  ));
+              })()}
               <DropdownMenuSeparator />
               <DropdownMenuItem 
                 className="text-destructive focus:text-destructive"
