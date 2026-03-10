@@ -344,7 +344,7 @@ export default function Dashboard() {
             />
             <StatCard 
               title="Margin % (NGN)" 
-              value={`${computedStats.avgMarginPercentNGN.toFixed(0)}%`} 
+              value={`${computedStats.avgMarginPercentNGN.toFixed(2)}%`} 
               icon={DollarSign}
               iconSymbol="₦"
               className="bg-chart-3/5 border-chart-3/20"
