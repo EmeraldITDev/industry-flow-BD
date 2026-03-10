@@ -12,6 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { TaskList } from '@/components/tasks/TaskList';
 import { KanbanBoard } from '@/components/tasks/KanbanBoard';
 import { AddTaskDialog } from '@/components/tasks/AddTaskDialog';
+import { EditTaskDialog } from '@/components/tasks/EditTaskDialog';
 import { Project, Sector, TaskStatus } from '@/types';
 import { projectsService } from '@/services/projects';
 import { tasksService } from '@/services/tasks';
