@@ -89,8 +89,15 @@ export default function Projects() {
   const handleFiltersChange = useCallback((newFilters: FilterState) => {
     setSearchParams(filtersToParams(newFilters), { replace: true });
   }, [setSearchParams]);
+
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [importOpen, setImportOpen] = useState(false);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isDeleting, setIsDeleting] = useState(false);
   
   // Calculate page title based on sector filter
+  const sectorParam = filters.sectors.length === 1 ? filters.sectors[0] : null;
   const pageTitle = sectorParam && sectorDisplayNames[sectorParam] 
     ? sectorDisplayNames[sectorParam] 
     : 'Projects';
