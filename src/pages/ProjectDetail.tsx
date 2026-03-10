@@ -659,11 +659,21 @@ export default function ProjectDetail() {
                     )}
 
                     <div className="pt-2 border-t border-border">
-                      <div className="flex items-center gap-2 text-sm">
-                        <Users className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-muted-foreground">Team Size:</span>
-                        <span className="font-medium">{project.teamSize || 0}</span>
-                      </div>
+                      {(() => {
+                        const dynamicSize = new Set([
+                          leadId,
+                          assigneeIdStr,
+                          ...otherMembers.map((m: any) => String(m.id)),
+                        ].filter(Boolean)).size;
+                        const displaySize = dynamicSize || project.teamSize || 0;
+                        return (
+                          <div className="flex items-center gap-2 text-sm">
+                            <Users className="w-4 h-4 text-muted-foreground" />
+                            <span className="text-muted-foreground">Team Size:</span>
+                            <span className="font-medium">{displaySize}</span>
+                          </div>
+                        );
+                      })()}
                     </div>
                   </>
                 );
