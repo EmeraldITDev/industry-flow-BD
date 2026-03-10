@@ -12,7 +12,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { TaskList } from '@/components/tasks/TaskList';
 import { KanbanBoard } from '@/components/tasks/KanbanBoard';
 import { AddTaskDialog } from '@/components/tasks/AddTaskDialog';
-import { Project, Sector, TaskStatus } from '@/types';
+import { EditTaskDialog } from '@/components/tasks/EditTaskDialog';
+import { Project, Sector, Task, TaskStatus } from '@/types';
 import { projectsService } from '@/services/projects';
 import { tasksService } from '@/services/tasks';
 import {
@@ -64,6 +65,7 @@ export default function ProjectDetail() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [addTaskOpen, setAddTaskOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const { canEditProjects, canAssignTasks } = usePermissions();
@@ -546,12 +548,14 @@ export default function ProjectDetail() {
                 tasks={tasks} 
                 onTaskMove={handleTaskMove}
                 onTaskDelete={handleTaskDelete}
+                onTaskEdit={(task) => setEditingTask(task)}
               />
             </TabsContent>
             <TabsContent value="list" className="mt-0">
               <TaskList 
                 tasks={tasks}
                 onTaskDelete={handleTaskDelete}
+                onTaskEdit={(task) => setEditingTask(task)}
               />
             </TabsContent>
           </Tabs>
@@ -562,6 +566,14 @@ export default function ProjectDetail() {
             onOpenChange={setAddTaskOpen}
             projectId={id || ''}
             onTaskCreated={handleTaskCreated}
+          />
+
+          {/* Edit Task Dialog */}
+          <EditTaskDialog
+            open={!!editingTask}
+            onOpenChange={(open) => { if (!open) setEditingTask(null); }}
+            task={editingTask}
+            onTaskUpdated={handleTaskCreated}
           />
         </div>
 

@@ -3,7 +3,7 @@ import { Task, TaskStatus } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Calendar, Circle, Clock, AlertCircle, CheckCircle2, Trash2 } from 'lucide-react';
+import { Calendar, Circle, Clock, AlertCircle, CheckCircle2, Trash2, Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { safeFormatDate } from '@/lib/dateUtils';
@@ -12,6 +12,7 @@ interface KanbanBoardProps {
   tasks: Task[];
   onTaskMove?: (taskId: string, newStatus: TaskStatus) => void;
   onTaskDelete?: (taskId: string) => void;
+  onTaskEdit?: (task: Task) => void;
 }
 
 const columns: { status: TaskStatus; title: string; icon: React.ElementType; color: string }[] = [
@@ -21,7 +22,7 @@ const columns: { status: TaskStatus; title: string; icon: React.ElementType; col
   { status: 'completed', title: 'Completed', icon: CheckCircle2, color: 'border-t-chart-1' },
 ];
 
-export function KanbanBoard({ tasks: initialTasks, onTaskMove, onTaskDelete }: KanbanBoardProps) {
+export function KanbanBoard({ tasks: initialTasks, onTaskMove, onTaskDelete, onTaskEdit }: KanbanBoardProps) {
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
 
   // Sync with prop changes (e.g., when new tasks are added)
@@ -142,22 +143,36 @@ export function KanbanBoard({ tasks: initialTasks, onTaskMove, onTaskDelete }: K
                                 </AvatarFallback>
                               </Avatar>
                             )}
-                                {onTaskDelete && (
+                                {onTaskEdit && (
                                   <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/10 hover:text-destructive"
-                                    onMouseDown={(e) => {
-                                      e.stopPropagation();
-                                    }}
+                                    className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-accent"
+                                    onMouseDown={(e) => e.stopPropagation()}
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      onTaskDelete(task.id);
+                                      onTaskEdit(task);
                                     }}
                                   >
-                                    <Trash2 className="h-3 w-3" />
+                                    <Pencil className="h-3 w-3" />
                                   </Button>
                                 )}
+                                {onTaskDelete && (
+                                   <Button
+                                     variant="ghost"
+                                     size="icon"
+                                     className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/10 hover:text-destructive"
+                                     onMouseDown={(e) => {
+                                       e.stopPropagation();
+                                     }}
+                                     onClick={(e) => {
+                                       e.stopPropagation();
+                                       onTaskDelete(task.id);
+                                     }}
+                                   >
+                                     <Trash2 className="h-3 w-3" />
+                                   </Button>
+                                 )}
                               </div>
                             </div>
                             <h4 className="font-medium text-sm line-clamp-2">{task.title}</h4>

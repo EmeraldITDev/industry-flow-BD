@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Textarea } from '@/components/ui/textarea';
-import { Calendar, AlertCircle, StickyNote, Check, X, Trash2 } from 'lucide-react';
+import { Calendar, AlertCircle, StickyNote, Check, X, Trash2, Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { safeFormatDate, isOverdue as checkOverdue } from '@/lib/dateUtils';
@@ -14,9 +14,10 @@ interface TaskListProps {
   title?: string;
   onTaskUpdate?: (taskId: string, updates: Partial<Task>) => void;
   onTaskDelete?: (taskId: string) => void;
+  onTaskEdit?: (task: Task) => void;
 }
 
-export function TaskList({ tasks, title, onTaskUpdate, onTaskDelete }: TaskListProps) {
+export function TaskList({ tasks, title, onTaskUpdate, onTaskDelete, onTaskEdit }: TaskListProps) {
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [noteValue, setNoteValue] = useState('');
 
@@ -119,6 +120,16 @@ export function TaskList({ tasks, title, onTaskUpdate, onTaskDelete }: TaskListP
                       </AvatarFallback>
                     </Avatar>
                   )}
+                    {onTaskEdit && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-accent"
+                        onClick={() => onTaskEdit(task)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    )}
                     {onTaskDelete && (
                       <Button
                         variant="ghost"
