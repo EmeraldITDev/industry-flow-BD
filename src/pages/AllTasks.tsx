@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { tasksService } from '@/services/tasks';
 import { projectsService } from '@/services/projects';
 import { teamService } from '@/services/team';
+import { useAuth } from '@/context/AuthContext';
 import { Task, TaskStatus, TaskPriority, Project } from '@/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
