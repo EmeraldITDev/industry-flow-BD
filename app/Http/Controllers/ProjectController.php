@@ -43,7 +43,9 @@ class ProjectController extends Controller
                 $query->where('assignee_id', $request->assignee_id);
             }
 
-            $projects = $query->withCount('tasks')->orderBy('created_at', 'desc')->get();
+            $projects = $query->withCount(['tasks', 'tasks as completed_tasks_count' => function ($q) {
+                $q->where('status', 'completed');
+            }])->orderBy('created_at', 'desc')->get();
 
             Log::info('Projects fetched', ['count' => $projects->count()]);
 
@@ -124,7 +126,9 @@ class ProjectController extends Controller
     public function show($id): JsonResponse
     {
         try {
-            $project = Project::withCount('tasks')->findOrFail($id);
+            $project = Project::withCount(['tasks', 'tasks as completed_tasks_count' => function ($q) {
+                $q->where('status', 'completed');
+            }])->findOrFail($id);
             
             return response()->json([
                 'data' => $project
