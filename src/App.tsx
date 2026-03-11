@@ -19,6 +19,7 @@ import NewProjectPage from "./pages/NewProjectPage";
 import EditProjectPage from "./pages/EditProject";
 import SettingsPage from "./pages/SettingsPage";
 import CalendarPage from "./pages/CalendarPage";
+import AllTasksPage from "./pages/AllTasksPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
