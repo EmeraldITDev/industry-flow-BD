@@ -133,29 +133,31 @@ export default function Projects() {
     staleTime: 5 * 60 * 1000,
   });
 
-  // Merge accurate task counts from the tasks API into projects
+  // Merge task data from the tasks API into projects so ProjectCard can rely on tasks.length (same as ProjectDetail)
   const projects: Project[] = useMemo(() => {
     const raw = Array.isArray(backendProjects) ? backendProjects : [];
-    if (allTasks.length === 0) return raw;
+    if (raw.length === 0) return [];
 
-    // Build a map of projectId -> { total, completed }
-    const taskCountMap = new Map<string, { total: number; completed: number }>();
+    const tasksByProject = new Map<string, typeof allTasks>();
+
     for (const task of allTasks) {
-      const pid = task.projectId;
-      if (!pid) continue;
-      const entry = taskCountMap.get(pid) || { total: 0, completed: 0 };
-      entry.total++;
-      if (task.status === 'completed') entry.completed++;
-      taskCountMap.set(pid, entry);
+      if (!task?.projectId) continue;
+      const projectKey = String(task.projectId);
+      const existing = tasksByProject.get(projectKey) ?? [];
+      existing.push(task);
+      tasksByProject.set(projectKey, existing);
     }
 
-    return raw.map(p => {
-      const counts = taskCountMap.get(p.id);
-      if (!counts) return p;
+    return raw.map((p) => {
+      const existingTasks = Array.isArray(p.tasks) ? p.tasks : [];
+      const syncedTasks = tasksByProject.get(String(p.id)) ?? existingTasks;
+      const syncedCompletedTasks = syncedTasks.filter((t) => t.status === 'completed').length;
+
       return {
         ...p,
-        tasksCount: Math.max(p.tasksCount ?? 0, counts.total),
-        completedTasksCount: Math.max(p.completedTasksCount ?? 0, counts.completed),
+        tasks: syncedTasks,
+        tasksCount: Math.max(p.tasksCount ?? 0, syncedTasks.length),
+        completedTasksCount: Math.max(p.completedTasksCount ?? 0, syncedCompletedTasks),
       };
     });
   }, [backendProjects, allTasks]);
