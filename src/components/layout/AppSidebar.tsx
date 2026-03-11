@@ -11,7 +11,8 @@ import {
   Plus,
   Building2,
   Heart,
-  Leaf
+  Leaf,
+  ListChecks
 } from 'lucide-react';
 import emeraldLogo from '@/assets/emerald-logo.png';
 import { NavLink, useLocation } from 'react-router-dom';
