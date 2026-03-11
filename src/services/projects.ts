@@ -145,6 +145,7 @@ const normalizeProject = (project: any): Project => {
 
   // Use tasks_count from backend if available (from withCount('tasks'))
   const tasksCount = project.tasks_count ?? project.tasksCount ?? null;
+  const completedTasksCount = project.completed_tasks_count ?? project.completedTasksCount ?? null;
   // Keep tasks array if present, otherwise create a placeholder based on count
   const tasks = Array.isArray(project.tasks) ? project.tasks : [];
 
