@@ -6,6 +6,7 @@ import { ProjectCard } from '@/components/projects/ProjectCard';
 import { AdvancedFilters, FilterState, defaultFilters } from '@/components/projects/AdvancedFilters';
 import { projectsService } from '@/services/projects';
 import { teamService } from '@/services/team';
+import { tasksService } from '@/services/tasks';
 import { Button } from '@/components/ui/button';
 import { Plus, Grid3X3, List, Loader2, Upload, Trash2, X, RefreshCw } from 'lucide-react';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -125,8 +126,39 @@ export default function Projects() {
     staleTime: 5 * 60 * 1000,
   });
 
-  // Use backend data only - no mock fallback
-  const projects: Project[] = Array.isArray(backendProjects) ? backendProjects : [];
+  // Fetch all tasks to get accurate counts per project (same source as ProjectDetail page)
+  const { data: allTasks = [] } = useQuery({
+    queryKey: ['all-tasks'],
+    queryFn: () => tasksService.getAll(),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Merge accurate task counts from the tasks API into projects
+  const projects: Project[] = useMemo(() => {
+    const raw = Array.isArray(backendProjects) ? backendProjects : [];
+    if (allTasks.length === 0) return raw;
+
+    // Build a map of projectId -> { total, completed }
+    const taskCountMap = new Map<string, { total: number; completed: number }>();
+    for (const task of allTasks) {
+      const pid = task.projectId;
+      if (!pid) continue;
+      const entry = taskCountMap.get(pid) || { total: 0, completed: 0 };
+      entry.total++;
+      if (task.status === 'completed') entry.completed++;
+      taskCountMap.set(pid, entry);
+    }
+
+    return raw.map(p => {
+      const counts = taskCountMap.get(p.id);
+      if (!counts) return p;
+      return {
+        ...p,
+        tasksCount: Math.max(p.tasksCount ?? 0, counts.total),
+        completedTasksCount: Math.max(p.completedTasksCount ?? 0, counts.completed),
+      };
+    });
+  }, [backendProjects, allTasks]);
 
   const filteredProjects = useMemo(() => {
     return projects.filter(project => {
