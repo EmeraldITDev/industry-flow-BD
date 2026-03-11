@@ -34,6 +34,7 @@ export function ProjectCard({ project, selectable, selected, onSelectToggle }: P
 
   const tasks = Array.isArray(project.tasks) ? project.tasks : [];
   const completedTasks = tasks.filter(t => t.status === 'completed').length;
+  const totalTaskCount = (project as any).tasksCount ?? tasks.length;
   const stageLabel = PIPELINE_STAGES.find(s => s.value === project.pipelineStage)?.label || project.pipelineStage;
   
   const contractValue = getContractValue(project);
@@ -128,7 +129,7 @@ export function ProjectCard({ project, selectable, selected, onSelectToggle }: P
           </div>
           <div className="flex items-center gap-0.5 sm:gap-1">
             <CheckSquare className="w-3 h-3 sm:w-4 sm:h-4" />
-            <span>{completedTasks}/{tasks.length}</span>
+            <span>{completedTasks}/{totalTaskCount}</span>
           </div>
           <div className="flex items-center gap-0.5 sm:gap-1">
             <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />

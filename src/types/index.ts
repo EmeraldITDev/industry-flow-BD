@@ -140,6 +140,7 @@ export interface Project {
   
   projectLeadComments?: string;
   teamMemberIds?: string[];
+  tasksCount?: number;
 }
 
 export interface ProjectStats {
