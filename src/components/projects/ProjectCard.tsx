@@ -33,8 +33,7 @@ export function ProjectCard({ project, selectable, selected, onSelectToggle }: P
   };
 
   const tasks = Array.isArray(project.tasks) ? project.tasks : [];
-  const completedTasks = project.completedTasksCount ?? tasks.filter(t => t.status === 'completed').length;
-  const totalTaskCount = project.tasksCount ?? tasks.length;
+  const completedTasks = tasks.filter(t => t.status === 'completed').length;
   const stageLabel = PIPELINE_STAGES.find(s => s.value === project.pipelineStage)?.label || project.pipelineStage;
   
   const contractValue = getContractValue(project);
