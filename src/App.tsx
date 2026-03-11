@@ -19,6 +19,7 @@ import NewProjectPage from "./pages/NewProjectPage";
 import EditProjectPage from "./pages/EditProject";
 import SettingsPage from "./pages/SettingsPage";
 import CalendarPage from "./pages/CalendarPage";
+import AllTasksPage from "./pages/AllTasksPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -52,6 +53,7 @@ const App = () => (
                     <Route path="/team" element={<ProtectedRoute><TeamPage /></ProtectedRoute>} />
                     <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
                     <Route path="/calendar" element={<ProtectedRoute><CalendarPage /></ProtectedRoute>} />
+                    <Route path="/tasks" element={<ProtectedRoute><AllTasksPage /></ProtectedRoute>} />
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                     <Route path="*" element={<NotFound />} />
                   </Routes>

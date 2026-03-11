@@ -11,7 +11,8 @@ import {
   Plus,
   Building2,
   Heart,
-  Leaf
+  Leaf,
+  ListChecks
 } from 'lucide-react';
 import emeraldLogo from '@/assets/emerald-logo.png';
 import { NavLink, useLocation } from 'react-router-dom';
@@ -34,6 +35,7 @@ import { Button } from '@/components/ui/button';
 const mainNavItems = [
   { title: 'Dashboard', url: '/', icon: LayoutDashboard },
   { title: 'All Projects', url: '/projects', icon: FolderKanban },
+  { title: 'All Tasks', url: '/tasks', icon: ListChecks },
   { title: 'Calendar', url: '/calendar', icon: Calendar },
   { title: 'Team', url: '/team', icon: Users },
 ];
