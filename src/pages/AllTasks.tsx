@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { tasksService } from '@/services/tasks';
 import { projectsService } from '@/services/projects';
 import { teamService } from '@/services/team';
+import { useAuth } from '@/context/AuthContext';
 import { Task, TaskStatus, TaskPriority, Project } from '@/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -43,12 +44,13 @@ const priorityConfig: Record<TaskPriority, { label: string; className: string }>
 };
 
 export default function AllTasks() {
+  const { user } = useAuth();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
   const [projectFilter, setProjectFilter] = useState<string>('all');
 
-  const { data: tasks = [], isLoading, refetch, isFetching } = useQuery({
+  const { data: allTasks = [], isLoading, refetch, isFetching } = useQuery({
     queryKey: ['all-tasks'],
     queryFn: () => tasksService.getAll(),
     staleTime: 60 * 1000,
@@ -65,6 +67,26 @@ export default function AllTasks() {
     queryFn: () => teamService.getAll(),
     staleTime: 5 * 60 * 1000,
   });
+
+  // Filter tasks based on access level
+  const tasks = useMemo(() => {
+    if (!user) return [];
+    const accessLevel = user.accessLevel;
+    // Admin and BD Director can see all tasks
+    if (accessLevel === 'admin' || accessLevel === 'bd_director') {
+      return allTasks;
+    }
+    // Project Manager and Employee: only tasks assigned to them or created/assigned by them
+    const userId = String(user.id);
+    return allTasks.filter(task => {
+      const assigneeId = task.assigneeId ? String(task.assigneeId) : null;
+      // Task is assigned to this user
+      if (assigneeId === userId) return true;
+      // Task assignee matches user name (fallback for string-based assignees)
+      if (typeof task.assignee === 'string' && task.assignee === user.name) return true;
+      return false;
+    });
+  }, [allTasks, user]);
 
   const projectMap = useMemo(() => {
     const map: Record<string, Project> = {};
