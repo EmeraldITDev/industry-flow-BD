@@ -143,11 +143,26 @@ const normalizeProject = (project: any): Project => {
   teamMemberIds.forEach((id: string) => { if (id) uniqueMembers.add(id); });
   const computedTeamSize = uniqueMembers.size;
 
-  // Use tasks_count from backend if available (from withCount('tasks'))
-  const tasksCount = project.tasks_count ?? project.tasksCount ?? null;
-  const completedTasksCount = project.completed_tasks_count ?? project.completedTasksCount ?? null;
-  // Keep tasks array if present, otherwise create a placeholder based on count
+  // Keep tasks array if present
   const tasks = Array.isArray(project.tasks) ? project.tasks : [];
+  
+  // Use tasks_count from backend if available (from withCount('tasks'))
+  const backendTasksCount = project.tasks_count ?? project.tasksCount ?? null;
+  const backendCompletedCount = project.completed_tasks_count ?? project.completedTasksCount ?? null;
+  
+  // Prefer the tasks array length when it's available and larger than withCount
+  // (withCount may return 0 due to relationship issues while eager-loaded tasks are correct)
+  const tasksFromArray = tasks.length;
+  const completedFromArray = tasks.filter((t: any) => t.status === 'completed').length;
+  
+  const finalTasksCount = Math.max(
+    backendTasksCount != null ? Number(backendTasksCount) : 0,
+    tasksFromArray
+  );
+  const finalCompletedCount = Math.max(
+    backendCompletedCount != null ? Number(backendCompletedCount) : 0,
+    completedFromArray
+  );
 
   return {
     ...project,
@@ -179,8 +194,8 @@ const normalizeProject = (project: any): Project => {
     teamMemberIds,
     teamSize: computedTeamSize || project.teamSize || project.team_size || 0,
     tasks,
-    tasksCount: tasksCount != null ? Number(tasksCount) : tasks.length,
-    completedTasksCount: completedTasksCount != null ? Number(completedTasksCount) : tasks.filter((t: any) => t.status === 'completed').length,
+    tasksCount: finalTasksCount,
+    completedTasksCount: finalCompletedCount,
   };
 };
 
