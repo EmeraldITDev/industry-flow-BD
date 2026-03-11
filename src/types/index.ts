@@ -141,6 +141,7 @@ export interface Project {
   projectLeadComments?: string;
   teamMemberIds?: string[];
   tasksCount?: number;
+  completedTasksCount?: number;
 }
 
 export interface ProjectStats {
