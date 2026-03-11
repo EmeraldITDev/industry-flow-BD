@@ -43,7 +43,7 @@ class ProjectController extends Controller
                 $query->where('assignee_id', $request->assignee_id);
             }
 
-            $projects = $query->orderBy('created_at', 'desc')->get();
+            $projects = $query->withCount('tasks')->orderBy('created_at', 'desc')->get();
 
             Log::info('Projects fetched', ['count' => $projects->count()]);
 
