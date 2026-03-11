@@ -35,6 +35,7 @@ import { Button } from '@/components/ui/button';
 const mainNavItems = [
   { title: 'Dashboard', url: '/', icon: LayoutDashboard },
   { title: 'All Projects', url: '/projects', icon: FolderKanban },
+  { title: 'All Tasks', url: '/tasks', icon: ListChecks },
   { title: 'Calendar', url: '/calendar', icon: Calendar },
   { title: 'Team', url: '/team', icon: Users },
 ];
