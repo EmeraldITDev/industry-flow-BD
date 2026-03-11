@@ -131,6 +131,23 @@ const normalizeProject = (project: any): Project => {
     status = correctedStatus;
   }
 
+  // Compute teamMemberIds
+  const teamMemberIds = (project.teamMemberIds ?? project.team_member_ids ?? []).map((id: any) => String(id));
+  
+  // Compute teamSize from unique people (lead + assignee + members)
+  const projectLeadId = project.projectLeadId ?? project.project_lead_id ?? null;
+  const assigneeId = project.assigneeId ?? project.assignee_id ?? null;
+  const uniqueMembers = new Set<string>();
+  if (projectLeadId) uniqueMembers.add(String(projectLeadId));
+  if (assigneeId) uniqueMembers.add(String(assigneeId));
+  teamMemberIds.forEach((id: string) => { if (id) uniqueMembers.add(id); });
+  const computedTeamSize = uniqueMembers.size;
+
+  // Use tasks_count from backend if available (from withCount('tasks'))
+  const tasksCount = project.tasks_count ?? project.tasksCount ?? null;
+  // Keep tasks array if present, otherwise create a placeholder based on count
+  const tasks = Array.isArray(project.tasks) ? project.tasks : [];
+
   return {
     ...project,
     // Enforced status
@@ -152,13 +169,16 @@ const normalizeProject = (project: any): Project => {
     expectedCloseDate: project.expectedCloseDate ?? project.expected_close_date ?? null,
     businessSegment: project.businessSegment ?? project.business_segment ?? '',
     subProduct: project.subProduct ?? project.sub_product ?? '',
-    projectLeadId: project.projectLeadId ?? project.project_lead_id ?? null,
-    assigneeId: project.assigneeId ?? project.assignee_id ?? null,
+    projectLeadId,
+    assigneeId,
     salesLead: project.salesLead ?? project.sales_lead ?? null,
     channelPartner: project.channelPartner ?? project.channel_partner ?? '',
     projectLeadComments: project.projectLeadComments ?? project.project_lead_comments ?? '',
     dealProbability: project.dealProbability ?? project.deal_probability ?? project.riskLevel ?? project.risk_level ?? 'low',
-    teamMemberIds: (project.teamMemberIds ?? project.team_member_ids ?? []).map((id: any) => String(id)),
+    teamMemberIds,
+    teamSize: computedTeamSize || project.teamSize || project.team_size || 0,
+    tasks,
+    tasksCount: tasksCount != null ? Number(tasksCount) : tasks.length,
   };
 };
 

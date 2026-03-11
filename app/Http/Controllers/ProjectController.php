@@ -124,7 +124,7 @@ class ProjectController extends Controller
     public function show($id): JsonResponse
     {
         try {
-            $project = Project::findOrFail($id);
+            $project = Project::withCount('tasks')->findOrFail($id);
             
             return response()->json([
                 'data' => $project
