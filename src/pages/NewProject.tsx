@@ -89,6 +89,8 @@ export default function NewProject() {
     marginPercentUSD: '',
     // Comments
     projectLeadComments: '',
+    // Image
+    projectImage: undefined as string | undefined,
   });
 
   // Set default project lead when team members load
