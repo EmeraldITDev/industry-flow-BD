@@ -17,6 +17,7 @@ import { Sector, RiskLevel, PipelineStage, BusinessSegment, PIPELINE_STAGES } fr
 import { toast } from 'sonner';
 import { parseNumberInput } from '@/lib/utils';
 import { PipelineStageSelector } from '@/components/projects/PipelineStageSelector';
+import { ProjectImageUpload } from '@/components/projects/ProjectImageUpload';
 import { projectsService } from '@/services/projects';
 import { teamService } from '@/services/team';
 
