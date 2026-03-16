@@ -131,14 +131,30 @@ export default function AllTasks() {
     completed: tasks.filter(t => t.status === 'completed').length,
   }), [tasks]);
 
-  const hasFilters = search || statusFilter !== 'all' || priorityFilter !== 'all' || projectFilter !== 'all';
+  const hasFilters = search || statusFilter !== 'all' || priorityFilter !== 'all' || projectFilter !== 'all' || assigneeFilter !== 'all';
 
   const clearFilters = () => {
     setSearch('');
     setStatusFilter('all');
     setPriorityFilter('all');
     setProjectFilter('all');
+    setAssigneeFilter('all');
   };
+
+  // Get unique assignees from visible tasks for the filter dropdown
+  const assigneeOptions = useMemo(() => {
+    const seen = new Map<string, string>();
+    tasks.forEach(task => {
+      if (task.assigneeId) {
+        const id = String(task.assigneeId);
+        if (!seen.has(id)) {
+          const name = teamMap[id] || (typeof task.assignee === 'string' ? task.assignee : 'Unknown');
+          seen.set(id, name);
+        }
+      }
+    });
+    return Array.from(seen.entries()).map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
+  }, [tasks, teamMap]);
 
   return (
     <div className="p-4 md:p-6 lg:p-8 space-y-6">
