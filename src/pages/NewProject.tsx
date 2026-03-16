@@ -26,6 +26,7 @@ import { Sector, RiskLevel, Milestone, PipelineStage, BusinessSegment, PIPELINE_
 import { toast } from 'sonner';
 import { PipelineStageSelector } from '@/components/projects/PipelineStageSelector';
 import { DocumentManager } from '@/components/projects/DocumentManager';
+import { ProjectImageUpload } from '@/components/projects/ProjectImageUpload';
 import { projectsService } from '@/services/projects';
 import { teamService } from '@/services/team';
 import { useAuth } from '@/context/AuthContext';
@@ -88,6 +89,8 @@ export default function NewProject() {
     marginPercentUSD: '',
     // Comments
     projectLeadComments: '',
+    // Image
+    projectImage: undefined as string | undefined,
   });
 
   // Set default project lead when team members load
@@ -176,6 +179,7 @@ export default function NewProject() {
         marginValueUSD,
         dealProbability: formData.dealProbability,
         projectLeadComments: formData.projectLeadComments || undefined,
+        projectImage: formData.projectImage || undefined,
         teamMemberIds: formData.teamMemberIds.length > 0 ? formData.teamMemberIds : undefined,
       } as any);
       toast.success('Project created successfully!');
@@ -571,6 +575,20 @@ export default function NewProject() {
                 ))}
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Project Image */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Project Image</CardTitle>
+            <CardDescription>Upload an image to represent this project</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ProjectImageUpload
+              value={formData.projectImage}
+              onChange={(img) => setFormData({ ...formData, projectImage: img })}
+            />
           </CardContent>
         </Card>
 

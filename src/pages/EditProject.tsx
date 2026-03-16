@@ -17,6 +17,7 @@ import { Sector, RiskLevel, PipelineStage, BusinessSegment, PIPELINE_STAGES } fr
 import { toast } from 'sonner';
 import { parseNumberInput } from '@/lib/utils';
 import { PipelineStageSelector } from '@/components/projects/PipelineStageSelector';
+import { ProjectImageUpload } from '@/components/projects/ProjectImageUpload';
 import { projectsService } from '@/services/projects';
 import { teamService } from '@/services/team';
 
@@ -77,6 +78,7 @@ export default function EditProject() {
     marginPercentNGN: '',
     marginPercentUSD: '',
     projectLeadComments: '',
+    projectImage: undefined as string | undefined,
   });
 
   // Helper to safely parse dates
@@ -138,6 +140,7 @@ export default function EditProject() {
       marginPercentUSD: data.marginPercentUSD != null ? String(data.marginPercentUSD) : (data.margin_percent_usd != null ? String(data.margin_percent_usd) : ''),
 
       projectLeadComments: data.projectLeadComments ?? data.project_lead_comments ?? '',
+      projectImage: data.projectImage ?? data.project_image ?? undefined,
     });
   }, [projectData]);
 
@@ -185,6 +188,7 @@ export default function EditProject() {
           ? (parseNumberInput(formData.contractValueUSD)! * parseNumberInput(formData.marginPercentUSD)! / 100)
           : undefined,
         projectLeadComments: formData.projectLeadComments || undefined,
+        projectImage: formData.projectImage || undefined,
         dealProbability: formData.dealProbability,
       });
       toast.success('Project updated successfully!');
@@ -584,6 +588,20 @@ export default function EditProject() {
                 </div>
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Project Image */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Project Image</CardTitle>
+            <CardDescription>Upload an image to represent this project</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ProjectImageUpload
+              value={formData.projectImage}
+              onChange={(img) => setFormData({ ...formData, projectImage: img })}
+            />
           </CardContent>
         </Card>
 

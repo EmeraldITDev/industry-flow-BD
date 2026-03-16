@@ -140,6 +140,7 @@ export default function ProjectDetail() {
         projectLeadComments: data.project_lead_comments || data.projectLeadComments,
         dealProbability: data.deal_probability || data.dealProbability || data.risk_level || data.riskLevel,
         tasks: data.tasks || [],
+        projectImage: data.project_image || data.projectImage || undefined,
         milestones: data.milestones || [],
         documents: data.documents || [],
         stageHistory: data.stage_history || data.stageHistory || [],
@@ -578,6 +579,18 @@ export default function ProjectDetail() {
         </div>
 
         <div className="space-y-6">
+          {/* Project Image */}
+          {project.projectImage && (
+            <Card>
+              <CardContent className="p-3">
+                <img
+                  src={project.projectImage}
+                  alt={project.name}
+                  className="w-full h-48 object-cover rounded-lg"
+                />
+              </CardContent>
+            </Card>
+          )}
           <Card>
             <CardHeader>
               <CardTitle>Progress</CardTitle>

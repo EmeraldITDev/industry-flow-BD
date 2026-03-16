@@ -33,6 +33,7 @@ export interface CreateProjectData {
   marginValueUSD?: number;
   projectLeadComments?: string;
   dealProbability?: RiskLevel;
+  projectImage?: string;
 }
 
 export interface UpdateProjectData extends Partial<CreateProjectData> {
@@ -191,6 +192,7 @@ const normalizeProject = (project: any): Project => {
     channelPartner: project.channelPartner ?? project.channel_partner ?? '',
     projectLeadComments: project.projectLeadComments ?? project.project_lead_comments ?? '',
     dealProbability: project.dealProbability ?? project.deal_probability ?? project.riskLevel ?? project.risk_level ?? 'low',
+    projectImage: project.projectImage ?? project.project_image ?? undefined,
     teamMemberIds,
     teamSize: computedTeamSize || project.teamSize || project.team_size || 0,
     tasks,
@@ -376,6 +378,7 @@ export const projectsService = {
       channelPartner: 'channel_partner',
       projectLeadComments: 'project_lead_comments',
       dealProbability: 'deal_probability',
+      projectImage: 'project_image',
     };
 
     Object.entries(snakeCaseMap).forEach(([camelKey, snakeKey]) => {
@@ -455,6 +458,7 @@ export const projectsService = {
       channelPartner: 'channel_partner',
       projectLeadComments: 'project_lead_comments',
       dealProbability: 'deal_probability',
+      projectImage: 'project_image',
     };
 
     Object.entries(snakeCaseMap).forEach(([camelKey, snakeKey]) => {

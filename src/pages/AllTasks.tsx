@@ -49,6 +49,7 @@ export default function AllTasks() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
   const [projectFilter, setProjectFilter] = useState<string>('all');
+  const [assigneeFilter, setAssigneeFilter] = useState<string>('all');
 
   const { data: allTasks = [], isLoading, refetch, isFetching } = useQuery({
     queryKey: ['all-tasks'],
@@ -114,9 +115,13 @@ export default function AllTasks() {
       if (statusFilter !== 'all' && task.status !== statusFilter) return false;
       if (priorityFilter !== 'all' && task.priority !== priorityFilter) return false;
       if (projectFilter !== 'all' && task.projectId !== projectFilter) return false;
+      if (assigneeFilter !== 'all') {
+        const taskAssigneeId = task.assigneeId ? String(task.assigneeId) : null;
+        if (taskAssigneeId !== assigneeFilter) return false;
+      }
       return true;
     });
-  }, [tasks, search, statusFilter, priorityFilter, projectFilter, projectMap]);
+  }, [tasks, search, statusFilter, priorityFilter, projectFilter, assigneeFilter, projectMap]);
 
   const stats = useMemo(() => ({
     total: tasks.length,
@@ -126,14 +131,30 @@ export default function AllTasks() {
     completed: tasks.filter(t => t.status === 'completed').length,
   }), [tasks]);
 
-  const hasFilters = search || statusFilter !== 'all' || priorityFilter !== 'all' || projectFilter !== 'all';
+  const hasFilters = search || statusFilter !== 'all' || priorityFilter !== 'all' || projectFilter !== 'all' || assigneeFilter !== 'all';
 
   const clearFilters = () => {
     setSearch('');
     setStatusFilter('all');
     setPriorityFilter('all');
     setProjectFilter('all');
+    setAssigneeFilter('all');
   };
+
+  // Get unique assignees from visible tasks for the filter dropdown
+  const assigneeOptions = useMemo(() => {
+    const seen = new Map<string, string>();
+    tasks.forEach(task => {
+      if (task.assigneeId) {
+        const id = String(task.assigneeId);
+        if (!seen.has(id)) {
+          const name = teamMap[id] || (typeof task.assignee === 'string' ? task.assignee : 'Unknown');
+          seen.set(id, name);
+        }
+      }
+    });
+    return Array.from(seen.entries()).map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
+  }, [tasks, teamMap]);
 
   return (
     <div className="p-4 md:p-6 lg:p-8 space-y-6">
@@ -216,6 +237,15 @@ export default function AllTasks() {
             <SelectItem value="all">All Projects</SelectItem>
             {projects.map(p => (
               <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
+          <SelectTrigger className="w-full sm:w-[180px]"><SelectValue placeholder="Assignee" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Assignees</SelectItem>
+            {assigneeOptions.map(a => (
+              <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
             ))}
           </SelectContent>
         </Select>
