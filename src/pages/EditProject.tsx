@@ -140,6 +140,7 @@ export default function EditProject() {
       marginPercentUSD: data.marginPercentUSD != null ? String(data.marginPercentUSD) : (data.margin_percent_usd != null ? String(data.margin_percent_usd) : ''),
 
       projectLeadComments: data.projectLeadComments ?? data.project_lead_comments ?? '',
+      projectImage: data.projectImage ?? data.project_image ?? undefined,
     });
   }, [projectData]);
 
