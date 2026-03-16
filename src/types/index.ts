@@ -139,6 +139,7 @@ export interface Project {
   marginValueUSD?: number;
   
   projectLeadComments?: string;
+  projectImage?: string;
   teamMemberIds?: string[];
   tasksCount?: number;
   completedTasksCount?: number;

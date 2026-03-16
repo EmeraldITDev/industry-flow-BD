@@ -578,6 +578,20 @@ export default function NewProject() {
           </CardContent>
         </Card>
 
+        {/* Project Image */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Project Image</CardTitle>
+            <CardDescription>Upload an image to represent this project</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ProjectImageUpload
+              value={formData.projectImage}
+              onChange={(img) => setFormData({ ...formData, projectImage: img })}
+            />
+          </CardContent>
+        </Card>
+
         {/* Documents */}
         <DocumentManager documents={documents} onDocumentsChange={setDocuments} />
 
