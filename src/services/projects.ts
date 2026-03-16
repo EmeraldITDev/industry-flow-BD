@@ -33,6 +33,7 @@ export interface CreateProjectData {
   marginValueUSD?: number;
   projectLeadComments?: string;
   dealProbability?: RiskLevel;
+  projectImage?: string;
 }
 
 export interface UpdateProjectData extends Partial<CreateProjectData> {
