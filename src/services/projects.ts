@@ -378,6 +378,7 @@ export const projectsService = {
       channelPartner: 'channel_partner',
       projectLeadComments: 'project_lead_comments',
       dealProbability: 'deal_probability',
+      projectImage: 'project_image',
     };
 
     Object.entries(snakeCaseMap).forEach(([camelKey, snakeKey]) => {
