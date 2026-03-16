@@ -78,6 +78,7 @@ export default function EditProject() {
     marginPercentNGN: '',
     marginPercentUSD: '',
     projectLeadComments: '',
+    projectImage: undefined as string | undefined,
   });
 
   // Helper to safely parse dates
