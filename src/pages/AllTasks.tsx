@@ -115,9 +115,13 @@ export default function AllTasks() {
       if (statusFilter !== 'all' && task.status !== statusFilter) return false;
       if (priorityFilter !== 'all' && task.priority !== priorityFilter) return false;
       if (projectFilter !== 'all' && task.projectId !== projectFilter) return false;
+      if (assigneeFilter !== 'all') {
+        const taskAssigneeId = task.assigneeId ? String(task.assigneeId) : null;
+        if (taskAssigneeId !== assigneeFilter) return false;
+      }
       return true;
     });
-  }, [tasks, search, statusFilter, priorityFilter, projectFilter, projectMap]);
+  }, [tasks, search, statusFilter, priorityFilter, projectFilter, assigneeFilter, projectMap]);
 
   const stats = useMemo(() => ({
     total: tasks.length,
