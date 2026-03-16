@@ -26,6 +26,7 @@ import { Sector, RiskLevel, Milestone, PipelineStage, BusinessSegment, PIPELINE_
 import { toast } from 'sonner';
 import { PipelineStageSelector } from '@/components/projects/PipelineStageSelector';
 import { DocumentManager } from '@/components/projects/DocumentManager';
+import { ProjectImageUpload } from '@/components/projects/ProjectImageUpload';
 import { projectsService } from '@/services/projects';
 import { teamService } from '@/services/team';
 import { useAuth } from '@/context/AuthContext';
