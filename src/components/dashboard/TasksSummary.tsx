@@ -41,14 +41,19 @@ export function TasksSummary() {
   }), [allTasks]);
 
   const tasksByMember = useMemo(() => {
-    return (teamMembers || []).map((member: TeamMember) => ({
-      member,
-      tasks: allTasks.filter((t: Task) => t.assignee === member.name),
-      todo: allTasks.filter((t: Task) => t.assignee === member.name && t.status === 'todo').length,
-      inProgress: allTasks.filter((t: Task) => t.assignee === member.name && t.status === 'in-progress').length,
-      review: allTasks.filter((t: Task) => t.assignee === member.name && t.status === 'review').length,
-      completed: allTasks.filter((t: Task) => t.assignee === member.name && t.status === 'completed').length,
-    }));
+    return (teamMembers || []).map((member: TeamMember) => {
+      const memberTasks = allTasks.filter((t: Task) => 
+        String(t.assigneeId) === String(member.id) || t.assignee === member.name
+      );
+      return {
+        member,
+        tasks: memberTasks,
+        todo: memberTasks.filter((t: Task) => t.status === 'todo').length,
+        inProgress: memberTasks.filter((t: Task) => t.status === 'in-progress').length,
+        review: memberTasks.filter((t: Task) => t.status === 'review').length,
+        completed: memberTasks.filter((t: Task) => t.status === 'completed').length,
+      };
+    });
   }, [allTasks, teamMembers]);
 
   const statusConfig = [
