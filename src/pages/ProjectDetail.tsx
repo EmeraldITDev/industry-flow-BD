@@ -298,6 +298,7 @@ export default function ProjectDetail() {
       setProject({ ...project, status: newStatus });
       toast.success(`Project status updated to ${getStatusLabel(newStatus)}`);
       queryClient.invalidateQueries({ queryKey: ['projects'] });
+      queryClient.invalidateQueries({ queryKey: ['project', id] });
     } catch (err: any) {
       console.error('Failed to update project status:', err);
       toast.error(err.response?.data?.message || 'Failed to update status');
