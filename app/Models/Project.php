@@ -38,6 +38,7 @@ class Project extends Model
         'project_lead_comments',
         'deal_probability',
         'progress',
+        'project_image',
     ];
 
     protected $casts = [
