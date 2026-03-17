@@ -162,7 +162,7 @@ class ProjectController extends Controller
                 'name' => 'required|string|max:255',
                 'description' => 'required|string',
                 'sector' => 'required|string',
-                'status' => 'nullable|in:active,on-hold,completed',
+                'status' => 'nullable|in:active,on-hold,completed,inactive',
                 'start_date' => 'required|date',
                 'end_date' => 'nullable|date',
                 'client_name' => 'nullable|string',
