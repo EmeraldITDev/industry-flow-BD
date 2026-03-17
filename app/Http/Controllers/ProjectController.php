@@ -187,6 +187,7 @@ class ProjectController extends Controller
                 'project_lead_comments' => 'nullable|string',
                 'deal_probability' => 'nullable|string',
                 'progress' => 'nullable|integer|min:0|max:100',
+                'project_image' => 'nullable|string',
             ])->validate();
 
             $project = Project::create($validated);
