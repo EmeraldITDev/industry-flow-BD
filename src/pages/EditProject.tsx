@@ -188,7 +188,7 @@ export default function EditProject() {
           ? (parseNumberInput(formData.contractValueUSD)! * parseNumberInput(formData.marginPercentUSD)! / 100)
           : undefined,
         projectLeadComments: formData.projectLeadComments || undefined,
-        projectImage: formData.projectImage || undefined,
+        projectImage: formData.projectImage ?? null,
         dealProbability: formData.dealProbability,
       });
       toast.success('Project updated successfully!');
