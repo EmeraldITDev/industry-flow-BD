@@ -239,7 +239,10 @@ export function TasksSummary() {
                     </div>
                     
                     {tasks.length > 0 && (
-                      <Dialog open={dialogOpen && selectedTask?.assignee === member.name} onOpenChange={setDialogOpen}>
+                      <Dialog
+                        open={dialogOpen && !!selectedTask && tasks.some((task: Task) => task.id === selectedTask.id)}
+                        onOpenChange={setDialogOpen}
+                      >
                         <DialogTrigger asChild>
                           <Button 
                             variant="outline" 
