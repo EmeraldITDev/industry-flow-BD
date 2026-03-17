@@ -591,18 +591,6 @@ export default function ProjectDetail() {
         </div>
 
         <div className="space-y-6">
-          {/* Project Image */}
-          {project.projectImage && (
-            <Card>
-              <CardContent className="p-3">
-                <img
-                  src={project.projectImage}
-                  alt={project.name}
-                  className="w-full h-48 object-cover rounded-lg"
-                />
-              </CardContent>
-            </Card>
-          )}
           <Card>
             <CardHeader>
               <CardTitle>Progress</CardTitle>
