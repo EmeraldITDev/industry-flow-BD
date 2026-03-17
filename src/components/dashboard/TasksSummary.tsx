@@ -8,9 +8,56 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { projectsService } from '@/services/projects';
 import { teamService } from '@/services/team';
+import { tasksService } from '@/services/tasks';
 import { CheckCircle2, Circle, Clock, AlertCircle, User, ArrowRightLeft, ClipboardList } from 'lucide-react';
 import { Task, Project, TeamMember } from '@/types';
 import { toast } from 'sonner';
+
+const normalizeComparable = (value: unknown) => String(value ?? '').trim().toLowerCase();
+
+const getTaskIdentifier = (task: Task, index: number) => {
+  const id = normalizeComparable(task.id);
+  return id || `fallback-task-${index}-${normalizeComparable(task.title)}`;
+};
+
+const isTaskAssignedToMember = (task: Task, member: TeamMember) => {
+  const memberId = normalizeComparable(member.id);
+  const memberName = normalizeComparable(member.name);
+  const memberEmail = normalizeComparable(member.email);
+
+  const rawTask = task as Task & {
+    assignee_id?: string | number;
+    assignee_name?: string;
+    assignee_email?: string;
+    assigned_to?: string | number;
+    assigned_to_name?: string;
+    assigned_to_email?: string;
+  };
+
+  const assigneeIdCandidates = [
+    task.assigneeId,
+    rawTask.assignee_id,
+    rawTask.assigned_to,
+    task.assignee,
+  ].map(normalizeComparable).filter(Boolean);
+
+  if (assigneeIdCandidates.some((candidate) => candidate === memberId)) return true;
+
+  const assigneeNameCandidates = [
+    task.assignee,
+    rawTask.assignee_name,
+    rawTask.assigned_to_name,
+  ].map(normalizeComparable).filter(Boolean);
+
+  if (assigneeNameCandidates.some((candidate) => candidate === memberName)) return true;
+
+  const assigneeEmailCandidates = [
+    rawTask.assignee_email,
+    rawTask.assigned_to_email,
+  ].map(normalizeComparable).filter(Boolean);
+
+  return assigneeEmailCandidates.some((candidate) => candidate === memberEmail);
+};
 
 export function TasksSummary() {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -23,6 +70,12 @@ export function TasksSummary() {
     staleTime: 5 * 60 * 1000,
   });
 
+  const { data: tasksFromApi, isLoading: tasksLoading } = useQuery({
+    queryKey: ['all-tasks'],
+    queryFn: () => tasksService.getAll(),
+    staleTime: 60 * 1000,
+  });
+
   const { data: teamMembers, isLoading: teamLoading } = useQuery({
     queryKey: ['team'],
     queryFn: () => teamService.getAll(),
@@ -30,8 +83,21 @@ export function TasksSummary() {
   });
 
   const allTasks = useMemo(() => {
-    return (projects || []).flatMap((p: Project) => p.tasks || []);
-  }, [projects]);
+    const tasksFromProjects = (projects || []).flatMap((p: Project) => p.tasks || []);
+    const mergedTasks = new Map<string, Task>();
+
+    tasksFromProjects.forEach((task: Task, index: number) => {
+      if (!task) return;
+      mergedTasks.set(getTaskIdentifier(task, index), task);
+    });
+
+    (tasksFromApi || []).forEach((task: Task, index: number) => {
+      if (!task) return;
+      mergedTasks.set(getTaskIdentifier(task, index), task);
+    });
+
+    return Array.from(mergedTasks.values());
+  }, [projects, tasksFromApi]);
 
   const tasksByStatus = useMemo(() => ({
     todo: allTasks.filter((t: Task) => t.status === 'todo'),
@@ -42,9 +108,7 @@ export function TasksSummary() {
 
   const tasksByMember = useMemo(() => {
     return (teamMembers || []).map((member: TeamMember) => {
-      const memberTasks = allTasks.filter((t: Task) => 
-        String(t.assigneeId) === String(member.id) || t.assignee === member.name
-      );
+      const memberTasks = allTasks.filter((task: Task) => isTaskAssignedToMember(task, member));
       return {
         member,
         tasks: memberTasks,
@@ -72,7 +136,7 @@ export function TasksSummary() {
     setNewAssignee('');
   };
 
-  const isLoading = projectsLoading || teamLoading;
+  const isLoading = projectsLoading || tasksLoading || teamLoading;
 
   if (isLoading) {
     return (
