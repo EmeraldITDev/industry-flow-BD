@@ -6,7 +6,7 @@ import { sectorColors, sectorIcons, stageColors } from '@/data/mockData';
 import { Calendar, Users, CheckSquare, MessageSquare } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Link } from 'react-router-dom';
-import { format, differenceInDays, isValid } from 'date-fns';
+import { format, isValid } from 'date-fns';
 import { useCurrency } from '@/context/CurrencyContext';
 import { getStageProgress } from '@/lib/stageProgress';
 
