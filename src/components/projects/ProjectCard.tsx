@@ -64,11 +64,12 @@ export function ProjectCard({ project, selectable, selected, onSelectToggle }: P
               {project.status}
             </Badge>
           </div>
-          {showInactivityWarning && (
-            <div className="flex items-center gap-1 text-destructive shrink-0">
-              <AlertTriangle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              <span className="text-[10px] sm:text-xs">{daysSinceUpdate}d</span>
-            </div>
+          {project.projectImage && (
+            <img
+              src={project.projectImage}
+              alt={project.name}
+              className="w-8 h-8 sm:w-10 sm:h-10 rounded object-contain border border-border shrink-0"
+            />
           )}
         </div>
         <h3 className="font-semibold text-sm sm:text-lg mt-1.5 sm:mt-2 group-hover:text-primary transition-colors line-clamp-2">
