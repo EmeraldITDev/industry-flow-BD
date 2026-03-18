@@ -83,11 +83,44 @@ export function DashboardFilters({ filters, onFiltersChange, projects, teamMembe
     return Array.from(months).sort().reverse();
   }, [projects]);
 
+  // Extract unique clients, products, subProducts, channelPartners
+  const uniqueClients = useMemo(() => {
+    const set = new Set<string>();
+    projects.forEach(p => { if (p.clientName?.trim()) set.add(p.clientName.trim()); });
+    return Array.from(set).sort();
+  }, [projects]);
+
+  const uniqueProducts = useMemo(() => {
+    const set = new Set<string>();
+    projects.forEach(p => {
+      if (p.product?.trim() && p.product.toLowerCase() !== 'nan') set.add(p.product.trim());
+    });
+    return Array.from(set).sort();
+  }, [projects]);
+
+  const uniqueSubProducts = useMemo(() => {
+    const set = new Set<string>();
+    projects.forEach(p => {
+      if (p.subProduct?.trim() && p.subProduct.toLowerCase() !== 'nan') set.add(p.subProduct.trim());
+    });
+    return Array.from(set).sort();
+  }, [projects]);
+
+  const uniqueChannelPartners = useMemo(() => {
+    const set = new Set<string>();
+    projects.forEach(p => { if (p.channelPartner?.trim()) set.add(p.channelPartner.trim()); });
+    return Array.from(set).sort();
+  }, [projects]);
+
   const activeCount =
     filters.projectLeads.length +
     filters.pipelineStages.length +
     filters.businessSegments.length +
-    filters.startDates.length;
+    filters.startDates.length +
+    filters.clients.length +
+    filters.products.length +
+    filters.subProducts.length +
+    filters.channelPartners.length;
 
   const handleClear = () => onFiltersChange(defaultDashboardFilters);
 
