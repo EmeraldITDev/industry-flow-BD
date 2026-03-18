@@ -41,7 +41,7 @@ export function ProjectCard({ project, selectable, selected, onSelectToggle }: P
   
 
   const card = (
-    <Card className={`h-full hover:border-primary/50 hover:shadow-md transition-all cursor-pointer group relative ${selected ? 'border-primary ring-2 ring-primary/20' : ''}`}>
+    <Card className={`hover:border-primary/50 hover:shadow-md transition-all cursor-pointer group relative ${selected ? 'border-primary ring-2 ring-primary/20' : ''}`}>
       {selectable && (
         <div
           className="absolute top-2 left-2 z-10"
