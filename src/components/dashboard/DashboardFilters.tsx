@@ -15,6 +15,10 @@ export interface DashboardFilterState {
   pipelineStages: PipelineStage[];
   businessSegments: BusinessSegment[];
   startDates: string[];
+  clients: string[];
+  products: string[];
+  subProducts: string[];
+  channelPartners: string[];
 }
 
 export const defaultDashboardFilters: DashboardFilterState = {
@@ -22,6 +26,10 @@ export const defaultDashboardFilters: DashboardFilterState = {
   pipelineStages: [],
   businessSegments: [],
   startDates: [],
+  clients: [],
+  products: [],
+  subProducts: [],
+  channelPartners: [],
 };
 
 interface DashboardFiltersProps {
