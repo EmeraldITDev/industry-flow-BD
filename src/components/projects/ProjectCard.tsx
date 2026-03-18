@@ -113,6 +113,19 @@ export function ProjectCard({ project, selectable, selected, onSelectToggle }: P
           <Progress value={getStageProgress(project.pipelineStage, project.progress)} className="h-1.5 sm:h-2" />
         </div>
 
+        {/* Project Lead Comments */}
+        {project.projectLeadComments && (
+          <div className="pt-2 border-t border-border">
+            <div className="flex items-center gap-1 text-[10px] sm:text-xs text-muted-foreground mb-1">
+              <MessageSquare className="w-3 h-3" />
+              <span className="font-medium">Lead Comments</span>
+            </div>
+            <p className="text-[10px] sm:text-xs text-muted-foreground line-clamp-2 break-words">
+              {project.projectLeadComments}
+            </p>
+          </div>
+        )}
+
         <div className="flex items-center justify-between text-[10px] sm:text-sm text-muted-foreground pt-2 border-t border-border">
           <div className="flex items-center gap-0.5 sm:gap-1">
             <Users className="w-3 h-3 sm:w-4 sm:h-4" />

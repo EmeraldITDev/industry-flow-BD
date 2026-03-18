@@ -417,6 +417,16 @@ export function applyDashboardFilters(
         return false;
       }
     }
+    if (filters.clients.length > 0 && (!p.clientName || !filters.clients.includes(p.clientName.trim()))) return false;
+    if (filters.products.length > 0) {
+      const prod = p.product?.trim();
+      if (!prod || !filters.products.includes(prod)) return false;
+    }
+    if (filters.subProducts.length > 0) {
+      const sp = p.subProduct?.trim();
+      if (!sp || !filters.subProducts.includes(sp)) return false;
+    }
+    if (filters.channelPartners.length > 0 && (!p.channelPartner || !filters.channelPartners.includes(p.channelPartner.trim()))) return false;
     return true;
   });
 }
