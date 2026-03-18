@@ -391,21 +391,18 @@ export default function ProjectDetail() {
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6">
         <div className="lg:col-span-3 space-y-4 sm:space-y-6">
-          {/* Project Image */}
-          {project.projectImage && (
-            <Card>
-              <CardContent className="p-3">
-                <img
-                  src={project.projectImage}
-                  alt={project.name}
-                  className="w-full max-h-64 object-cover rounded-lg"
-                />
-              </CardContent>
-            </Card>
-          )}
           <Card>
             <CardHeader className="p-3 sm:p-6">
-              <CardTitle className="text-sm sm:text-base">About this project</CardTitle>
+              <div className="flex items-start justify-between gap-3">
+                <CardTitle className="text-sm sm:text-base">About this project</CardTitle>
+                {project.projectImage && (
+                  <img
+                    src={project.projectImage}
+                    alt={project.name}
+                    className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg object-contain border border-border shrink-0"
+                  />
+                )}
+              </div>
             </CardHeader>
             <CardContent className="p-3 sm:p-6 pt-0">
               <p className="text-xs sm:text-sm text-muted-foreground">{project.description || 'No description provided.'}</p>
