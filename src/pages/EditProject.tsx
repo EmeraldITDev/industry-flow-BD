@@ -224,6 +224,26 @@ export default function EditProject() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Project Image - Top Right */}
+        {formData.projectImage && (
+          <div className="flex justify-end">
+            <div className="relative group">
+              <img
+                src={formData.projectImage}
+                alt="Project"
+                className="w-[200px] h-[200px] object-contain rounded-lg border border-border bg-muted/30"
+              />
+              <button
+                type="button"
+                className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs"
+                onClick={() => setFormData({ ...formData, projectImage: undefined })}
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Pipeline Stage */}
         <Card>
           <CardHeader>

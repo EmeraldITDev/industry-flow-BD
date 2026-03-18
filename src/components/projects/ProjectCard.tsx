@@ -3,10 +3,10 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { sectorColors, sectorIcons, stageColors } from '@/data/mockData';
-import { Calendar, Users, CheckSquare, AlertTriangle } from 'lucide-react';
+import { Calendar, Users, CheckSquare, MessageSquare } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Link } from 'react-router-dom';
-import { format, differenceInDays, isValid } from 'date-fns';
+import { format, isValid } from 'date-fns';
 import { useCurrency } from '@/context/CurrencyContext';
 import { getStageProgress } from '@/lib/stageProgress';
 
@@ -39,14 +39,6 @@ export function ProjectCard({ project, selectable, selected, onSelectToggle }: P
   const contractValue = getContractValue(project);
   const marginValue = getMarginValue(project);
   
-  let daysSinceUpdate = 0;
-  if (project.lastStageUpdate) {
-    const updateDate = new Date(project.lastStageUpdate);
-    if (isValid(updateDate)) {
-      daysSinceUpdate = differenceInDays(new Date(), updateDate);
-    }
-  }
-  const showInactivityWarning = daysSinceUpdate >= 3 && project.status === 'active' && project.pipelineStage !== 'closure';
 
   const card = (
     <Card className={`h-full hover:border-primary/50 hover:shadow-md transition-all cursor-pointer group relative ${selected ? 'border-primary ring-2 ring-primary/20' : ''}`}>
@@ -72,11 +64,12 @@ export function ProjectCard({ project, selectable, selected, onSelectToggle }: P
               {project.status}
             </Badge>
           </div>
-          {showInactivityWarning && (
-            <div className="flex items-center gap-1 text-destructive shrink-0">
-              <AlertTriangle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              <span className="text-[10px] sm:text-xs">{daysSinceUpdate}d</span>
-            </div>
+          {project.projectImage && (
+            <img
+              src={project.projectImage}
+              alt={project.name}
+              className="w-8 h-8 sm:w-10 sm:h-10 rounded object-contain border border-border shrink-0"
+            />
           )}
         </div>
         <h3 className="font-semibold text-sm sm:text-lg mt-1.5 sm:mt-2 group-hover:text-primary transition-colors line-clamp-2">
@@ -87,7 +80,7 @@ export function ProjectCard({ project, selectable, selected, onSelectToggle }: P
         </Badge>
       </CardHeader>
       <CardContent className="p-3 sm:p-6 pt-0 space-y-2 sm:space-y-4">
-        <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2">
+        <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 break-words">
           {project.description}
         </p>
         
@@ -120,6 +113,19 @@ export function ProjectCard({ project, selectable, selected, onSelectToggle }: P
           </div>
           <Progress value={getStageProgress(project.pipelineStage, project.progress)} className="h-1.5 sm:h-2" />
         </div>
+
+        {/* Project Lead Comments */}
+        {project.projectLeadComments && (
+          <div className="pt-2 border-t border-border">
+            <div className="flex items-center gap-1 text-[10px] sm:text-xs text-muted-foreground mb-1">
+              <MessageSquare className="w-3 h-3" />
+              <span className="font-medium">Lead Comments</span>
+            </div>
+            <p className="text-[10px] sm:text-xs text-muted-foreground line-clamp-2 break-words">
+              {project.projectLeadComments}
+            </p>
+          </div>
+        )}
 
         <div className="flex items-center justify-between text-[10px] sm:text-sm text-muted-foreground pt-2 border-t border-border">
           <div className="flex items-center gap-0.5 sm:gap-1">

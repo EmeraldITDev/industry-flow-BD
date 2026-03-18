@@ -349,15 +349,19 @@ export default function Projects() {
           <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
         </div>
       ) : (
-        <div className={viewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6" : "space-y-6"}>
-          {filteredProjects.map(project => (
-            <ProjectCard
-              key={project.id}
-              project={project}
-              selectable={selectMode}
-              selected={selectedIds.has(project.id)}
-              onSelectToggle={toggleSelect}
-            />
+        <div className={viewMode === 'grid' ? "grid grid-cols-1 lg:grid-cols-2 gap-6" : "space-y-4"}>
+          {filteredProjects.map((project, idx) => (
+            <div key={project.id}>
+              <ProjectCard
+                project={project}
+                selectable={selectMode}
+                selected={selectedIds.has(project.id)}
+                onSelectToggle={toggleSelect}
+              />
+              {viewMode === 'list' && idx < filteredProjects.length - 1 && (
+                <div className="border-b border-border mt-4" />
+              )}
+            </div>
           ))}
         </div>
       )}
