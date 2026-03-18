@@ -39,14 +39,6 @@ export function ProjectCard({ project, selectable, selected, onSelectToggle }: P
   const contractValue = getContractValue(project);
   const marginValue = getMarginValue(project);
   
-  let daysSinceUpdate = 0;
-  if (project.lastStageUpdate) {
-    const updateDate = new Date(project.lastStageUpdate);
-    if (isValid(updateDate)) {
-      daysSinceUpdate = differenceInDays(new Date(), updateDate);
-    }
-  }
-  const showInactivityWarning = daysSinceUpdate >= 3 && project.status === 'active' && project.pipelineStage !== 'closure';
 
   const card = (
     <Card className={`h-full hover:border-primary/50 hover:shadow-md transition-all cursor-pointer group relative ${selected ? 'border-primary ring-2 ring-primary/20' : ''}`}>
