@@ -257,6 +257,122 @@ export function DashboardFilters({ filters, onFiltersChange, projects, teamMembe
         </PopoverContent>
       </Popover>
 
+      {/* Client */}
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button variant="outline" size="sm" className="h-8 text-xs gap-1">
+            Client
+            {filters.clients.length > 0 && (
+              <Badge className="ml-1 h-4 w-4 p-0 flex items-center justify-center text-[10px]">
+                {filters.clients.length}
+              </Badge>
+            )}
+            <ChevronDown className="w-3 h-3" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-56 p-3" align="start">
+          <div className="space-y-2 max-h-48 overflow-y-auto">
+            {uniqueClients.length === 0 && <p className="text-xs text-muted-foreground">No clients found</p>}
+            {uniqueClients.map(client => (
+              <label key={client} className="flex items-center gap-2 text-xs cursor-pointer">
+                <Checkbox
+                  checked={filters.clients.includes(client)}
+                  onCheckedChange={() => onFiltersChange({ ...filters, clients: toggleItem(filters.clients, client) })}
+                />
+                {client}
+              </label>
+            ))}
+          </div>
+        </PopoverContent>
+      </Popover>
+
+      {/* Product */}
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button variant="outline" size="sm" className="h-8 text-xs gap-1">
+            Product
+            {filters.products.length > 0 && (
+              <Badge className="ml-1 h-4 w-4 p-0 flex items-center justify-center text-[10px]">
+                {filters.products.length}
+              </Badge>
+            )}
+            <ChevronDown className="w-3 h-3" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-56 p-3" align="start">
+          <div className="space-y-2 max-h-48 overflow-y-auto">
+            {uniqueProducts.length === 0 && <p className="text-xs text-muted-foreground">No products found</p>}
+            {uniqueProducts.map(product => (
+              <label key={product} className="flex items-center gap-2 text-xs cursor-pointer">
+                <Checkbox
+                  checked={filters.products.includes(product)}
+                  onCheckedChange={() => onFiltersChange({ ...filters, products: toggleItem(filters.products, product) })}
+                />
+                {product}
+              </label>
+            ))}
+          </div>
+        </PopoverContent>
+      </Popover>
+
+      {/* Sub Product */}
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button variant="outline" size="sm" className="h-8 text-xs gap-1">
+            Sub Product
+            {filters.subProducts.length > 0 && (
+              <Badge className="ml-1 h-4 w-4 p-0 flex items-center justify-center text-[10px]">
+                {filters.subProducts.length}
+              </Badge>
+            )}
+            <ChevronDown className="w-3 h-3" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-56 p-3" align="start">
+          <div className="space-y-2 max-h-48 overflow-y-auto">
+            {uniqueSubProducts.length === 0 && <p className="text-xs text-muted-foreground">No sub products found</p>}
+            {uniqueSubProducts.map(sp => (
+              <label key={sp} className="flex items-center gap-2 text-xs cursor-pointer">
+                <Checkbox
+                  checked={filters.subProducts.includes(sp)}
+                  onCheckedChange={() => onFiltersChange({ ...filters, subProducts: toggleItem(filters.subProducts, sp) })}
+                />
+                {sp}
+              </label>
+            ))}
+          </div>
+        </PopoverContent>
+      </Popover>
+
+      {/* Channel Partner */}
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button variant="outline" size="sm" className="h-8 text-xs gap-1">
+            Channel Partner
+            {filters.channelPartners.length > 0 && (
+              <Badge className="ml-1 h-4 w-4 p-0 flex items-center justify-center text-[10px]">
+                {filters.channelPartners.length}
+              </Badge>
+            )}
+            <ChevronDown className="w-3 h-3" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-56 p-3" align="start">
+          <div className="space-y-2 max-h-48 overflow-y-auto">
+            {uniqueChannelPartners.length === 0 && <p className="text-xs text-muted-foreground">No channel partners found</p>}
+            {uniqueChannelPartners.map(cp => (
+              <label key={cp} className="flex items-center gap-2 text-xs cursor-pointer">
+                <Checkbox
+                  checked={filters.channelPartners.includes(cp)}
+                  onCheckedChange={() => onFiltersChange({ ...filters, channelPartners: toggleItem(filters.channelPartners, cp) })}
+                />
+                {cp}
+              </label>
+            ))}
+          </div>
+        </PopoverContent>
+      </Popover>
+
       {activeCount > 0 && (
         <Button variant="ghost" size="sm" className="h-8 text-xs gap-1" onClick={handleClear}>
           <X className="w-3 h-3" />
