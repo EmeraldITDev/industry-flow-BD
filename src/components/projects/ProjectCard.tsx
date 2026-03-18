@@ -79,7 +79,7 @@ export function ProjectCard({ project, selectable, selected, onSelectToggle }: P
         </Badge>
       </CardHeader>
       <CardContent className="p-3 sm:p-6 pt-0 space-y-2 sm:space-y-4">
-        <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2">
+        <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 break-words">
           {project.description}
         </p>
         
