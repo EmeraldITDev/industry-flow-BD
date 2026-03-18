@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { sectorColors, sectorIcons, stageColors } from '@/data/mockData';
-import { Calendar, Users, CheckSquare, AlertTriangle } from 'lucide-react';
+import { Calendar, Users, CheckSquare, MessageSquare } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Link } from 'react-router-dom';
 import { format, differenceInDays, isValid } from 'date-fns';
