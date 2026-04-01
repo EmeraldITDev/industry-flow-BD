@@ -276,93 +276,73 @@ export default function Dashboard() {
           </div>
 
           <div className="grid grid-cols-1 gap-2 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <DashboardVisualExport filename="kpi-total-po-value-usd" contentClassName="p-0 bg-transparent border-0 shadow-none">
-              <EmeraldStatCard
-                label="Total PO Value (USD)"
-                value={formatCurrencyFor(computedStats.wonPOValueUSD, 'USD')}
-                subtitle={`${computedStats.won} won opportunities`}
-                colorScheme="won"
-                delta="Active"
-              />
-            </DashboardVisualExport>
-            <DashboardVisualExport filename="kpi-active-pipeline-usd" contentClassName="p-0 bg-transparent border-0 shadow-none">
-              <EmeraldStatCard
-                label="Active Pipeline (USD)"
-                value={formatCurrencyFor(computedStats.activePipelineUSD, 'USD')}
-                subtitle={`${computedStats.active} open opportunities`}
-                colorScheme="pipeline"
-              />
-            </DashboardVisualExport>
-            <DashboardVisualExport filename="kpi-total-commission-ngn" contentClassName="p-0 bg-transparent border-0 shadow-none">
-              <EmeraldStatCard
-                label="Total Commission (NGN)"
-                value={formatCurrencyFor(computedStats.totalCommissionNGN, 'NGN')}
-                subtitle="Across all segments"
-                colorScheme="commission"
-              />
-            </DashboardVisualExport>
-            <DashboardVisualExport filename="kpi-total-commission-usd" contentClassName="p-0 bg-transparent border-0 shadow-none">
-              <EmeraldStatCard
-                label="Total Commission (USD)"
-                value={formatCurrencyFor(computedStats.totalCommissionUSD, 'USD')}
-                subtitle="Across all segments"
-                colorScheme="commission_usd"
-              />
-            </DashboardVisualExport>
-            <DashboardVisualExport filename="kpi-total-opportunities" contentClassName="p-0 bg-transparent border-0 shadow-none">
-              <EmeraldStatCard
-                label="Total Opportunities"
-                value={computedStats.total.toLocaleString()}
-                subtitle={`${computedStats.segments} business segments`}
-                colorScheme="leads"
-              />
-            </DashboardVisualExport>
-            <DashboardVisualExport filename="kpi-win-rate" contentClassName="p-0 bg-transparent border-0 shadow-none">
-              <EmeraldStatCard
-                label="Win Rate"
-                value={`${computedStats.winRate.toFixed(2)}%`}
-                subtitle={`${computedStats.won} won / ${computedStats.total} total`}
-                colorScheme="rate"
-              />
-            </DashboardVisualExport>
+            <EmeraldStatCard
+              label="Total PO Value (USD)"
+              value={formatCurrencyFor(computedStats.wonPOValueUSD, 'USD')}
+              subtitle={`${computedStats.won} won opportunities`}
+              colorScheme="won"
+              delta="Active"
+            />
+            <EmeraldStatCard
+              label="Active Pipeline (USD)"
+              value={formatCurrencyFor(computedStats.activePipelineUSD, 'USD')}
+              subtitle={`${computedStats.active} open opportunities`}
+              colorScheme="pipeline"
+            />
+            <EmeraldStatCard
+              label="Total Commission (NGN)"
+              value={formatCurrencyFor(computedStats.totalCommissionNGN, 'NGN')}
+              subtitle="Across all segments"
+              colorScheme="commission"
+            />
+            <EmeraldStatCard
+              label="Total Commission (USD)"
+              value={formatCurrencyFor(computedStats.totalCommissionUSD, 'USD')}
+              subtitle="Across all segments"
+              colorScheme="commission_usd"
+            />
+            <EmeraldStatCard
+              label="Total Opportunities"
+              value={computedStats.total.toLocaleString()}
+              subtitle={`${computedStats.segments} business segments`}
+              colorScheme="leads"
+            />
+            <EmeraldStatCard
+              label="Win Rate"
+              value={`${computedStats.winRate.toFixed(2)}%`}
+              subtitle={`${computedStats.won} won / ${computedStats.total} total`}
+              colorScheme="rate"
+            />
           </div>
 
           {/* New Summary Cards: Total PO Value NGN, Total Margin USD, Total Margin NGN */}
           <div className="grid grid-cols-1 gap-2 sm:gap-4 sm:grid-cols-2 md:grid-cols-4">
-            <DashboardVisualExport filename="summary-total-projects" contentClassName="p-0 bg-transparent border-0 shadow-none">
-              <StatCard 
-                title="Total Projects" 
-                value={computedStats.total.toLocaleString()} 
-                icon={FolderKanban}
-                href="/projects"
-              />
-            </DashboardVisualExport>
-            <DashboardVisualExport filename="summary-total-po-ngn" contentClassName="p-0 bg-transparent border-0 shadow-none">
-              <StatCard 
-                title="Total PO Value (₦)" 
-                value={formatCurrencyFor(computedStats.totalNGN, 'NGN')} 
-                icon={DollarSign}
-                iconSymbol="₦"
-                className="bg-primary/5 border-primary/20"
-              />
-            </DashboardVisualExport>
-            <DashboardVisualExport filename="summary-margin-pct-usd" contentClassName="p-0 bg-transparent border-0 shadow-none">
-              <StatCard 
-                title="Margin % (USD)" 
-                value={`${computedStats.avgMarginPercentUSD.toFixed(2)}%`} 
-                icon={DollarSign}
-                className="bg-chart-2/5 border-chart-2/20"
-              />
-            </DashboardVisualExport>
-            <DashboardVisualExport filename="summary-margin-pct-ngn" contentClassName="p-0 bg-transparent border-0 shadow-none">
-              <StatCard 
-                title="Margin % (NGN)" 
-                value={`${computedStats.avgMarginPercentNGN.toFixed(2)}%`} 
-                icon={DollarSign}
-                iconSymbol="₦"
-                className="bg-chart-3/5 border-chart-3/20"
-              />
-            </DashboardVisualExport>
+            <StatCard 
+              title="Total Projects" 
+              value={computedStats.total.toLocaleString()} 
+              icon={FolderKanban}
+              href="/projects"
+            />
+            <StatCard 
+              title="Total PO Value (₦)" 
+              value={formatCurrencyFor(computedStats.totalNGN, 'NGN')} 
+              icon={DollarSign}
+              iconSymbol="₦"
+              className="bg-primary/5 border-primary/20"
+            />
+            <StatCard 
+              title="Margin % (USD)" 
+              value={`${computedStats.avgMarginPercentUSD.toFixed(2)}%`} 
+              icon={DollarSign}
+              className="bg-chart-2/5 border-chart-2/20"
+            />
+            <StatCard 
+              title="Margin % (NGN)" 
+              value={`${computedStats.avgMarginPercentNGN.toFixed(2)}%`} 
+              icon={DollarSign}
+              iconSymbol="₦"
+              className="bg-chart-3/5 border-chart-3/20"
+            />
           </div>
 
           {/* Pipeline & Revenue Analysis Section */}
@@ -480,23 +460,13 @@ export default function Dashboard() {
       {/* Bottom Section */}
       <div className="grid grid-cols-1 gap-3 sm:gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-3 sm:space-y-6">
-          <DashboardVisualExport filename="recent-active-projects" contentClassName="p-0 bg-transparent border-0 shadow-none">
-            <RecentProjects recentProjects={computedStats.recent} />
-          </DashboardVisualExport>
-          <DashboardVisualExport filename="tasks-summary" contentClassName="p-0 bg-transparent border-0 shadow-none">
-            <TasksSummary />
-          </DashboardVisualExport>
+          <RecentProjects recentProjects={computedStats.recent} />
+          <TasksSummary />
         </div>
         <div className="space-y-3 sm:space-y-6">
-          <DashboardVisualExport filename="upcoming-deadlines" contentClassName="p-0 bg-transparent border-0 shadow-none">
-            <DeadlineTracker projects={filteredProjects} />
-          </DashboardVisualExport>
-          <DashboardVisualExport filename="project-calendar" contentClassName="p-0 bg-transparent border-0 shadow-none">
-            <ProjectCalendar />
-          </DashboardVisualExport>
-          <DashboardVisualExport filename="sector-overview" contentClassName="p-0 bg-transparent border-0 shadow-none">
-            <SectorOverview />
-          </DashboardVisualExport>
+          <DeadlineTracker projects={filteredProjects} />
+          <ProjectCalendar />
+          <SectorOverview />
         </div>
       </div>
     </div>
