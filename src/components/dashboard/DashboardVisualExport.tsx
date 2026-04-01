@@ -74,7 +74,7 @@ export function DashboardVisualExport({
       <div
         ref={ref}
         data-dashboard-export-root
-        className={cn('bg-card border border-border rounded-xl overflow-hidden', contentClassName)}
+        className={cn('bg-card border border-border rounded-xl overflow-visible', contentClassName)}
       >
         {children}
       </div>

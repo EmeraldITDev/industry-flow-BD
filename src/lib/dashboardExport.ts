@@ -104,6 +104,7 @@ function applyExportLightTheme(clonedRoot: HTMLElement) {
     if (cls.includes('text-muted-foreground')) {
       el.style.color = '#475569';
     } else if (
+      cls.includes('text-card-foreground') ||
       cls.includes('text-foreground') ||
       cls.includes('font-semibold') ||
       cls.includes('font-bold') ||
