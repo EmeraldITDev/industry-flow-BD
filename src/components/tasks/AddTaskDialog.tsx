@@ -15,6 +15,7 @@ import { tasksService, CreateTaskData } from '@/services/tasks';
 import { teamService } from '@/services/team';
 import { TaskPriority, TaskStatus } from '@/types';
 import { toast } from 'sonner';
+import { TaskAttachmentsField } from '@/components/tasks/TaskAttachmentsField';
 
 interface AddTaskDialogProps {
   open: boolean;
@@ -34,6 +35,7 @@ export function AddTaskDialog({ open, onOpenChange, projectId, onTaskCreated }: 
     dueDate: undefined as Date | undefined,
     notes: '',
   });
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
 
   // Fetch team members from backend
   const { data: teamMembers = [] } = useQuery({
@@ -52,6 +54,7 @@ export function AddTaskDialog({ open, onOpenChange, projectId, onTaskCreated }: 
       dueDate: undefined,
       notes: '',
     });
+    setPendingFiles([]);
   };
 
   useEffect(() => {
@@ -81,7 +84,10 @@ export function AddTaskDialog({ open, onOpenChange, projectId, onTaskCreated }: 
         notes: formData.notes || undefined,
       };
 
-      await tasksService.create(taskData);
+      const created = await tasksService.create(taskData);
+      if (pendingFiles.length > 0) {
+        await tasksService.uploadAttachments(created.id, pendingFiles);
+      }
       toast.success('Task created successfully');
       onOpenChange(false);
       onTaskCreated?.();
@@ -220,6 +226,12 @@ export function AddTaskDialog({ open, onOpenChange, projectId, onTaskCreated }: 
               rows={2}
             />
           </div>
+
+          <TaskAttachmentsField
+            pendingFiles={pendingFiles}
+            onPendingChange={setPendingFiles}
+            disabled={isSubmitting}
+          />
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>

@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Textarea } from '@/components/ui/textarea';
-import { Calendar, AlertCircle, StickyNote, Check, X, Trash2, Pencil } from 'lucide-react';
+import { Calendar, AlertCircle, StickyNote, Check, X, Trash2, Pencil, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { safeFormatDate, isOverdue as checkOverdue } from '@/lib/dateUtils';
@@ -110,6 +110,24 @@ export function TaskList({ tasks, title, onTaskUpdate, onTaskDelete, onTaskEdit 
                       <p className="text-sm text-muted-foreground mt-1 line-clamp-1">
                         {task.description}
                       </p>
+                    )}
+                    {task.documents && task.documents.length > 0 && (
+                      <ul className="mt-2 space-y-1">
+                        {task.documents.map((doc) => (
+                          <li key={doc.id}>
+                            <a
+                              href={doc.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <FileText className="h-3.5 w-3.5 shrink-0" />
+                              <span className="truncate max-w-[220px]">{doc.name}</span>
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
                     )}
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">

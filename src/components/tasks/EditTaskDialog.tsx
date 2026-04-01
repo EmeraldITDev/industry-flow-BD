@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -13,8 +13,19 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { tasksService } from '@/services/tasks';
 import { teamService } from '@/services/team';
-import { Task, TaskPriority, TaskStatus } from '@/types';
+import { Task, TaskPriority, TaskStatus, ProjectDocument } from '@/types';
 import { toast } from 'sonner';
+import { TaskAttachmentsField } from '@/components/tasks/TaskAttachmentsField';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface EditTaskDialogProps {
   open: boolean;
@@ -34,6 +45,10 @@ export function EditTaskDialog({ open, onOpenChange, task, onTaskUpdated }: Edit
     dueDate: undefined as Date | undefined,
     notes: '',
   });
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [localDocuments, setLocalDocuments] = useState<ProjectDocument[]>([]);
+  const [docPendingDelete, setDocPendingDelete] = useState<ProjectDocument | null>(null);
+  const [deletingDoc, setDeletingDoc] = useState(false);
 
   const { data: teamMembers = [] } = useQuery({
     queryKey: ['team'],
@@ -52,8 +67,27 @@ export function EditTaskDialog({ open, onOpenChange, task, onTaskUpdated }: Edit
         dueDate: task.dueDate ? new Date(task.dueDate) : undefined,
         notes: task.notes || '',
       });
+      setLocalDocuments(task.documents ?? []);
+      setPendingFiles([]);
     }
   }, [task, open]);
+
+  const confirmDeleteDocument = useCallback(async () => {
+    if (!task || !docPendingDelete) return;
+    setDeletingDoc(true);
+    try {
+      await tasksService.deleteAttachment(task.id, docPendingDelete.id);
+      setLocalDocuments((prev) => prev.filter((d) => d.id !== docPendingDelete.id));
+      toast.success('Attachment removed');
+      setDocPendingDelete(null);
+      onTaskUpdated?.();
+    } catch (error: any) {
+      console.error(error);
+      toast.error(error.response?.data?.message || 'Failed to remove attachment');
+    } finally {
+      setDeletingDoc(false);
+    }
+  }, [task, docPendingDelete, onTaskUpdated]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,6 +109,11 @@ export function EditTaskDialog({ open, onOpenChange, task, onTaskUpdated }: Edit
         dueDate: formData.dueDate?.toISOString(),
         notes: formData.notes || undefined,
       }, task);
+      if (pendingFiles.length > 0) {
+        const updated = await tasksService.uploadAttachments(task.id, pendingFiles);
+        setLocalDocuments(updated.documents ?? []);
+        setPendingFiles([]);
+      }
       toast.success('Task updated successfully');
       onOpenChange(false);
       onTaskUpdated?.();
@@ -87,6 +126,7 @@ export function EditTaskDialog({ open, onOpenChange, task, onTaskUpdated }: Edit
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px] max-h-[85vh] overflow-y-auto">
         <DialogHeader>
@@ -211,6 +251,14 @@ export function EditTaskDialog({ open, onOpenChange, task, onTaskUpdated }: Edit
             />
           </div>
 
+          <TaskAttachmentsField
+            pendingFiles={pendingFiles}
+            onPendingChange={setPendingFiles}
+            existingDocuments={localDocuments}
+            onRemoveExisting={(doc) => setDocPendingDelete(doc)}
+            disabled={isSubmitting}
+          />
+
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
               Cancel
@@ -223,5 +271,23 @@ export function EditTaskDialog({ open, onOpenChange, task, onTaskUpdated }: Edit
         </form>
       </DialogContent>
     </Dialog>
+
+    <AlertDialog open={!!docPendingDelete} onOpenChange={(o) => !o && setDocPendingDelete(null)}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Remove attachment?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This will permanently remove &quot;{docPendingDelete?.name}&quot; from this task.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={deletingDoc}>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={confirmDeleteDocument} disabled={deletingDoc}>
+            {deletingDoc ? 'Removing…' : 'Remove'}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }

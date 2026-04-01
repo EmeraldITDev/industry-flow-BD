@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,6 +11,8 @@ import { teamService } from '@/services/team';
 import { Project, PipelineStage, TeamMember } from '@/types';
 import { DollarSign, Users, Building2, Layers, Banknote } from 'lucide-react';
 import { useCurrency } from '@/context/CurrencyContext';
+import { useDashboardCurrencyFormat } from '@/hooks/useDashboardCurrencyFormat';
+import { DashboardVisualExport } from '@/components/dashboard/DashboardVisualExport';
 
 type RevenueFilter = 'all' | 'pending' | 'proposal' | 'won';
 
@@ -35,19 +37,14 @@ const filterLabels: Record<RevenueFilter, string> = {
 
 export const RevenueAnalytics = () => {
   const [filter, setFilter] = useState<RevenueFilter>('all');
-  const { currency, formatCurrency: formatCurrencyValue, getContractValue, getMarginValue } = useCurrency();
+  const { currency, getContractValue, getMarginValue } = useCurrency();
+  const { formatCurrency: formatCurrencyValue } = useDashboardCurrencyFormat();
 
   const { data: projects, isLoading: projectsLoading } = useQuery({
     queryKey: ['projects'],
     queryFn: () => projectsService.getAll(),
     staleTime: 5 * 60 * 1000,
   });
-
-  // Debugging: log projects and loading state to help diagnose missing data
-  useEffect(() => {
-    console.log('[RevenueAnalytics] projects:', projects);
-    console.log('[RevenueAnalytics] projectsLoading:', projectsLoading);
-  }, [projects, projectsLoading]);
 
   const { data: teamMembers } = useQuery({
     queryKey: ['team'],
@@ -156,21 +153,24 @@ export const RevenueAnalytics = () => {
 
   if (projectsLoading) {
     return (
-      <Card className="bg-card border-border">
-        <CardHeader className="p-3 sm:p-6 pb-2 sm:pb-4">
-          <CardTitle className="text-base sm:text-lg font-semibold text-foreground">Revenue Analytics</CardTitle>
-        </CardHeader>
-        <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
-          <Skeleton className="h-32 w-full mb-4" />
-          <Skeleton className="h-48 w-full" />
-        </CardContent>
-      </Card>
+      <DashboardVisualExport filename="revenue-analytics" contentClassName="p-0 bg-transparent border-0 shadow-none">
+        <Card className="bg-card border-border">
+          <CardHeader className="p-3 sm:p-6 pb-2 sm:pb-4">
+            <CardTitle className="text-base sm:text-lg font-semibold text-foreground">Revenue Analytics</CardTitle>
+          </CardHeader>
+          <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
+            <Skeleton className="h-32 w-full mb-4" />
+            <Skeleton className="h-48 w-full" />
+          </CardContent>
+        </Card>
+      </DashboardVisualExport>
     );
   }
 
   const hasNoData = filteredProjects.length === 0;
 
   return (
+    <DashboardVisualExport filename="revenue-analytics" contentClassName="p-0 bg-transparent border-0 shadow-none">
     <Card className="bg-card border-border">
       <CardHeader className="p-3 sm:p-6 pb-2 sm:pb-4">
         <CardTitle className="text-base sm:text-lg font-semibold text-foreground">Revenue Analytics</CardTitle>
@@ -298,5 +298,6 @@ export const RevenueAnalytics = () => {
         )}
       </CardContent>
     </Card>
+    </DashboardVisualExport>
   );
 };

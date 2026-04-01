@@ -4,7 +4,6 @@ import { useMemo, useState } from 'react';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { EmeraldStatCard } from '@/components/dashboard/EmeraldStatCard';
 import { PipelineFunnel } from '@/components/dashboard/PipelineFunnel';
-import { TeamPerformance } from '@/components/dashboard/TeamPerformance';
 import { SegmentBreakdown } from '@/components/dashboard/SegmentBreakdown';
 import { TopClientsByValue } from '@/components/dashboard/TopClientsByValue';
 import { ProbabilityMixDonut } from '@/components/dashboard/ProbabilityMixDonut';
@@ -15,29 +14,23 @@ import { SectorOverview } from '@/components/dashboard/SectorOverview';
 import { RecentProjects } from '@/components/dashboard/RecentProjects';
 import { TasksSummary } from '@/components/dashboard/TasksSummary';
 import { RevenueAnalytics } from '@/components/dashboard/RevenueAnalytics';
-import { ProjectStatusChart } from '@/components/dashboard/ProjectStatusChart';
-import { PipelineStageChart } from '@/components/dashboard/PipelineStageChart';
-import { RevenueBySectorChart } from '@/components/dashboard/RevenueBySectorChart';
-import { TaskCompletionChart } from '@/components/dashboard/TaskCompletionChart';
 import { DeadlineTracker } from '@/components/dashboard/DeadlineTracker';
 import { WelcomeHeader } from '@/components/dashboard/WelcomeHeader';
-import { QuickActions } from '@/components/dashboard/QuickActions';
+import { DashboardExportProvider } from '@/context/DashboardExportContext';
+import { DashboardVisualExport } from '@/components/dashboard/DashboardVisualExport';
+import { useDashboardCurrencyFormat } from '@/hooks/useDashboardCurrencyFormat';
 import { ProjectCalendar } from '@/components/calendar/ProjectCalendar';
 import { DashboardFilters, DashboardFilterState, defaultDashboardFilters, applyDashboardFilters } from '@/components/dashboard/DashboardFilters';
 import { projectsService } from '@/services/projects';
 import { teamService } from '@/services/team';
-import { FolderKanban, CheckCircle, Loader2, DollarSign, ListChecks, Clock, RefreshCw } from 'lucide-react';
+import { FolderKanban, Loader2, DollarSign, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { useCurrency } from '@/context/CurrencyContext';
 import { Project } from '@/types';
 import { Progress } from '@/components/ui/progress';
 import { getStageProgress } from '@/lib/stageProgress';
-import { Badge } from '@/components/ui/badge';
-
 export default function Dashboard() {
-  const { formatCurrencyFor } = useCurrency();
-  const [chartFilter, setChartFilter] = useState<string | null>(null);
+  const { formatCurrencyFor } = useDashboardCurrencyFormat();
   const [dashboardFilters, setDashboardFilters] = useState<DashboardFilterState>(defaultDashboardFilters);
   const queryClient = useQueryClient();
   
@@ -251,6 +244,7 @@ export default function Dashboard() {
   const isLoading = !projectsList;
   
   return (
+    <DashboardExportProvider>
     <div className="p-3 sm:p-6 lg:p-8 space-y-3 sm:space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -282,73 +276,93 @@ export default function Dashboard() {
           </div>
 
           <div className="grid grid-cols-1 gap-2 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <EmeraldStatCard
-              label="Total PO Value (USD)"
-              value={formatCurrencyFor(computedStats.wonPOValueUSD, 'USD')}
-              subtitle={`${computedStats.won} won opportunities`}
-              colorScheme="won"
-              delta="Active"
-            />
-            <EmeraldStatCard
-              label="Active Pipeline (USD)"
-              value={formatCurrencyFor(computedStats.activePipelineUSD, 'USD')}
-              subtitle={`${computedStats.active} open opportunities`}
-              colorScheme="pipeline"
-            />
-            <EmeraldStatCard
-              label="Total Commission (NGN)"
-              value={formatCurrencyFor(computedStats.totalCommissionNGN, 'NGN')}
-              subtitle="Across all segments"
-              colorScheme="commission"
-            />
-            <EmeraldStatCard
-              label="Total Commission (USD)"
-              value={formatCurrencyFor(computedStats.totalCommissionUSD, 'USD')}
-              subtitle="Across all segments"
-              colorScheme="commission_usd"
-            />
-            <EmeraldStatCard
-              label="Total Opportunities"
-              value={computedStats.total.toLocaleString()}
-              subtitle={`${computedStats.segments} business segments`}
-              colorScheme="leads"
-            />
-            <EmeraldStatCard
-              label="Win Rate"
-              value={`${computedStats.winRate.toFixed(2)}%`}
-              subtitle={`${computedStats.won} won / ${computedStats.total} total`}
-              colorScheme="rate"
-            />
+            <DashboardVisualExport filename="kpi-total-po-value-usd" contentClassName="p-0 bg-transparent border-0 shadow-none">
+              <EmeraldStatCard
+                label="Total PO Value (USD)"
+                value={formatCurrencyFor(computedStats.wonPOValueUSD, 'USD')}
+                subtitle={`${computedStats.won} won opportunities`}
+                colorScheme="won"
+                delta="Active"
+              />
+            </DashboardVisualExport>
+            <DashboardVisualExport filename="kpi-active-pipeline-usd" contentClassName="p-0 bg-transparent border-0 shadow-none">
+              <EmeraldStatCard
+                label="Active Pipeline (USD)"
+                value={formatCurrencyFor(computedStats.activePipelineUSD, 'USD')}
+                subtitle={`${computedStats.active} open opportunities`}
+                colorScheme="pipeline"
+              />
+            </DashboardVisualExport>
+            <DashboardVisualExport filename="kpi-total-commission-ngn" contentClassName="p-0 bg-transparent border-0 shadow-none">
+              <EmeraldStatCard
+                label="Total Commission (NGN)"
+                value={formatCurrencyFor(computedStats.totalCommissionNGN, 'NGN')}
+                subtitle="Across all segments"
+                colorScheme="commission"
+              />
+            </DashboardVisualExport>
+            <DashboardVisualExport filename="kpi-total-commission-usd" contentClassName="p-0 bg-transparent border-0 shadow-none">
+              <EmeraldStatCard
+                label="Total Commission (USD)"
+                value={formatCurrencyFor(computedStats.totalCommissionUSD, 'USD')}
+                subtitle="Across all segments"
+                colorScheme="commission_usd"
+              />
+            </DashboardVisualExport>
+            <DashboardVisualExport filename="kpi-total-opportunities" contentClassName="p-0 bg-transparent border-0 shadow-none">
+              <EmeraldStatCard
+                label="Total Opportunities"
+                value={computedStats.total.toLocaleString()}
+                subtitle={`${computedStats.segments} business segments`}
+                colorScheme="leads"
+              />
+            </DashboardVisualExport>
+            <DashboardVisualExport filename="kpi-win-rate" contentClassName="p-0 bg-transparent border-0 shadow-none">
+              <EmeraldStatCard
+                label="Win Rate"
+                value={`${computedStats.winRate.toFixed(2)}%`}
+                subtitle={`${computedStats.won} won / ${computedStats.total} total`}
+                colorScheme="rate"
+              />
+            </DashboardVisualExport>
           </div>
 
           {/* New Summary Cards: Total PO Value NGN, Total Margin USD, Total Margin NGN */}
           <div className="grid grid-cols-1 gap-2 sm:gap-4 sm:grid-cols-2 md:grid-cols-4">
-            <StatCard 
-              title="Total Projects" 
-              value={computedStats.total.toLocaleString()} 
-              icon={FolderKanban}
-              href="/projects"
-            />
-            <StatCard 
-              title="Total PO Value (₦)" 
-              value={formatCurrencyFor(computedStats.totalNGN, 'NGN')} 
-              icon={DollarSign}
-              iconSymbol="₦"
-              className="bg-primary/5 border-primary/20"
-            />
-            <StatCard 
-              title="Margin % (USD)" 
-              value={`${computedStats.avgMarginPercentUSD.toFixed(2)}%`} 
-              icon={DollarSign}
-              className="bg-chart-2/5 border-chart-2/20"
-            />
-            <StatCard 
-              title="Margin % (NGN)" 
-              value={`${computedStats.avgMarginPercentNGN.toFixed(2)}%`} 
-              icon={DollarSign}
-              iconSymbol="₦"
-              className="bg-chart-3/5 border-chart-3/20"
-            />
+            <DashboardVisualExport filename="summary-total-projects" contentClassName="p-0 bg-transparent border-0 shadow-none">
+              <StatCard 
+                title="Total Projects" 
+                value={computedStats.total.toLocaleString()} 
+                icon={FolderKanban}
+                href="/projects"
+              />
+            </DashboardVisualExport>
+            <DashboardVisualExport filename="summary-total-po-ngn" contentClassName="p-0 bg-transparent border-0 shadow-none">
+              <StatCard 
+                title="Total PO Value (₦)" 
+                value={formatCurrencyFor(computedStats.totalNGN, 'NGN')} 
+                icon={DollarSign}
+                iconSymbol="₦"
+                className="bg-primary/5 border-primary/20"
+              />
+            </DashboardVisualExport>
+            <DashboardVisualExport filename="summary-margin-pct-usd" contentClassName="p-0 bg-transparent border-0 shadow-none">
+              <StatCard 
+                title="Margin % (USD)" 
+                value={`${computedStats.avgMarginPercentUSD.toFixed(2)}%`} 
+                icon={DollarSign}
+                className="bg-chart-2/5 border-chart-2/20"
+              />
+            </DashboardVisualExport>
+            <DashboardVisualExport filename="summary-margin-pct-ngn" contentClassName="p-0 bg-transparent border-0 shadow-none">
+              <StatCard 
+                title="Margin % (NGN)" 
+                value={`${computedStats.avgMarginPercentNGN.toFixed(2)}%`} 
+                icon={DollarSign}
+                iconSymbol="₦"
+                className="bg-chart-3/5 border-chart-3/20"
+              />
+            </DashboardVisualExport>
           </div>
 
           {/* Pipeline & Revenue Analysis Section */}
@@ -366,20 +380,24 @@ export default function Dashboard() {
           />
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <PipelineFunnel
-              stages={[
-                { label: 'Cold', count: computedStats.pipelineByStage.cold || 0, color: 'cold' },
-                { label: 'Initiation', count: computedStats.pipelineByStage.initiation || 0, color: 'initiation' },
-                { label: 'Qualification', count: computedStats.pipelineByStage.qualification || 0, color: 'qualification' },
-                { label: 'Proposal', count: computedStats.pipelineByStage.proposal || 0, color: 'proposal' },
-                { label: 'Negotiation', count: computedStats.pipelineByStage.negotiation || 0, color: 'negotiation' },
-                { label: 'Approval ✓', count: computedStats.pipelineByStage.approval || 0, color: 'approval' },
-                { label: 'Execution', count: computedStats.pipelineByStage.execution || 0, color: 'execution' },
-                { label: 'Closure', count: computedStats.pipelineByStage.closure || 0, color: 'closure' },
-                { label: 'Lost ✗', count: computedStats.lostDeals || 0, color: 'lost' },
-              ]}
-            />
-            <SegmentBreakdown data={computedStats.bySector} />
+            <DashboardVisualExport filename="pipeline-funnel" contentClassName="p-0 bg-transparent border-0 shadow-none">
+              <PipelineFunnel
+                stages={[
+                  { label: 'Cold', count: computedStats.pipelineByStage.cold || 0, color: 'cold' },
+                  { label: 'Initiation', count: computedStats.pipelineByStage.initiation || 0, color: 'initiation' },
+                  { label: 'Qualification', count: computedStats.pipelineByStage.qualification || 0, color: 'qualification' },
+                  { label: 'Proposal', count: computedStats.pipelineByStage.proposal || 0, color: 'proposal' },
+                  { label: 'Negotiation', count: computedStats.pipelineByStage.negotiation || 0, color: 'negotiation' },
+                  { label: 'Approval ✓', count: computedStats.pipelineByStage.approval || 0, color: 'approval' },
+                  { label: 'Execution', count: computedStats.pipelineByStage.execution || 0, color: 'execution' },
+                  { label: 'Closure', count: computedStats.pipelineByStage.closure || 0, color: 'closure' },
+                  { label: 'Lost ✗', count: computedStats.lostDeals || 0, color: 'lost' },
+                ]}
+              />
+            </DashboardVisualExport>
+            <DashboardVisualExport filename="segment-breakdown" contentClassName="p-0 bg-transparent border-0 shadow-none">
+              <SegmentBreakdown data={computedStats.bySector} />
+            </DashboardVisualExport>
           </div>
 
           {/* Client & Product Analytics */}
@@ -389,9 +407,15 @@ export default function Dashboard() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <TopClientsByValue data={computedStats.topClients} />
-            <ProbabilityMixDonut data={computedStats.byPipelineStage} />
-            <ProductCategoryMixDonut data={computedStats.byProductCategory} />
+            <DashboardVisualExport filename="top-clients-by-value" contentClassName="p-0 bg-transparent border-0 shadow-none">
+              <TopClientsByValue data={computedStats.topClients} />
+            </DashboardVisualExport>
+            <DashboardVisualExport filename="pipeline-stage-distribution" contentClassName="p-0 bg-transparent border-0 shadow-none">
+              <ProbabilityMixDonut data={computedStats.byPipelineStage} />
+            </DashboardVisualExport>
+            <DashboardVisualExport filename="product-category-mix" contentClassName="p-0 bg-transparent border-0 shadow-none">
+              <ProductCategoryMixDonut data={computedStats.byProductCategory} />
+            </DashboardVisualExport>
           </div>
 
           {/* Team Performance & Lead Analysis */}
@@ -401,42 +425,52 @@ export default function Dashboard() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <PipelineBySalesLead 
-              data={Object.entries(computedStats.pipelineBySalesLead).map(([lead, value]) => ({
-                lead,
-                value: value as number,
-              }))}
-            />
-            <TeamOpportunityLoad data={computedStats.teamLoad} />
+            <DashboardVisualExport filename="pipeline-by-sales-lead" contentClassName="p-0 bg-transparent border-0 shadow-none">
+              <PipelineBySalesLead 
+                data={Object.entries(computedStats.pipelineBySalesLead).map(([lead, value]) => ({
+                  lead,
+                  value: value as number,
+                }))}
+              />
+            </DashboardVisualExport>
+            <DashboardVisualExport filename="team-opportunity-load" contentClassName="p-0 bg-transparent border-0 shadow-none">
+              <TeamOpportunityLoad data={computedStats.teamLoad} />
+            </DashboardVisualExport>
           </div>
 
           {/* Financial Overview */}
           <div className="grid grid-cols-1 gap-2 sm:gap-4 md:grid-cols-2">
-            <StatCard 
-              title="Total Revenue (NGN)"
-              value={formatCurrencyFor(computedStats.totalNGN, 'NGN')}
-              icon={DollarSign}
-              iconSymbol="₦"
-              className="bg-primary/5 border-primary/20"
-            />
-            <StatCard 
-              title="Total Revenue (USD)"
-              value={formatCurrencyFor(computedStats.totalUSD, 'USD')}
-              icon={DollarSign}
-              className="bg-chart-2/5 border-chart-2/20"
-            />
+            <DashboardVisualExport filename="financial-total-revenue-ngn" contentClassName="p-0 bg-transparent border-0 shadow-none">
+              <StatCard 
+                title="Total Revenue (NGN)"
+                value={formatCurrencyFor(computedStats.totalNGN, 'NGN')}
+                icon={DollarSign}
+                iconSymbol="₦"
+                className="bg-primary/5 border-primary/20"
+              />
+            </DashboardVisualExport>
+            <DashboardVisualExport filename="financial-total-revenue-usd" contentClassName="p-0 bg-transparent border-0 shadow-none">
+              <StatCard 
+                title="Total Revenue (USD)"
+                value={formatCurrencyFor(computedStats.totalUSD, 'USD')}
+                icon={DollarSign}
+                className="bg-chart-2/5 border-chart-2/20"
+              />
+            </DashboardVisualExport>
           </div>
 
           {/* Average Progress */}
           {computedStats.averageProgress !== undefined && computedStats.averageProgress !== null && (
-            <div className="bg-card border border-border rounded-lg p-4 sm:p-6">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-sm sm:text-base font-semibold">Average Project Progress</h3>
-                <span className="text-sm sm:text-base font-medium">{computedStats.averageProgress.toFixed(1)}%</span>
+            <DashboardVisualExport filename="average-project-progress" contentClassName="p-0 bg-transparent border-0 shadow-none">
+              <div className="bg-card border border-border rounded-lg p-4 sm:p-6">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm sm:text-base font-semibold">Average Project Progress</h3>
+                  <span className="text-sm sm:text-base font-medium">{computedStats.averageProgress.toFixed(1)}%</span>
+                </div>
+                <Progress value={computedStats.averageProgress} className="h-2 sm:h-3" />
+                <p className="text-xs sm:text-sm text-muted-foreground mt-2">Across all active projects</p>
               </div>
-              <Progress value={computedStats.averageProgress} className="h-2 sm:h-3" />
-              <p className="text-xs sm:text-sm text-muted-foreground mt-2">Across all active projects</p>
-            </div>
+            </DashboardVisualExport>
           )}
         </>
       )}
@@ -446,15 +480,26 @@ export default function Dashboard() {
       {/* Bottom Section */}
       <div className="grid grid-cols-1 gap-3 sm:gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-3 sm:space-y-6">
-          <RecentProjects recentProjects={computedStats.recent} />
-          <TasksSummary />
+          <DashboardVisualExport filename="recent-active-projects" contentClassName="p-0 bg-transparent border-0 shadow-none">
+            <RecentProjects recentProjects={computedStats.recent} />
+          </DashboardVisualExport>
+          <DashboardVisualExport filename="tasks-summary" contentClassName="p-0 bg-transparent border-0 shadow-none">
+            <TasksSummary />
+          </DashboardVisualExport>
         </div>
         <div className="space-y-3 sm:space-y-6">
-          <DeadlineTracker projects={filteredProjects} />
-          <ProjectCalendar />
-          <SectorOverview />
+          <DashboardVisualExport filename="upcoming-deadlines" contentClassName="p-0 bg-transparent border-0 shadow-none">
+            <DeadlineTracker projects={filteredProjects} />
+          </DashboardVisualExport>
+          <DashboardVisualExport filename="project-calendar" contentClassName="p-0 bg-transparent border-0 shadow-none">
+            <ProjectCalendar />
+          </DashboardVisualExport>
+          <DashboardVisualExport filename="sector-overview" contentClassName="p-0 bg-transparent border-0 shadow-none">
+            <SectorOverview />
+          </DashboardVisualExport>
         </div>
       </div>
     </div>
+    </DashboardExportProvider>
   );
 }

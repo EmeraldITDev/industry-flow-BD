@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 interface SegmentBreakdownProps {
   data: Record<string, number>;
@@ -76,18 +76,9 @@ export function SegmentBreakdown({
               labelStyle={{ color: 'hsl(var(--foreground))' }}
               itemStyle={{ color: 'hsl(var(--muted-foreground))' }}
             />
-            <Bar
-              dataKey="count"
-              fill="#0077ff"
-              radius={[6, 6, 0, 0]}
-              animationDuration={1000}
-            >
+            <Bar dataKey="count" radius={[6, 6, 0, 0]} animationDuration={1000}>
               {chartData.map((entry, index) => (
-                <Bar
-                  key={`bar-${index}`}
-                  dataKey="count"
-                  fill={getBarColor(entry.sector)}
-                />
+                <Cell key={`cell-${index}`} fill={getBarColor(entry.sector)} />
               ))}
             </Bar>
           </BarChart>

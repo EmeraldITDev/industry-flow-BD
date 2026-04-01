@@ -1,5 +1,5 @@
 import api from './api';
-import { Task, TaskStatus, TaskPriority, PipelineStage } from '@/types';
+import { Task, TaskStatus, TaskPriority, PipelineStage, ProjectDocument, DocumentType } from '@/types';
 import { notifyAssignment } from './notificationHelper';
 
 export interface CreateTaskData {
@@ -54,6 +54,20 @@ const statusToFrontend = (status: string): TaskStatus => {
   return (statusMap[status] || status) as TaskStatus;
 };
 
+const normalizeDocuments = (raw: unknown): ProjectDocument[] => {
+  if (!raw || !Array.isArray(raw)) return [];
+  return raw.map((d: Record<string, unknown>) => ({
+    id: String(d.id ?? ''),
+    name: String(d.name ?? 'file'),
+    type: ((d.type as DocumentType) || 'supporting') as DocumentType,
+    url: String(d.url ?? d.file_url ?? '#'),
+    uploadedAt: String(d.uploaded_at ?? d.uploadedAt ?? new Date().toISOString()),
+    uploadedBy: String(d.uploaded_by ?? d.uploadedBy ?? ''),
+    size: Number(d.size) || 0,
+    source: d.source === 'onedrive' ? 'onedrive' : 'local',
+  }));
+};
+
 // Normalize a single task from backend format to frontend format
 const normalizeTask = (task: any): Task => {
   return {
@@ -65,6 +79,7 @@ const normalizeTask = (task: any): Task => {
     dueDate: task.due_date || task.dueDate,
     createdAt: task.created_at || task.createdAt,
     stageTriggered: task.stage_triggered || task.stageTriggered,
+    documents: normalizeDocuments(task.documents ?? task.attachments),
   };
 };
 
@@ -181,5 +196,20 @@ export const tasksService = {
     }
     
     return assignedTask;
+  },
+
+  /** Upload one or more files; backend should return updated task with documents. */
+  uploadAttachments: async (taskId: string, files: File[]): Promise<Task> => {
+    const form = new FormData();
+    files.forEach((f) => form.append('files[]', f));
+    const response = await api.post(`/api/tasks/${taskId}/attachments`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    const body = response.data?.data ?? response.data?.task ?? response.data;
+    return normalizeTask(body);
+  },
+
+  deleteAttachment: async (taskId: string, documentId: string): Promise<void> => {
+    await api.delete(`/api/tasks/${taskId}/attachments/${documentId}`);
   },
 };

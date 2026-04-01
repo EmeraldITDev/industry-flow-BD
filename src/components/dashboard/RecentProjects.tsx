@@ -10,6 +10,7 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, Users, FolderOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCurrency } from '@/context/CurrencyContext';
+import { useDashboardCurrencyFormat } from '@/hooks/useDashboardCurrencyFormat';
 import { getStageProgress } from '@/lib/stageProgress';
 
 interface RecentProjectsProps {
@@ -17,7 +18,8 @@ interface RecentProjectsProps {
 }
 
 export function RecentProjects({ recentProjects: propRecentProjects }: RecentProjectsProps = {}) {
-  const { formatCurrency, getContractValue, getMarginValue } = useCurrency();
+  const { getContractValue, getMarginValue } = useCurrency();
+  const { formatCurrency } = useDashboardCurrencyFormat();
   
   // Use provided recent projects from stats API, or fetch all projects as fallback
   const { data: projects, isLoading } = useQuery({

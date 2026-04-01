@@ -24,7 +24,21 @@ export function DeadlineTracker({ projects }: DeadlineTrackerProps) {
       .slice(0, 5);
   }, [projects]);
 
-  if (deadlineItems.length === 0) return null;
+  if (deadlineItems.length === 0) {
+    return (
+      <Card>
+        <CardHeader className="p-3 sm:p-6 pb-2">
+          <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+            <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+            Upcoming Deadlines
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
+          <p className="text-sm text-muted-foreground">No active projects with end dates.</p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>

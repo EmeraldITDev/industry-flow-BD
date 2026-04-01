@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Download } from 'lucide-react';
 import { Project } from '@/types';
 import { useCurrency } from '@/context/CurrencyContext';
+import { useDashboardCurrencyFormat } from '@/hooks/useDashboardCurrencyFormat';
 
 interface RevenueBySectorChartProps {
   projects: Project[];
@@ -21,7 +22,8 @@ const COLORS = [
 
 export function RevenueBySectorChart({ projects }: RevenueBySectorChartProps) {
   const chartRef = useRef<HTMLDivElement>(null);
-  const { getContractValue, formatCurrency } = useCurrency();
+  const { getContractValue } = useCurrency();
+  const { formatCurrency } = useDashboardCurrencyFormat();
 
   const data = useMemo(() => {
     const sectorRevenue: Record<string, number> = {};
