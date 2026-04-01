@@ -12,7 +12,6 @@ import { Project, PipelineStage, TeamMember } from '@/types';
 import { DollarSign, Users, Building2, Layers, Banknote } from 'lucide-react';
 import { useCurrency } from '@/context/CurrencyContext';
 import { useDashboardCurrencyFormat } from '@/hooks/useDashboardCurrencyFormat';
-import { DashboardVisualExport } from '@/components/dashboard/DashboardVisualExport';
 
 type RevenueFilter = 'all' | 'pending' | 'proposal' | 'won';
 
@@ -66,18 +65,6 @@ export const RevenueAnalytics = () => {
     return filteredProjects.map((p: Project) => {
       const revenue = getContractValue(p);
       const margin = getMarginValue(p);
-      
-      // Debug logging for zero values
-      if (revenue === 0 && (p.contractValueNGN || p.contractValueUSD)) {
-        console.log('[RevenueAnalytics] Project has financial data but showing zero:', {
-          projectId: p.id,
-          projectName: p.name,
-          contractValueNGN: p.contractValueNGN,
-          contractValueUSD: p.contractValueUSD,
-          currency,
-          calculatedRevenue: revenue,
-        });
-      }
       
       return {
         id: p.id,
@@ -153,24 +140,21 @@ export const RevenueAnalytics = () => {
 
   if (projectsLoading) {
     return (
-      <DashboardVisualExport filename="revenue-analytics" contentClassName="p-0 bg-transparent border-0 shadow-none">
-        <Card className="bg-card border-border">
-          <CardHeader className="p-3 sm:p-6 pb-2 sm:pb-4">
-            <CardTitle className="text-base sm:text-lg font-semibold text-foreground">Revenue Analytics</CardTitle>
-          </CardHeader>
-          <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
-            <Skeleton className="h-32 w-full mb-4" />
-            <Skeleton className="h-48 w-full" />
-          </CardContent>
-        </Card>
-      </DashboardVisualExport>
+      <Card className="bg-card border-border">
+        <CardHeader className="p-3 sm:p-6 pb-2 sm:pb-4">
+          <CardTitle className="text-base sm:text-lg font-semibold text-foreground">Revenue Analytics</CardTitle>
+        </CardHeader>
+        <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
+          <Skeleton className="h-32 w-full mb-4" />
+          <Skeleton className="h-48 w-full" />
+        </CardContent>
+      </Card>
     );
   }
 
   const hasNoData = filteredProjects.length === 0;
 
   return (
-    <DashboardVisualExport filename="revenue-analytics" contentClassName="p-0 bg-transparent border-0 shadow-none">
     <Card className="bg-card border-border">
       <CardHeader className="p-3 sm:p-6 pb-2 sm:pb-4">
         <CardTitle className="text-base sm:text-lg font-semibold text-foreground">Revenue Analytics</CardTitle>
@@ -298,6 +282,5 @@ export const RevenueAnalytics = () => {
         )}
       </CardContent>
     </Card>
-    </DashboardVisualExport>
   );
 };

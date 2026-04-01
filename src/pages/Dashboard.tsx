@@ -420,37 +420,31 @@ export default function Dashboard() {
 
           {/* Financial Overview */}
           <div className="grid grid-cols-1 gap-2 sm:gap-4 md:grid-cols-2">
-            <DashboardVisualExport filename="financial-total-revenue-ngn" contentClassName="p-0 bg-transparent border-0 shadow-none">
-              <StatCard 
-                title="Total Revenue (NGN)"
-                value={formatCurrencyFor(computedStats.totalNGN, 'NGN')}
-                icon={DollarSign}
-                iconSymbol="₦"
-                className="bg-primary/5 border-primary/20"
-              />
-            </DashboardVisualExport>
-            <DashboardVisualExport filename="financial-total-revenue-usd" contentClassName="p-0 bg-transparent border-0 shadow-none">
-              <StatCard 
-                title="Total Revenue (USD)"
-                value={formatCurrencyFor(computedStats.totalUSD, 'USD')}
-                icon={DollarSign}
-                className="bg-chart-2/5 border-chart-2/20"
-              />
-            </DashboardVisualExport>
+            <StatCard 
+              title="Total Revenue (NGN)"
+              value={formatCurrencyFor(computedStats.totalNGN, 'NGN')}
+              icon={DollarSign}
+              iconSymbol="₦"
+              className="bg-primary/5 border-primary/20"
+            />
+            <StatCard 
+              title="Total Revenue (USD)"
+              value={formatCurrencyFor(computedStats.totalUSD, 'USD')}
+              icon={DollarSign}
+              className="bg-chart-2/5 border-chart-2/20"
+            />
           </div>
 
           {/* Average Progress */}
           {computedStats.averageProgress !== undefined && computedStats.averageProgress !== null && (
-            <DashboardVisualExport filename="average-project-progress" contentClassName="p-0 bg-transparent border-0 shadow-none">
-              <div className="bg-card border border-border rounded-lg p-4 sm:p-6">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-sm sm:text-base font-semibold">Average Project Progress</h3>
-                  <span className="text-sm sm:text-base font-medium">{computedStats.averageProgress.toFixed(1)}%</span>
-                </div>
-                <Progress value={computedStats.averageProgress} className="h-2 sm:h-3" />
-                <p className="text-xs sm:text-sm text-muted-foreground mt-2">Across all active projects</p>
+            <div className="bg-card border border-border rounded-lg p-4 sm:p-6">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm sm:text-base font-semibold">Average Project Progress</h3>
+                <span className="text-sm sm:text-base font-medium">{computedStats.averageProgress.toFixed(1)}%</span>
               </div>
-            </DashboardVisualExport>
+              <Progress value={computedStats.averageProgress} className="h-2 sm:h-3" />
+              <p className="text-xs sm:text-sm text-muted-foreground mt-2">Across all active projects</p>
+            </div>
           )}
         </>
       )}
