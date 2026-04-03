@@ -388,13 +388,13 @@ export function generateTasksReport(
   const byStatus: Record<string, number> = {};
   tasks.forEach(t => { byStatus[t.status] = (byStatus[t.status] || 0) + 1; });
 
-  pdf.setFontSize(9);
+  pdf.setFontSize(13);
   pdf.setFont('helvetica', 'bold');
   pdf.setTextColor(15, 23, 42);
   pdf.text('Status Summary:', MARGIN, y);
-  y += 14;
+  y += 18;
   pdf.setFont('helvetica', 'normal');
-  pdf.setFontSize(8);
+  pdf.setFontSize(11);
   Object.entries(byStatus).forEach(([status, count]) => {
     pdf.text(`  ${status}: ${count}`, MARGIN, y);
     y += 12;
