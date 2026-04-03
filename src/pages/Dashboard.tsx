@@ -252,7 +252,8 @@ export default function Dashboard() {
       avgMarginPercentNGN: countMarginPercentNGN > 0 ? sumMarginPercentNGN / countMarginPercentNGN : 0,
       winRate, segments, pipelineByStage, lostDeals,
       bySector, topClients, byPipelineStage, byProductCategory,
-      pipelineBySalesLead, teamLoad, averageProgress: avgProgress, recent,
+      accountTableData, teamLoad, averageProgress: avgProgress, recent,
+    };
     };
   }, [filteredProjects, teamMembers]);
 
