@@ -538,6 +538,17 @@ export default function NewProject() {
           </CardContent>
         </Card>
 
+        {/* Support Needed */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Support Needed</CardTitle>
+            <CardDescription>Areas where support is needed on this project</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Textarea value={formData.supportNeeded} onChange={(e) => setFormData({ ...formData, supportNeeded: e.target.value })} placeholder="Describe any areas where support is needed..." rows={3} />
+          </CardContent>
+        </Card>
+
         {/* Milestones */}
         <Card>
           <CardHeader>

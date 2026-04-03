@@ -539,6 +539,12 @@ export default function ProjectDetail() {
                   <p className="text-sm">{project.projectLeadComments}</p>
                 </div>
               )}
+              {project.supportNeeded && (
+                <div className="mt-4 pt-4 border-t">
+                  <p className="text-xs text-muted-foreground mb-2">Support Needed</p>
+                  <p className="text-sm">{project.supportNeeded}</p>
+                </div>
+              )}
             </CardContent>
           </Card>
 

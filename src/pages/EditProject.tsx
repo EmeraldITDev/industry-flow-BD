@@ -643,6 +643,22 @@ export default function EditProject() {
           </CardContent>
         </Card>
 
+        {/* Support Needed */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Support Needed</CardTitle>
+            <CardDescription>Areas where support is needed on this project</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Textarea
+              value={formData.supportNeeded}
+              onChange={(e) => setFormData({ ...formData, supportNeeded: e.target.value })}
+              placeholder="Describe any areas where support is needed..."
+              rows={4}
+            />
+          </CardContent>
+        </Card>
+
         {/* Submit Button */}
         <div className="flex gap-4">
           <Button type="submit" size="lg" disabled={isSubmitting}>
