@@ -138,6 +138,7 @@ export default function ProjectDetail() {
         assigneeId: data.assignee_id || data.assigneeId,
         salesLead: data.sales_lead || data.salesLead,
         projectLeadComments: data.project_lead_comments || data.projectLeadComments,
+        supportNeeded: data.support_needed || data.supportNeeded,
         dealProbability: data.deal_probability || data.dealProbability || data.risk_level || data.riskLevel,
         tasks: data.tasks || [],
         projectImage: data.project_image || data.projectImage || undefined,
