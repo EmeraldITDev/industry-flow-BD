@@ -95,7 +95,7 @@ export function TopClientsByValue({
               <LabelList
                 dataKey="label"
                 position="right"
-                style={{ fill: 'hsl(var(--foreground))', fontSize: 9, fontWeight: 600 }}
+                style={{ fill: 'hsl(var(--foreground))', fontSize: exportFull ? 13 : 11, fontWeight: 600 }}
               />
             </Bar>
           </BarChart>

@@ -171,9 +171,15 @@ async function renderExportCanvas(element: HTMLElement): Promise<HTMLCanvasEleme
     logging: false,
     scrollX: 0,
     scrollY: 0,
+    // Allow labels that extend outside chart SVG bounds to render
+    removeContainer: true,
     onclone: (_doc, cloned) => {
       const root = cloned.querySelector('[data-dashboard-export-root]') as HTMLElement | null;
-      if (root) applyExportLightTheme(root);
+      if (root) {
+        // Make overflow visible so pie labels outside SVG viewBox aren't clipped
+        root.style.overflow = 'visible';
+        applyExportLightTheme(root);
+      }
     },
   });
 }
