@@ -326,6 +326,20 @@ export default function ProjectDetail() {
           <h1 className="text-lg sm:text-2xl lg:text-3xl font-bold line-clamp-2">{project.name}</h1>
         </div>
         {canEditProjects && (
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const tMap: Record<string, string> = {};
+                teamMembers.forEach((m: any) => { tMap[String(m.id)] = m.name; });
+                generateSingleProjectReport(project, tMap);
+                toast.success('Project report generated');
+              }}
+            >
+              <FileText className="w-4 h-4 mr-2" />
+              Report
+            </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="icon" className="shrink-0">
