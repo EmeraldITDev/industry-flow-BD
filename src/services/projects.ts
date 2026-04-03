@@ -192,6 +192,7 @@ const normalizeProject = (project: any): Project => {
     salesLead: project.salesLead ?? project.sales_lead ?? null,
     channelPartner: project.channelPartner ?? project.channel_partner ?? '',
     projectLeadComments: project.projectLeadComments ?? project.project_lead_comments ?? '',
+    supportNeeded: project.supportNeeded ?? project.support_needed ?? '',
     dealProbability: project.dealProbability ?? project.deal_probability ?? project.riskLevel ?? project.risk_level ?? 'low',
     projectImage: project.projectImage ?? project.project_image ?? undefined,
     teamMemberIds,
