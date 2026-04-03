@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LabelList } from 'recharts';
 
 interface SegmentBreakdownProps {
   data: Record<string, number>;
@@ -14,7 +14,6 @@ export function SegmentBreakdown({
   subtitle = 'Opportunity count per business unit',
   className,
 }: SegmentBreakdownProps) {
-  // Transform data for recharts
   const chartData = Object.entries(data)
     .map(([sector, count]) => ({
       sector,
@@ -24,35 +23,26 @@ export function SegmentBreakdown({
 
   const getBarColor = (sector: string) => {
     switch (sector) {
-      case 'EMR_OGP':
-        return '#0077ff';
-      case 'EMR_MFG':
-        return '#00c2a8';
-      case 'EMR_Renewables':
-        return '#8b5cf6';
-      case 'EMR_Trading':
-        return '#f0a500';
-      case 'EMR_Services':
-        return '#e84393';
-      case 'EMR_Healthcare':
-        return '#34d399';
-      default:
-        return '#3a5070';
+      case 'EMR_OGP': return '#0077ff';
+      case 'EMR_MFG': return '#00c2a8';
+      case 'EMR_Renewables': return '#8b5cf6';
+      case 'EMR_Trading': return '#f0a500';
+      case 'EMR_Services': return '#e84393';
+      case 'EMR_Healthcare': return '#34d399';
+      default: return '#3a5070';
     }
   };
 
   return (
     <div className={cn('bg-card border border-border rounded-xl p-6 animate-fade-up', className)}>
-      {/* Title */}
       <div className="mb-1">
         <h3 className="text-[13px] font-bold font-sans">{title}</h3>
       </div>
       <div className="text-[11px] text-muted-foreground mb-5">{subtitle}</div>
 
-      {/* Chart */}
       <div className="h-[280px]">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 20 }}>
+          <BarChart data={chartData} margin={{ top: 20, right: 10, left: -20, bottom: 20 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
             <XAxis
               dataKey="sector"
@@ -80,6 +70,11 @@ export function SegmentBreakdown({
               {chartData.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={getBarColor(entry.sector)} />
               ))}
+              <LabelList
+                dataKey="count"
+                position="top"
+                style={{ fill: 'hsl(var(--foreground))', fontSize: 10, fontWeight: 600 }}
+              />
             </Bar>
           </BarChart>
         </ResponsiveContainer>
