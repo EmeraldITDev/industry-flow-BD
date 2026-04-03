@@ -381,6 +381,7 @@ export default function ProjectDetail() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          </div>
         )}
       </div>
 
