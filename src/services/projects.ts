@@ -32,6 +32,7 @@ export interface CreateProjectData {
   marginValueNGN?: number;
   marginValueUSD?: number;
   projectLeadComments?: string;
+  supportNeeded?: string;
   dealProbability?: RiskLevel;
   projectImage?: string;
 }
