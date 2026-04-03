@@ -189,11 +189,11 @@ export function generateProjectsReport(
   const totalUSD = projects.reduce((s, p) => s + (Number(p.contractValueUSD) || 0), 0);
   const totalNGN = projects.reduce((s, p) => s + (Number(p.contractValueNGN) || 0), 0);
 
-  pdf.setFontSize(9);
+  pdf.setFontSize(13);
   pdf.setFont('helvetica', 'bold');
   pdf.setTextColor(15, 23, 42);
   pdf.text(`Total Contract Value (USD): ${fmtCurrency(totalUSD)}`, MARGIN, y);
-  y += 14;
+  y += 18;
   pdf.text(`Total Contract Value (NGN): ${fmtCurrency(totalNGN, '₦')}`, MARGIN, y);
 
   const safeName = title.replace(/[^a-z0-9-_]+/gi, '-').toLowerCase();
