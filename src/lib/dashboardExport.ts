@@ -9,23 +9,52 @@ const MIN_EXPORT_WIDTH_PX = 1920;
  * Recharts SVG <text>/<tspan> (not HTMLElement) never got dark fills — exports looked
  * faint/gray.
  */
+function resolveHslVar(raw: string): string | null {
+  // Detect hsl(var(--...)) patterns that html2canvas can't resolve
+  if (!raw || raw === 'none' || raw === 'rgba(0, 0, 0, 0)') return null;
+  if (raw.includes('var(')) return null; // unresolved CSS variable
+  return raw;
+}
+
 function applyExportLightTheme(clonedRoot: HTMLElement) {
   clonedRoot.style.backgroundColor = '#ffffff';
   clonedRoot.style.color = '#0f172a';
   clonedRoot.style.opacity = '1';
 
+  // Inject CSS variables into the cloned root so hsl(var(--...)) resolves
+  const varsToInject: Record<string, string> = {
+    '--foreground': '222.2 84% 4.9%',
+    '--background': '0 0% 100%',
+    '--muted-foreground': '215.4 16.3% 46.9%',
+    '--card': '0 0% 100%',
+    '--card-foreground': '222.2 84% 4.9%',
+    '--popover': '0 0% 100%',
+    '--border': '214.3 31.8% 91.4%',
+    '--primary': '222.2 47.4% 11.2%',
+    '--primary-foreground': '210 40% 98%',
+    '--accent': '210 40% 96.1%',
+    '--accent-foreground': '222.2 47.4% 11.2%',
+  };
+  Object.entries(varsToInject).forEach(([k, v]) => {
+    clonedRoot.style.setProperty(k, v);
+  });
+
   const win = clonedRoot.ownerDocument?.defaultView ?? window;
 
-  // --- SVG text (axes, labels, legends): force readable dark ink (inline style beats attributes) ---
+  // --- SVG text (axes, labels, legends): force readable dark ink ---
   clonedRoot.querySelectorAll('svg text, svg tspan').forEach((node) => {
     const el = node as SVGTextElement | SVGTSpanElement;
     try {
       const cs = win.getComputedStyle(el);
       const fs = parseFloat(cs.fontSize) || 12;
-      el.setAttribute('font-size', String(Math.max(13, fs * 1.12)));
-      el.style.setProperty('fill', '#0f172a', 'important');
+      el.setAttribute('font-size', String(Math.max(14, fs * 1.25)));
+      // Force dark fill — resolve or fallback
+      const resolved = resolveHslVar(cs.fill);
+      el.style.setProperty('fill', resolved || '#0f172a', 'important');
       el.style.setProperty('stroke', 'none', 'important');
       el.style.setProperty('opacity', '1', 'important');
+      // Also set attribute as fallback for html2canvas
+      el.setAttribute('fill', resolved || '#0f172a');
     } catch {
       el.setAttribute('fill', '#0f172a');
       el.setAttribute('opacity', '1');
@@ -38,16 +67,15 @@ function applyExportLightTheme(clonedRoot: HTMLElement) {
     line.setAttribute('opacity', '1');
   });
 
-  // --- Bars, bands (rect): bake computed fill (use !important to beat inline hsl(var())) ---
+  // --- Bars, bands (rect): bake computed fill ---
   clonedRoot.querySelectorAll('svg rect').forEach((node) => {
     const rect = node as SVGElement;
     try {
       const cs = win.getComputedStyle(rect);
-      let fill = cs.fill;
-      if (!fill || fill === 'none' || fill === 'rgba(0, 0, 0, 0)') {
-        fill = '#14b8a6';
-      }
+      let fill = resolveHslVar(cs.fill);
+      if (!fill) fill = '#14b8a6';
       rect.style.setProperty('fill', fill, 'important');
+      rect.setAttribute('fill', fill);
       const op = cs.opacity;
       rect.style.setProperty('opacity', op === '0' || op === '' ? '1' : op || '1', 'important');
     } catch {
@@ -61,11 +89,15 @@ function applyExportLightTheme(clonedRoot: HTMLElement) {
     const path = node as SVGElement;
     try {
       const cs = win.getComputedStyle(path);
-      if (cs.fill && cs.fill !== 'none') {
-        path.style.setProperty('fill', cs.fill, 'important');
+      const fill = resolveHslVar(cs.fill);
+      if (fill) {
+        path.style.setProperty('fill', fill, 'important');
+        path.setAttribute('fill', fill);
       }
-      if (cs.stroke && cs.stroke !== 'none') {
-        path.style.setProperty('stroke', cs.stroke, 'important');
+      const stroke = resolveHslVar(cs.stroke);
+      if (stroke) {
+        path.style.setProperty('stroke', stroke, 'important');
+        path.setAttribute('stroke', stroke);
       }
       path.style.setProperty('opacity', '1', 'important');
     } catch {
@@ -77,8 +109,10 @@ function applyExportLightTheme(clonedRoot: HTMLElement) {
     const c = node as SVGElement;
     try {
       const cs = win.getComputedStyle(c);
-      if (cs.fill && cs.fill !== 'none') {
-        c.style.setProperty('fill', cs.fill, 'important');
+      const fill = resolveHslVar(cs.fill);
+      if (fill) {
+        c.style.setProperty('fill', fill, 'important');
+        c.setAttribute('fill', fill);
       }
       c.style.setProperty('opacity', '1', 'important');
     } catch {
@@ -90,6 +124,8 @@ function applyExportLightTheme(clonedRoot: HTMLElement) {
   clonedRoot.querySelectorAll('svg').forEach((svg) => {
     svg.style.backgroundColor = '#ffffff';
     svg.setAttribute('opacity', '1');
+    // Ensure SVG overflow is visible so labels outside the pie aren't clipped
+    svg.style.overflow = 'visible';
   });
 
   // --- HTML: card surfaces + body text (Tailwind dark theme → print-safe) ---
