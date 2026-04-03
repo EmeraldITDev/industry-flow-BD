@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Table,
   TableBody,
@@ -34,7 +35,7 @@ export default function PipelineBySalesLead({ data }: PipelineBySalesLeadProps) 
         </p>
       </div>
 
-      <div className="overflow-x-auto">
+      <ScrollArea className="h-[400px] overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50">
@@ -60,7 +61,7 @@ export default function PipelineBySalesLead({ data }: PipelineBySalesLeadProps) 
             </TableRow>
           </TableBody>
         </Table>
-      </div>
+      </ScrollArea>
     </div>
   );
 }
