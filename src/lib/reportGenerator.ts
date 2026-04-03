@@ -5,12 +5,12 @@ import { Project, Task, PIPELINE_STAGES } from '@/types';
 /* Helpers                                                             */
 /* ------------------------------------------------------------------ */
 
-const PAGE_W = 1190; // A3 landscape for more room
+const PAGE_W = 1190;
 const PAGE_H = 842;
 const MARGIN = 36;
 const CONTENT_W = PAGE_W - MARGIN * 2;
-const ROW_H = 22;
-const HEADER_ROW_H = 26;
+const ROW_H = 28;
+const HEADER_ROW_H = 32;
 
 function fmtNum(n: number | undefined | null): string {
   if (n == null || isNaN(n)) return '—';
