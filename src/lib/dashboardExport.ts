@@ -39,7 +39,8 @@ function applyExportLightTheme(clonedRoot: HTMLElement) {
   });
 
   // --- Bars, bands (rect): bake computed fill (use !important to beat inline hsl(var())) ---
-  clonedRoot.querySelectorAll('svg rect').forEach((rect) => {
+  clonedRoot.querySelectorAll('svg rect').forEach((node) => {
+    const rect = node as SVGElement;
     try {
       const cs = win.getComputedStyle(rect);
       let fill = cs.fill;
@@ -56,7 +57,8 @@ function applyExportLightTheme(clonedRoot: HTMLElement) {
   });
 
   // --- Paths (pies, arcs) ---
-  clonedRoot.querySelectorAll('svg path').forEach((path) => {
+  clonedRoot.querySelectorAll('svg path').forEach((node) => {
+    const path = node as SVGElement;
     try {
       const cs = win.getComputedStyle(path);
       if (cs.fill && cs.fill !== 'none') {
@@ -71,7 +73,8 @@ function applyExportLightTheme(clonedRoot: HTMLElement) {
     }
   });
 
-  clonedRoot.querySelectorAll('svg circle').forEach((c) => {
+  clonedRoot.querySelectorAll('svg circle').forEach((node) => {
+    const c = node as SVGElement;
     try {
       const cs = win.getComputedStyle(c);
       if (cs.fill && cs.fill !== 'none') {

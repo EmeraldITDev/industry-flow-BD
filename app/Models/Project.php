@@ -36,6 +36,7 @@ class Project extends Model
         'margin_value_ngn',
         'margin_value_usd',
         'project_lead_comments',
+        'support_needed',
         'deal_probability',
         'progress',
         'project_image',
