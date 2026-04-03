@@ -179,6 +179,7 @@ export default function NewProject() {
         marginValueUSD,
         dealProbability: formData.dealProbability,
         projectLeadComments: formData.projectLeadComments || undefined,
+        supportNeeded: formData.supportNeeded || undefined,
         projectImage: formData.projectImage || undefined,
         teamMemberIds: formData.teamMemberIds.length > 0 ? formData.teamMemberIds : undefined,
       } as any);
