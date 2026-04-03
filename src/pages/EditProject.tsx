@@ -190,6 +190,7 @@ export default function EditProject() {
           ? (parseNumberInput(formData.contractValueUSD)! * parseNumberInput(formData.marginPercentUSD)! / 100)
           : undefined,
         projectLeadComments: formData.projectLeadComments || undefined,
+        supportNeeded: formData.supportNeeded || undefined,
         projectImage: formData.projectImage ?? null,
         dealProbability: formData.dealProbability,
       });
