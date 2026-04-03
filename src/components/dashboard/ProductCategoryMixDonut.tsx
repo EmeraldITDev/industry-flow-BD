@@ -33,11 +33,11 @@ const RADIAN = Math.PI / 180;
 
 function renderCustomLabel({ cx, cy, midAngle, innerRadius, outerRadius, value }: any) {
   if (!value || value === 0) return null;
-  const radius = innerRadius + (outerRadius - innerRadius) * 1.35;
+  const radius = innerRadius + (outerRadius - innerRadius) * 1.5;
   const x = cx + radius * Math.cos(-midAngle * RADIAN);
   const y = cy + radius * Math.sin(-midAngle * RADIAN);
   return (
-    <text x={x} y={y} fill="hsl(var(--foreground))" textAnchor="middle" dominantBaseline="central" fontSize={10} fontWeight={600}>
+    <text x={x} y={y} fill="#0f172a" textAnchor="middle" dominantBaseline="central" fontSize={12} fontWeight={600}>
       {value}
     </text>
   );
