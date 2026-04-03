@@ -87,8 +87,8 @@ export default function NewProject() {
     contractValueUSD: '',
     marginPercentNGN: '',
     marginPercentUSD: '',
-    // Comments
     projectLeadComments: '',
+    supportNeeded: '',
     // Image
     projectImage: undefined as string | undefined,
   });
