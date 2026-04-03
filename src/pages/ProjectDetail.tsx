@@ -57,6 +57,7 @@ import { getStageProgress, STAGE_PROGRESS_MAP } from '@/lib/stageProgress';
 import { PIPELINE_STAGES } from '@/types';
 import { teamService } from '@/services/team';
 import { getAllowedStatusesForStage, getDefaultStatusForStage, getStatusLabel, isValidStageStatus, type ProjectStatus } from '@/lib/stageStatusRules';
+import { generateSingleProjectReport } from '@/lib/reportGenerator';
 
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
