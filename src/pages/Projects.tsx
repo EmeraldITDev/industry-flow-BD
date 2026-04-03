@@ -8,7 +8,7 @@ import { projectsService } from '@/services/projects';
 import { teamService } from '@/services/team';
 import { tasksService } from '@/services/tasks';
 import { Button } from '@/components/ui/button';
-import { Plus, Grid3X3, List, Loader2, Upload, Trash2, X, RefreshCw } from 'lucide-react';
+import { Plus, Grid3X3, List, Loader2, Upload, Trash2, X, RefreshCw, FileText } from 'lucide-react';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Project, Sector } from '@/types';
 import { ProjectImportDialog } from '@/components/projects/ProjectImportDialog';
