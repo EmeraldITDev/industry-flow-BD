@@ -25,7 +25,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Loader2, Search, RefreshCw, X, CheckSquare, Clock, AlertCircle, ListTodo } from 'lucide-react';
+import { Loader2, Search, RefreshCw, X, CheckSquare, Clock, AlertCircle, ListTodo, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { safeFormatDate } from '@/lib/dateUtils';
 
