@@ -46,7 +46,8 @@ import {
   Trash2,
   PauseCircle,
   PlayCircle,
-  CheckCircle2
+  CheckCircle2,
+  FileText
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { usePermissions } from '@/hooks/usePermissions';
