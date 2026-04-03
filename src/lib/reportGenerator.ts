@@ -339,12 +339,12 @@ export function generateTasksReport(
   let y = addReportHeader(pdf, 'Tasks Report', filterStr, tasks.length, MARGIN + 10);
 
   const cols = [
-    { label: 'Task Title', x: MARGIN, w: 200 },
-    { label: 'Project', x: MARGIN + 200, w: 160 },
-    { label: 'Status', x: MARGIN + 360, w: 80 },
-    { label: 'Priority', x: MARGIN + 440, w: 70 },
-    { label: 'Assignee', x: MARGIN + 510, w: 130 },
-    { label: 'Due Date', x: MARGIN + 640, w: 100 },
+    { label: 'Task Title', x: MARGIN, w: 300 },
+    { label: 'Project', x: MARGIN + 300, w: 240 },
+    { label: 'Status', x: MARGIN + 540, w: 90 },
+    { label: 'Priority', x: MARGIN + 630, w: 80 },
+    { label: 'Assignee', x: MARGIN + 710, w: 180 },
+    { label: 'Due Date', x: MARGIN + 890, w: 100 },
   ];
 
   y = drawTableHeader(pdf, cols, y);
@@ -358,7 +358,7 @@ export function generateTasksReport(
       pdf.rect(MARGIN, y - 4, CONTENT_W, ROW_H, 'F');
     }
 
-    pdf.setFontSize(7);
+    pdf.setFontSize(8.5);
     pdf.setFont('helvetica', 'normal');
     pdf.setTextColor(30, 41, 59);
 
@@ -366,12 +366,12 @@ export function generateTasksReport(
     const assignee = t.assigneeId ? (teamMap[String(t.assigneeId)] || (typeof t.assignee === 'string' ? t.assignee : 'Unassigned')) : 'Unassigned';
     const dueDate = t.dueDate ? new Date(t.dueDate).toLocaleDateString() : '—';
 
-    pdf.text(truncate(t.title, 40), cols[0].x, y + 8);
-    pdf.text(truncate(projName, 30), cols[1].x, y + 8);
-    pdf.text(t.status || '—', cols[2].x, y + 8);
-    pdf.text(t.priority || '—', cols[3].x, y + 8);
-    pdf.text(truncate(assignee, 24), cols[4].x, y + 8);
-    pdf.text(dueDate, cols[5].x, y + 8);
+    pdf.text(truncate(t.title, 58), cols[0].x, y + 10);
+    pdf.text(truncate(projName, 46), cols[1].x, y + 10);
+    pdf.text(t.status || '—', cols[2].x, y + 10);
+    pdf.text(t.priority || '—', cols[3].x, y + 10);
+    pdf.text(truncate(assignee, 34), cols[4].x, y + 10);
+    pdf.text(dueDate, cols[5].x, y + 10);
 
     y += ROW_H;
   });
