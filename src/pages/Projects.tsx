@@ -15,6 +15,7 @@ import { ProjectImportDialog } from '@/components/projects/ProjectImportDialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
+import { generateProjectsReport, ProjectFilterSummary } from '@/lib/reportGenerator';
 
 // Mapping for sector display names
 const sectorDisplayNames: Record<string, string> = {
