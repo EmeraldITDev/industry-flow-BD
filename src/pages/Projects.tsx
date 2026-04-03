@@ -277,6 +277,26 @@ export default function Projects() {
             <RefreshCw className={cn("w-4 h-4 mr-2", isFetching && "animate-spin")} />
             Refresh
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const filterSummary: ProjectFilterSummary = {
+                search: filters.search || undefined,
+                sectors: filters.sectors,
+                statuses: filters.statuses,
+                pipelineStages: filters.pipelineStages,
+                clientNames: filters.clientNames,
+                projectLeads: filters.projectLeads,
+              };
+              generateProjectsReport(filteredProjects, filterSummary, pageTitle + ' Report');
+              toast.success('PDF report generated');
+            }}
+            disabled={filteredProjects.length === 0}
+          >
+            <FileText className="w-4 h-4 mr-2" />
+            Generate Report
+          </Button>
           {canCreateProjects && (
             <>
               {!selectMode ? (
