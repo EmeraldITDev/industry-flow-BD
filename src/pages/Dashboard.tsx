@@ -423,10 +423,7 @@ export default function Dashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <DashboardVisualExport filename="pipeline-by-sales-lead" contentClassName="p-0 bg-transparent border-0 shadow-none">
               <PipelineBySalesLead 
-                data={Object.entries(computedStats.pipelineBySalesLead).map(([lead, value]) => ({
-                  lead,
-                  value: value as number,
-                }))}
+                data={computedStats.accountTableData}
               />
             </DashboardVisualExport>
             <DashboardVisualExport filename="team-opportunity-load" contentClassName="p-0 bg-transparent border-0 shadow-none">
