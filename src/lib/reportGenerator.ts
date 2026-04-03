@@ -33,33 +33,33 @@ function addReportHeader(pdf: jsPDF, title: string, filterSummary: string, recor
   let y = yStart;
   
   // Title
-  pdf.setFontSize(18);
+  pdf.setFontSize(24);
   pdf.setFont('helvetica', 'bold');
   pdf.setTextColor(15, 23, 42);
   pdf.text(title, MARGIN, y);
-  y += 24;
+  y += 30;
 
   // Date
-  pdf.setFontSize(9);
+  pdf.setFontSize(12);
   pdf.setFont('helvetica', 'normal');
   pdf.setTextColor(100, 116, 139);
   pdf.text(`Generated: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`, MARGIN, y);
-  y += 14;
+  y += 18;
 
   // Filter summary
   if (filterSummary) {
-    pdf.setFontSize(8);
+    pdf.setFontSize(11);
     pdf.setTextColor(71, 85, 105);
     pdf.text(`Filters: ${filterSummary}`, MARGIN, y);
-    y += 12;
+    y += 16;
   }
 
   // Record count
-  pdf.setFontSize(9);
+  pdf.setFontSize(12);
   pdf.setFont('helvetica', 'bold');
   pdf.setTextColor(15, 23, 42);
   pdf.text(`Total Records: ${recordCount}`, MARGIN, y);
-  y += 16;
+  y += 20;
 
   // Divider
   pdf.setDrawColor(203, 213, 225);
