@@ -379,6 +379,7 @@ export const projectsService = {
       assigneeId: 'assignee_id',
       channelPartner: 'channel_partner',
       projectLeadComments: 'project_lead_comments',
+      supportNeeded: 'support_needed',
       dealProbability: 'deal_probability',
       projectImage: 'project_image',
     };
