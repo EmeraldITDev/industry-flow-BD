@@ -73,12 +73,12 @@ function drawTableHeader(pdf: jsPDF, columns: { label: string; x: number; w: num
   pdf.setFillColor(241, 245, 249);
   pdf.rect(MARGIN, y - 4, CONTENT_W, HEADER_ROW_H, 'F');
 
-  pdf.setFontSize(7.5);
+  pdf.setFontSize(9);
   pdf.setFont('helvetica', 'bold');
   pdf.setTextColor(51, 65, 85);
 
   columns.forEach(col => {
-    pdf.text(col.label, col.x, y + 8);
+    pdf.text(col.label, col.x, y + 10);
   });
 
   return y + HEADER_ROW_H + 2;
