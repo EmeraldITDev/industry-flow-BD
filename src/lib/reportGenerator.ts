@@ -129,16 +129,16 @@ export function generateProjectsReport(
 
   // Column definitions
   const cols = [
-    { label: 'Project Name', x: MARGIN, w: 140 },
-    { label: 'Client', x: MARGIN + 140, w: 100 },
-    { label: 'Sector', x: MARGIN + 240, w: 80 },
-    { label: 'Stage', x: MARGIN + 320, w: 70 },
-    { label: 'Status', x: MARGIN + 390, w: 55 },
-    { label: 'Value (USD)', x: MARGIN + 445, w: 85 },
-    { label: 'Value (NGN)', x: MARGIN + 530, w: 95 },
-    { label: 'Margin %', x: MARGIN + 625, w: 50 },
-    { label: 'Probability', x: MARGIN + 675, w: 55 },
-    { label: 'Location', x: MARGIN + 730, w: 60 },
+    { label: 'Project Name', x: MARGIN, w: 200 },
+    { label: 'Client', x: MARGIN + 200, w: 140 },
+    { label: 'Sector', x: MARGIN + 340, w: 100 },
+    { label: 'Stage', x: MARGIN + 440, w: 90 },
+    { label: 'Status', x: MARGIN + 530, w: 65 },
+    { label: 'Value (USD)', x: MARGIN + 595, w: 120 },
+    { label: 'Value (NGN)', x: MARGIN + 715, w: 140 },
+    { label: 'Margin %', x: MARGIN + 855, w: 60 },
+    { label: 'Probability', x: MARGIN + 915, w: 70 },
+    { label: 'Location', x: MARGIN + 985, w: 80 },
   ];
 
   y = drawTableHeader(pdf, cols, y);
@@ -157,22 +157,22 @@ export function generateProjectsReport(
       pdf.rect(MARGIN, y - 4, CONTENT_W, ROW_H, 'F');
     }
 
-    pdf.setFontSize(7);
+    pdf.setFontSize(8.5);
     pdf.setFont('helvetica', 'normal');
     pdf.setTextColor(30, 41, 59);
 
     const stageLabel = PIPELINE_STAGES.find(s => s.value === p.pipelineStage)?.label || p.pipelineStage || '—';
 
-    pdf.text(truncate(p.name, 28), cols[0].x, y + 8);
-    pdf.text(truncate(p.clientName || '', 20), cols[1].x, y + 8);
-    pdf.text(truncate(p.sector || '', 16), cols[2].x, y + 8);
-    pdf.text(truncate(stageLabel, 14), cols[3].x, y + 8);
-    pdf.text(p.status || '—', cols[4].x, y + 8);
-    pdf.text(fmtCurrency(p.contractValueUSD), cols[5].x, y + 8);
-    pdf.text(fmtCurrency(p.contractValueNGN, '₦'), cols[6].x, y + 8);
-    pdf.text(p.marginPercentUSD ? `${p.marginPercentUSD}%` : '—', cols[7].x, y + 8);
-    pdf.text(p.dealProbability || '—', cols[8].x, y + 8);
-    pdf.text(truncate(p.location || '', 12), cols[9].x, y + 8);
+    pdf.text(truncate(p.name, 38), cols[0].x, y + 10);
+    pdf.text(truncate(p.clientName || '', 26), cols[1].x, y + 10);
+    pdf.text(truncate(p.sector || '', 18), cols[2].x, y + 10);
+    pdf.text(truncate(stageLabel, 16), cols[3].x, y + 10);
+    pdf.text(p.status || '—', cols[4].x, y + 10);
+    pdf.text(fmtCurrency(p.contractValueUSD), cols[5].x, y + 10);
+    pdf.text(fmtCurrency(p.contractValueNGN, '₦'), cols[6].x, y + 10);
+    pdf.text(p.marginPercentUSD ? `${p.marginPercentUSD}%` : '—', cols[7].x, y + 10);
+    pdf.text(p.dealProbability || '—', cols[8].x, y + 10);
+    pdf.text(truncate(p.location || '', 14), cols[9].x, y + 10);
 
     y += ROW_H;
   });
