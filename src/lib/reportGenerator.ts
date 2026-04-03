@@ -5,12 +5,12 @@ import { Project, Task, PIPELINE_STAGES } from '@/types';
 /* Helpers                                                             */
 /* ------------------------------------------------------------------ */
 
-const PAGE_W = 1190; // A3 landscape for more room
+const PAGE_W = 1190;
 const PAGE_H = 842;
 const MARGIN = 36;
 const CONTENT_W = PAGE_W - MARGIN * 2;
-const ROW_H = 22;
-const HEADER_ROW_H = 26;
+const ROW_H = 28;
+const HEADER_ROW_H = 32;
 
 function fmtNum(n: number | undefined | null): string {
   if (n == null || isNaN(n)) return '—';
@@ -19,7 +19,9 @@ function fmtNum(n: number | undefined | null): string {
 
 function fmtCurrency(n: number | undefined | null, symbol = '$'): string {
   if (n == null || isNaN(n) || n === 0) return '—';
-  return `${symbol}${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  // jsPDF default fonts don't support ₦, use NGN/USD prefix instead
+  const prefix = symbol === '₦' ? 'NGN ' : symbol;
+  return `${prefix}${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 function truncate(str: string, max: number): string {
@@ -31,33 +33,33 @@ function addReportHeader(pdf: jsPDF, title: string, filterSummary: string, recor
   let y = yStart;
   
   // Title
-  pdf.setFontSize(18);
+  pdf.setFontSize(24);
   pdf.setFont('helvetica', 'bold');
   pdf.setTextColor(15, 23, 42);
   pdf.text(title, MARGIN, y);
-  y += 24;
+  y += 30;
 
   // Date
-  pdf.setFontSize(9);
+  pdf.setFontSize(12);
   pdf.setFont('helvetica', 'normal');
   pdf.setTextColor(100, 116, 139);
   pdf.text(`Generated: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`, MARGIN, y);
-  y += 14;
+  y += 18;
 
   // Filter summary
   if (filterSummary) {
-    pdf.setFontSize(8);
+    pdf.setFontSize(11);
     pdf.setTextColor(71, 85, 105);
     pdf.text(`Filters: ${filterSummary}`, MARGIN, y);
-    y += 12;
+    y += 16;
   }
 
   // Record count
-  pdf.setFontSize(9);
+  pdf.setFontSize(12);
   pdf.setFont('helvetica', 'bold');
   pdf.setTextColor(15, 23, 42);
   pdf.text(`Total Records: ${recordCount}`, MARGIN, y);
-  y += 16;
+  y += 20;
 
   // Divider
   pdf.setDrawColor(203, 213, 225);
@@ -73,15 +75,15 @@ function drawTableHeader(pdf: jsPDF, columns: { label: string; x: number; w: num
   pdf.setFillColor(241, 245, 249);
   pdf.rect(MARGIN, y - 4, CONTENT_W, HEADER_ROW_H, 'F');
 
-  pdf.setFontSize(9);
+  pdf.setFontSize(13);
   pdf.setFont('helvetica', 'bold');
   pdf.setTextColor(51, 65, 85);
 
   columns.forEach(col => {
-    pdf.text(col.label, col.x, y + 10);
+    pdf.text(col.label, col.x, y + 14);
   });
 
-  return y + HEADER_ROW_H + 2;
+  return y + HEADER_ROW_H + 4;
 }
 
 function checkPageBreak(pdf: jsPDF, y: number, needed: number): number {
@@ -157,22 +159,22 @@ export function generateProjectsReport(
       pdf.rect(MARGIN, y - 4, CONTENT_W, ROW_H, 'F');
     }
 
-    pdf.setFontSize(8.5);
+    pdf.setFontSize(11);
     pdf.setFont('helvetica', 'normal');
     pdf.setTextColor(30, 41, 59);
 
     const stageLabel = PIPELINE_STAGES.find(s => s.value === p.pipelineStage)?.label || p.pipelineStage || '—';
 
-    pdf.text(truncate(p.name, 38), cols[0].x, y + 10);
-    pdf.text(truncate(p.clientName || '', 26), cols[1].x, y + 10);
-    pdf.text(truncate(p.sector || '', 18), cols[2].x, y + 10);
-    pdf.text(truncate(stageLabel, 16), cols[3].x, y + 10);
-    pdf.text(p.status || '—', cols[4].x, y + 10);
-    pdf.text(fmtCurrency(p.contractValueUSD), cols[5].x, y + 10);
-    pdf.text(fmtCurrency(p.contractValueNGN, '₦'), cols[6].x, y + 10);
-    pdf.text(p.marginPercentUSD ? `${p.marginPercentUSD}%` : '—', cols[7].x, y + 10);
-    pdf.text(p.dealProbability || '—', cols[8].x, y + 10);
-    pdf.text(truncate(p.location || '', 14), cols[9].x, y + 10);
+    pdf.text(truncate(p.name, 34), cols[0].x, y + 14);
+    pdf.text(truncate(p.clientName || '', 22), cols[1].x, y + 14);
+    pdf.text(truncate(p.sector || '', 16), cols[2].x, y + 14);
+    pdf.text(truncate(stageLabel, 14), cols[3].x, y + 14);
+    pdf.text(p.status || '—', cols[4].x, y + 14);
+    pdf.text(fmtCurrency(p.contractValueUSD), cols[5].x, y + 14);
+    pdf.text(fmtCurrency(p.contractValueNGN, '₦'), cols[6].x, y + 14);
+    pdf.text(p.marginPercentUSD ? `${p.marginPercentUSD}%` : '—', cols[7].x, y + 14);
+    pdf.text(p.dealProbability || '—', cols[8].x, y + 14);
+    pdf.text(truncate(p.location || '', 14), cols[9].x, y + 14);
 
     y += ROW_H;
   });
@@ -187,11 +189,11 @@ export function generateProjectsReport(
   const totalUSD = projects.reduce((s, p) => s + (Number(p.contractValueUSD) || 0), 0);
   const totalNGN = projects.reduce((s, p) => s + (Number(p.contractValueNGN) || 0), 0);
 
-  pdf.setFontSize(9);
+  pdf.setFontSize(13);
   pdf.setFont('helvetica', 'bold');
   pdf.setTextColor(15, 23, 42);
   pdf.text(`Total Contract Value (USD): ${fmtCurrency(totalUSD)}`, MARGIN, y);
-  y += 14;
+  y += 18;
   pdf.text(`Total Contract Value (NGN): ${fmtCurrency(totalNGN, '₦')}`, MARGIN, y);
 
   const safeName = title.replace(/[^a-z0-9-_]+/gi, '-').toLowerCase();
@@ -358,7 +360,7 @@ export function generateTasksReport(
       pdf.rect(MARGIN, y - 4, CONTENT_W, ROW_H, 'F');
     }
 
-    pdf.setFontSize(8.5);
+    pdf.setFontSize(11);
     pdf.setFont('helvetica', 'normal');
     pdf.setTextColor(30, 41, 59);
 
@@ -366,12 +368,12 @@ export function generateTasksReport(
     const assignee = t.assigneeId ? (teamMap[String(t.assigneeId)] || (typeof t.assignee === 'string' ? t.assignee : 'Unassigned')) : 'Unassigned';
     const dueDate = t.dueDate ? new Date(t.dueDate).toLocaleDateString() : '—';
 
-    pdf.text(truncate(t.title, 58), cols[0].x, y + 10);
-    pdf.text(truncate(projName, 46), cols[1].x, y + 10);
-    pdf.text(t.status || '—', cols[2].x, y + 10);
-    pdf.text(t.priority || '—', cols[3].x, y + 10);
-    pdf.text(truncate(assignee, 34), cols[4].x, y + 10);
-    pdf.text(dueDate, cols[5].x, y + 10);
+    pdf.text(truncate(t.title, 50), cols[0].x, y + 14);
+    pdf.text(truncate(projName, 40), cols[1].x, y + 14);
+    pdf.text(t.status || '—', cols[2].x, y + 14);
+    pdf.text(t.priority || '—', cols[3].x, y + 14);
+    pdf.text(truncate(assignee, 30), cols[4].x, y + 14);
+    pdf.text(dueDate, cols[5].x, y + 14);
 
     y += ROW_H;
   });
@@ -386,13 +388,13 @@ export function generateTasksReport(
   const byStatus: Record<string, number> = {};
   tasks.forEach(t => { byStatus[t.status] = (byStatus[t.status] || 0) + 1; });
 
-  pdf.setFontSize(9);
+  pdf.setFontSize(13);
   pdf.setFont('helvetica', 'bold');
   pdf.setTextColor(15, 23, 42);
   pdf.text('Status Summary:', MARGIN, y);
-  y += 14;
+  y += 18;
   pdf.setFont('helvetica', 'normal');
-  pdf.setFontSize(8);
+  pdf.setFontSize(11);
   Object.entries(byStatus).forEach(([status, count]) => {
     pdf.text(`  ${status}: ${count}`, MARGIN, y);
     y += 12;
