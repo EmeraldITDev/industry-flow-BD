@@ -78,6 +78,7 @@ export default function EditProject() {
     marginPercentNGN: '',
     marginPercentUSD: '',
     projectLeadComments: '',
+    supportNeeded: '',
     projectImage: undefined as string | undefined,
   });
 
