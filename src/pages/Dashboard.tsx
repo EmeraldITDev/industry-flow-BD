@@ -254,7 +254,6 @@ export default function Dashboard() {
       bySector, topClients, byPipelineStage, byProductCategory,
       accountTableData, teamLoad, averageProgress: avgProgress, recent,
     };
-    };
   }, [filteredProjects, teamMembers]);
 
   const isLoading = !projectsList;
