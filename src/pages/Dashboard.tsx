@@ -204,12 +204,27 @@ export default function Dashboard() {
       byProductCategory[product] = (byProductCategory[product] || 0) + 1;
     });
 
-    // Pipeline by sales lead: count of projects per lead
-    const pipelineBySalesLead: Record<string, number> = {};
+    // Pipeline by sales lead: build account table data
+    const accountTableMap: Record<string, { location: string; owner: string; count: number }> = {};
     projects.forEach((p: Project) => {
+      const client = p.clientName?.trim() || 'Unknown';
       const lead = resolveLeadName(p);
-      pipelineBySalesLead[lead] = (pipelineBySalesLead[lead] || 0) + 1;
+      const loc = p.location?.trim() || '';
+      if (!accountTableMap[client]) {
+        accountTableMap[client] = { location: loc, owner: lead, count: 0 };
+      }
+      accountTableMap[client].count++;
+      // Update location/owner if previously empty
+      if (!accountTableMap[client].location && loc) accountTableMap[client].location = loc;
+      if (accountTableMap[client].owner === 'Unassigned' && lead !== 'Unassigned') accountTableMap[client].owner = lead;
     });
+
+    const accountTableData = Object.entries(accountTableMap).map(([account, info]) => ({
+      account,
+      location: info.location,
+      accountOwner: info.owner,
+      totalOpportunities: info.count,
+    }));
 
     // Team load
     const teamLoadMap: Record<string, { total: number; won: number; active: number }> = {};
