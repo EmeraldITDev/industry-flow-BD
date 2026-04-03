@@ -28,6 +28,8 @@ import {
 import { Loader2, Search, RefreshCw, X, CheckSquare, Clock, AlertCircle, ListTodo, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { safeFormatDate } from '@/lib/dateUtils';
+import { generateTasksReport, TaskFilterSummary } from '@/lib/reportGenerator';
+import { toast } from 'sonner';
 
 const statusConfig: Record<TaskStatus, { label: string; className: string; icon: React.ReactNode }> = {
   'todo': { label: 'To Do', className: 'bg-muted text-muted-foreground border-border', icon: <ListTodo className="w-3 h-3" /> },
