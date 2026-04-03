@@ -360,7 +360,7 @@ export function generateTasksReport(
       pdf.rect(MARGIN, y - 4, CONTENT_W, ROW_H, 'F');
     }
 
-    pdf.setFontSize(8.5);
+    pdf.setFontSize(11);
     pdf.setFont('helvetica', 'normal');
     pdf.setTextColor(30, 41, 59);
 
@@ -368,12 +368,12 @@ export function generateTasksReport(
     const assignee = t.assigneeId ? (teamMap[String(t.assigneeId)] || (typeof t.assignee === 'string' ? t.assignee : 'Unassigned')) : 'Unassigned';
     const dueDate = t.dueDate ? new Date(t.dueDate).toLocaleDateString() : '—';
 
-    pdf.text(truncate(t.title, 58), cols[0].x, y + 10);
-    pdf.text(truncate(projName, 46), cols[1].x, y + 10);
-    pdf.text(t.status || '—', cols[2].x, y + 10);
-    pdf.text(t.priority || '—', cols[3].x, y + 10);
-    pdf.text(truncate(assignee, 34), cols[4].x, y + 10);
-    pdf.text(dueDate, cols[5].x, y + 10);
+    pdf.text(truncate(t.title, 50), cols[0].x, y + 14);
+    pdf.text(truncate(projName, 40), cols[1].x, y + 14);
+    pdf.text(t.status || '—', cols[2].x, y + 14);
+    pdf.text(t.priority || '—', cols[3].x, y + 14);
+    pdf.text(truncate(assignee, 30), cols[4].x, y + 14);
+    pdf.text(dueDate, cols[5].x, y + 14);
 
     y += ROW_H;
   });
