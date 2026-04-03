@@ -78,6 +78,7 @@ export default function EditProject() {
     marginPercentNGN: '',
     marginPercentUSD: '',
     projectLeadComments: '',
+    supportNeeded: '',
     projectImage: undefined as string | undefined,
   });
 
@@ -140,6 +141,7 @@ export default function EditProject() {
       marginPercentUSD: data.marginPercentUSD != null ? String(data.marginPercentUSD) : (data.margin_percent_usd != null ? String(data.margin_percent_usd) : ''),
 
       projectLeadComments: data.projectLeadComments ?? data.project_lead_comments ?? '',
+      supportNeeded: data.supportNeeded ?? data.support_needed ?? '',
       projectImage: data.projectImage ?? data.project_image ?? undefined,
     });
   }, [projectData]);
@@ -188,6 +190,7 @@ export default function EditProject() {
           ? (parseNumberInput(formData.contractValueUSD)! * parseNumberInput(formData.marginPercentUSD)! / 100)
           : undefined,
         projectLeadComments: formData.projectLeadComments || undefined,
+        supportNeeded: formData.supportNeeded || undefined,
         projectImage: formData.projectImage ?? null,
         dealProbability: formData.dealProbability,
       });
@@ -635,6 +638,22 @@ export default function EditProject() {
               value={formData.projectLeadComments}
               onChange={(e) => setFormData({ ...formData, projectLeadComments: e.target.value })}
               placeholder="Add any additional comments or notes..."
+              rows={4}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Support Needed */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Support Needed</CardTitle>
+            <CardDescription>Areas where support is needed on this project</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Textarea
+              value={formData.supportNeeded}
+              onChange={(e) => setFormData({ ...formData, supportNeeded: e.target.value })}
+              placeholder="Describe any areas where support is needed..."
               rows={4}
             />
           </CardContent>

@@ -87,8 +87,8 @@ export default function NewProject() {
     contractValueUSD: '',
     marginPercentNGN: '',
     marginPercentUSD: '',
-    // Comments
     projectLeadComments: '',
+    supportNeeded: '',
     // Image
     projectImage: undefined as string | undefined,
   });
@@ -179,6 +179,7 @@ export default function NewProject() {
         marginValueUSD,
         dealProbability: formData.dealProbability,
         projectLeadComments: formData.projectLeadComments || undefined,
+        supportNeeded: formData.supportNeeded || undefined,
         projectImage: formData.projectImage || undefined,
         teamMemberIds: formData.teamMemberIds.length > 0 ? formData.teamMemberIds : undefined,
       } as any);
@@ -534,6 +535,17 @@ export default function NewProject() {
           </CardHeader>
           <CardContent>
             <Textarea value={formData.projectLeadComments} onChange={(e) => setFormData({ ...formData, projectLeadComments: e.target.value })} placeholder="Add any notes or comments..." rows={3} />
+          </CardContent>
+        </Card>
+
+        {/* Support Needed */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Support Needed</CardTitle>
+            <CardDescription>Areas where support is needed on this project</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Textarea value={formData.supportNeeded} onChange={(e) => setFormData({ ...formData, supportNeeded: e.target.value })} placeholder="Describe any areas where support is needed..." rows={3} />
           </CardContent>
         </Card>
 

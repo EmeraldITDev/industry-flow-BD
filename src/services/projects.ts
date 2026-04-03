@@ -32,6 +32,7 @@ export interface CreateProjectData {
   marginValueNGN?: number;
   marginValueUSD?: number;
   projectLeadComments?: string;
+  supportNeeded?: string;
   dealProbability?: RiskLevel;
   projectImage?: string;
 }
@@ -191,6 +192,7 @@ const normalizeProject = (project: any): Project => {
     salesLead: project.salesLead ?? project.sales_lead ?? null,
     channelPartner: project.channelPartner ?? project.channel_partner ?? '',
     projectLeadComments: project.projectLeadComments ?? project.project_lead_comments ?? '',
+    supportNeeded: project.supportNeeded ?? project.support_needed ?? '',
     dealProbability: project.dealProbability ?? project.deal_probability ?? project.riskLevel ?? project.risk_level ?? 'low',
     projectImage: project.projectImage ?? project.project_image ?? undefined,
     teamMemberIds,
@@ -377,6 +379,7 @@ export const projectsService = {
       assigneeId: 'assignee_id',
       channelPartner: 'channel_partner',
       projectLeadComments: 'project_lead_comments',
+      supportNeeded: 'support_needed',
       dealProbability: 'deal_probability',
       projectImage: 'project_image',
     };
@@ -457,6 +460,7 @@ export const projectsService = {
       assigneeId: 'assignee_id',
       channelPartner: 'channel_partner',
       projectLeadComments: 'project_lead_comments',
+      supportNeeded: 'support_needed',
       dealProbability: 'deal_probability',
       projectImage: 'project_image',
     };

@@ -1,30 +1,27 @@
-import { useMemo } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { cn } from '@/lib/utils';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 
-interface PipelineBySalesLeadProps {
-  data: Array<{ lead: string; value: number }>;
+export interface AccountRow {
+  account: string;
+  location: string;
+  accountOwner: string;
+  totalOpportunities: number;
 }
 
-/** Solid hex fills so exports never rasterize as black; distinct from background in light & dark UI. */
-const BAR_COLORS = [
-  '#00c2a8',
-  '#0ea5e9',
-  '#8b5cf6',
-  '#f59e0b',
-  '#10b981',
-  '#ec4899',
-];
+interface PipelineBySalesLeadProps {
+  data: AccountRow[];
+}
 
 export default function PipelineBySalesLead({ data }: PipelineBySalesLeadProps) {
-  const sortedData = useMemo(() => [...data].sort((a, b) => b.value - a.value), [data]);
-
-  const yAxisWidth = useMemo(() => {
-    const longest = sortedData.reduce((m, d) => Math.max(m, (d.lead || '').length), 8);
-    return Math.min(280, Math.max(140, longest * 7 + 24));
-  }, [sortedData]);
-
-  /** Room for each horizontal bar + title block; avoids cramped/clipped labels. */
-  const chartHeight = Math.min(640, Math.max(300, sortedData.length * 46 + 120));
+  const sortedData = [...data].sort((a, b) => a.account.localeCompare(b.account));
+  const sumTotal = sortedData.reduce((s, r) => s + r.totalOpportunities, 0);
 
   return (
     <div className="card p-4 overflow-visible">
@@ -33,53 +30,36 @@ export default function PipelineBySalesLead({ data }: PipelineBySalesLeadProps) 
           Pipeline by Sales Lead
         </h3>
         <p className="text-xs text-muted-foreground">
-          Number of projects managed per lead
+          Account summary with opportunities per owner
         </p>
       </div>
 
-      <div className="w-full min-h-[300px] overflow-x-auto overflow-y-visible">
-        <ResponsiveContainer width="100%" height={chartHeight}>
-          <BarChart
-            layout="vertical"
-            data={sortedData}
-            margin={{ top: 4, right: 16, left: 4, bottom: 8 }}
-            barCategoryGap="12%"
-          >
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal vertical={false} />
-            <XAxis
-              type="number"
-              tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-              axisLine={{ stroke: 'hsl(var(--border))' }}
-              tickLine={false}
-              allowDecimals={false}
-            />
-            <YAxis
-              type="category"
-              dataKey="lead"
-              width={yAxisWidth}
-              tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-              axisLine={{ stroke: 'hsl(var(--border))' }}
-              tickLine={false}
-              interval={0}
-            />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: 'hsl(var(--popover))',
-                border: '1px solid hsl(var(--border))',
-                borderRadius: '6px',
-                fontSize: '12px',
-              }}
-              formatter={(value: number) => [value, 'Projects']}
-              labelFormatter={(label) => String(label)}
-              labelStyle={{ color: 'hsl(var(--popover-foreground))' }}
-            />
-            <Bar dataKey="value" radius={[0, 4, 4, 0]} maxBarSize={36}>
-              {sortedData.map((_, index) => (
-                <Cell key={`cell-${index}`} fill={BAR_COLORS[index % BAR_COLORS.length]} />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-muted/50">
+              <TableHead className="text-xs font-bold text-foreground">Accounts</TableHead>
+              <TableHead className="text-xs font-bold text-foreground">Location</TableHead>
+              <TableHead className="text-xs font-bold text-foreground">Account Owner</TableHead>
+              <TableHead className="text-xs font-bold text-foreground text-right">Total Opportunities</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {sortedData.map((row, idx) => (
+              <TableRow key={`${row.account}-${idx}`} className={idx % 2 === 0 ? 'bg-background' : 'bg-muted/20'}>
+                <TableCell className="text-xs font-medium py-2">{row.account}</TableCell>
+                <TableCell className="text-xs py-2 text-muted-foreground">{row.location || '—'}</TableCell>
+                <TableCell className="text-xs py-2">{row.accountOwner}</TableCell>
+                <TableCell className="text-xs py-2 text-right font-semibold">{row.totalOpportunities}</TableCell>
+              </TableRow>
+            ))}
+            {/* Sum Total row */}
+            <TableRow className="border-t-2 border-foreground/20 bg-muted/40">
+              <TableCell colSpan={3} className="text-xs font-bold py-2">Sum Total</TableCell>
+              <TableCell className="text-xs font-bold py-2 text-right">{sumTotal}</TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
       </div>
     </div>
   );

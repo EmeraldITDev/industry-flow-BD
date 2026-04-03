@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { cn } from '@/lib/utils';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LabelList } from 'recharts';
 import { useDashboardExportOptional } from '@/context/DashboardExportContext';
 
 interface TopClientsByValueProps {
@@ -14,6 +14,12 @@ function formatUsdFull(n: number) {
   const abs = Math.abs(n);
   const sign = n < 0 ? '-' : '';
   return `${sign}$${abs.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function formatUsdShort(n: number) {
+  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `$${(n / 1_000).toFixed(0)}K`;
+  return `$${n.toFixed(0)}`;
 }
 
 export function TopClientsByValue({
@@ -31,9 +37,10 @@ export function TopClientsByValue({
         client,
         valueUsd,
         valueM: valueUsd / 1_000_000,
+        label: exportFull ? formatUsdFull(valueUsd) : formatUsdShort(valueUsd),
       }))
       .sort((a, b) => a.valueM - b.valueM);
-  }, [data]);
+  }, [data, exportFull]);
 
   const dataKey = exportFull ? 'valueUsd' : 'valueM';
 
@@ -57,7 +64,7 @@ export function TopClientsByValue({
           <BarChart
             data={chartData}
             layout="vertical"
-            margin={{ top: 5, right: exportFull ? 48 : 30, left: 10, bottom: 5 }}
+            margin={{ top: 5, right: exportFull ? 100 : 60, left: 10, bottom: 5 }}
           >
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
             <XAxis
@@ -84,7 +91,13 @@ export function TopClientsByValue({
               labelStyle={{ color: 'hsl(var(--foreground))' }}
               formatter={(value: number) => tooltipFormatter(value)}
             />
-            <Bar dataKey={dataKey} fill="#00c2a8" radius={[0, 5, 5, 0]} animationDuration={1000} />
+            <Bar dataKey={dataKey} fill="#00c2a8" radius={[0, 5, 5, 0]} animationDuration={1000}>
+              <LabelList
+                dataKey="label"
+                position="right"
+                style={{ fill: 'hsl(var(--foreground))', fontSize: 9, fontWeight: 600 }}
+              />
+            </Bar>
           </BarChart>
         </ResponsiveContainer>
       </div>

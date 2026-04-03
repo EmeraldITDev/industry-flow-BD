@@ -46,7 +46,8 @@ import {
   Trash2,
   PauseCircle,
   PlayCircle,
-  CheckCircle2
+  CheckCircle2,
+  FileText
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -56,6 +57,7 @@ import { getStageProgress, STAGE_PROGRESS_MAP } from '@/lib/stageProgress';
 import { PIPELINE_STAGES } from '@/types';
 import { teamService } from '@/services/team';
 import { getAllowedStatusesForStage, getDefaultStatusForStage, getStatusLabel, isValidStageStatus, type ProjectStatus } from '@/lib/stageStatusRules';
+import { generateSingleProjectReport } from '@/lib/reportGenerator';
 
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
@@ -138,6 +140,7 @@ export default function ProjectDetail() {
         assigneeId: data.assignee_id || data.assigneeId,
         salesLead: data.sales_lead || data.salesLead,
         projectLeadComments: data.project_lead_comments || data.projectLeadComments,
+        supportNeeded: data.support_needed || data.supportNeeded,
         dealProbability: data.deal_probability || data.dealProbability || data.risk_level || data.riskLevel,
         tasks: data.tasks || [],
         projectImage: data.project_image || data.projectImage || undefined,
@@ -323,6 +326,20 @@ export default function ProjectDetail() {
           <h1 className="text-lg sm:text-2xl lg:text-3xl font-bold line-clamp-2">{project.name}</h1>
         </div>
         {canEditProjects && (
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const tMap: Record<string, string> = {};
+                teamMembers.forEach((m: any) => { tMap[String(m.id)] = m.name; });
+                generateSingleProjectReport(project, tMap);
+                toast.success('Project report generated');
+              }}
+            >
+              <FileText className="w-4 h-4 mr-2" />
+              Report
+            </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="icon" className="shrink-0">
@@ -364,6 +381,7 @@ export default function ProjectDetail() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          </div>
         )}
       </div>
 
@@ -536,6 +554,12 @@ export default function ProjectDetail() {
                 <div className="mt-4 pt-4 border-t">
                   <p className="text-xs text-muted-foreground mb-2">Project Lead Comments</p>
                   <p className="text-sm">{project.projectLeadComments}</p>
+                </div>
+              )}
+              {project.supportNeeded && (
+                <div className="mt-4 pt-4 border-t">
+                  <p className="text-xs text-muted-foreground mb-2">Support Needed</p>
+                  <p className="text-sm">{project.supportNeeded}</p>
                 </div>
               )}
             </CardContent>

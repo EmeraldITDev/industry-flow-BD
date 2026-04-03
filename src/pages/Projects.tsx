@@ -8,13 +8,14 @@ import { projectsService } from '@/services/projects';
 import { teamService } from '@/services/team';
 import { tasksService } from '@/services/tasks';
 import { Button } from '@/components/ui/button';
-import { Plus, Grid3X3, List, Loader2, Upload, Trash2, X, RefreshCw } from 'lucide-react';
+import { Plus, Grid3X3, List, Loader2, Upload, Trash2, X, RefreshCw, FileText } from 'lucide-react';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Project, Sector } from '@/types';
 import { ProjectImportDialog } from '@/components/projects/ProjectImportDialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
+import { generateProjectsReport, ProjectFilterSummary } from '@/lib/reportGenerator';
 
 // Mapping for sector display names
 const sectorDisplayNames: Record<string, string> = {
@@ -275,6 +276,26 @@ export default function Projects() {
           <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
             <RefreshCw className={cn("w-4 h-4 mr-2", isFetching && "animate-spin")} />
             Refresh
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const filterSummary: ProjectFilterSummary = {
+                search: filters.search || undefined,
+                sectors: filters.sectors,
+                statuses: filters.statuses,
+                pipelineStages: filters.pipelineStages,
+                clientNames: filters.clientNames,
+                projectLeads: filters.projectLeads,
+              };
+              generateProjectsReport(filteredProjects, filterSummary, pageTitle + ' Report');
+              toast.success('PDF report generated');
+            }}
+            disabled={filteredProjects.length === 0}
+          >
+            <FileText className="w-4 h-4 mr-2" />
+            Generate Report
           </Button>
           {canCreateProjects && (
             <>

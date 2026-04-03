@@ -25,9 +25,11 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Loader2, Search, RefreshCw, X, CheckSquare, Clock, AlertCircle, ListTodo } from 'lucide-react';
+import { Loader2, Search, RefreshCw, X, CheckSquare, Clock, AlertCircle, ListTodo, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { safeFormatDate } from '@/lib/dateUtils';
+import { generateTasksReport, TaskFilterSummary } from '@/lib/reportGenerator';
+import { toast } from 'sonner';
 
 const statusConfig: Record<TaskStatus, { label: string; className: string; icon: React.ReactNode }> = {
   'todo': { label: 'To Do', className: 'bg-muted text-muted-foreground border-border', icon: <ListTodo className="w-3 h-3" /> },
@@ -166,10 +168,33 @@ export default function AllTasks() {
             {isLoading ? 'Loading...' : `${filteredTasks.length} of ${tasks.length} tasks`}
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
-          <RefreshCw className={cn("w-4 h-4 mr-2", isFetching && "animate-spin")} />
-          Refresh
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
+            <RefreshCw className={cn("w-4 h-4 mr-2", isFetching && "animate-spin")} />
+            Refresh
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const filterSummary: TaskFilterSummary = {
+                search: search || undefined,
+                status: statusFilter !== 'all' ? statusFilter : undefined,
+                priority: priorityFilter !== 'all' ? priorityFilter : undefined,
+                project: projectFilter !== 'all' ? (projectMap[projectFilter]?.name || projectFilter) : undefined,
+                assignee: assigneeFilter !== 'all' ? (teamMap[assigneeFilter] || assigneeFilter) : undefined,
+              };
+              const pMap: Record<string, { name: string }> = {};
+              projects.forEach(p => { pMap[p.id] = { name: p.name }; });
+              generateTasksReport(filteredTasks, filterSummary, pMap, teamMap);
+              toast.success('PDF report generated');
+            }}
+            disabled={filteredTasks.length === 0}
+          >
+            <FileText className="w-4 h-4 mr-2" />
+            Generate Report
+          </Button>
+        </div>
       </div>
 
       {/* Stats cards */}

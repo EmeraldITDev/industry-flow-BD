@@ -185,6 +185,7 @@ class ProjectController extends Controller
                 'margin_value_ngn' => 'nullable|numeric',
                 'margin_value_usd' => 'nullable|numeric',
                 'project_lead_comments' => 'nullable|string',
+                'support_needed' => 'nullable|string',
                 'deal_probability' => 'nullable|string',
                 'progress' => 'nullable|integer|min:0|max:100',
                 'project_image' => 'nullable|string',
