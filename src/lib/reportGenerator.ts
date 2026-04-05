@@ -431,12 +431,12 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
         pdf.setFontSize(8.5);
         pdf.setFont('helvetica', 'bold');
         pdf.setTextColor(MID.r, MID.g, MID.b);
-        pdf.text(label, x + 8, rowY + 16);
+        pdf.text(label, x + 8, rowY + 14);
         pdf.setFont('helvetica', 'normal');
         pdf.setTextColor(DARK.r, DARK.g, DARK.b);
         // Right-align value within column
         const valW = pdf.getTextWidth(value);
-        pdf.text(value, x + colW - valW - 8, rowY + 16);
+        pdf.text(value, x + colW - valW - 8, rowY + 14);
       };
 
       drawCell(leftX, usdRows[i].label, usdRows[i].value);
