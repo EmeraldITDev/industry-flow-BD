@@ -515,7 +515,7 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
 
     pdf.setFontSize(9.5);
     pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(DARK.r, DARK.g, DARK.b);
+    pdf.setTextColor(55, 65, 81);
     pdf.text(pct === 0 ? 'Not started yet' : pct === 100 ? 'Completed' : 'In progress', valueX, barY + 20);
 
     pdf.setDrawColor(241, 245, 249);
