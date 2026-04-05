@@ -476,17 +476,14 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
   ]);
 
   drawSectionTitle('Financial Details');
-  const hasUSD = [project.contractValueUSD, project.marginPercentUSD, project.marginValueUSD].some((value) => value != null);
-  const hasNGN = [project.contractValueNGN, project.marginPercentNGN, project.marginValueNGN].some((value) => value != null);
-
   drawFieldRows(
     [
-      { label: 'Contract Value (USD)', value: hasUSD ? fmtCurrency(project.contractValueUSD, 'USD ') : undefined },
+      { label: 'Contract Value (USD)', value: fmtCurrency(project.contractValueUSD, 'USD ') },
       { label: 'Margin % (USD)', value: project.marginPercentUSD != null ? `${project.marginPercentUSD}%` : undefined },
-      { label: 'Margin Value (USD)', value: hasUSD ? fmtCurrency(project.marginValueUSD, 'USD ') : undefined },
-      { label: 'Contract Value (NGN)', value: hasNGN ? fmtCurrency(project.contractValueNGN, 'NGN ') : undefined },
+      { label: 'Margin Value (USD)', value: fmtCurrency(project.marginValueUSD, 'USD ') },
+      { label: 'Contract Value (NGN)', value: fmtCurrency(project.contractValueNGN, 'NGN ') },
       { label: 'Margin % (NGN)', value: project.marginPercentNGN != null ? `${project.marginPercentNGN}%` : undefined },
-      { label: 'Margin Value (NGN)', value: hasNGN ? fmtCurrency(project.marginValueNGN, 'NGN ') : undefined },
+      { label: 'Margin Value (NGN)', value: fmtCurrency(project.marginValueNGN, 'NGN ') },
     ],
     { align: 'right', valueBold: true, emptyMessage: 'No financial data available for this project.' }
   );
