@@ -124,18 +124,18 @@ export default function ProjectDetail() {
         product: data.product,
         subProduct: data.sub_product || data.subProduct,
         channelPartner: data.channel_partner || data.channelPartner,
-        contractValueNGN: data.contractValueNGN,
-        contractValueUSD: data.contractValueUSD,
-        marginPercentNGN: data.marginPercentNGN,
-        marginPercentUSD: data.marginPercentUSD,
-        marginValueNGN: data.marginValueNGN || 
-          (data.contractValueNGN && data.marginPercentNGN 
-            ? (data.contractValueNGN * data.marginPercentNGN / 100) 
-            : undefined),
-        marginValueUSD: data.marginValueUSD || 
-          (data.contractValueUSD && data.marginPercentUSD 
-            ? (data.contractValueUSD * data.marginPercentUSD / 100) 
-            : undefined),
+        contractValueNGN: parseFloat(data.contractValueNGN ?? data.contract_value_ngn) || 0,
+        contractValueUSD: parseFloat(data.contractValueUSD ?? data.contract_value_usd) || 0,
+        marginPercentNGN: parseFloat(data.marginPercentNGN ?? data.margin_percent_ngn) || 0,
+        marginPercentUSD: parseFloat(data.marginPercentUSD ?? data.margin_percent_usd) || 0,
+        marginValueNGN: parseFloat(data.marginValueNGN ?? data.margin_value_ngn) || 
+          (parseFloat(data.contractValueNGN ?? data.contract_value_ngn) && parseFloat(data.marginPercentNGN ?? data.margin_percent_ngn) 
+            ? (parseFloat(data.contractValueNGN ?? data.contract_value_ngn) * parseFloat(data.marginPercentNGN ?? data.margin_percent_ngn) / 100) 
+            : 0),
+        marginValueUSD: parseFloat(data.marginValueUSD ?? data.margin_value_usd) || 
+          (parseFloat(data.contractValueUSD ?? data.contract_value_usd) && parseFloat(data.marginPercentUSD ?? data.margin_percent_usd) 
+            ? (parseFloat(data.contractValueUSD ?? data.contract_value_usd) * parseFloat(data.marginPercentUSD ?? data.margin_percent_usd) / 100) 
+            : 0),
         projectLeadId: data.project_lead_id || data.projectLeadId,
         assigneeId: data.assignee_id || data.assigneeId,
         salesLead: data.sales_lead || data.salesLead,
