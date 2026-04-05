@@ -216,10 +216,11 @@ export function generateProjectsReport(
 /* ------------------------------------------------------------------ */
 
 export async function generateSingleProjectReport(project: Project, teamMap?: Record<string, string>): Promise<void> {
-  const pdf = new jsPDF({ orientation: 'portrait', unit: 'px', format: 'a4' });
-  const pw = 595;
-  const ph = 842;
-  const m = 44;
+  /* Use 'pt' units — 'px' applies a 96/72 scale that shrinks content */
+  const pw = 595.28;
+  const ph = 841.89;
+  const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: [pw, ph] });
+  const m = 40;                       // ~14mm margins → 515pt usable width
   const contentW = pw - m * 2;
   let y = 0;
 
