@@ -471,13 +471,13 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
   drawFieldRows(
     [
       { label: 'Contract Value (USD)', value: fmtCurrency(project.contractValueUSD, 'USD ') },
-      { label: 'Margin % (USD)', value: project.marginPercentUSD != null ? `${project.marginPercentUSD}%` : undefined },
+      { label: 'Margin % (USD)', value: project.marginPercentUSD != null ? `${project.marginPercentUSD}%` : '—' },
       { label: 'Margin Value (USD)', value: fmtCurrency(project.marginValueUSD, 'USD ') },
       { label: 'Contract Value (NGN)', value: fmtCurrency(project.contractValueNGN, 'NGN ') },
-      { label: 'Margin % (NGN)', value: project.marginPercentNGN != null ? `${project.marginPercentNGN}%` : undefined },
+      { label: 'Margin % (NGN)', value: project.marginPercentNGN != null ? `${project.marginPercentNGN}%` : '—' },
       { label: 'Margin Value (NGN)', value: fmtCurrency(project.marginValueNGN, 'NGN ') },
     ],
-    { align: 'right', valueBold: true, emptyMessage: 'No financial data available for this project.' }
+    { align: 'right', valueBold: true, showAll: true, emptyMessage: 'No financial data available for this project.' }
   );
 
   if (project.progress != null) {
