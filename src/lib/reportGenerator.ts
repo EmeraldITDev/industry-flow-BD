@@ -270,20 +270,24 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
   /* ---- Page header bar (dark) ---- */
   const drawPageHeader = () => {
     pdf.setFillColor(HEADER_BG.r, HEADER_BG.g, HEADER_BG.b);
-    pdf.rect(0, 0, pw, 40, 'F');
+    pdf.rect(0, 0, pw, 36, 'F');
     // Emerald accent line under header
     pdf.setFillColor(ACCENT.r, ACCENT.g, ACCENT.b);
-    pdf.rect(0, 40, pw, 3, 'F');
+    pdf.rect(0, 36, pw, 2.5, 'F');
 
-    pdf.setFontSize(11);
+    pdf.setFontSize(10);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(WHITE.r, WHITE.g, WHITE.b);
-    pdf.text('PROJECT REPORT', m, 26);
+    pdf.text('PROJECT REPORT', m, 23);
 
-    pdf.setFontSize(9);
+    // Short date only to avoid clipping
+    const shortDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+    pdf.setFontSize(8);
     pdf.setFont('helvetica', 'normal');
     pdf.setTextColor(200, 210, 220);
-    pdf.text(`Generated: ${generatedDate}`, pw - m, 26, { align: 'right' });
+    const dateText = shortDate;
+    const dateW = pdf.getTextWidth(dateText);
+    pdf.text(dateText, pw - m - dateW, 23);
   };
 
   /* ---- Page footer ---- */
@@ -305,29 +309,29 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
     if (y + needed > ph - 46) {
       pdf.addPage();
       drawPageHeader();
-      y = 62;
+      y = 54;
     }
   };
 
   /* ---- Section title with accent bar ---- */
   const drawSectionTitle = (title: string) => {
-    y += y > 62 ? 20 : 8;
-    ensureSpace(38);
+    y += y > 54 ? 14 : 6;
+    ensureSpace(30);
     pdf.setFillColor(ACCENT.r, ACCENT.g, ACCENT.b);
-    pdf.roundedRect(m, y + 1, 4, 18, 2, 2, 'F');
-    pdf.setFontSize(14);
+    pdf.roundedRect(m, y + 1, 3.5, 14, 1.5, 1.5, 'F');
+    pdf.setFontSize(12);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(DARK.r, DARK.g, DARK.b);
-    pdf.text(title, m + 16, y + 14);
+    pdf.text(title, m + 12, y + 12);
     pdf.setDrawColor(BORDER.r, BORDER.g, BORDER.b);
-    pdf.setLineWidth(0.6);
-    pdf.line(m, y + 26, pw - m, y + 26);
-    y += 34;
+    pdf.setLineWidth(0.5);
+    pdf.line(m, y + 20, pw - m, y + 20);
+    y += 26;
   };
 
   /* ---- Two-column field rows with alternating backgrounds ---- */
-  const labelW = 140;
-  const valueX = m + labelW + 16;
+  const labelW = 120;
+  const valueX = m + labelW + 12;
 
   const drawFieldRows = (
     rows: Array<{ label: string; value: string | undefined | null }>,
@@ -353,95 +357,101 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
     visibleRows.forEach(({ label, value }, idx) => {
       const textValue = String(value);
       const valueLines = pdf.splitTextToSize(textValue, pw - m - valueX - 4);
-      const rowH = Math.max(26, valueLines.length * 13 + 10);
+      const rowH = Math.max(22, valueLines.length * 12 + 8);
       ensureSpace(rowH + 2);
 
-      // Alternating row background
       if (idx % 2 === 0) {
         pdf.setFillColor(ROW_ALT.r, ROW_ALT.g, ROW_ALT.b);
         pdf.rect(m, y - 2, contentW, rowH, 'F');
       }
 
-      // Label
-      pdf.setFontSize(10);
+      pdf.setFontSize(9);
       pdf.setFont('helvetica', 'bold');
       pdf.setTextColor(MID.r, MID.g, MID.b);
-      pdf.text(label, m + 8, y + 14);
+      pdf.text(label, m + 8, y + 12);
 
-      // Value
-      pdf.setFontSize(options?.valueBold ? 10.5 : 10);
+      pdf.setFontSize(options?.valueBold ? 9.5 : 9);
       pdf.setFont('helvetica', options?.valueBold ? 'bold' : 'normal');
       pdf.setTextColor(DARK.r, DARK.g, DARK.b);
       valueLines.forEach((line: string, li: number) => {
-        pdf.text(line, valueX, y + 14 + li * 13);
+        pdf.text(line, valueX, y + 12 + li * 12);
       });
 
-      y += rowH + 2;
+      y += rowH + 1;
     });
   };
 
   /* ---- Financial two-column grid (USD left, NGN right) ---- */
   const drawFinancialGrid = () => {
-    const colW = (contentW - 16) / 2; // two columns with gap
+    const gap = 12;
+    const colW = (contentW - gap) / 2;
     const leftX = m;
-    const rightX = m + colW + 16;
-    const innerLabelW = 120;
+    const rightX = m + colW + gap;
 
-    const leftRows = [
-      { label: 'Contract Value (USD)', value: fmtCurrency(project.contractValueUSD, 'USD ') },
-      { label: 'Margin Value (USD)', value: fmtCurrency(project.marginValueUSD, 'USD ') },
-      { label: 'Margin % (USD)', value: project.marginPercentUSD != null ? `${project.marginPercentUSD}%` : '—' },
+    const usdRows = [
+      { label: 'Contract Value', value: fmtCurrency(project.contractValueUSD, 'USD ') },
+      { label: 'Margin Value', value: fmtCurrency(project.marginValueUSD, 'USD ') },
+      { label: 'Margin %', value: project.marginPercentUSD != null ? `${project.marginPercentUSD}%` : '—' },
     ];
-    const rightRows = [
-      { label: 'Contract Value (NGN)', value: fmtCurrency(project.contractValueNGN, 'NGN ') },
-      { label: 'Margin Value (NGN)', value: fmtCurrency(project.marginValueNGN, 'NGN ') },
-      { label: 'Margin % (NGN)', value: project.marginPercentNGN != null ? `${project.marginPercentNGN}%` : '—' },
+    const ngnRows = [
+      { label: 'Contract Value', value: fmtCurrency(project.contractValueNGN, 'NGN ') },
+      { label: 'Margin Value', value: fmtCurrency(project.marginValueNGN, 'NGN ') },
+      { label: 'Margin %', value: project.marginPercentNGN != null ? `${project.marginPercentNGN}%` : '—' },
     ];
 
-    // Draw outline box
-    const gridRowH = 30;
-    const totalH = gridRowH * 3 + 4;
+    const gridRowH = 26;
+    const headerH = 22;
+    const totalH = headerH + gridRowH * 3 + 4;
     ensureSpace(totalH + 6);
+
+    // Column headers
+    const drawColHeader = (x: number, w: number, title: string) => {
+      pdf.setFillColor(236, 253, 245); // emerald-50
+      pdf.rect(x, y, w, headerH, 'F');
+      pdf.setFontSize(9);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(ACCENT.r, ACCENT.g, ACCENT.b);
+      pdf.text(title, x + 8, y + 14);
+    };
+    drawColHeader(leftX, colW, 'USD Values');
+    drawColHeader(rightX, colW, 'NGN Values');
+    const headerY = y;
+    y += headerH;
 
     for (let i = 0; i < 3; i++) {
       const rowY = y + i * gridRowH;
 
-      // Alternating background
       if (i % 2 === 0) {
         pdf.setFillColor(ROW_ALT.r, ROW_ALT.g, ROW_ALT.b);
         pdf.rect(leftX, rowY, colW, gridRowH, 'F');
         pdf.rect(rightX, rowY, colW, gridRowH, 'F');
       }
 
-      // Left column
-      pdf.setFontSize(9.5);
-      pdf.setFont('helvetica', 'bold');
-      pdf.setTextColor(MID.r, MID.g, MID.b);
-      pdf.text(leftRows[i].label, leftX + 8, rowY + 18);
-      pdf.setFont('helvetica', 'normal');
-      pdf.setTextColor(DARK.r, DARK.g, DARK.b);
-      pdf.text(leftRows[i].value, leftX + innerLabelW + 12, rowY + 18);
+      const drawCell = (x: number, label: string, value: string) => {
+        pdf.setFontSize(8.5);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setTextColor(MID.r, MID.g, MID.b);
+        pdf.text(label, x + 8, rowY + 16);
+        pdf.setFont('helvetica', 'normal');
+        pdf.setTextColor(DARK.r, DARK.g, DARK.b);
+        // Right-align value within column
+        const valW = pdf.getTextWidth(value);
+        pdf.text(value, x + colW - valW - 8, rowY + 16);
+      };
 
-      // Right column
-      pdf.setFont('helvetica', 'bold');
-      pdf.setTextColor(MID.r, MID.g, MID.b);
-      pdf.text(rightRows[i].label, rightX + 8, rowY + 18);
-      pdf.setFont('helvetica', 'normal');
-      pdf.setTextColor(DARK.r, DARK.g, DARK.b);
-      pdf.text(rightRows[i].value, rightX + innerLabelW + 12, rowY + 18);
-
-      // Separator line
-      pdf.setDrawColor(BORDER.r, BORDER.g, BORDER.b);
-      pdf.setLineWidth(0.3);
-      pdf.line(leftX, rowY + gridRowH, leftX + colW, rowY + gridRowH);
-      pdf.line(rightX, rowY + gridRowH, rightX + colW, rowY + gridRowH);
+      drawCell(leftX, usdRows[i].label, usdRows[i].value);
+      drawCell(rightX, ngnRows[i].label, ngnRows[i].value);
     }
 
-    // Outer border
+    // Outer borders
+    const gridH = headerH + gridRowH * 3;
     pdf.setDrawColor(BORDER.r, BORDER.g, BORDER.b);
     pdf.setLineWidth(0.5);
-    pdf.rect(leftX, y, colW, gridRowH * 3, 'S');
-    pdf.rect(rightX, y, colW, gridRowH * 3, 'S');
+    pdf.rect(leftX, headerY, colW, gridH, 'S');
+    pdf.rect(rightX, headerY, colW, gridH, 'S');
+    // Header separator
+    pdf.line(leftX, headerY + headerH, leftX + colW, headerY + headerH);
+    pdf.line(rightX, headerY + headerH, rightX + colW, headerY + headerH);
 
     y += gridRowH * 3 + 8;
   };
@@ -452,47 +462,56 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
     const statusLabel = pct === 0 ? 'Not started yet' : pct === 100 ? 'Completed' : 'In progress';
 
     // "Current Status" row
-    ensureSpace(36);
+    ensureSpace(70);
     pdf.setFillColor(ROW_ALT.r, ROW_ALT.g, ROW_ALT.b);
-    pdf.rect(m, y - 2, contentW, 28, 'F');
-    pdf.setFontSize(10);
+    pdf.rect(m, y - 2, contentW, 24, 'F');
+    pdf.setFontSize(9);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(MID.r, MID.g, MID.b);
-    pdf.text('Current Status', m + 8, y + 14);
+    pdf.text('Current Status', m + 8, y + 12);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(DARK.r, DARK.g, DARK.b);
-    pdf.text(statusLabel, valueX, y + 14);
-    y += 34;
+    pdf.text(statusLabel, valueX, y + 12);
+    y += 30;
 
-    // "Overall Completion" with full-width bar
-    ensureSpace(42);
-    pdf.setFontSize(10);
+    // "Overall Completion" label + percentage on same line
+    pdf.setFontSize(9);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(MID.r, MID.g, MID.b);
-    pdf.text('Overall Completion', m + 8, y + 12);
+    pdf.text('Overall Completion', m + 8, y + 10);
 
-    pdf.setFontSize(11);
+    pdf.setFontSize(10);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(DARK.r, DARK.g, DARK.b);
-    pdf.text(`${pct}%`, pw - m - 6, y + 12, { align: 'right' });
-    y += 20;
+    const pctText = `${pct}%`;
+    const pctW = pdf.getTextWidth(pctText);
+    pdf.text(pctText, pw - m - pctW, y + 10);
+    y += 16;
 
-    // Full-width progress bar
+    // Full-width progress bar track
     const barW = contentW;
-    const barH = 10;
+    const barH = 12;
+    // Track background
     pdf.setFillColor(BORDER.r, BORDER.g, BORDER.b);
-    pdf.roundedRect(m, y, barW, barH, 5, 5, 'F');
+    pdf.roundedRect(m, y, barW, barH, 6, 6, 'F');
 
-    const fillW = (pct / 100) * barW;
+    // Fill
+    const fillW = Math.max(0, (pct / 100) * barW);
     if (fillW > 0) {
       pdf.setFillColor(ACCENT.r, ACCENT.g, ACCENT.b);
-      if (fillW > 10) {
-        pdf.roundedRect(m, y, fillW, barH, 5, 5, 'F');
+      if (fillW > 12) {
+        pdf.roundedRect(m, y, fillW, barH, 6, 6, 'F');
       } else {
         pdf.rect(m, y, fillW, barH, 'F');
       }
     }
-    y += barH + 12;
+
+    // Border around bar
+    pdf.setDrawColor(BORDER.r, BORDER.g, BORDER.b);
+    pdf.setLineWidth(0.3);
+    pdf.roundedRect(m, y, barW, barH, 6, 6, 'S');
+
+    y += barH + 10;
   };
 
   /* ---- Notes & Support side-by-side ---- */
@@ -503,47 +522,46 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
 
     drawSectionTitle('Notes & Support');
 
-    const colW = (contentW - 16) / 2;
+    const colW = (contentW - 12) / 2;
     const leftX = m;
-    const rightX = m + colW + 16;
-    const headerH = 28;
-    const bodyPad = 10;
+    const rightX = m + colW + 12;
+    const headerH = 24;
+    const bodyPad = 8;
 
-    // Calculate body heights
     const leftText = project.projectLeadComments || '—';
     const rightText = project.supportNeeded || '—';
     const leftLines = pdf.splitTextToSize(leftText, colW - 16);
     const rightLines = pdf.splitTextToSize(rightText, colW - 16);
-    const bodyH = Math.max(leftLines.length * 14 + 16, rightLines.length * 14 + 16, 36);
+    const bodyH = Math.max(leftLines.length * 13 + 14, rightLines.length * 13 + 14, 32);
 
     ensureSpace(headerH + bodyH + 8);
 
     // Left column header
     pdf.setFillColor(236, 253, 245);  // emerald-50
     pdf.rect(leftX, y, colW, headerH, 'F');
-    pdf.setFontSize(10);
+    pdf.setFontSize(9);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(MID.r, MID.g, MID.b);
-    pdf.text('Project Lead Comments', leftX + 10, y + 17);
+    pdf.text('Project Lead Comments', leftX + 10, y + 15);
 
     // Right column header
     pdf.setFillColor(236, 253, 245);
     pdf.rect(rightX, y, colW, headerH, 'F');
-    pdf.text('Support Needed', rightX + 10, y + 17);
+    pdf.text('Support Needed', rightX + 10, y + 15);
 
     y += headerH;
 
     // Left column body
-    pdf.setFontSize(10);
+    pdf.setFontSize(9);
     pdf.setFont('helvetica', 'normal');
     pdf.setTextColor(DARK.r, DARK.g, DARK.b);
     leftLines.forEach((line: string, i: number) => {
-      pdf.text(line, leftX + 10, y + bodyPad + 10 + i * 14);
+      pdf.text(line, leftX + 10, y + bodyPad + 10 + i * 13);
     });
 
     // Right column body
     rightLines.forEach((line: string, i: number) => {
-      pdf.text(line, rightX + 10, y + bodyPad + 10 + i * 14);
+      pdf.text(line, rightX + 10, y + bodyPad + 10 + i * 13);
     });
 
     // Borders around both columns (header + body)
@@ -563,19 +581,42 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
      ================================================================== */
 
   drawPageHeader();
-  y = 62;
+  y = 52;
 
   const projectImageAsset = await normalizeProjectImageForPdf(project.projectImage);
 
-  /* ---- Title ---- */
-  pdf.setFontSize(28);
+  /* ---- Title row with optional small logo beside it ---- */
+  const titleStartX = m;
+  let logoDrawW = 0;
+  let logoDrawH = 0;
+  const maxLogoH = 48;
+  const maxLogoW = 48;
+
+  if (projectImageAsset) {
+    const imgScale = Math.min(maxLogoW / projectImageAsset.width, maxLogoH / projectImageAsset.height, 1);
+    logoDrawW = projectImageAsset.width * imgScale;
+    logoDrawH = projectImageAsset.height * imgScale;
+  }
+
+  const titleX = projectImageAsset ? titleStartX + logoDrawW + 14 : titleStartX;
+  const titleMaxW = contentW - (projectImageAsset ? logoDrawW + 14 : 0);
+
+  pdf.setFontSize(22);
   pdf.setFont('helvetica', 'bold');
   pdf.setTextColor(DARK.r, DARK.g, DARK.b);
-  const titleLines = pdf.splitTextToSize(project.name, contentW);
-  pdf.text(titleLines, m, y + 22);
-  y += 18 + titleLines.length * 28;
+  const titleLines = pdf.splitTextToSize(project.name, titleMaxW);
+  const titleBlockH = titleLines.length * 24;
+  pdf.text(titleLines, titleX, y + 20);
 
-  /* ---- Status pill + pipeline ---- */
+  // Draw logo beside title
+  if (projectImageAsset) {
+    const logoY = y + 10 + (titleBlockH - logoDrawH) / 2 - 6;
+    pdf.addImage(projectImageAsset.dataUrl, 'PNG', titleStartX, Math.max(y + 2, logoY), logoDrawW, logoDrawH, undefined, 'FAST');
+  }
+
+  y += Math.max(titleBlockH, logoDrawH) + 16;
+
+  /* ---- Status pill + pipeline (fix: set font BEFORE measuring) ---- */
   const stageLabel = PIPELINE_STAGES.find(s => s.value === project.pipelineStage)?.label || project.pipelineStage || '—';
   const statusText = (project.status || '—').toUpperCase();
   const statusColors: Record<string, { r: number; g: number; b: number }> = {
@@ -585,39 +626,28 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
     inactive: { r: 148, g: 163, b: 184 },
   };
   const pillColor = statusColors[project.status] || LIGHT;
-  const statusW = pdf.getTextWidth(statusText) + 20;
 
-  pdf.setFontSize(9.5);
+  // MUST set font before measuring width
+  pdf.setFontSize(8.5);
   pdf.setFont('helvetica', 'bold');
+  const statusW = pdf.getTextWidth(statusText) + 16;
+
   pdf.setFillColor(pillColor.r, pillColor.g, pillColor.b);
-  pdf.roundedRect(m, y - 10, statusW, 18, 4, 4, 'F');
+  pdf.roundedRect(m, y - 9, statusW, 16, 3, 3, 'F');
   pdf.setTextColor(255, 255, 255);
-  pdf.text(statusText, m + 10, y + 2);
+  pdf.text(statusText, m + 8, y + 1);
 
   pdf.setFont('helvetica', 'normal');
   pdf.setTextColor(MID.r, MID.g, MID.b);
-  pdf.setFontSize(11);
-  pdf.text(`Pipeline: ${stageLabel}`, m + statusW + 10, y + 2);
-  y += 22;
+  pdf.setFontSize(10);
+  pdf.text(`Pipeline: ${stageLabel}`, m + statusW + 8, y + 1);
+  y += 16;
 
   /* ---- Separator ---- */
   pdf.setDrawColor(BORDER.r, BORDER.g, BORDER.b);
-  pdf.setLineWidth(0.6);
+  pdf.setLineWidth(0.5);
   pdf.line(m, y, pw - m, y);
-  y += 10;
-
-  /* ---- Project image (compact, centered) ---- */
-  if (projectImageAsset) {
-    const maxImgW = 100;
-    const maxImgH = 72;
-    const imgScale = Math.min(maxImgW / projectImageAsset.width, maxImgH / projectImageAsset.height, 1);
-    const drawW = projectImageAsset.width * imgScale;
-    const drawH = projectImageAsset.height * imgScale;
-    ensureSpace(drawH + 16);
-    const imgX = m + (contentW - drawW) / 2;
-    pdf.addImage(projectImageAsset.dataUrl, 'PNG', imgX, y + 4, drawW, drawH, undefined, 'FAST');
-    y += drawH + 16;
-  }
+  y += 6;
 
   /* ---- Project Overview ---- */
   const leadName = project.projectLeadId && teamMap
