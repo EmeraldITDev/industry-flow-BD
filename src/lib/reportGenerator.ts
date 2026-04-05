@@ -386,66 +386,75 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
 
   /* ---- Financial two-column grid (USD left, NGN right) ---- */
   const drawFinancialGrid = () => {
-    const colW = (contentW - 16) / 2; // two columns with gap
+    const gap = 12;
+    const colW = (contentW - gap) / 2;
     const leftX = m;
-    const rightX = m + colW + 16;
-    const innerLabelW = 120;
+    const rightX = m + colW + gap;
 
-    const leftRows = [
-      { label: 'Contract Value (USD)', value: fmtCurrency(project.contractValueUSD, 'USD ') },
-      { label: 'Margin Value (USD)', value: fmtCurrency(project.marginValueUSD, 'USD ') },
-      { label: 'Margin % (USD)', value: project.marginPercentUSD != null ? `${project.marginPercentUSD}%` : '—' },
+    const usdRows = [
+      { label: 'Contract Value', value: fmtCurrency(project.contractValueUSD, 'USD ') },
+      { label: 'Margin Value', value: fmtCurrency(project.marginValueUSD, 'USD ') },
+      { label: 'Margin %', value: project.marginPercentUSD != null ? `${project.marginPercentUSD}%` : '—' },
     ];
-    const rightRows = [
-      { label: 'Contract Value (NGN)', value: fmtCurrency(project.contractValueNGN, 'NGN ') },
-      { label: 'Margin Value (NGN)', value: fmtCurrency(project.marginValueNGN, 'NGN ') },
-      { label: 'Margin % (NGN)', value: project.marginPercentNGN != null ? `${project.marginPercentNGN}%` : '—' },
+    const ngnRows = [
+      { label: 'Contract Value', value: fmtCurrency(project.contractValueNGN, 'NGN ') },
+      { label: 'Margin Value', value: fmtCurrency(project.marginValueNGN, 'NGN ') },
+      { label: 'Margin %', value: project.marginPercentNGN != null ? `${project.marginPercentNGN}%` : '—' },
     ];
 
-    // Draw outline box
-    const gridRowH = 30;
-    const totalH = gridRowH * 3 + 4;
+    const gridRowH = 26;
+    const headerH = 22;
+    const totalH = headerH + gridRowH * 3 + 4;
     ensureSpace(totalH + 6);
+
+    // Column headers
+    const drawColHeader = (x: number, w: number, title: string) => {
+      pdf.setFillColor(236, 253, 245); // emerald-50
+      pdf.rect(x, y, w, headerH, 'F');
+      pdf.setFontSize(9);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(ACCENT.r, ACCENT.g, ACCENT.b);
+      pdf.text(title, x + 8, y + 14);
+    };
+    drawColHeader(leftX, colW, 'USD Values');
+    drawColHeader(rightX, colW, 'NGN Values');
+    const headerY = y;
+    y += headerH;
 
     for (let i = 0; i < 3; i++) {
       const rowY = y + i * gridRowH;
 
-      // Alternating background
       if (i % 2 === 0) {
         pdf.setFillColor(ROW_ALT.r, ROW_ALT.g, ROW_ALT.b);
         pdf.rect(leftX, rowY, colW, gridRowH, 'F');
         pdf.rect(rightX, rowY, colW, gridRowH, 'F');
       }
 
-      // Left column
-      pdf.setFontSize(9.5);
-      pdf.setFont('helvetica', 'bold');
-      pdf.setTextColor(MID.r, MID.g, MID.b);
-      pdf.text(leftRows[i].label, leftX + 8, rowY + 18);
-      pdf.setFont('helvetica', 'normal');
-      pdf.setTextColor(DARK.r, DARK.g, DARK.b);
-      pdf.text(leftRows[i].value, leftX + innerLabelW + 12, rowY + 18);
+      const drawCell = (x: number, label: string, value: string) => {
+        pdf.setFontSize(8.5);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setTextColor(MID.r, MID.g, MID.b);
+        pdf.text(label, x + 8, rowY + 16);
+        pdf.setFont('helvetica', 'normal');
+        pdf.setTextColor(DARK.r, DARK.g, DARK.b);
+        // Right-align value within column
+        const valW = pdf.getTextWidth(value);
+        pdf.text(value, x + colW - valW - 8, rowY + 16);
+      };
 
-      // Right column
-      pdf.setFont('helvetica', 'bold');
-      pdf.setTextColor(MID.r, MID.g, MID.b);
-      pdf.text(rightRows[i].label, rightX + 8, rowY + 18);
-      pdf.setFont('helvetica', 'normal');
-      pdf.setTextColor(DARK.r, DARK.g, DARK.b);
-      pdf.text(rightRows[i].value, rightX + innerLabelW + 12, rowY + 18);
-
-      // Separator line
-      pdf.setDrawColor(BORDER.r, BORDER.g, BORDER.b);
-      pdf.setLineWidth(0.3);
-      pdf.line(leftX, rowY + gridRowH, leftX + colW, rowY + gridRowH);
-      pdf.line(rightX, rowY + gridRowH, rightX + colW, rowY + gridRowH);
+      drawCell(leftX, usdRows[i].label, usdRows[i].value);
+      drawCell(rightX, ngnRows[i].label, ngnRows[i].value);
     }
 
-    // Outer border
+    // Outer borders
+    const gridH = headerH + gridRowH * 3;
     pdf.setDrawColor(BORDER.r, BORDER.g, BORDER.b);
     pdf.setLineWidth(0.5);
-    pdf.rect(leftX, y, colW, gridRowH * 3, 'S');
-    pdf.rect(rightX, y, colW, gridRowH * 3, 'S');
+    pdf.rect(leftX, headerY, colW, gridH, 'S');
+    pdf.rect(rightX, headerY, colW, gridH, 'S');
+    // Header separator
+    pdf.line(leftX, headerY + headerH, leftX + colW, headerY + headerH);
+    pdf.line(rightX, headerY + headerH, rightX + colW, headerY + headerH);
 
     y += gridRowH * 3 + 8;
   };
