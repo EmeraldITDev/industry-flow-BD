@@ -315,18 +315,18 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
 
   /* ---- Section title with accent bar ---- */
   const drawSectionTitle = (title: string) => {
-    y += y > 54 ? 14 : 6;
-    ensureSpace(30);
+    y += y > 54 ? 10 : 4;
+    ensureSpace(26);
     pdf.setFillColor(ACCENT.r, ACCENT.g, ACCENT.b);
-    pdf.roundedRect(m, y + 1, 3.5, 14, 1.5, 1.5, 'F');
-    pdf.setFontSize(12);
+    pdf.roundedRect(m, y + 1, 3, 12, 1.5, 1.5, 'F');
+    pdf.setFontSize(11);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(DARK.r, DARK.g, DARK.b);
-    pdf.text(title, m + 12, y + 12);
+    pdf.text(title, m + 10, y + 11);
     pdf.setDrawColor(BORDER.r, BORDER.g, BORDER.b);
     pdf.setLineWidth(0.5);
-    pdf.line(m, y + 20, pw - m, y + 20);
-    y += 26;
+    pdf.line(m, y + 17, pw - m, y + 17);
+    y += 22;
   };
 
   /* ---- Two-column field rows with alternating backgrounds ---- */
