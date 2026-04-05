@@ -225,30 +225,50 @@ export function generateSingleProjectReport(project: Project, teamMap?: Record<s
 
   y = 30;
 
+  console.log('Project image available:', !!project.projectImage, project.projectImage ? `(${project.projectImage.substring(0, 30)}..., length: ${project.projectImage.length})` : 'none');
   /* ---- Project Image (top-right) ---- */
   const imgSize = 90;
   let titleMaxW = contentW;
-  if (project.projectImage) {
+  let imageEmbedded = false;
+  if (project.projectImage && project.projectImage.length > 20) {
     try {
-      const imgData = project.projectImage.startsWith('data:')
-        ? project.projectImage
-        : `data:image/png;base64,${project.projectImage}`;
+      let imgData = project.projectImage;
+      // Ensure it's a proper data URL
+      if (!imgData.startsWith('data:')) {
+        imgData = `data:image/png;base64,${imgData}`;
+      }
       // Detect format from data URL
       let imgFormat = 'PNG';
-      if (imgData.includes('image/jpeg') || imgData.includes('image/jpg')) imgFormat = 'JPEG';
-      else if (imgData.includes('image/gif')) imgFormat = 'GIF';
-      else if (imgData.includes('image/webp')) imgFormat = 'WEBP';
+      if (imgData.match(/data:image\/(jpeg|jpg)/i)) imgFormat = 'JPEG';
+      else if (imgData.match(/data:image\/gif/i)) imgFormat = 'GIF';
+      
       const imgX = pw - m - imgSize;
       const imgY = y;
       pdf.addImage(imgData, imgFormat, imgX, imgY, imgSize, imgSize, undefined, 'FAST');
-      // Draw a subtle border around the image after so it's on top
+      // Border on top
       pdf.setDrawColor(203, 213, 225);
       pdf.setLineWidth(0.5);
       pdf.roundedRect(imgX - 1, imgY - 1, imgSize + 2, imgSize + 2, 4, 4, 'S');
       titleMaxW = contentW - imgSize - 16;
+      imageEmbedded = true;
     } catch (e) {
       console.warn('Failed to embed project image in PDF:', e);
     }
+  }
+  // If image exists but failed to embed, draw a placeholder
+  if (project.projectImage && !imageEmbedded) {
+    const imgX = pw - m - imgSize;
+    const imgY = y;
+    pdf.setFillColor(241, 245, 249);
+    pdf.roundedRect(imgX, imgY, imgSize, imgSize, 4, 4, 'F');
+    pdf.setDrawColor(203, 213, 225);
+    pdf.setLineWidth(0.5);
+    pdf.roundedRect(imgX, imgY, imgSize, imgSize, 4, 4, 'S');
+    pdf.setFontSize(8);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setTextColor(LIGHT.r, LIGHT.g, LIGHT.b);
+    pdf.text('Image', imgX + imgSize / 2, imgY + imgSize / 2, { align: 'center' });
+    titleMaxW = contentW - imgSize - 16;
   }
 
   /* ---- Title ---- */
@@ -417,26 +437,31 @@ export function generateSingleProjectReport(project: Project, teamMap?: Record<s
 
   /* ======== PROGRESS SECTION ======== */
   if (project.progress != null) {
-    ensureSpace(40);
+    ensureSpace(50);
     drawSectionTitle('Progress');
-    const barW = contentW - 80;
-    const barH = 14;
+    const pct = Number(project.progress) || 0;
+    const barW = contentW - 16;
+    const barH = 20;
     const barX = m + 8;
-    // Background
+    const barY = y;
+
+    // Background track
     pdf.setFillColor(226, 232, 240);
-    pdf.roundedRect(barX, y - 2, barW, barH, 4, 4, 'F');
-    // Fill
-    const fillW = Math.max((project.progress / 100) * barW, 0);
-    if (fillW > 0) {
+    pdf.roundedRect(barX, barY, barW, barH, 6, 6, 'F');
+
+    // Filled portion
+    const fillW = Math.max((pct / 100) * barW, 0);
+    if (fillW > 8) {
       pdf.setFillColor(ACCENT.r, ACCENT.g, ACCENT.b);
-      pdf.roundedRect(barX, y - 2, fillW, barH, 4, 4, 'F');
+      pdf.roundedRect(barX, barY, fillW, barH, 6, 6, 'F');
     }
-    // Percentage text
-    pdf.setFontSize(10);
+
+    // Percentage text (to the right of bar)
+    pdf.setFontSize(13);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(DARK.r, DARK.g, DARK.b);
-    pdf.text(`${project.progress}%`, barX + barW + 8, y + 9);
-    y += 24;
+    pdf.text(`${pct}% Complete`, barX, barY + barH + 16);
+    y = barY + barH + 26;
   }
 
   /* ======== COMMENTS & SUPPORT ======== */
