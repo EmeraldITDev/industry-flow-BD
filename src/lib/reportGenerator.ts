@@ -270,20 +270,24 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
   /* ---- Page header bar (dark) ---- */
   const drawPageHeader = () => {
     pdf.setFillColor(HEADER_BG.r, HEADER_BG.g, HEADER_BG.b);
-    pdf.rect(0, 0, pw, 40, 'F');
+    pdf.rect(0, 0, pw, 36, 'F');
     // Emerald accent line under header
     pdf.setFillColor(ACCENT.r, ACCENT.g, ACCENT.b);
-    pdf.rect(0, 40, pw, 3, 'F');
+    pdf.rect(0, 36, pw, 2.5, 'F');
 
-    pdf.setFontSize(11);
+    pdf.setFontSize(10);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(WHITE.r, WHITE.g, WHITE.b);
-    pdf.text('PROJECT REPORT', m, 26);
+    pdf.text('PROJECT REPORT', m, 23);
 
-    pdf.setFontSize(9);
+    // Short date only to avoid clipping
+    const shortDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+    pdf.setFontSize(8);
     pdf.setFont('helvetica', 'normal');
     pdf.setTextColor(200, 210, 220);
-    pdf.text(`Generated: ${generatedDate}`, pw - m, 26, { align: 'right' });
+    const dateText = shortDate;
+    const dateW = pdf.getTextWidth(dateText);
+    pdf.text(dateText, pw - m - dateW, 23);
   };
 
   /* ---- Page footer ---- */
