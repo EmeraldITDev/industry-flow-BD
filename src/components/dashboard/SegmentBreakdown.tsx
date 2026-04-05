@@ -73,7 +73,7 @@ export function SegmentBreakdown({
               <LabelList
                 dataKey="count"
                 position="top"
-                style={{ fill: 'hsl(var(--foreground))', fontSize: 10, fontWeight: 600 }}
+                style={{ fill: 'hsl(var(--foreground))', fontSize: 12, fontWeight: 700 }}
               />
             </Bar>
           </BarChart>
