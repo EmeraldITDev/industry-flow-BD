@@ -169,8 +169,8 @@ export function generateProjectsReport(
     pdf.text(truncate(p.sector || '', 16), cols[2].x, y + 14);
     pdf.text(truncate(stageLabel, 14), cols[3].x, y + 14);
     pdf.text(p.status || '—', cols[4].x, y + 14);
-    pdf.text(fmtCurrency(p.contractValueUSD), cols[5].x, y + 14);
-    pdf.text(fmtCurrency(p.contractValueNGN, '₦'), cols[6].x, y + 14);
+    pdf.text(fmtCurrency(p.contractValueUSD, 'USD '), cols[5].x, y + 14);
+    pdf.text(fmtCurrency(p.contractValueNGN, 'NGN '), cols[6].x, y + 14);
     pdf.text(p.marginPercentUSD ? `${p.marginPercentUSD}%` : '—', cols[7].x, y + 14);
     pdf.text(p.dealProbability || '—', cols[8].x, y + 14);
     pdf.text(truncate(p.location || '', 14), cols[9].x, y + 14);
