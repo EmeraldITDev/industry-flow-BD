@@ -309,7 +309,7 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
     pdf.setDrawColor(BORDER.r, BORDER.g, BORDER.b);
     pdf.setLineWidth(0.6);
     pdf.line(labelX, y + 26, pw - m, y + 26);
-    y += 40;
+    y += 36;
   };
 
   const drawFieldRows = (
