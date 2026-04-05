@@ -301,12 +301,18 @@ export function generateSingleProjectReport(project: Project, teamMap?: Record<s
   /* ---- Section helper ---- */
   const drawSectionTitle = (title: string) => {
     ensureSpace(30);
-    pdf.setFillColor(241, 245, 249);
-    pdf.roundedRect(m, y - 4, contentW, 24, 3, 3, 'F');
-    pdf.setFontSize(13);
+    // Left accent bar (3px wide emerald stripe)
+    pdf.setFillColor(ACCENT.r, ACCENT.g, ACCENT.b);
+    pdf.rect(m, y - 2, 3, 20, 'F');
+    // Section title text
+    pdf.setFontSize(14);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(DARK.r, DARK.g, DARK.b);
-    pdf.text(title, m + 10, y + 12);
+    pdf.text(title, m + 12, y + 12);
+    // Subtle underline
+    pdf.setDrawColor(226, 232, 240);
+    pdf.setLineWidth(0.5);
+    pdf.line(m, y + 20, pw - m, y + 20);
     y += 30;
   };
 
