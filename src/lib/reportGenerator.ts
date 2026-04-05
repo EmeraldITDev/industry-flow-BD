@@ -17,10 +17,9 @@ function fmtNum(n: number | undefined | null): string {
   return n.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 }
 
-function fmtCurrency(n: number | undefined | null, symbol = '$'): string {
+function fmtCurrency(n: number | undefined | null, prefix = 'USD '): string {
   if (n == null || isNaN(n) || n === 0) return '—';
-  // jsPDF default fonts don't support ₦, use NGN/USD prefix instead
-  const prefix = symbol === '₦' ? 'NGN ' : symbol;
+  // jsPDF default fonts don't support ₦; always use text prefixes
   return `${prefix}${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
