@@ -228,27 +228,46 @@ export function generateSingleProjectReport(project: Project, teamMap?: Record<s
   /* ---- Project Image (top-right) ---- */
   const imgSize = 90;
   let titleMaxW = contentW;
-  if (project.projectImage) {
+  let imageEmbedded = false;
+  if (project.projectImage && project.projectImage.length > 20) {
     try {
-      const imgData = project.projectImage.startsWith('data:')
-        ? project.projectImage
-        : `data:image/png;base64,${project.projectImage}`;
+      let imgData = project.projectImage;
+      // Ensure it's a proper data URL
+      if (!imgData.startsWith('data:')) {
+        imgData = `data:image/png;base64,${imgData}`;
+      }
       // Detect format from data URL
       let imgFormat = 'PNG';
-      if (imgData.includes('image/jpeg') || imgData.includes('image/jpg')) imgFormat = 'JPEG';
-      else if (imgData.includes('image/gif')) imgFormat = 'GIF';
-      else if (imgData.includes('image/webp')) imgFormat = 'WEBP';
+      if (imgData.match(/data:image\/(jpeg|jpg)/i)) imgFormat = 'JPEG';
+      else if (imgData.match(/data:image\/gif/i)) imgFormat = 'GIF';
+      
       const imgX = pw - m - imgSize;
       const imgY = y;
       pdf.addImage(imgData, imgFormat, imgX, imgY, imgSize, imgSize, undefined, 'FAST');
-      // Draw a subtle border around the image after so it's on top
+      // Border on top
       pdf.setDrawColor(203, 213, 225);
       pdf.setLineWidth(0.5);
       pdf.roundedRect(imgX - 1, imgY - 1, imgSize + 2, imgSize + 2, 4, 4, 'S');
       titleMaxW = contentW - imgSize - 16;
+      imageEmbedded = true;
     } catch (e) {
       console.warn('Failed to embed project image in PDF:', e);
     }
+  }
+  // If image exists but failed to embed, draw a placeholder
+  if (project.projectImage && !imageEmbedded) {
+    const imgX = pw - m - imgSize;
+    const imgY = y;
+    pdf.setFillColor(241, 245, 249);
+    pdf.roundedRect(imgX, imgY, imgSize, imgSize, 4, 4, 'F');
+    pdf.setDrawColor(203, 213, 225);
+    pdf.setLineWidth(0.5);
+    pdf.roundedRect(imgX, imgY, imgSize, imgSize, 4, 4, 'S');
+    pdf.setFontSize(8);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setTextColor(LIGHT.r, LIGHT.g, LIGHT.b);
+    pdf.text('Image', imgX + imgSize / 2, imgY + imgSize / 2, { align: 'center' });
+    titleMaxW = contentW - imgSize - 16;
   }
 
   /* ---- Title ---- */
