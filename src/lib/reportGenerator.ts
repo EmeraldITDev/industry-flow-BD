@@ -191,9 +191,9 @@ export function generateProjectsReport(
   pdf.setFontSize(13);
   pdf.setFont('helvetica', 'bold');
   pdf.setTextColor(15, 23, 42);
-  pdf.text(`Total Contract Value (USD): ${fmtCurrency(totalUSD)}`, MARGIN, y);
+  pdf.text(`Total Contract Value (USD): ${fmtCurrency(totalUSD, 'USD ')}`, MARGIN, y);
   y += 18;
-  pdf.text(`Total Contract Value (NGN): ${fmtCurrency(totalNGN, '₦')}`, MARGIN, y);
+  pdf.text(`Total Contract Value (NGN): ${fmtCurrency(totalNGN, 'NGN ')}`, MARGIN, y);
 
   const safeName = title.replace(/[^a-z0-9-_]+/gi, '-').toLowerCase();
   pdf.save(`${safeName}.pdf`);
