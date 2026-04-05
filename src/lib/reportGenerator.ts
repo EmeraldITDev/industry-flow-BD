@@ -462,56 +462,53 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
     const statusLabel = pct === 0 ? 'Not started yet' : pct === 100 ? 'Completed' : 'In progress';
 
     // "Current Status" row
-    ensureSpace(70);
+    ensureSpace(60);
     pdf.setFillColor(ROW_ALT.r, ROW_ALT.g, ROW_ALT.b);
-    pdf.rect(m, y - 2, contentW, 24, 'F');
-    pdf.setFontSize(9);
+    pdf.rect(m, y - 2, contentW, 20, 'F');
+    pdf.setFontSize(8.5);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(MID.r, MID.g, MID.b);
-    pdf.text('Current Status', m + 8, y + 12);
+    pdf.text('Current Status', m + 6, y + 10);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(DARK.r, DARK.g, DARK.b);
-    pdf.text(statusLabel, valueX, y + 12);
-    y += 30;
+    pdf.text(statusLabel, valueX, y + 10);
+    y += 24;
 
     // "Overall Completion" label + percentage on same line
-    pdf.setFontSize(9);
+    pdf.setFontSize(8.5);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(MID.r, MID.g, MID.b);
-    pdf.text('Overall Completion', m + 8, y + 10);
+    pdf.text('Overall Completion', m + 6, y + 8);
 
-    pdf.setFontSize(10);
+    pdf.setFontSize(9);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(DARK.r, DARK.g, DARK.b);
     const pctText = `${pct}%`;
     const pctW = pdf.getTextWidth(pctText);
-    pdf.text(pctText, pw - m - pctW, y + 10);
-    y += 16;
+    pdf.text(pctText, pw - m - pctW, y + 8);
+    y += 14;
 
     // Full-width progress bar track
     const barW = contentW;
-    const barH = 12;
-    // Track background
+    const barH = 10;
     pdf.setFillColor(BORDER.r, BORDER.g, BORDER.b);
-    pdf.roundedRect(m, y, barW, barH, 6, 6, 'F');
+    pdf.roundedRect(m, y, barW, barH, 5, 5, 'F');
 
-    // Fill
     const fillW = Math.max(0, (pct / 100) * barW);
     if (fillW > 0) {
       pdf.setFillColor(ACCENT.r, ACCENT.g, ACCENT.b);
-      if (fillW > 12) {
-        pdf.roundedRect(m, y, fillW, barH, 6, 6, 'F');
+      if (fillW > 10) {
+        pdf.roundedRect(m, y, fillW, barH, 5, 5, 'F');
       } else {
         pdf.rect(m, y, fillW, barH, 'F');
       }
     }
 
-    // Border around bar
     pdf.setDrawColor(BORDER.r, BORDER.g, BORDER.b);
     pdf.setLineWidth(0.3);
-    pdf.roundedRect(m, y, barW, barH, 6, 6, 'S');
+    pdf.roundedRect(m, y, barW, barH, 5, 5, 'S');
 
-    y += barH + 10;
+    y += barH + 8;
   };
 
   /* ---- Notes & Support side-by-side ---- */
