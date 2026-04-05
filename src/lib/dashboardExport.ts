@@ -55,6 +55,14 @@ function applyExportLightTheme(clonedRoot: HTMLElement) {
       el.style.setProperty('opacity', '1', 'important');
       // Also set attribute as fallback for html2canvas
       el.setAttribute('fill', resolved || '#0f172a');
+      // If this label used paintOrder stroke for contrast, set stroke to white for export
+      const po = el.getAttribute('paint-order') || cs.getPropertyValue('paint-order');
+      if (po && po.includes('stroke')) {
+        el.style.setProperty('stroke', '#ffffff', 'important');
+        el.setAttribute('stroke', '#ffffff');
+        const sw = parseFloat(cs.strokeWidth) || 3;
+        el.setAttribute('stroke-width', String(sw));
+      }
     } catch {
       el.setAttribute('fill', '#0f172a');
       el.setAttribute('opacity', '1');
