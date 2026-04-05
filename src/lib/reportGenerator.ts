@@ -399,8 +399,8 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
       { label: 'Margin %', value: project.marginPercentNGN != null ? `${project.marginPercentNGN}%` : '—' },
     ];
 
-    const gridRowH = 26;
-    const headerH = 22;
+    const gridRowH = 22;
+    const headerH = 20;
     const totalH = headerH + gridRowH * 3 + 4;
     ensureSpace(totalH + 6);
 
