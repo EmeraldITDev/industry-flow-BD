@@ -519,11 +519,11 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
 
     drawSectionTitle('Notes & Support');
 
-    const colW = (contentW - 12) / 2;
+    const colW = (contentW - 10) / 2;
     const leftX = m;
-    const rightX = m + colW + 12;
-    const headerH = 24;
-    const bodyPad = 8;
+    const rightX = m + colW + 10;
+    const headerH = 20;
+    const bodyPad = 6;
 
     const leftText = project.projectLeadComments || '—';
     const rightText = project.supportNeeded || '—';
