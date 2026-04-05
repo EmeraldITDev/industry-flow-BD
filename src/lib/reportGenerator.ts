@@ -206,53 +206,143 @@ export function generateProjectsReport(
 export function generateSingleProjectReport(project: Project, teamMap?: Record<string, string>): void {
   const pdf = new jsPDF({ orientation: 'portrait', unit: 'px', format: 'a4' });
   const pw = 595;
-  const m = 40;
-  let y = m + 10;
+  const m = 44;
+  const contentW = pw - m * 2;
+  let y = m;
 
-  // --- Project image (base64) ---
+  const ACCENT = { r: 16, g: 185, b: 129 }; // emerald-500
+  const DARK = { r: 15, g: 23, b: 42 };
+  const MID = { r: 71, g: 85, b: 105 };
+  const LIGHT = { r: 148, g: 163, b: 184 };
+
+  const ensureSpace = (needed: number) => {
+    if (y + needed > 800) { pdf.addPage(); y = m; }
+  };
+
+  /* ---- Top accent bar ---- */
+  pdf.setFillColor(ACCENT.r, ACCENT.g, ACCENT.b);
+  pdf.rect(0, 0, pw, 6, 'F');
+
+  y = 30;
+
+  /* ---- Project Image (top-right) ---- */
+  const imgSize = 90;
+  let titleMaxW = contentW;
   if (project.projectImage) {
     try {
       const imgData = project.projectImage.startsWith('data:')
         ? project.projectImage
         : `data:image/png;base64,${project.projectImage}`;
-      pdf.addImage(imgData, 'PNG', pw - m - 80, y - 5, 80, 80, undefined, 'FAST');
+      const imgX = pw - m - imgSize;
+      const imgY = y;
+      // Draw a subtle border around the image
+      pdf.setDrawColor(203, 213, 225);
+      pdf.setLineWidth(0.5);
+      pdf.roundedRect(imgX - 2, imgY - 2, imgSize + 4, imgSize + 4, 4, 4, 'S');
+      pdf.addImage(imgData, 'PNG', imgX, imgY, imgSize, imgSize, undefined, 'FAST');
+      titleMaxW = contentW - imgSize - 16;
     } catch {
       // skip if image can't be embedded
     }
   }
 
-  // Title
-  pdf.setFontSize(18);
+  /* ---- Title ---- */
+  pdf.setFontSize(22);
   pdf.setFont('helvetica', 'bold');
-  pdf.setTextColor(15, 23, 42);
-  pdf.text(project.name, m, y);
-  y += 22;
+  pdf.setTextColor(DARK.r, DARK.g, DARK.b);
+  const titleLines = pdf.splitTextToSize(project.name, titleMaxW);
+  pdf.text(titleLines, m, y + 18);
+  y += 18 + titleLines.length * 24;
 
-  pdf.setFontSize(9);
+  /* ---- Subtitle line: Status badge + Stage ---- */
+  const stageLabel = PIPELINE_STAGES.find(s => s.value === project.pipelineStage)?.label || project.pipelineStage || '—';
+
+  // Status pill
+  pdf.setFontSize(10);
+  pdf.setFont('helvetica', 'bold');
+  const statusText = (project.status || '—').toUpperCase();
+  const statusW = pdf.getTextWidth(statusText) + 16;
+  const statusColors: Record<string, { r: number; g: number; b: number }> = {
+    active: { r: 16, g: 185, b: 129 },
+    completed: { r: 59, g: 130, b: 246 },
+    'on-hold': { r: 245, g: 158, b: 11 },
+    inactive: { r: 148, g: 163, b: 184 },
+  };
+  const pillColor = statusColors[project.status] || LIGHT;
+  pdf.setFillColor(pillColor.r, pillColor.g, pillColor.b);
+  pdf.roundedRect(m, y - 10, statusW, 18, 4, 4, 'F');
+  pdf.setTextColor(255, 255, 255);
+  pdf.text(statusText, m + 8, y + 2);
+
+  // Stage text next to pill
   pdf.setFont('helvetica', 'normal');
-  pdf.setTextColor(100, 116, 139);
-  pdf.text(`Generated: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, m, y);
+  pdf.setTextColor(MID.r, MID.g, MID.b);
+  pdf.setFontSize(11);
+  pdf.text(`Pipeline: ${stageLabel}`, m + statusW + 10, y + 2);
   y += 20;
 
-  // Detail rows
-  const addField = (label: string, value: string | undefined | null) => {
-    if (!value) return;
-    if (y > 780) { pdf.addPage(); y = m + 10; }
-    pdf.setFontSize(8);
+  /* ---- Generated date ---- */
+  pdf.setFontSize(9);
+  pdf.setTextColor(LIGHT.r, LIGHT.g, LIGHT.b);
+  pdf.text(`Generated: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`, m, y);
+  y += 16;
+
+  /* ---- Divider ---- */
+  pdf.setDrawColor(226, 232, 240);
+  pdf.setLineWidth(0.5);
+  pdf.line(m, y, pw - m, y);
+  y += 14;
+
+  /* ---- Section helper ---- */
+  const drawSectionTitle = (title: string) => {
+    ensureSpace(30);
+    pdf.setFillColor(241, 245, 249);
+    pdf.roundedRect(m, y - 4, contentW, 24, 3, 3, 'F');
+    pdf.setFontSize(13);
     pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(71, 85, 105);
-    pdf.text(label, m, y);
-    pdf.setFont('helvetica', 'normal');
-    pdf.setTextColor(30, 41, 59);
-    pdf.text(String(value), m + 130, y);
-    y += 16;
+    pdf.setTextColor(DARK.r, DARK.g, DARK.b);
+    pdf.text(title, m + 10, y + 12);
+    y += 30;
   };
 
-  const stageLabel = PIPELINE_STAGES.find(s => s.value === project.pipelineStage)?.label || project.pipelineStage;
-  const leadName = project.projectLeadId && teamMap ? (teamMap[String(project.projectLeadId)] || String(project.projectLeadId)) : undefined;
+  /* ---- Field row helper (two-column key:value) ---- */
+  const fieldLabelW = 150;
+  const addField = (label: string, value: string | undefined | null) => {
+    if (!value || value === '—') return;
+    ensureSpace(18);
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(MID.r, MID.g, MID.b);
+    pdf.text(label, m + 8, y);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setTextColor(DARK.r, DARK.g, DARK.b);
+    const valLines = pdf.splitTextToSize(String(value), contentW - fieldLabelW - 16);
+    pdf.text(valLines, m + fieldLabelW, y);
+    y += Math.max(valLines.length * 13, 15);
+  };
 
-  addField('Status', project.status);
-  addField('Pipeline Stage', stageLabel);
+  /* ---- Financial field with emphasis ---- */
+  const addFinanceField = (label: string, value: string | undefined | null) => {
+    if (!value || value === '—') return;
+    ensureSpace(20);
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(MID.r, MID.g, MID.b);
+    pdf.text(label, m + 8, y);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(DARK.r, DARK.g, DARK.b);
+    pdf.setFontSize(11);
+    pdf.text(String(value), m + fieldLabelW, y);
+    y += 17;
+  };
+
+  /* ======== PROJECT OVERVIEW SECTION ======== */
+  drawSectionTitle('Project Overview');
+
+  const leadName = project.projectLeadId && teamMap
+    ? (teamMap[String(project.projectLeadId)] || String(project.projectLeadId))
+    : undefined;
+
   addField('Sector', project.sector);
   addField('Business Segment', project.businessSegment);
   addField('Client', project.clientName);
@@ -262,56 +352,138 @@ export function generateSingleProjectReport(project: Project, teamMap?: Record<s
   addField('Product', project.product);
   addField('Sub Product', project.subProduct);
   addField('Channel Partner', project.channelPartner);
+  addField('Sales Lead', project.salesLead);
   addField('Project Lead', leadName);
   addField('Deal Probability', project.dealProbability);
+  y += 4;
+
+  /* ======== TIMELINE SECTION ======== */
+  drawSectionTitle('Timeline');
   addField('Start Date', project.startDate);
   addField('End Date', project.endDate);
   addField('Expected Close', project.expectedCloseDate);
+  addField('Pipeline Intake', project.pipelineIntakeDate);
+  y += 4;
 
-  y += 6;
-  pdf.setDrawColor(203, 213, 225);
-  pdf.line(m, y, pw - m, y);
-  y += 14;
+  /* ======== FINANCIAL DETAILS SECTION ======== */
+  drawSectionTitle('Financial Details');
 
-  // Financial
-  pdf.setFontSize(12);
-  pdf.setFont('helvetica', 'bold');
-  pdf.setTextColor(15, 23, 42);
-  pdf.text('Financial Details', m, y);
-  y += 18;
+  // USD block
+  const hasUSD = project.contractValueUSD || project.marginPercentUSD || project.marginValueUSD;
+  const hasNGN = project.contractValueNGN || project.marginPercentNGN || project.marginValueNGN;
 
-  addField('Contract Value (USD)', fmtCurrency(project.contractValueUSD, 'USD '));
-  addField('Contract Value (NGN)', fmtCurrency(project.contractValueNGN, 'NGN '));
-  addField('Margin % (USD)', project.marginPercentUSD ? `${project.marginPercentUSD}%` : undefined);
-  addField('Margin Value (USD)', fmtCurrency(project.marginValueUSD, 'USD '));
-  addField('Margin % (NGN)', project.marginPercentNGN ? `${project.marginPercentNGN}%` : undefined);
-  addField('Margin Value (NGN)', fmtCurrency(project.marginValueNGN, 'NGN '));
-
-  // Comments & Support Needed
-  if (project.projectLeadComments) {
-    y += 8;
+  if (hasUSD) {
     pdf.setFontSize(10);
     pdf.setFont('helvetica', 'bold');
-    pdf.text('Project Lead Comments', m, y);
-    y += 14;
-    pdf.setFontSize(8);
-    pdf.setFont('helvetica', 'normal');
-    const lines = pdf.splitTextToSize(project.projectLeadComments, pw - m * 2);
-    pdf.text(lines, m, y);
-    y += lines.length * 11 + 8;
+    pdf.setTextColor(ACCENT.r, ACCENT.g, ACCENT.b);
+    pdf.text('USD Values', m + 8, y);
+    y += 15;
+    addFinanceField('Contract Value', fmtCurrency(project.contractValueUSD, 'USD '));
+    addFinanceField('Margin %', project.marginPercentUSD ? `${project.marginPercentUSD}%` : undefined);
+    addFinanceField('Margin Value', fmtCurrency(project.marginValueUSD, 'USD '));
+    y += 6;
   }
 
-  if (project.supportNeeded) {
-    if (y > 780) { pdf.addPage(); y = m + 10; }
+  if (hasNGN) {
     pdf.setFontSize(10);
     pdf.setFont('helvetica', 'bold');
-    pdf.text('Support Needed', m, y);
-    y += 14;
+    pdf.setTextColor(ACCENT.r, ACCENT.g, ACCENT.b);
+    pdf.text('NGN Values', m + 8, y);
+    y += 15;
+    addFinanceField('Contract Value', fmtCurrency(project.contractValueNGN, 'NGN '));
+    addFinanceField('Margin %', project.marginPercentNGN ? `${project.marginPercentNGN}%` : undefined);
+    addFinanceField('Margin Value', fmtCurrency(project.marginValueNGN, 'NGN '));
+    y += 6;
+  }
+
+  if (!hasUSD && !hasNGN) {
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'italic');
+    pdf.setTextColor(LIGHT.r, LIGHT.g, LIGHT.b);
+    pdf.text('No financial data available for this project.', m + 8, y);
+    y += 16;
+  }
+
+  /* ======== PROGRESS SECTION ======== */
+  if (project.progress != null) {
+    ensureSpace(40);
+    drawSectionTitle('Progress');
+    const barW = contentW - 80;
+    const barH = 14;
+    const barX = m + 8;
+    // Background
+    pdf.setFillColor(226, 232, 240);
+    pdf.roundedRect(barX, y - 2, barW, barH, 4, 4, 'F');
+    // Fill
+    const fillW = Math.max((project.progress / 100) * barW, 0);
+    if (fillW > 0) {
+      pdf.setFillColor(ACCENT.r, ACCENT.g, ACCENT.b);
+      pdf.roundedRect(barX, y - 2, fillW, barH, 4, 4, 'F');
+    }
+    // Percentage text
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(DARK.r, DARK.g, DARK.b);
+    pdf.text(`${project.progress}%`, barX + barW + 8, y + 9);
+    y += 24;
+  }
+
+  /* ======== COMMENTS & SUPPORT ======== */
+  if (project.projectLeadComments || project.supportNeeded) {
+    drawSectionTitle('Notes & Support');
+
+    if (project.projectLeadComments) {
+      ensureSpace(30);
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(MID.r, MID.g, MID.b);
+      pdf.text('Project Lead Comments', m + 8, y);
+      y += 14;
+      pdf.setFontSize(9);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(DARK.r, DARK.g, DARK.b);
+      const lines = pdf.splitTextToSize(project.projectLeadComments, contentW - 16);
+      lines.forEach((line: string) => {
+        ensureSpace(13);
+        pdf.text(line, m + 8, y);
+        y += 12;
+      });
+      y += 6;
+    }
+
+    if (project.supportNeeded) {
+      ensureSpace(30);
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(MID.r, MID.g, MID.b);
+      pdf.text('Support Needed', m + 8, y);
+      y += 14;
+      pdf.setFontSize(9);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(DARK.r, DARK.g, DARK.b);
+      const lines = pdf.splitTextToSize(project.supportNeeded, contentW - 16);
+      lines.forEach((line: string) => {
+        ensureSpace(13);
+        pdf.text(line, m + 8, y);
+        y += 12;
+      });
+      y += 6;
+    }
+  }
+
+  /* ---- Footer on every page ---- */
+  const pageCount = pdf.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    pdf.setPage(i);
+    // Bottom accent bar
+    pdf.setFillColor(241, 245, 249);
+    pdf.rect(0, 836, pw, 6, 'F');
+    // Footer text
     pdf.setFontSize(8);
     pdf.setFont('helvetica', 'normal');
-    const lines = pdf.splitTextToSize(project.supportNeeded, pw - m * 2);
-    pdf.text(lines, m, y);
-    y += lines.length * 11 + 8;
+    pdf.setTextColor(LIGHT.r, LIGHT.g, LIGHT.b);
+    pdf.text(`${project.name} — Project Report`, m, 830);
+    pdf.text(`Page ${i} of ${pageCount}`, pw - m - 50, 830);
   }
 
   const safeName = `project-${project.name}`.replace(/[^a-z0-9-_]+/gi, '-').toLowerCase();
