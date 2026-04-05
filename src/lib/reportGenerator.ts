@@ -428,24 +428,23 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
 
   if (projectImageAsset) {
     drawSectionTitle('Project Image');
-    const maxImageW = Math.min(contentW * 0.48, 180);
-    const maxImageH = 120;
+    const maxImageW = 120;
+    const maxImageH = 90;
     const scale = Math.min(maxImageW / projectImageAsset.width, maxImageH / projectImageAsset.height, 1);
     const drawW = projectImageAsset.width * scale;
     const drawH = projectImageAsset.height * scale;
-    const frameW = drawW + 16;
-    const frameH = drawH + 16;
-    ensureSpace(frameH + 12);
+    const pad = 8;
+    const frameW = drawW + pad * 2;
+    const frameH = drawH + pad * 2;
+    ensureSpace(frameH + 8);
     const frameX = m + (contentW - frameW) / 2;
     const frameY = y;
 
-    pdf.setFillColor(255, 255, 255);
-    pdf.roundedRect(frameX, frameY, frameW, frameH, 8, 8, 'F');
     pdf.setDrawColor(BORDER.r, BORDER.g, BORDER.b);
-    pdf.setLineWidth(0.8);
-    pdf.roundedRect(frameX, frameY, frameW, frameH, 8, 8, 'S');
-    pdf.addImage(projectImageAsset.dataUrl, 'PNG', frameX + 8, frameY + 8, drawW, drawH, undefined, 'FAST');
-    y += frameH + 10;
+    pdf.setLineWidth(0.6);
+    pdf.roundedRect(frameX, frameY, frameW, frameH, 4, 4, 'S');
+    pdf.addImage(projectImageAsset.dataUrl, 'PNG', frameX + pad, frameY + pad, drawW, drawH, undefined, 'FAST');
+    y += frameH + 8;
   }
 
   const leadName = project.projectLeadId && teamMap
@@ -477,17 +476,14 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
   ]);
 
   drawSectionTitle('Financial Details');
-  const hasUSD = [project.contractValueUSD, project.marginPercentUSD, project.marginValueUSD].some((value) => value != null);
-  const hasNGN = [project.contractValueNGN, project.marginPercentNGN, project.marginValueNGN].some((value) => value != null);
-
   drawFieldRows(
     [
-      { label: 'Contract Value (USD)', value: hasUSD ? fmtCurrency(project.contractValueUSD, 'USD ') : undefined },
+      { label: 'Contract Value (USD)', value: fmtCurrency(project.contractValueUSD, 'USD ') },
       { label: 'Margin % (USD)', value: project.marginPercentUSD != null ? `${project.marginPercentUSD}%` : undefined },
-      { label: 'Margin Value (USD)', value: hasUSD ? fmtCurrency(project.marginValueUSD, 'USD ') : undefined },
-      { label: 'Contract Value (NGN)', value: hasNGN ? fmtCurrency(project.contractValueNGN, 'NGN ') : undefined },
+      { label: 'Margin Value (USD)', value: fmtCurrency(project.marginValueUSD, 'USD ') },
+      { label: 'Contract Value (NGN)', value: fmtCurrency(project.contractValueNGN, 'NGN ') },
       { label: 'Margin % (NGN)', value: project.marginPercentNGN != null ? `${project.marginPercentNGN}%` : undefined },
-      { label: 'Margin Value (NGN)', value: hasNGN ? fmtCurrency(project.marginValueNGN, 'NGN ') : undefined },
+      { label: 'Margin Value (NGN)', value: fmtCurrency(project.marginValueNGN, 'NGN ') },
     ],
     { align: 'right', valueBold: true, emptyMessage: 'No financial data available for this project.' }
   );
@@ -525,9 +521,9 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
       }
     }
 
-    pdf.setFontSize(9);
-    pdf.setFont('helvetica', 'normal');
-    pdf.setTextColor(MID.r, MID.g, MID.b);
+    pdf.setFontSize(9.5);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(DARK.r, DARK.g, DARK.b);
     pdf.text(pct === 0 ? 'Not started yet' : pct === 100 ? 'Completed' : 'In progress', valueX, barY + 20);
 
     pdf.setDrawColor(241, 245, 249);
