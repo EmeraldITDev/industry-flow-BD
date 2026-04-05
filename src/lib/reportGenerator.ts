@@ -298,7 +298,7 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
   };
 
   const drawSectionTitle = (title: string) => {
-    y += y > 42 ? 18 : 10;
+    y += y > 42 ? 24 : 10;
     ensureSpace(42);
     pdf.setFillColor(ACCENT.r, ACCENT.g, ACCENT.b);
     pdf.roundedRect(labelX, y + 1, 4, 18, 2, 2, 'F');
