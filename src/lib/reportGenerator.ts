@@ -203,140 +203,130 @@ export function generateProjectsReport(
 /* Single Project Report                                               */
 /* ------------------------------------------------------------------ */
 
-export function generateSingleProjectReport(project: Project, teamMap?: Record<string, string>): void {
+export async function generateSingleProjectReport(project: Project, teamMap?: Record<string, string>): Promise<void> {
   const pdf = new jsPDF({ orientation: 'portrait', unit: 'px', format: 'a4' });
   const pw = 595;
   const m = 44;
   const contentW = pw - m * 2;
   let y = m;
 
-  const ACCENT = { r: 16, g: 185, b: 129 }; // emerald-500
+  const ACCENT = { r: 16, g: 185, b: 129 };
   const DARK = { r: 15, g: 23, b: 42 };
   const MID = { r: 71, g: 85, b: 105 };
   const LIGHT = { r: 148, g: 163, b: 184 };
 
-  const ensureSpace = (needed: number) => {
-    if (y + needed > 800) { pdf.addPage(); y = m; }
+  const normalizeProjectImageForPdf = async (source?: string): Promise<{ dataUrl: string; width: number; height: number } | null> => {
+    if (!source) return null;
+
+    let src = source.trim();
+    if (!src) return null;
+    if (!src.startsWith('data:') && !/^https?:\/\//i.test(src)) {
+      src = `data:image/png;base64,${src}`;
+    }
+
+    return await new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        const width = img.naturalWidth || img.width;
+        const height = img.naturalHeight || img.height;
+        if (!width || !height) {
+          resolve(null);
+          return;
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(null);
+          return;
+        }
+
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, width, height);
+        ctx.drawImage(img, 0, 0, width, height);
+
+        try {
+          resolve({ dataUrl: canvas.toDataURL('image/png', 1), width, height });
+        } catch {
+          resolve(null);
+        }
+      };
+      img.onerror = () => resolve(null);
+      img.src = src;
+    });
   };
 
-  /* ---- Top accent bar ---- */
+  const ensureSpace = (needed: number) => {
+    if (y + needed > 800) {
+      pdf.addPage();
+      y = m;
+    }
+  };
+
   pdf.setFillColor(ACCENT.r, ACCENT.g, ACCENT.b);
   pdf.rect(0, 0, pw, 6, 'F');
-
   y = 30;
 
-  console.log('Project image available:', !!project.projectImage, project.projectImage ? `(${project.projectImage.substring(0, 30)}..., length: ${project.projectImage.length})` : 'none');
-  /* ---- Project Image (top-right) ---- */
-  const imgSize = 90;
-  let titleMaxW = contentW;
-  let imageEmbedded = false;
-  if (project.projectImage && project.projectImage.length > 20) {
-    try {
-      let imgData = project.projectImage;
-      // Ensure it's a proper data URL
-      if (!imgData.startsWith('data:')) {
-        imgData = `data:image/png;base64,${imgData}`;
-      }
-      // Detect format from data URL
-      let imgFormat = 'PNG';
-      if (imgData.match(/data:image\/(jpeg|jpg)/i)) imgFormat = 'JPEG';
-      else if (imgData.match(/data:image\/gif/i)) imgFormat = 'GIF';
-      
-      const imgX = pw - m - imgSize;
-      const imgY = y;
-      pdf.addImage(imgData, imgFormat, imgX, imgY, imgSize, imgSize, undefined, 'FAST');
-      // Border on top
-      pdf.setDrawColor(203, 213, 225);
-      pdf.setLineWidth(0.5);
-      pdf.roundedRect(imgX - 1, imgY - 1, imgSize + 2, imgSize + 2, 4, 4, 'S');
-      titleMaxW = contentW - imgSize - 16;
-      imageEmbedded = true;
-    } catch (e) {
-      console.warn('Failed to embed project image in PDF:', e);
-    }
-  }
-  // If image exists but failed to embed, draw a placeholder
-  if (project.projectImage && !imageEmbedded) {
-    const imgX = pw - m - imgSize;
-    const imgY = y;
-    pdf.setFillColor(241, 245, 249);
-    pdf.roundedRect(imgX, imgY, imgSize, imgSize, 4, 4, 'F');
-    pdf.setDrawColor(203, 213, 225);
-    pdf.setLineWidth(0.5);
-    pdf.roundedRect(imgX, imgY, imgSize, imgSize, 4, 4, 'S');
-    pdf.setFontSize(8);
-    pdf.setFont('helvetica', 'normal');
-    pdf.setTextColor(LIGHT.r, LIGHT.g, LIGHT.b);
-    pdf.text('Image', imgX + imgSize / 2, imgY + imgSize / 2, { align: 'center' });
-    titleMaxW = contentW - imgSize - 16;
-  }
+  const projectImageAsset = await normalizeProjectImageForPdf(project.projectImage);
 
-  /* ---- Title ---- */
   pdf.setFontSize(22);
   pdf.setFont('helvetica', 'bold');
   pdf.setTextColor(DARK.r, DARK.g, DARK.b);
-  const titleLines = pdf.splitTextToSize(project.name, titleMaxW);
+  const titleLines = pdf.splitTextToSize(project.name, contentW);
   pdf.text(titleLines, m, y + 18);
   y += 18 + titleLines.length * 24;
 
-  /* ---- Subtitle line: Status badge + Stage ---- */
   const stageLabel = PIPELINE_STAGES.find(s => s.value === project.pipelineStage)?.label || project.pipelineStage || '—';
-
-  // Status pill
-  pdf.setFontSize(10);
-  pdf.setFont('helvetica', 'bold');
   const statusText = (project.status || '—').toUpperCase();
-  const statusW = pdf.getTextWidth(statusText) + 16;
   const statusColors: Record<string, { r: number; g: number; b: number }> = {
     active: { r: 16, g: 185, b: 129 },
     completed: { r: 59, g: 130, b: 246 },
     'on-hold': { r: 245, g: 158, b: 11 },
     inactive: { r: 148, g: 163, b: 184 },
   };
+  const statusW = pdf.getTextWidth(statusText) + 16;
   const pillColor = statusColors[project.status] || LIGHT;
+
+  pdf.setFontSize(10);
+  pdf.setFont('helvetica', 'bold');
   pdf.setFillColor(pillColor.r, pillColor.g, pillColor.b);
   pdf.roundedRect(m, y - 10, statusW, 18, 4, 4, 'F');
   pdf.setTextColor(255, 255, 255);
   pdf.text(statusText, m + 8, y + 2);
 
-  // Stage text next to pill
   pdf.setFont('helvetica', 'normal');
   pdf.setTextColor(MID.r, MID.g, MID.b);
   pdf.setFontSize(11);
   pdf.text(`Pipeline: ${stageLabel}`, m + statusW + 10, y + 2);
   y += 20;
 
-  /* ---- Generated date ---- */
   pdf.setFontSize(9);
   pdf.setTextColor(LIGHT.r, LIGHT.g, LIGHT.b);
   pdf.text(`Generated: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`, m, y);
   y += 16;
 
-  /* ---- Divider ---- */
   pdf.setDrawColor(226, 232, 240);
   pdf.setLineWidth(0.5);
   pdf.line(m, y, pw - m, y);
   y += 14;
 
-  /* ---- Section helper ---- */
   const drawSectionTitle = (title: string) => {
     ensureSpace(30);
-    // Left accent bar (3px wide emerald stripe)
     pdf.setFillColor(ACCENT.r, ACCENT.g, ACCENT.b);
     pdf.rect(m, y - 2, 3, 20, 'F');
-    // Section title text
     pdf.setFontSize(14);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(DARK.r, DARK.g, DARK.b);
     pdf.text(title, m + 12, y + 12);
-    // Subtle underline
     pdf.setDrawColor(226, 232, 240);
     pdf.setLineWidth(0.5);
     pdf.line(m, y + 20, pw - m, y + 20);
     y += 30;
   };
 
-  /* ---- Field row helper (two-column key:value) ---- */
   const fieldLabelW = 150;
   const addField = (label: string, value: string | undefined | null) => {
     if (!value || value === '—') return;
@@ -352,7 +342,6 @@ export function generateSingleProjectReport(project: Project, teamMap?: Record<s
     y += Math.max(valLines.length * 13, 15);
   };
 
-  /* ---- Financial field with emphasis ---- */
   const addFinanceField = (label: string, value: string | undefined | null) => {
     if (!value || value === '—') return;
     ensureSpace(20);
@@ -367,13 +356,32 @@ export function generateSingleProjectReport(project: Project, teamMap?: Record<s
     y += 17;
   };
 
-  /* ======== PROJECT OVERVIEW SECTION ======== */
-  drawSectionTitle('Project Overview');
+  if (projectImageAsset) {
+    drawSectionTitle('Project Image');
+    const frameX = m + 8;
+    const frameY = y;
+    const frameW = contentW - 16;
+    const frameH = 148;
+    ensureSpace(frameH + 18);
+    pdf.setFillColor(248, 250, 252);
+    pdf.roundedRect(frameX, frameY, frameW, frameH, 8, 8, 'F');
+    pdf.setDrawColor(226, 232, 240);
+    pdf.roundedRect(frameX, frameY, frameW, frameH, 8, 8, 'S');
+
+    const scale = Math.min((frameW - 24) / projectImageAsset.width, (frameH - 24) / projectImageAsset.height, 1);
+    const drawW = projectImageAsset.width * scale;
+    const drawH = projectImageAsset.height * scale;
+    const imageX = frameX + (frameW - drawW) / 2;
+    const imageY = frameY + (frameH - drawH) / 2;
+    pdf.addImage(projectImageAsset.dataUrl, 'PNG', imageX, imageY, drawW, drawH, undefined, 'FAST');
+    y += frameH + 18;
+  }
 
   const leadName = project.projectLeadId && teamMap
     ? (teamMap[String(project.projectLeadId)] || String(project.projectLeadId))
     : undefined;
 
+  drawSectionTitle('Project Overview');
   addField('Sector', project.sector);
   addField('Business Segment', project.businessSegment);
   addField('Client', project.clientName);
@@ -388,7 +396,6 @@ export function generateSingleProjectReport(project: Project, teamMap?: Record<s
   addField('Deal Probability', project.dealProbability);
   y += 4;
 
-  /* ======== TIMELINE SECTION ======== */
   drawSectionTitle('Timeline');
   addField('Start Date', project.startDate);
   addField('End Date', project.endDate);
@@ -396,10 +403,7 @@ export function generateSingleProjectReport(project: Project, teamMap?: Record<s
   addField('Pipeline Intake', project.pipelineIntakeDate);
   y += 4;
 
-  /* ======== FINANCIAL DETAILS SECTION ======== */
   drawSectionTitle('Financial Details');
-
-  // USD block
   const hasUSD = project.contractValueUSD || project.marginPercentUSD || project.marginValueUSD;
   const hasNGN = project.contractValueNGN || project.marginPercentNGN || project.marginValueNGN;
 
@@ -435,33 +439,42 @@ export function generateSingleProjectReport(project: Project, teamMap?: Record<s
     y += 16;
   }
 
-  /* ======== PROGRESS SECTION ======== */
   if (project.progress != null) {
-    ensureSpace(50);
+    ensureSpace(58);
     drawSectionTitle('Progress');
-    const pct = Number(project.progress) || 0;
-    const barW = contentW - 16;
-    const barH = 20;
+    const pct = Math.max(0, Math.min(100, Number(project.progress) || 0));
+    const barW = 240;
+    const barH = 12;
     const barX = m + 8;
-    const barY = y;
+    const barY = y + 6;
 
-    // Background track
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setTextColor(MID.r, MID.g, MID.b);
+    pdf.text('Completion status', barX, y - 2);
+
     pdf.setFillColor(226, 232, 240);
     pdf.roundedRect(barX, barY, barW, barH, 6, 6, 'F');
 
-    // Filled portion
-    const fillW = Math.max((pct / 100) * barW, 0);
-    if (fillW > 8) {
+    const fillW = (pct / 100) * barW;
+    if (fillW > 0) {
       pdf.setFillColor(ACCENT.r, ACCENT.g, ACCENT.b);
       pdf.roundedRect(barX, barY, fillW, barH, 6, 6, 'F');
     }
 
-    // Percentage text (to the right of bar)
-    pdf.setFontSize(13);
+    const badgeX = barX + barW + 16;
+    pdf.setFillColor(241, 245, 249);
+    pdf.roundedRect(badgeX, barY - 6, 88, 24, 10, 10, 'F');
+    pdf.setFontSize(12);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(DARK.r, DARK.g, DARK.b);
-    pdf.text(`${pct}% Complete`, barX, barY + barH + 16);
-    y = barY + barH + 26;
+    pdf.text(`${pct}%`, badgeX + 44, barY + 10, { align: 'center' });
+
+    pdf.setFontSize(9);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setTextColor(LIGHT.r, LIGHT.g, LIGHT.b);
+    pdf.text(pct === 0 ? 'Not started yet' : 'Current completion', barX, barY + 28);
+    y = barY + 38;
   }
 
   /* ======== COMMENTS & SUPPORT ======== */
