@@ -522,18 +522,17 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
 
     drawSectionTitle('Notes & Support');
 
-    const colW = (contentW - 16) / 2;
+    const colW = (contentW - 12) / 2;
     const leftX = m;
-    const rightX = m + colW + 16;
-    const headerH = 28;
-    const bodyPad = 10;
+    const rightX = m + colW + 12;
+    const headerH = 24;
+    const bodyPad = 8;
 
-    // Calculate body heights
     const leftText = project.projectLeadComments || '—';
     const rightText = project.supportNeeded || '—';
     const leftLines = pdf.splitTextToSize(leftText, colW - 16);
     const rightLines = pdf.splitTextToSize(rightText, colW - 16);
-    const bodyH = Math.max(leftLines.length * 14 + 16, rightLines.length * 14 + 16, 36);
+    const bodyH = Math.max(leftLines.length * 13 + 14, rightLines.length * 13 + 14, 32);
 
     ensureSpace(headerH + bodyH + 8);
 
