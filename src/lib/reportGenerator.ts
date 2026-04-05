@@ -17,10 +17,9 @@ function fmtNum(n: number | undefined | null): string {
   return n.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 }
 
-function fmtCurrency(n: number | undefined | null, symbol = '$'): string {
+function fmtCurrency(n: number | undefined | null, prefix = 'USD '): string {
   if (n == null || isNaN(n) || n === 0) return '—';
-  // jsPDF default fonts don't support ₦, use NGN/USD prefix instead
-  const prefix = symbol === '₦' ? 'NGN ' : symbol;
+  // jsPDF default fonts don't support ₦; always use text prefixes
   return `${prefix}${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
@@ -170,8 +169,8 @@ export function generateProjectsReport(
     pdf.text(truncate(p.sector || '', 16), cols[2].x, y + 14);
     pdf.text(truncate(stageLabel, 14), cols[3].x, y + 14);
     pdf.text(p.status || '—', cols[4].x, y + 14);
-    pdf.text(fmtCurrency(p.contractValueUSD), cols[5].x, y + 14);
-    pdf.text(fmtCurrency(p.contractValueNGN, '₦'), cols[6].x, y + 14);
+    pdf.text(fmtCurrency(p.contractValueUSD, 'USD '), cols[5].x, y + 14);
+    pdf.text(fmtCurrency(p.contractValueNGN, 'NGN '), cols[6].x, y + 14);
     pdf.text(p.marginPercentUSD ? `${p.marginPercentUSD}%` : '—', cols[7].x, y + 14);
     pdf.text(p.dealProbability || '—', cols[8].x, y + 14);
     pdf.text(truncate(p.location || '', 14), cols[9].x, y + 14);
@@ -192,9 +191,9 @@ export function generateProjectsReport(
   pdf.setFontSize(13);
   pdf.setFont('helvetica', 'bold');
   pdf.setTextColor(15, 23, 42);
-  pdf.text(`Total Contract Value (USD): ${fmtCurrency(totalUSD)}`, MARGIN, y);
+  pdf.text(`Total Contract Value (USD): ${fmtCurrency(totalUSD, 'USD ')}`, MARGIN, y);
   y += 18;
-  pdf.text(`Total Contract Value (NGN): ${fmtCurrency(totalNGN, '₦')}`, MARGIN, y);
+  pdf.text(`Total Contract Value (NGN): ${fmtCurrency(totalNGN, 'NGN ')}`, MARGIN, y);
 
   const safeName = title.replace(/[^a-z0-9-_]+/gi, '-').toLowerCase();
   pdf.save(`${safeName}.pdf`);
@@ -209,6 +208,18 @@ export function generateSingleProjectReport(project: Project, teamMap?: Record<s
   const pw = 595;
   const m = 40;
   let y = m + 10;
+
+  // --- Project image (base64) ---
+  if (project.projectImage) {
+    try {
+      const imgData = project.projectImage.startsWith('data:')
+        ? project.projectImage
+        : `data:image/png;base64,${project.projectImage}`;
+      pdf.addImage(imgData, 'PNG', pw - m - 80, y - 5, 80, 80, undefined, 'FAST');
+    } catch {
+      // skip if image can't be embedded
+    }
+  }
 
   // Title
   pdf.setFontSize(18);
@@ -269,12 +280,12 @@ export function generateSingleProjectReport(project: Project, teamMap?: Record<s
   pdf.text('Financial Details', m, y);
   y += 18;
 
-  addField('Contract Value (USD)', fmtCurrency(project.contractValueUSD));
-  addField('Contract Value (NGN)', fmtCurrency(project.contractValueNGN, '₦'));
+  addField('Contract Value (USD)', fmtCurrency(project.contractValueUSD, 'USD '));
+  addField('Contract Value (NGN)', fmtCurrency(project.contractValueNGN, 'NGN '));
   addField('Margin % (USD)', project.marginPercentUSD ? `${project.marginPercentUSD}%` : undefined);
-  addField('Margin Value (USD)', fmtCurrency(project.marginValueUSD));
+  addField('Margin Value (USD)', fmtCurrency(project.marginValueUSD, 'USD '));
   addField('Margin % (NGN)', project.marginPercentNGN ? `${project.marginPercentNGN}%` : undefined);
-  addField('Margin Value (NGN)', fmtCurrency(project.marginValueNGN, '₦'));
+  addField('Margin Value (NGN)', fmtCurrency(project.marginValueNGN, 'NGN '));
 
   // Comments & Support Needed
   if (project.projectLeadComments) {

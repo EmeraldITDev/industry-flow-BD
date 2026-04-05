@@ -37,7 +37,8 @@ function renderCustomLabel({ cx, cy, midAngle, innerRadius, outerRadius, value }
   const x = cx + radius * Math.cos(-midAngle * RADIAN);
   const y = cy + radius * Math.sin(-midAngle * RADIAN);
   return (
-    <text x={x} y={y} fill="#0f172a" textAnchor="middle" dominantBaseline="central" fontSize={12} fontWeight={600}>
+    <text x={x} y={y} fill="hsl(var(--foreground))" textAnchor="middle" dominantBaseline="central" fontSize={13} fontWeight={700}
+      stroke="hsl(var(--background))" strokeWidth={3} paintOrder="stroke">
       {value}
     </text>
   );
