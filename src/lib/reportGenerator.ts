@@ -539,29 +539,29 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
     // Left column header
     pdf.setFillColor(236, 253, 245);  // emerald-50
     pdf.rect(leftX, y, colW, headerH, 'F');
-    pdf.setFontSize(10);
+    pdf.setFontSize(9);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(MID.r, MID.g, MID.b);
-    pdf.text('Project Lead Comments', leftX + 10, y + 17);
+    pdf.text('Project Lead Comments', leftX + 10, y + 15);
 
     // Right column header
     pdf.setFillColor(236, 253, 245);
     pdf.rect(rightX, y, colW, headerH, 'F');
-    pdf.text('Support Needed', rightX + 10, y + 17);
+    pdf.text('Support Needed', rightX + 10, y + 15);
 
     y += headerH;
 
     // Left column body
-    pdf.setFontSize(10);
+    pdf.setFontSize(9);
     pdf.setFont('helvetica', 'normal');
     pdf.setTextColor(DARK.r, DARK.g, DARK.b);
     leftLines.forEach((line: string, i: number) => {
-      pdf.text(line, leftX + 10, y + bodyPad + 10 + i * 14);
+      pdf.text(line, leftX + 10, y + bodyPad + 10 + i * 13);
     });
 
     // Right column body
     rightLines.forEach((line: string, i: number) => {
-      pdf.text(line, rightX + 10, y + bodyPad + 10 + i * 14);
+      pdf.text(line, rightX + 10, y + bodyPad + 10 + i * 13);
     });
 
     // Borders around both columns (header + body)
