@@ -281,12 +281,11 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
     pdf.setTextColor(WHITE.r, WHITE.g, WHITE.b);
     pdf.text('PROJECT REPORT', m, 23);
 
-    // Short date only to avoid clipping
-    const shortDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-    pdf.setFontSize(8);
+    // Full generated timestamp right-aligned
+    pdf.setFontSize(7.5);
     pdf.setFont('helvetica', 'normal');
     pdf.setTextColor(200, 210, 220);
-    const dateText = shortDate;
+    const dateText = `Generated: ${generatedDate}`;
     const dateW = pdf.getTextWidth(dateText);
     pdf.text(dateText, pw - m - dateW, 23);
   };
