@@ -216,10 +216,11 @@ export function generateProjectsReport(
 /* ------------------------------------------------------------------ */
 
 export async function generateSingleProjectReport(project: Project, teamMap?: Record<string, string>): Promise<void> {
-  const pdf = new jsPDF({ orientation: 'portrait', unit: 'px', format: 'a4' });
-  const pw = 595;
-  const ph = 842;
-  const m = 44;
+  /* Use 'pt' units — 'px' applies a 96/72 scale that shrinks content */
+  const pw = 595.28;
+  const ph = 841.89;
+  const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: [pw, ph] });
+  const m = 40;                       // ~14mm margins → 515pt usable width
   const contentW = pw - m * 2;
   let y = 0;
 
@@ -280,12 +281,11 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
     pdf.setTextColor(WHITE.r, WHITE.g, WHITE.b);
     pdf.text('PROJECT REPORT', m, 23);
 
-    // Short date only to avoid clipping
-    const shortDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-    pdf.setFontSize(8);
+    // Full generated timestamp right-aligned
+    pdf.setFontSize(7.5);
     pdf.setFont('helvetica', 'normal');
     pdf.setTextColor(200, 210, 220);
-    const dateText = shortDate;
+    const dateText = `Generated: ${generatedDate}`;
     const dateW = pdf.getTextWidth(dateText);
     pdf.text(dateText, pw - m - dateW, 23);
   };
@@ -315,23 +315,23 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
 
   /* ---- Section title with accent bar ---- */
   const drawSectionTitle = (title: string) => {
-    y += y > 54 ? 14 : 6;
-    ensureSpace(30);
+    y += y > 54 ? 10 : 4;
+    ensureSpace(26);
     pdf.setFillColor(ACCENT.r, ACCENT.g, ACCENT.b);
-    pdf.roundedRect(m, y + 1, 3.5, 14, 1.5, 1.5, 'F');
-    pdf.setFontSize(12);
+    pdf.roundedRect(m, y + 1, 3, 12, 1.5, 1.5, 'F');
+    pdf.setFontSize(11);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(DARK.r, DARK.g, DARK.b);
-    pdf.text(title, m + 12, y + 12);
+    pdf.text(title, m + 10, y + 11);
     pdf.setDrawColor(BORDER.r, BORDER.g, BORDER.b);
     pdf.setLineWidth(0.5);
-    pdf.line(m, y + 20, pw - m, y + 20);
-    y += 26;
+    pdf.line(m, y + 17, pw - m, y + 17);
+    y += 22;
   };
 
   /* ---- Two-column field rows with alternating backgrounds ---- */
-  const labelW = 120;
-  const valueX = m + labelW + 12;
+  const labelW = 110;
+  const valueX = m + labelW + 10;
 
   const drawFieldRows = (
     rows: Array<{ label: string; value: string | undefined | null }>,
@@ -357,7 +357,7 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
     visibleRows.forEach(({ label, value }, idx) => {
       const textValue = String(value);
       const valueLines = pdf.splitTextToSize(textValue, pw - m - valueX - 4);
-      const rowH = Math.max(22, valueLines.length * 12 + 8);
+      const rowH = Math.max(18, valueLines.length * 11 + 6);
       ensureSpace(rowH + 2);
 
       if (idx % 2 === 0) {
@@ -365,16 +365,16 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
         pdf.rect(m, y - 2, contentW, rowH, 'F');
       }
 
-      pdf.setFontSize(9);
+      pdf.setFontSize(8.5);
       pdf.setFont('helvetica', 'bold');
       pdf.setTextColor(MID.r, MID.g, MID.b);
-      pdf.text(label, m + 8, y + 12);
+      pdf.text(label, m + 6, y + 10);
 
-      pdf.setFontSize(options?.valueBold ? 9.5 : 9);
+      pdf.setFontSize(options?.valueBold ? 9 : 8.5);
       pdf.setFont('helvetica', options?.valueBold ? 'bold' : 'normal');
       pdf.setTextColor(DARK.r, DARK.g, DARK.b);
       valueLines.forEach((line: string, li: number) => {
-        pdf.text(line, valueX, y + 12 + li * 12);
+        pdf.text(line, valueX, y + 10 + li * 11);
       });
 
       y += rowH + 1;
@@ -399,8 +399,8 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
       { label: 'Margin %', value: project.marginPercentNGN != null ? `${project.marginPercentNGN}%` : '—' },
     ];
 
-    const gridRowH = 26;
-    const headerH = 22;
+    const gridRowH = 22;
+    const headerH = 20;
     const totalH = headerH + gridRowH * 3 + 4;
     ensureSpace(totalH + 6);
 
@@ -411,7 +411,7 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
       pdf.setFontSize(9);
       pdf.setFont('helvetica', 'bold');
       pdf.setTextColor(ACCENT.r, ACCENT.g, ACCENT.b);
-      pdf.text(title, x + 8, y + 14);
+      pdf.text(title, x + 8, y + 13);
     };
     drawColHeader(leftX, colW, 'USD Values');
     drawColHeader(rightX, colW, 'NGN Values');
@@ -431,12 +431,12 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
         pdf.setFontSize(8.5);
         pdf.setFont('helvetica', 'bold');
         pdf.setTextColor(MID.r, MID.g, MID.b);
-        pdf.text(label, x + 8, rowY + 16);
+        pdf.text(label, x + 8, rowY + 14);
         pdf.setFont('helvetica', 'normal');
         pdf.setTextColor(DARK.r, DARK.g, DARK.b);
         // Right-align value within column
         const valW = pdf.getTextWidth(value);
-        pdf.text(value, x + colW - valW - 8, rowY + 16);
+        pdf.text(value, x + colW - valW - 8, rowY + 14);
       };
 
       drawCell(leftX, usdRows[i].label, usdRows[i].value);
@@ -462,56 +462,53 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
     const statusLabel = pct === 0 ? 'Not started yet' : pct === 100 ? 'Completed' : 'In progress';
 
     // "Current Status" row
-    ensureSpace(70);
+    ensureSpace(60);
     pdf.setFillColor(ROW_ALT.r, ROW_ALT.g, ROW_ALT.b);
-    pdf.rect(m, y - 2, contentW, 24, 'F');
-    pdf.setFontSize(9);
+    pdf.rect(m, y - 2, contentW, 20, 'F');
+    pdf.setFontSize(8.5);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(MID.r, MID.g, MID.b);
-    pdf.text('Current Status', m + 8, y + 12);
+    pdf.text('Current Status', m + 6, y + 10);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(DARK.r, DARK.g, DARK.b);
-    pdf.text(statusLabel, valueX, y + 12);
-    y += 30;
+    pdf.text(statusLabel, valueX, y + 10);
+    y += 24;
 
     // "Overall Completion" label + percentage on same line
-    pdf.setFontSize(9);
+    pdf.setFontSize(8.5);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(MID.r, MID.g, MID.b);
-    pdf.text('Overall Completion', m + 8, y + 10);
+    pdf.text('Overall Completion', m + 6, y + 8);
 
-    pdf.setFontSize(10);
+    pdf.setFontSize(9);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(DARK.r, DARK.g, DARK.b);
     const pctText = `${pct}%`;
     const pctW = pdf.getTextWidth(pctText);
-    pdf.text(pctText, pw - m - pctW, y + 10);
-    y += 16;
+    pdf.text(pctText, pw - m - pctW, y + 8);
+    y += 14;
 
     // Full-width progress bar track
     const barW = contentW;
-    const barH = 12;
-    // Track background
+    const barH = 10;
     pdf.setFillColor(BORDER.r, BORDER.g, BORDER.b);
-    pdf.roundedRect(m, y, barW, barH, 6, 6, 'F');
+    pdf.roundedRect(m, y, barW, barH, 5, 5, 'F');
 
-    // Fill
     const fillW = Math.max(0, (pct / 100) * barW);
     if (fillW > 0) {
       pdf.setFillColor(ACCENT.r, ACCENT.g, ACCENT.b);
-      if (fillW > 12) {
-        pdf.roundedRect(m, y, fillW, barH, 6, 6, 'F');
+      if (fillW > 10) {
+        pdf.roundedRect(m, y, fillW, barH, 5, 5, 'F');
       } else {
         pdf.rect(m, y, fillW, barH, 'F');
       }
     }
 
-    // Border around bar
     pdf.setDrawColor(BORDER.r, BORDER.g, BORDER.b);
     pdf.setLineWidth(0.3);
-    pdf.roundedRect(m, y, barW, barH, 6, 6, 'S');
+    pdf.roundedRect(m, y, barW, barH, 5, 5, 'S');
 
-    y += barH + 10;
+    y += barH + 8;
   };
 
   /* ---- Notes & Support side-by-side ---- */
@@ -522,11 +519,11 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
 
     drawSectionTitle('Notes & Support');
 
-    const colW = (contentW - 12) / 2;
+    const colW = (contentW - 10) / 2;
     const leftX = m;
-    const rightX = m + colW + 12;
-    const headerH = 24;
-    const bodyPad = 8;
+    const rightX = m + colW + 10;
+    const headerH = 20;
+    const bodyPad = 6;
 
     const leftText = project.projectLeadComments || '—';
     const rightText = project.supportNeeded || '—';
@@ -589,8 +586,8 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
   const titleStartX = m;
   let logoDrawW = 0;
   let logoDrawH = 0;
-  const maxLogoH = 48;
-  const maxLogoW = 48;
+  const maxLogoH = 40;
+  const maxLogoW = 40;
 
   if (projectImageAsset) {
     const imgScale = Math.min(maxLogoW / projectImageAsset.width, maxLogoH / projectImageAsset.height, 1);
@@ -601,12 +598,12 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
   const titleX = projectImageAsset ? titleStartX + logoDrawW + 14 : titleStartX;
   const titleMaxW = contentW - (projectImageAsset ? logoDrawW + 14 : 0);
 
-  pdf.setFontSize(22);
+  pdf.setFontSize(18);
   pdf.setFont('helvetica', 'bold');
   pdf.setTextColor(DARK.r, DARK.g, DARK.b);
   const titleLines = pdf.splitTextToSize(project.name, titleMaxW);
-  const titleBlockH = titleLines.length * 24;
-  pdf.text(titleLines, titleX, y + 20);
+  const titleBlockH = titleLines.length * 20;
+  pdf.text(titleLines, titleX, y + 18);
 
   // Draw logo beside title
   if (projectImageAsset) {
