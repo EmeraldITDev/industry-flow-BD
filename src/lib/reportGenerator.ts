@@ -309,7 +309,7 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
     if (y + needed > ph - 46) {
       pdf.addPage();
       drawPageHeader();
-      y = 62;
+      y = 54;
     }
   };
 
