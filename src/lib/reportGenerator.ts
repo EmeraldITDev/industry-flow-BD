@@ -314,9 +314,9 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
 
   const drawFieldRows = (
     rows: Array<{ label: string; value: string | undefined | null }>,
-    options?: { align?: 'left' | 'right'; valueBold?: boolean; emptyMessage?: string }
+    options?: { align?: 'left' | 'right'; valueBold?: boolean; emptyMessage?: string; showAll?: boolean }
   ) => {
-    const visibleRows = rows.filter((row) => hasVisibleValue(row.value));
+    const visibleRows = options?.showAll ? rows.map(r => ({ ...r, value: r.value ?? '—' })) : rows.filter((row) => hasVisibleValue(row.value));
 
     if (!visibleRows.length) {
       ensureSpace(20);
