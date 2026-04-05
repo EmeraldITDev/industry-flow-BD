@@ -16,6 +16,10 @@ function resolveHslVar(raw: string): string | null {
   return raw;
 }
 
+function ensureReadableColor(raw: string, fallback: string): string {
+  return resolveHslVar(raw) || fallback;
+}
+
 function applyExportLightTheme(clonedRoot: HTMLElement) {
   clonedRoot.style.backgroundColor = '#ffffff';
   clonedRoot.style.color = '#0f172a';
@@ -48,13 +52,14 @@ function applyExportLightTheme(clonedRoot: HTMLElement) {
       const cs = win.getComputedStyle(el);
       const fs = parseFloat(cs.fontSize) || 12;
       el.setAttribute('font-size', String(Math.max(14, fs * 1.25)));
+      el.style.setProperty('font-weight', cs.fontWeight || '700', 'important');
       // Force dark fill — resolve or fallback
-      const resolved = resolveHslVar(cs.fill);
-      el.style.setProperty('fill', resolved || '#0f172a', 'important');
+      const resolved = ensureReadableColor(cs.fill, '#0f172a');
+      el.style.setProperty('fill', resolved, 'important');
       el.style.setProperty('stroke', 'none', 'important');
       el.style.setProperty('opacity', '1', 'important');
       // Also set attribute as fallback for html2canvas
-      el.setAttribute('fill', resolved || '#0f172a');
+      el.setAttribute('fill', resolved);
       // If this label used paintOrder stroke for contrast, set stroke to white for export
       const po = el.getAttribute('paint-order') || cs.getPropertyValue('paint-order');
       if (po && po.includes('stroke')) {
@@ -72,6 +77,7 @@ function applyExportLightTheme(clonedRoot: HTMLElement) {
   // --- Grid / axis lines ---
   clonedRoot.querySelectorAll('svg line').forEach((line) => {
     line.setAttribute('stroke', '#94a3b8');
+    line.setAttribute('stroke-width', line.getAttribute('stroke-width') || '1.25');
     line.setAttribute('opacity', '1');
   });
 
@@ -80,8 +86,7 @@ function applyExportLightTheme(clonedRoot: HTMLElement) {
     const rect = node as SVGElement;
     try {
       const cs = win.getComputedStyle(rect);
-      let fill = resolveHslVar(cs.fill);
-      if (!fill) fill = '#14b8a6';
+      const fill = ensureReadableColor(cs.fill, '#14b8a6');
       rect.style.setProperty('fill', fill, 'important');
       rect.setAttribute('fill', fill);
       const op = cs.opacity;
@@ -101,11 +106,18 @@ function applyExportLightTheme(clonedRoot: HTMLElement) {
       if (fill) {
         path.style.setProperty('fill', fill, 'important');
         path.setAttribute('fill', fill);
+      } else if (cs.fill !== 'none') {
+        path.style.setProperty('fill', '#14b8a6', 'important');
+        path.setAttribute('fill', '#14b8a6');
       }
       const stroke = resolveHslVar(cs.stroke);
       if (stroke) {
         path.style.setProperty('stroke', stroke, 'important');
         path.setAttribute('stroke', stroke);
+      } else if (cs.fill === 'none') {
+        path.style.setProperty('stroke', '#334155', 'important');
+        path.setAttribute('stroke', '#334155');
+        path.setAttribute('stroke-width', path.getAttribute('stroke-width') || '2');
       }
       path.style.setProperty('opacity', '1', 'important');
     } catch {
@@ -117,11 +129,9 @@ function applyExportLightTheme(clonedRoot: HTMLElement) {
     const c = node as SVGElement;
     try {
       const cs = win.getComputedStyle(c);
-      const fill = resolveHslVar(cs.fill);
-      if (fill) {
-        c.style.setProperty('fill', fill, 'important');
-        c.setAttribute('fill', fill);
-      }
+      const fill = ensureReadableColor(cs.fill, '#14b8a6');
+      c.style.setProperty('fill', fill, 'important');
+      c.setAttribute('fill', fill);
       c.style.setProperty('opacity', '1', 'important');
     } catch {
       /* keep */
@@ -137,7 +147,7 @@ function applyExportLightTheme(clonedRoot: HTMLElement) {
   });
 
   // --- HTML: card surfaces + body text (Tailwind dark theme → print-safe) ---
-  clonedRoot.querySelectorAll<HTMLElement>('div, span, p, h1, h2, h3, h4, h5, h6, a, li, label, td, th').forEach((el) => {
+  clonedRoot.querySelectorAll<HTMLElement>('div, span, p, h1, h2, h3, h4, h5, h6, a, li, label, td, th, button').forEach((el) => {
     const cls = typeof el.className === 'string' ? el.className : '';
     if (
       cls.includes('bg-card') ||
@@ -148,19 +158,24 @@ function applyExportLightTheme(clonedRoot: HTMLElement) {
     ) {
       el.style.backgroundColor = '#ffffff';
     }
+    if (cls.includes('bg-primary') || cls.includes('bg-secondary')) {
+      el.style.backgroundColor = '#f8fafc';
+    }
+    if (cls.includes('border')) {
+      el.style.borderColor = '#cbd5e1';
+    }
     if (cls.includes('text-muted-foreground')) {
       el.style.color = '#475569';
-    } else if (
-      cls.includes('text-card-foreground') ||
-      cls.includes('text-foreground') ||
-      cls.includes('font-semibold') ||
-      cls.includes('font-bold') ||
-      cls.includes('font-medium')
-    ) {
-      if (!cls.includes('text-primary') && !cls.includes('text-white') && !cls.includes('text-destructive')) {
-        el.style.color = '#0f172a';
-      }
+    } else if (!cls.includes('text-destructive')) {
+      el.style.color = '#0f172a';
     }
+    el.style.boxShadow = 'none';
+    el.style.textShadow = 'none';
+    el.style.opacity = '1';
+  });
+
+  clonedRoot.querySelectorAll<HTMLElement>('.recharts-legend-item-text, .recharts-label, .recharts-cartesian-axis-tick-value').forEach((el) => {
+    el.style.color = '#0f172a';
     el.style.opacity = '1';
   });
 }
