@@ -436,26 +436,31 @@ export function generateSingleProjectReport(project: Project, teamMap?: Record<s
 
   /* ======== PROGRESS SECTION ======== */
   if (project.progress != null) {
-    ensureSpace(40);
+    ensureSpace(50);
     drawSectionTitle('Progress');
-    const barW = contentW - 80;
-    const barH = 14;
+    const pct = Number(project.progress) || 0;
+    const barW = contentW - 16;
+    const barH = 20;
     const barX = m + 8;
-    // Background
+    const barY = y;
+
+    // Background track
     pdf.setFillColor(226, 232, 240);
-    pdf.roundedRect(barX, y - 2, barW, barH, 4, 4, 'F');
-    // Fill
-    const fillW = Math.max((project.progress / 100) * barW, 0);
-    if (fillW > 0) {
+    pdf.roundedRect(barX, barY, barW, barH, 6, 6, 'F');
+
+    // Filled portion
+    const fillW = Math.max((pct / 100) * barW, 0);
+    if (fillW > 8) {
       pdf.setFillColor(ACCENT.r, ACCENT.g, ACCENT.b);
-      pdf.roundedRect(barX, y - 2, fillW, barH, 4, 4, 'F');
+      pdf.roundedRect(barX, barY, fillW, barH, 6, 6, 'F');
     }
-    // Percentage text
-    pdf.setFontSize(10);
+
+    // Percentage text (to the right of bar)
+    pdf.setFontSize(13);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(DARK.r, DARK.g, DARK.b);
-    pdf.text(`${project.progress}%`, barX + barW + 8, y + 9);
-    y += 24;
+    pdf.text(`${pct}% Complete`, barX, barY + barH + 16);
+    y = barY + barH + 26;
   }
 
   /* ======== COMMENTS & SUPPORT ======== */
