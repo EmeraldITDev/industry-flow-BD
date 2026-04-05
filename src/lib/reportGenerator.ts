@@ -233,16 +233,21 @@ export function generateSingleProjectReport(project: Project, teamMap?: Record<s
       const imgData = project.projectImage.startsWith('data:')
         ? project.projectImage
         : `data:image/png;base64,${project.projectImage}`;
+      // Detect format from data URL
+      let imgFormat = 'PNG';
+      if (imgData.includes('image/jpeg') || imgData.includes('image/jpg')) imgFormat = 'JPEG';
+      else if (imgData.includes('image/gif')) imgFormat = 'GIF';
+      else if (imgData.includes('image/webp')) imgFormat = 'WEBP';
       const imgX = pw - m - imgSize;
       const imgY = y;
-      // Draw a subtle border around the image
+      pdf.addImage(imgData, imgFormat, imgX, imgY, imgSize, imgSize, undefined, 'FAST');
+      // Draw a subtle border around the image after so it's on top
       pdf.setDrawColor(203, 213, 225);
       pdf.setLineWidth(0.5);
-      pdf.roundedRect(imgX - 2, imgY - 2, imgSize + 4, imgSize + 4, 4, 4, 'S');
-      pdf.addImage(imgData, 'PNG', imgX, imgY, imgSize, imgSize, undefined, 'FAST');
+      pdf.roundedRect(imgX - 1, imgY - 1, imgSize + 2, imgSize + 2, 4, 4, 'S');
       titleMaxW = contentW - imgSize - 16;
-    } catch {
-      // skip if image can't be embedded
+    } catch (e) {
+      console.warn('Failed to embed project image in PDF:', e);
     }
   }
 
