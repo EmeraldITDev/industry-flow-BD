@@ -598,12 +598,12 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
   const titleX = projectImageAsset ? titleStartX + logoDrawW + 14 : titleStartX;
   const titleMaxW = contentW - (projectImageAsset ? logoDrawW + 14 : 0);
 
-  pdf.setFontSize(22);
+  pdf.setFontSize(18);
   pdf.setFont('helvetica', 'bold');
   pdf.setTextColor(DARK.r, DARK.g, DARK.b);
   const titleLines = pdf.splitTextToSize(project.name, titleMaxW);
-  const titleBlockH = titleLines.length * 24;
-  pdf.text(titleLines, titleX, y + 20);
+  const titleBlockH = titleLines.length * 20;
+  pdf.text(titleLines, titleX, y + 18);
 
   // Draw logo beside title
   if (projectImageAsset) {
