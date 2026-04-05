@@ -467,6 +467,14 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
     { label: 'Pipeline Intake', value: fmtDateValue(project.pipelineIntakeDate) },
   ]);
 
+  console.log('[PDF Export] Financial fields:', {
+    contractValueNGN: project.contractValueNGN,
+    contractValueUSD: project.contractValueUSD,
+    marginPercentNGN: project.marginPercentNGN,
+    marginPercentUSD: project.marginPercentUSD,
+    marginValueNGN: project.marginValueNGN,
+    marginValueUSD: project.marginValueUSD,
+  });
   drawSectionTitle('Financial Details');
   drawFieldRows(
     [
