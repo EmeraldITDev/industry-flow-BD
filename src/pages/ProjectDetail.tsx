@@ -330,10 +330,10 @@ export default function ProjectDetail() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => {
+              onClick={async () => {
                 const tMap: Record<string, string> = {};
                 teamMembers.forEach((m: any) => { tMap[String(m.id)] = m.name; });
-                generateSingleProjectReport(project, tMap);
+                await generateSingleProjectReport(project, tMap);
                 toast.success('Project report generated');
               }}
             >
