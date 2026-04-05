@@ -31,14 +31,27 @@ const getProductColor = (product: string): string => {
 
 const RADIAN = Math.PI / 180;
 
-function renderCustomLabel({ cx, cy, midAngle, innerRadius, outerRadius, value }: any) {
-  if (!value || value === 0) return null;
-  const radius = innerRadius + (outerRadius - innerRadius) * 1.5;
+function renderCustomLabel({ cx, cy, midAngle, innerRadius, outerRadius, value, percent }: any) {
+  if (!value || value === 0 || (percent ?? 0) < 0.035) return null;
+
+  const radius = innerRadius + (outerRadius - innerRadius) * 1.36;
   const x = cx + radius * Math.cos(-midAngle * RADIAN);
   const y = cy + radius * Math.sin(-midAngle * RADIAN);
+  const anchor = x >= cx ? 'start' : 'end';
+
   return (
-    <text x={x} y={y} fill="hsl(var(--foreground))" textAnchor="middle" dominantBaseline="central" fontSize={13} fontWeight={700}
-      stroke="hsl(var(--background))" strokeWidth={3} paintOrder="stroke">
+    <text
+      x={x}
+      y={y}
+      fill="hsl(var(--foreground))"
+      textAnchor={anchor}
+      dominantBaseline="central"
+      fontSize={14}
+      fontWeight={700}
+      stroke="hsl(var(--background))"
+      strokeWidth={4}
+      paintOrder="stroke"
+    >
       {value}
     </text>
   );
@@ -97,7 +110,6 @@ export function ProductCategoryMixDonut({
         </ResponsiveContainer>
       </div>
 
-      {/* Legend table */}
       <div className="mt-2 space-y-1">
         {chartData.map((entry, idx) => (
           <div key={idx} className="flex items-center justify-between text-[11px]">
