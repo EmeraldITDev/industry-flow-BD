@@ -567,19 +567,42 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
      ================================================================== */
 
   drawPageHeader();
-  y = 62;
+  y = 52;
 
   const projectImageAsset = await normalizeProjectImageForPdf(project.projectImage);
 
-  /* ---- Title ---- */
-  pdf.setFontSize(28);
+  /* ---- Title row with optional small logo beside it ---- */
+  const titleStartX = m;
+  let logoDrawW = 0;
+  let logoDrawH = 0;
+  const maxLogoH = 48;
+  const maxLogoW = 48;
+
+  if (projectImageAsset) {
+    const imgScale = Math.min(maxLogoW / projectImageAsset.width, maxLogoH / projectImageAsset.height, 1);
+    logoDrawW = projectImageAsset.width * imgScale;
+    logoDrawH = projectImageAsset.height * imgScale;
+  }
+
+  const titleX = projectImageAsset ? titleStartX + logoDrawW + 14 : titleStartX;
+  const titleMaxW = contentW - (projectImageAsset ? logoDrawW + 14 : 0);
+
+  pdf.setFontSize(22);
   pdf.setFont('helvetica', 'bold');
   pdf.setTextColor(DARK.r, DARK.g, DARK.b);
-  const titleLines = pdf.splitTextToSize(project.name, contentW);
-  pdf.text(titleLines, m, y + 22);
-  y += 18 + titleLines.length * 28;
+  const titleLines = pdf.splitTextToSize(project.name, titleMaxW);
+  const titleBlockH = titleLines.length * 24;
+  pdf.text(titleLines, titleX, y + 20);
 
-  /* ---- Status pill + pipeline ---- */
+  // Draw logo beside title
+  if (projectImageAsset) {
+    const logoY = y + 10 + (titleBlockH - logoDrawH) / 2 - 6;
+    pdf.addImage(projectImageAsset.dataUrl, 'PNG', titleStartX, Math.max(y + 2, logoY), logoDrawW, logoDrawH, undefined, 'FAST');
+  }
+
+  y += Math.max(titleBlockH, logoDrawH) + 16;
+
+  /* ---- Status pill + pipeline (fix: set font BEFORE measuring) ---- */
   const stageLabel = PIPELINE_STAGES.find(s => s.value === project.pipelineStage)?.label || project.pipelineStage || '—';
   const statusText = (project.status || '—').toUpperCase();
   const statusColors: Record<string, { r: number; g: number; b: number }> = {
@@ -589,39 +612,28 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
     inactive: { r: 148, g: 163, b: 184 },
   };
   const pillColor = statusColors[project.status] || LIGHT;
-  const statusW = pdf.getTextWidth(statusText) + 20;
 
-  pdf.setFontSize(9.5);
+  // MUST set font before measuring width
+  pdf.setFontSize(8.5);
   pdf.setFont('helvetica', 'bold');
+  const statusW = pdf.getTextWidth(statusText) + 16;
+
   pdf.setFillColor(pillColor.r, pillColor.g, pillColor.b);
-  pdf.roundedRect(m, y - 10, statusW, 18, 4, 4, 'F');
+  pdf.roundedRect(m, y - 9, statusW, 16, 3, 3, 'F');
   pdf.setTextColor(255, 255, 255);
-  pdf.text(statusText, m + 10, y + 2);
+  pdf.text(statusText, m + 8, y + 1);
 
   pdf.setFont('helvetica', 'normal');
   pdf.setTextColor(MID.r, MID.g, MID.b);
-  pdf.setFontSize(11);
-  pdf.text(`Pipeline: ${stageLabel}`, m + statusW + 10, y + 2);
-  y += 22;
+  pdf.setFontSize(10);
+  pdf.text(`Pipeline: ${stageLabel}`, m + statusW + 8, y + 1);
+  y += 16;
 
   /* ---- Separator ---- */
   pdf.setDrawColor(BORDER.r, BORDER.g, BORDER.b);
-  pdf.setLineWidth(0.6);
+  pdf.setLineWidth(0.5);
   pdf.line(m, y, pw - m, y);
-  y += 10;
-
-  /* ---- Project image (compact, centered) ---- */
-  if (projectImageAsset) {
-    const maxImgW = 100;
-    const maxImgH = 72;
-    const imgScale = Math.min(maxImgW / projectImageAsset.width, maxImgH / projectImageAsset.height, 1);
-    const drawW = projectImageAsset.width * imgScale;
-    const drawH = projectImageAsset.height * imgScale;
-    ensureSpace(drawH + 16);
-    const imgX = m + (contentW - drawW) / 2;
-    pdf.addImage(projectImageAsset.dataUrl, 'PNG', imgX, y + 4, drawW, drawH, undefined, 'FAST');
-    y += drawH + 16;
-  }
+  y += 6;
 
   /* ---- Project Overview ---- */
   const leadName = project.projectLeadId && teamMap
