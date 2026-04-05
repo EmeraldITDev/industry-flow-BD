@@ -225,6 +225,7 @@ export function generateSingleProjectReport(project: Project, teamMap?: Record<s
 
   y = 30;
 
+  console.log('Project image available:', !!project.projectImage, project.projectImage ? `(${project.projectImage.substring(0, 30)}..., length: ${project.projectImage.length})` : 'none');
   /* ---- Project Image (top-right) ---- */
   const imgSize = 90;
   let titleMaxW = contentW;
