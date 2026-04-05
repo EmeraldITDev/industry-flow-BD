@@ -298,7 +298,7 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
   };
 
   const drawSectionTitle = (title: string) => {
-    y += y > 42 ? 18 : 10;
+    y += y > 42 ? 24 : 10;
     ensureSpace(42);
     pdf.setFillColor(ACCENT.r, ACCENT.g, ACCENT.b);
     pdf.roundedRect(labelX, y + 1, 4, 18, 2, 2, 'F');
@@ -309,14 +309,14 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
     pdf.setDrawColor(BORDER.r, BORDER.g, BORDER.b);
     pdf.setLineWidth(0.6);
     pdf.line(labelX, y + 26, pw - m, y + 26);
-    y += 40;
+    y += 36;
   };
 
   const drawFieldRows = (
     rows: Array<{ label: string; value: string | undefined | null }>,
-    options?: { align?: 'left' | 'right'; valueBold?: boolean; emptyMessage?: string }
+    options?: { align?: 'left' | 'right'; valueBold?: boolean; emptyMessage?: string; showAll?: boolean }
   ) => {
-    const visibleRows = rows.filter((row) => hasVisibleValue(row.value));
+    const visibleRows = options?.showAll ? rows.map(r => ({ ...r, value: r.value ?? '—' })) : rows.filter((row) => hasVisibleValue(row.value));
 
     if (!visibleRows.length) {
       ensureSpace(20);
@@ -428,23 +428,15 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
 
   if (projectImageAsset) {
     drawSectionTitle('Project Image');
-    const maxImageW = 120;
-    const maxImageH = 90;
-    const scale = Math.min(maxImageW / projectImageAsset.width, maxImageH / projectImageAsset.height, 1);
-    const drawW = projectImageAsset.width * scale;
-    const drawH = projectImageAsset.height * scale;
-    const pad = 8;
-    const frameW = drawW + pad * 2;
-    const frameH = drawH + pad * 2;
-    ensureSpace(frameH + 8);
-    const frameX = m + (contentW - frameW) / 2;
-    const frameY = y;
-
-    pdf.setDrawColor(BORDER.r, BORDER.g, BORDER.b);
-    pdf.setLineWidth(0.6);
-    pdf.roundedRect(frameX, frameY, frameW, frameH, 4, 4, 'S');
-    pdf.addImage(projectImageAsset.dataUrl, 'PNG', frameX + pad, frameY + pad, drawW, drawH, undefined, 'FAST');
-    y += frameH + 8;
+    const maxImgW = 150;
+    const maxImgH = 100;
+    const imgScale = Math.min(maxImgW / projectImageAsset.width, maxImgH / projectImageAsset.height, 1);
+    const drawW = projectImageAsset.width * imgScale;
+    const drawH = projectImageAsset.height * imgScale;
+    ensureSpace(drawH + 12);
+    const imgX = m + (contentW - drawW) / 2;
+    pdf.addImage(projectImageAsset.dataUrl, 'PNG', imgX, y, drawW, drawH, undefined, 'FAST');
+    y += drawH + 12;
   }
 
   const leadName = project.projectLeadId && teamMap
@@ -479,13 +471,13 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
   drawFieldRows(
     [
       { label: 'Contract Value (USD)', value: fmtCurrency(project.contractValueUSD, 'USD ') },
-      { label: 'Margin % (USD)', value: project.marginPercentUSD != null ? `${project.marginPercentUSD}%` : undefined },
+      { label: 'Margin % (USD)', value: project.marginPercentUSD != null ? `${project.marginPercentUSD}%` : '—' },
       { label: 'Margin Value (USD)', value: fmtCurrency(project.marginValueUSD, 'USD ') },
       { label: 'Contract Value (NGN)', value: fmtCurrency(project.contractValueNGN, 'NGN ') },
-      { label: 'Margin % (NGN)', value: project.marginPercentNGN != null ? `${project.marginPercentNGN}%` : undefined },
+      { label: 'Margin % (NGN)', value: project.marginPercentNGN != null ? `${project.marginPercentNGN}%` : '—' },
       { label: 'Margin Value (NGN)', value: fmtCurrency(project.marginValueNGN, 'NGN ') },
     ],
-    { align: 'right', valueBold: true, emptyMessage: 'No financial data available for this project.' }
+    { align: 'right', valueBold: true, showAll: true, emptyMessage: 'No financial data available for this project.' }
   );
 
   if (project.progress != null) {
@@ -523,7 +515,7 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
 
     pdf.setFontSize(9.5);
     pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(DARK.r, DARK.g, DARK.b);
+    pdf.setTextColor(55, 65, 81);
     pdf.text(pct === 0 ? 'Not started yet' : pct === 100 ? 'Completed' : 'In progress', valueX, barY + 20);
 
     pdf.setDrawColor(241, 245, 249);
