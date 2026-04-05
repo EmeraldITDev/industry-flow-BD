@@ -586,8 +586,8 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
   const titleStartX = m;
   let logoDrawW = 0;
   let logoDrawH = 0;
-  const maxLogoH = 48;
-  const maxLogoW = 48;
+  const maxLogoH = 40;
+  const maxLogoW = 40;
 
   if (projectImageAsset) {
     const imgScale = Math.min(maxLogoW / projectImageAsset.width, maxLogoH / projectImageAsset.height, 1);
