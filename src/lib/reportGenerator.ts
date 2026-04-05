@@ -357,30 +357,27 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
     visibleRows.forEach(({ label, value }, idx) => {
       const textValue = String(value);
       const valueLines = pdf.splitTextToSize(textValue, pw - m - valueX - 4);
-      const rowH = Math.max(26, valueLines.length * 13 + 10);
+      const rowH = Math.max(22, valueLines.length * 12 + 8);
       ensureSpace(rowH + 2);
 
-      // Alternating row background
       if (idx % 2 === 0) {
         pdf.setFillColor(ROW_ALT.r, ROW_ALT.g, ROW_ALT.b);
         pdf.rect(m, y - 2, contentW, rowH, 'F');
       }
 
-      // Label
-      pdf.setFontSize(10);
+      pdf.setFontSize(9);
       pdf.setFont('helvetica', 'bold');
       pdf.setTextColor(MID.r, MID.g, MID.b);
-      pdf.text(label, m + 8, y + 14);
+      pdf.text(label, m + 8, y + 12);
 
-      // Value
-      pdf.setFontSize(options?.valueBold ? 10.5 : 10);
+      pdf.setFontSize(options?.valueBold ? 9.5 : 9);
       pdf.setFont('helvetica', options?.valueBold ? 'bold' : 'normal');
       pdf.setTextColor(DARK.r, DARK.g, DARK.b);
       valueLines.forEach((line: string, li: number) => {
-        pdf.text(line, valueX, y + 14 + li * 13);
+        pdf.text(line, valueX, y + 12 + li * 12);
       });
 
-      y += rowH + 2;
+      y += rowH + 1;
     });
   };
 
