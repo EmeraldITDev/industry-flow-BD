@@ -411,7 +411,7 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
       pdf.setFontSize(9);
       pdf.setFont('helvetica', 'bold');
       pdf.setTextColor(ACCENT.r, ACCENT.g, ACCENT.b);
-      pdf.text(title, x + 8, y + 14);
+      pdf.text(title, x + 8, y + 13);
     };
     drawColHeader(leftX, colW, 'USD Values');
     drawColHeader(rightX, colW, 'NGN Values');
