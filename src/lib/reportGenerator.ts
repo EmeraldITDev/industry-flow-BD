@@ -330,8 +330,8 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
   };
 
   /* ---- Two-column field rows with alternating backgrounds ---- */
-  const labelW = 120;
-  const valueX = m + labelW + 12;
+  const labelW = 110;
+  const valueX = m + labelW + 10;
 
   const drawFieldRows = (
     rows: Array<{ label: string; value: string | undefined | null }>,
