@@ -18,9 +18,21 @@ function fmtNum(n: number | undefined | null): string {
 }
 
 function fmtCurrency(n: number | undefined | null, prefix = 'USD '): string {
-  if (n == null || isNaN(n) || n === 0) return '—';
+  if (n == null || isNaN(n)) return '—';
   // jsPDF default fonts don't support ₦; always use text prefixes
   return `${prefix}${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function fmtDateValue(value: string | undefined | null): string {
+  if (!value) return '—';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
 }
 
 function truncate(str: string, max: number): string {
@@ -206,14 +218,21 @@ export function generateProjectsReport(
 export async function generateSingleProjectReport(project: Project, teamMap?: Record<string, string>): Promise<void> {
   const pdf = new jsPDF({ orientation: 'portrait', unit: 'px', format: 'a4' });
   const pw = 595;
+  const ph = 842;
   const m = 44;
   const contentW = pw - m * 2;
-  let y = m;
+  const labelX = m;
+  const labelW = 138;
+  const valueX = labelX + labelW + 24;
+  const valueW = pw - m - valueX - 6;
+  let y = 34;
 
   const ACCENT = { r: 16, g: 185, b: 129 };
   const DARK = { r: 15, g: 23, b: 42 };
   const MID = { r: 71, g: 85, b: 105 };
   const LIGHT = { r: 148, g: 163, b: 184 };
+  const BORDER = { r: 226, g: 232, b: 240 };
+  const SOFT = { r: 248, g: 250, b: 252 };
 
   const normalizeProjectImageForPdf = async (source?: string): Promise<{ dataUrl: string; width: number; height: number } | null> => {
     if (!source) return null;
@@ -259,25 +278,119 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
     });
   };
 
+  const drawPageAccent = () => {
+    pdf.setFillColor(ACCENT.r, ACCENT.g, ACCENT.b);
+    pdf.rect(0, 0, pw, 5, 'F');
+  };
+
   const ensureSpace = (needed: number) => {
-    if (y + needed > 800) {
+    if (y + needed > ph - 46) {
       pdf.addPage();
-      y = m;
+      drawPageAccent();
+      y = 34;
     }
   };
 
-  pdf.setFillColor(ACCENT.r, ACCENT.g, ACCENT.b);
-  pdf.rect(0, 0, pw, 6, 'F');
-  y = 30;
+  const hasVisibleValue = (value: string | number | undefined | null) => {
+    if (value == null) return false;
+    const normalized = String(value).trim();
+    return normalized !== '' && normalized !== '—';
+  };
+
+  const drawSectionTitle = (title: string) => {
+    y += y > 42 ? 18 : 10;
+    ensureSpace(42);
+    pdf.setFillColor(ACCENT.r, ACCENT.g, ACCENT.b);
+    pdf.roundedRect(labelX, y + 1, 4, 18, 2, 2, 'F');
+    pdf.setFontSize(13);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(DARK.r, DARK.g, DARK.b);
+    pdf.text(title, labelX + 16, y + 14);
+    pdf.setDrawColor(BORDER.r, BORDER.g, BORDER.b);
+    pdf.setLineWidth(0.6);
+    pdf.line(labelX, y + 26, pw - m, y + 26);
+    y += 40;
+  };
+
+  const drawFieldRows = (
+    rows: Array<{ label: string; value: string | undefined | null }>,
+    options?: { align?: 'left' | 'right'; valueBold?: boolean; emptyMessage?: string }
+  ) => {
+    const visibleRows = rows.filter((row) => hasVisibleValue(row.value));
+
+    if (!visibleRows.length) {
+      ensureSpace(20);
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'italic');
+      pdf.setTextColor(LIGHT.r, LIGHT.g, LIGHT.b);
+      pdf.text(options?.emptyMessage || 'No information available.', labelX + 6, y + 12);
+      y += 24;
+      return;
+    }
+
+    visibleRows.forEach(({ label, value }) => {
+      const textValue = String(value);
+      const valueLines = pdf.splitTextToSize(textValue, valueW);
+      const rowHeight = Math.max(22, valueLines.length * 12 + 4);
+      ensureSpace(rowHeight + 10);
+
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(MID.r, MID.g, MID.b);
+      pdf.text(label, labelX + 6, y + 12);
+
+      pdf.setFontSize(options?.valueBold ? 11 : 10.5);
+      pdf.setFont('helvetica', options?.valueBold ? 'bold' : 'normal');
+      pdf.setTextColor(DARK.r, DARK.g, DARK.b);
+
+      valueLines.forEach((line: string, index: number) => {
+        const lineY = y + 12 + index * 12;
+        if (options?.align === 'right') {
+          pdf.text(line, pw - m - 6, lineY, { align: 'right' });
+        } else {
+          pdf.text(line, valueX, lineY);
+        }
+      });
+
+      pdf.setDrawColor(241, 245, 249);
+      pdf.setLineWidth(0.5);
+      pdf.line(labelX + 4, y + rowHeight, pw - m, y + rowHeight);
+      y += rowHeight + 8;
+    });
+  };
+
+  const drawParagraphBlock = (label: string, text: string) => {
+    ensureSpace(38);
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(MID.r, MID.g, MID.b);
+    pdf.text(label, labelX + 6, y + 12);
+    y += 20;
+
+    const lines = pdf.splitTextToSize(text, contentW - 12);
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setTextColor(DARK.r, DARK.g, DARK.b);
+
+    lines.forEach((line: string) => {
+      ensureSpace(14);
+      pdf.text(line, labelX + 6, y + 10);
+      y += 13;
+    });
+
+    y += 6;
+  };
+
+  drawPageAccent();
 
   const projectImageAsset = await normalizeProjectImageForPdf(project.projectImage);
 
-  pdf.setFontSize(22);
+  pdf.setFontSize(28);
   pdf.setFont('helvetica', 'bold');
   pdf.setTextColor(DARK.r, DARK.g, DARK.b);
   const titleLines = pdf.splitTextToSize(project.name, contentW);
-  pdf.text(titleLines, m, y + 18);
-  y += 18 + titleLines.length * 24;
+  pdf.text(titleLines, m, y + 22);
+  y += 18 + titleLines.length * 28;
 
   const stageLabel = PIPELINE_STAGES.find(s => s.value === project.pipelineStage)?.label || project.pipelineStage || '—';
   const statusText = (project.status || '—').toUpperCase();
@@ -287,10 +400,10 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
     'on-hold': { r: 245, g: 158, b: 11 },
     inactive: { r: 148, g: 163, b: 184 },
   };
-  const statusW = pdf.getTextWidth(statusText) + 16;
   const pillColor = statusColors[project.status] || LIGHT;
+  const statusW = pdf.getTextWidth(statusText) + 16;
 
-  pdf.setFontSize(10);
+  pdf.setFontSize(9.5);
   pdf.setFont('helvetica', 'bold');
   pdf.setFillColor(pillColor.r, pillColor.g, pillColor.b);
   pdf.roundedRect(m, y - 10, statusW, 18, 4, 4, 'F');
@@ -301,80 +414,38 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
   pdf.setTextColor(MID.r, MID.g, MID.b);
   pdf.setFontSize(11);
   pdf.text(`Pipeline: ${stageLabel}`, m + statusW + 10, y + 2);
-  y += 20;
+  y += 24;
 
-  pdf.setFontSize(9);
+  pdf.setFontSize(9.5);
   pdf.setTextColor(LIGHT.r, LIGHT.g, LIGHT.b);
   pdf.text(`Generated: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`, m, y);
-  y += 16;
+  y += 20;
 
-  pdf.setDrawColor(226, 232, 240);
-  pdf.setLineWidth(0.5);
+  pdf.setDrawColor(BORDER.r, BORDER.g, BORDER.b);
+  pdf.setLineWidth(0.6);
   pdf.line(m, y, pw - m, y);
-  y += 14;
-
-  const drawSectionTitle = (title: string) => {
-    ensureSpace(30);
-    pdf.setFillColor(ACCENT.r, ACCENT.g, ACCENT.b);
-    pdf.rect(m, y - 2, 3, 20, 'F');
-    pdf.setFontSize(14);
-    pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(DARK.r, DARK.g, DARK.b);
-    pdf.text(title, m + 12, y + 12);
-    pdf.setDrawColor(226, 232, 240);
-    pdf.setLineWidth(0.5);
-    pdf.line(m, y + 20, pw - m, y + 20);
-    y += 30;
-  };
-
-  const fieldLabelW = 150;
-  const addField = (label: string, value: string | undefined | null) => {
-    if (!value || value === '—') return;
-    ensureSpace(18);
-    pdf.setFontSize(10);
-    pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(MID.r, MID.g, MID.b);
-    pdf.text(label, m + 8, y);
-    pdf.setFont('helvetica', 'normal');
-    pdf.setTextColor(DARK.r, DARK.g, DARK.b);
-    const valLines = pdf.splitTextToSize(String(value), contentW - fieldLabelW - 16);
-    pdf.text(valLines, m + fieldLabelW, y);
-    y += Math.max(valLines.length * 13, 15);
-  };
-
-  const addFinanceField = (label: string, value: string | undefined | null) => {
-    if (!value || value === '—') return;
-    ensureSpace(20);
-    pdf.setFontSize(10);
-    pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(MID.r, MID.g, MID.b);
-    pdf.text(label, m + 8, y);
-    pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(DARK.r, DARK.g, DARK.b);
-    pdf.setFontSize(11);
-    pdf.text(String(value), m + fieldLabelW, y);
-    y += 17;
-  };
+  y += 12;
 
   if (projectImageAsset) {
     drawSectionTitle('Project Image');
-    const frameX = m + 8;
-    const frameY = y;
-    const frameW = contentW - 16;
-    const frameH = 148;
-    ensureSpace(frameH + 18);
-    pdf.setFillColor(248, 250, 252);
-    pdf.roundedRect(frameX, frameY, frameW, frameH, 8, 8, 'F');
-    pdf.setDrawColor(226, 232, 240);
-    pdf.roundedRect(frameX, frameY, frameW, frameH, 8, 8, 'S');
-
-    const scale = Math.min((frameW - 24) / projectImageAsset.width, (frameH - 24) / projectImageAsset.height, 1);
+    const maxImageW = Math.min(contentW * 0.48, 180);
+    const maxImageH = 120;
+    const scale = Math.min(maxImageW / projectImageAsset.width, maxImageH / projectImageAsset.height, 1);
     const drawW = projectImageAsset.width * scale;
     const drawH = projectImageAsset.height * scale;
-    const imageX = frameX + (frameW - drawW) / 2;
-    const imageY = frameY + (frameH - drawH) / 2;
-    pdf.addImage(projectImageAsset.dataUrl, 'PNG', imageX, imageY, drawW, drawH, undefined, 'FAST');
-    y += frameH + 18;
+    const frameW = drawW + 16;
+    const frameH = drawH + 16;
+    ensureSpace(frameH + 12);
+    const frameX = m + (contentW - frameW) / 2;
+    const frameY = y;
+
+    pdf.setFillColor(255, 255, 255);
+    pdf.roundedRect(frameX, frameY, frameW, frameH, 8, 8, 'F');
+    pdf.setDrawColor(BORDER.r, BORDER.g, BORDER.b);
+    pdf.setLineWidth(0.8);
+    pdf.roundedRect(frameX, frameY, frameW, frameH, 8, 8, 'S');
+    pdf.addImage(projectImageAsset.dataUrl, 'PNG', frameX + 8, frameY + 8, drawW, drawH, undefined, 'FAST');
+    y += frameH + 10;
   }
 
   const leadName = project.projectLeadId && teamMap
@@ -382,152 +453,106 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
     : undefined;
 
   drawSectionTitle('Project Overview');
-  addField('Sector', project.sector);
-  addField('Business Segment', project.businessSegment);
-  addField('Client', project.clientName);
-  addField('Client Contact', project.clientContact);
-  addField('Location', project.location);
-  addField('OEM', project.oem);
-  addField('Product', project.product);
-  addField('Sub Product', project.subProduct);
-  addField('Channel Partner', project.channelPartner);
-  addField('Sales Lead', project.salesLead);
-  addField('Project Lead', leadName);
-  addField('Deal Probability', project.dealProbability);
-  y += 4;
+  drawFieldRows([
+    { label: 'Sector', value: project.sector },
+    { label: 'Business Segment', value: project.businessSegment },
+    { label: 'Client', value: project.clientName },
+    { label: 'Client Contact', value: project.clientContact },
+    { label: 'Location', value: project.location },
+    { label: 'OEM', value: project.oem },
+    { label: 'Product', value: project.product },
+    { label: 'Sub Product', value: project.subProduct },
+    { label: 'Channel Partner', value: project.channelPartner },
+    { label: 'Sales Lead', value: project.salesLead },
+    { label: 'Project Lead', value: leadName },
+    { label: 'Deal Probability', value: project.dealProbability },
+  ]);
 
   drawSectionTitle('Timeline');
-  addField('Start Date', project.startDate);
-  addField('End Date', project.endDate);
-  addField('Expected Close', project.expectedCloseDate);
-  addField('Pipeline Intake', project.pipelineIntakeDate);
-  y += 4;
+  drawFieldRows([
+    { label: 'Start Date', value: fmtDateValue(project.startDate) },
+    { label: 'End Date', value: fmtDateValue(project.endDate) },
+    { label: 'Expected Close', value: fmtDateValue(project.expectedCloseDate) },
+    { label: 'Pipeline Intake', value: fmtDateValue(project.pipelineIntakeDate) },
+  ]);
 
   drawSectionTitle('Financial Details');
-  const hasUSD = project.contractValueUSD || project.marginPercentUSD || project.marginValueUSD;
-  const hasNGN = project.contractValueNGN || project.marginPercentNGN || project.marginValueNGN;
+  const hasUSD = [project.contractValueUSD, project.marginPercentUSD, project.marginValueUSD].some((value) => value != null);
+  const hasNGN = [project.contractValueNGN, project.marginPercentNGN, project.marginValueNGN].some((value) => value != null);
 
-  if (hasUSD) {
-    pdf.setFontSize(10);
-    pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(ACCENT.r, ACCENT.g, ACCENT.b);
-    pdf.text('USD Values', m + 8, y);
-    y += 15;
-    addFinanceField('Contract Value', fmtCurrency(project.contractValueUSD, 'USD '));
-    addFinanceField('Margin %', project.marginPercentUSD ? `${project.marginPercentUSD}%` : undefined);
-    addFinanceField('Margin Value', fmtCurrency(project.marginValueUSD, 'USD '));
-    y += 6;
-  }
-
-  if (hasNGN) {
-    pdf.setFontSize(10);
-    pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(ACCENT.r, ACCENT.g, ACCENT.b);
-    pdf.text('NGN Values', m + 8, y);
-    y += 15;
-    addFinanceField('Contract Value', fmtCurrency(project.contractValueNGN, 'NGN '));
-    addFinanceField('Margin %', project.marginPercentNGN ? `${project.marginPercentNGN}%` : undefined);
-    addFinanceField('Margin Value', fmtCurrency(project.marginValueNGN, 'NGN '));
-    y += 6;
-  }
-
-  if (!hasUSD && !hasNGN) {
-    pdf.setFontSize(10);
-    pdf.setFont('helvetica', 'italic');
-    pdf.setTextColor(LIGHT.r, LIGHT.g, LIGHT.b);
-    pdf.text('No financial data available for this project.', m + 8, y);
-    y += 16;
-  }
+  drawFieldRows(
+    [
+      { label: 'Contract Value (USD)', value: hasUSD ? fmtCurrency(project.contractValueUSD, 'USD ') : undefined },
+      { label: 'Margin % (USD)', value: project.marginPercentUSD != null ? `${project.marginPercentUSD}%` : undefined },
+      { label: 'Margin Value (USD)', value: hasUSD ? fmtCurrency(project.marginValueUSD, 'USD ') : undefined },
+      { label: 'Contract Value (NGN)', value: hasNGN ? fmtCurrency(project.contractValueNGN, 'NGN ') : undefined },
+      { label: 'Margin % (NGN)', value: project.marginPercentNGN != null ? `${project.marginPercentNGN}%` : undefined },
+      { label: 'Margin Value (NGN)', value: hasNGN ? fmtCurrency(project.marginValueNGN, 'NGN ') : undefined },
+    ],
+    { align: 'right', valueBold: true, emptyMessage: 'No financial data available for this project.' }
+  );
 
   if (project.progress != null) {
-    ensureSpace(58);
     drawSectionTitle('Progress');
+    ensureSpace(54);
     const pct = Math.max(0, Math.min(100, Number(project.progress) || 0));
-    const barW = 240;
-    const barH = 12;
-    const barX = m + 8;
-    const barY = y + 6;
+    const rowTop = y;
+    const barW = 160;
+    const barH = 8;
+    const barX = valueX;
+    const barY = rowTop + 14;
 
     pdf.setFontSize(10);
-    pdf.setFont('helvetica', 'normal');
+    pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(MID.r, MID.g, MID.b);
-    pdf.text('Completion status', barX, y - 2);
+    pdf.text('Completion', labelX + 6, rowTop + 12);
 
-    pdf.setFillColor(226, 232, 240);
+    pdf.setFontSize(11);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(DARK.r, DARK.g, DARK.b);
+    pdf.text(`${pct}%`, pw - m - 6, rowTop + 12, { align: 'right' });
+
+    pdf.setFillColor(BORDER.r, BORDER.g, BORDER.b);
     pdf.roundedRect(barX, barY, barW, barH, 6, 6, 'F');
 
     const fillW = (pct / 100) * barW;
     if (fillW > 0) {
       pdf.setFillColor(ACCENT.r, ACCENT.g, ACCENT.b);
-      pdf.roundedRect(barX, barY, fillW, barH, 6, 6, 'F');
+      if (fillW > 10) {
+        pdf.roundedRect(barX, barY, fillW, barH, 6, 6, 'F');
+      } else {
+        pdf.rect(barX, barY, fillW, barH, 'F');
+      }
     }
-
-    const badgeX = barX + barW + 16;
-    pdf.setFillColor(241, 245, 249);
-    pdf.roundedRect(badgeX, barY - 6, 88, 24, 10, 10, 'F');
-    pdf.setFontSize(12);
-    pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(DARK.r, DARK.g, DARK.b);
-    pdf.text(`${pct}%`, badgeX + 44, barY + 10, { align: 'center' });
 
     pdf.setFontSize(9);
     pdf.setFont('helvetica', 'normal');
-    pdf.setTextColor(LIGHT.r, LIGHT.g, LIGHT.b);
-    pdf.text(pct === 0 ? 'Not started yet' : 'Current completion', barX, barY + 28);
-    y = barY + 38;
+    pdf.setTextColor(MID.r, MID.g, MID.b);
+    pdf.text(pct === 0 ? 'Not started yet' : pct === 100 ? 'Completed' : 'In progress', valueX, barY + 20);
+
+    pdf.setDrawColor(241, 245, 249);
+    pdf.setLineWidth(0.5);
+    pdf.line(labelX + 4, rowTop + 34, pw - m, rowTop + 34);
+    y = rowTop + 42;
   }
 
-  /* ======== COMMENTS & SUPPORT ======== */
   if (project.projectLeadComments || project.supportNeeded) {
     drawSectionTitle('Notes & Support');
 
     if (project.projectLeadComments) {
-      ensureSpace(30);
-      pdf.setFontSize(10);
-      pdf.setFont('helvetica', 'bold');
-      pdf.setTextColor(MID.r, MID.g, MID.b);
-      pdf.text('Project Lead Comments', m + 8, y);
-      y += 14;
-      pdf.setFontSize(9);
-      pdf.setFont('helvetica', 'normal');
-      pdf.setTextColor(DARK.r, DARK.g, DARK.b);
-      const lines = pdf.splitTextToSize(project.projectLeadComments, contentW - 16);
-      lines.forEach((line: string) => {
-        ensureSpace(13);
-        pdf.text(line, m + 8, y);
-        y += 12;
-      });
-      y += 6;
+      drawParagraphBlock('Project Lead Comments', project.projectLeadComments);
     }
 
     if (project.supportNeeded) {
-      ensureSpace(30);
-      pdf.setFontSize(10);
-      pdf.setFont('helvetica', 'bold');
-      pdf.setTextColor(MID.r, MID.g, MID.b);
-      pdf.text('Support Needed', m + 8, y);
-      y += 14;
-      pdf.setFontSize(9);
-      pdf.setFont('helvetica', 'normal');
-      pdf.setTextColor(DARK.r, DARK.g, DARK.b);
-      const lines = pdf.splitTextToSize(project.supportNeeded, contentW - 16);
-      lines.forEach((line: string) => {
-        ensureSpace(13);
-        pdf.text(line, m + 8, y);
-        y += 12;
-      });
-      y += 6;
+      drawParagraphBlock('Support Needed', project.supportNeeded);
     }
   }
 
-  /* ---- Footer on every page ---- */
   const pageCount = pdf.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     pdf.setPage(i);
-    // Bottom accent bar
-    pdf.setFillColor(241, 245, 249);
+    pdf.setFillColor(SOFT.r, SOFT.g, SOFT.b);
     pdf.rect(0, 836, pw, 6, 'F');
-    // Footer text
     pdf.setFontSize(8);
     pdf.setFont('helvetica', 'normal');
     pdf.setTextColor(LIGHT.r, LIGHT.g, LIGHT.b);
