@@ -428,23 +428,15 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
 
   if (projectImageAsset) {
     drawSectionTitle('Project Image');
-    const maxImageW = 120;
-    const maxImageH = 90;
-    const scale = Math.min(maxImageW / projectImageAsset.width, maxImageH / projectImageAsset.height, 1);
-    const drawW = projectImageAsset.width * scale;
-    const drawH = projectImageAsset.height * scale;
-    const pad = 8;
-    const frameW = drawW + pad * 2;
-    const frameH = drawH + pad * 2;
-    ensureSpace(frameH + 8);
-    const frameX = m + (contentW - frameW) / 2;
-    const frameY = y;
-
-    pdf.setDrawColor(BORDER.r, BORDER.g, BORDER.b);
-    pdf.setLineWidth(0.6);
-    pdf.roundedRect(frameX, frameY, frameW, frameH, 4, 4, 'S');
-    pdf.addImage(projectImageAsset.dataUrl, 'PNG', frameX + pad, frameY + pad, drawW, drawH, undefined, 'FAST');
-    y += frameH + 8;
+    const maxImgW = 150;
+    const maxImgH = 100;
+    const imgScale = Math.min(maxImgW / projectImageAsset.width, maxImgH / projectImageAsset.height, 1);
+    const drawW = projectImageAsset.width * imgScale;
+    const drawH = projectImageAsset.height * imgScale;
+    ensureSpace(drawH + 12);
+    const imgX = m + (contentW - drawW) / 2;
+    pdf.addImage(projectImageAsset.dataUrl, 'PNG', imgX, y, drawW, drawH, undefined, 'FAST');
+    y += drawH + 12;
   }
 
   const leadName = project.projectLeadId && teamMap
