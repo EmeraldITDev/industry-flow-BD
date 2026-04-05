@@ -428,24 +428,23 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
 
   if (projectImageAsset) {
     drawSectionTitle('Project Image');
-    const maxImageW = Math.min(contentW * 0.48, 180);
-    const maxImageH = 120;
+    const maxImageW = 120;
+    const maxImageH = 90;
     const scale = Math.min(maxImageW / projectImageAsset.width, maxImageH / projectImageAsset.height, 1);
     const drawW = projectImageAsset.width * scale;
     const drawH = projectImageAsset.height * scale;
-    const frameW = drawW + 16;
-    const frameH = drawH + 16;
-    ensureSpace(frameH + 12);
+    const pad = 8;
+    const frameW = drawW + pad * 2;
+    const frameH = drawH + pad * 2;
+    ensureSpace(frameH + 8);
     const frameX = m + (contentW - frameW) / 2;
     const frameY = y;
 
-    pdf.setFillColor(255, 255, 255);
-    pdf.roundedRect(frameX, frameY, frameW, frameH, 8, 8, 'F');
     pdf.setDrawColor(BORDER.r, BORDER.g, BORDER.b);
-    pdf.setLineWidth(0.8);
-    pdf.roundedRect(frameX, frameY, frameW, frameH, 8, 8, 'S');
-    pdf.addImage(projectImageAsset.dataUrl, 'PNG', frameX + 8, frameY + 8, drawW, drawH, undefined, 'FAST');
-    y += frameH + 10;
+    pdf.setLineWidth(0.6);
+    pdf.roundedRect(frameX, frameY, frameW, frameH, 4, 4, 'S');
+    pdf.addImage(projectImageAsset.dataUrl, 'PNG', frameX + pad, frameY + pad, drawW, drawH, undefined, 'FAST');
+    y += frameH + 8;
   }
 
   const leadName = project.projectLeadId && teamMap
