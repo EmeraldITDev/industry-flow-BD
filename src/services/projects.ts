@@ -489,7 +489,7 @@ export const projectsService = {
       channelPartner: 'channel_partner',
       projectLeadComments: 'project_lead_comments',
       supportNeeded: 'support_needed',
-      dealProbability: 'deal_probability',
+      dealProbability: 'risk_level',
       projectImage: 'project_image',
     };
 
