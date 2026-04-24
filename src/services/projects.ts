@@ -368,6 +368,15 @@ export const projectsService = {
       }
     });
 
+    // Dual-write: keep legacy product/sub_product strings populated from the new arrays
+    // so older backends still receive a value until they're updated to handle JSON arrays.
+    if (Array.isArray(requestData.products)) {
+      requestData.product = requestData.products[0] ?? null;
+    }
+    if (Array.isArray(requestData.subproducts)) {
+      requestData.subProduct = requestData.subproducts[0] ?? null;
+    }
+
     // Add snake_case aliases for Laravel backend
     const snakeCaseMap: Record<string, string> = {
       contractValueNGN: 'contract_value_ngn',
