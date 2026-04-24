@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,6 +20,12 @@ import { PipelineStageSelector } from '@/components/projects/PipelineStageSelect
 import { ProjectImageUpload } from '@/components/projects/ProjectImageUpload';
 import { projectsService } from '@/services/projects';
 import { teamService } from '@/services/team';
+import { MultiSearchableSelect } from '@/components/ui/multi-searchable-select';
+
+const PRODUCT_OPTIONS = ['EQMTCE', 'Meters', 'Fabrication', 'Other Services', 'Petroleum Products', 'CNG', 'Power Gen']
+  .map((v) => ({ value: v, label: v }));
+const SUBPRODUCT_OPTIONS = ['Capital Parts', 'O&M', 'Services', 'Consumables', 'Manpower', 'Meters', 'AGO', 'Jet Fuel', 'PMS', 'Gas', 'Other', 'New Units (NU)', 'IPP', 'Urea']
+  .map((v) => ({ value: v, label: v }));
 
 const dealProbabilities: { value: RiskLevel; label: string; color: string }[] = [
   { value: 'low', label: 'Low', color: 'bg-chart-2/20 text-chart-2' },
@@ -32,6 +38,7 @@ const dealProbabilities: { value: RiskLevel; label: string; color: string }[] = 
 export default function EditProject() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Fetch project data
@@ -68,8 +75,8 @@ export default function EditProject() {
     location: '',
     expectedCloseDate: undefined as Date | undefined,
     businessSegment: '' as BusinessSegment | '',
-    product: '',
-    subProduct: '',
+    products: [] as string[],
+    subproducts: [] as string[],
     projectLeadId: '',
     assigneeId: '',
     channelPartner: '',
