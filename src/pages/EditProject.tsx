@@ -185,8 +185,8 @@ export default function EditProject() {
         location: formData.location || undefined,
         expectedCloseDate: formData.expectedCloseDate?.toISOString(),
         businessSegment: formData.businessSegment as BusinessSegment || undefined,
-        product: formData.product || undefined,
-        subProduct: formData.subProduct || undefined,
+        products: formData.products,
+        subproducts: formData.subproducts,
         projectLeadId: formData.projectLeadId || undefined,
         assigneeId: formData.assigneeId || null,
         channelPartner: formData.channelPartner || undefined,
@@ -208,6 +208,9 @@ export default function EditProject() {
         dealProbability: formData.dealProbability,
       });
       toast.success('Project updated successfully!');
+      // Invalidate caches so detail/list pages re-fetch fresh data
+      queryClient.invalidateQueries({ queryKey: ['project', id] });
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
       navigate(`/projects/${id}`);
     } catch (error: any) {
       console.error('Failed to update project:', error);
