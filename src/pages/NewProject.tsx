@@ -30,6 +30,12 @@ import { ProjectImageUpload } from '@/components/projects/ProjectImageUpload';
 import { projectsService } from '@/services/projects';
 import { teamService } from '@/services/team';
 import { useAuth } from '@/context/AuthContext';
+import { MultiSearchableSelect } from '@/components/ui/multi-searchable-select';
+
+const PRODUCT_OPTIONS = ['EQMTCE', 'Meters', 'Fabrication', 'Other Services', 'Petroleum Products', 'CNG', 'Power Gen']
+  .map((v) => ({ value: v, label: v }));
+const SUBPRODUCT_OPTIONS = ['Capital Parts', 'O&M', 'Services', 'Consumables', 'Manpower', 'Meters', 'AGO', 'Jet Fuel', 'PMS', 'Gas', 'Other', 'New Units (NU)', 'IPP', 'Urea']
+  .map((v) => ({ value: v, label: v }));
 
 const dealProbabilities: { value: RiskLevel; label: string; color: string }[] = [
   { value: 'low', label: 'Low', color: 'bg-chart-2/20 text-chart-2' },
@@ -77,8 +83,8 @@ export default function NewProject() {
     location: '',
     expectedCloseDate: undefined as Date | undefined,
     businessSegment: '' as BusinessSegment | '',
-    product: '',
-    subProduct: '',
+    products: [] as string[],
+    subproducts: [] as string[],
     projectLeadId: '',
     assigneeId: '',
     channelPartner: '',
