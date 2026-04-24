@@ -337,11 +337,23 @@ export default function NewProject() {
               </div>
               <div className="space-y-2">
                 <Label>Product</Label>
-                <Input value={formData.product} onChange={(e) => setFormData({ ...formData, product: e.target.value })} placeholder="e.g., Automation Systems" />
+                <MultiSearchableSelect
+                  values={formData.products}
+                  onValuesChange={(vals) => setFormData({ ...formData, products: vals })}
+                  options={PRODUCT_OPTIONS}
+                  placeholder="Select products"
+                  searchPlaceholder="Search products..."
+                />
               </div>
               <div className="space-y-2">
                 <Label>Sub Product</Label>
-                <Input value={formData.subProduct} onChange={(e) => setFormData({ ...formData, subProduct: e.target.value })} placeholder="e.g., Assembly Line Robotics" />
+                <MultiSearchableSelect
+                  values={formData.subproducts}
+                  onValuesChange={(vals) => setFormData({ ...formData, subproducts: vals })}
+                  options={SUBPRODUCT_OPTIONS}
+                  placeholder="Select sub products"
+                  searchPlaceholder="Search sub products..."
+                />
               </div>
               <div className="space-y-2">
                 <Label>OEM</Label>
