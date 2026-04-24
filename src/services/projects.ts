@@ -189,6 +189,14 @@ const normalizeProject = (project: any): Project => {
     expectedCloseDate: project.expectedCloseDate ?? project.expected_close_date ?? null,
     businessSegment: project.businessSegment ?? project.business_segment ?? '',
     subProduct: project.subProduct ?? project.sub_product ?? '',
+    products: Array.isArray(project.products)
+      ? project.products.filter(Boolean).map(String)
+      : (project.product ? [String(project.product)] : []),
+    subproducts: Array.isArray(project.subproducts)
+      ? project.subproducts.filter(Boolean).map(String)
+      : (Array.isArray(project.sub_products)
+          ? project.sub_products.filter(Boolean).map(String)
+          : ((project.subProduct ?? project.sub_product) ? [String(project.subProduct ?? project.sub_product)] : [])),
     projectLeadId,
     assigneeId,
     salesLead: project.salesLead ?? project.sales_lead ?? null,
