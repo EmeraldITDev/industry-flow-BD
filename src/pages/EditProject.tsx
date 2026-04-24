@@ -135,8 +135,14 @@ export default function EditProject() {
       oem: data.oem ?? '',
       location: data.location ?? '',
       businessSegment: (data.businessSegment ?? data.business_segment ?? '') as BusinessSegment | '',
-      product: data.product ?? data.product ?? '',
-      subProduct: data.subProduct ?? data.sub_product ?? '',
+      products: Array.isArray(data.products)
+        ? data.products.filter(Boolean).map(String)
+        : (data.product ? [String(data.product)] : []),
+      subproducts: Array.isArray(data.subproducts)
+        ? data.subproducts.filter(Boolean).map(String)
+        : (Array.isArray(data.sub_products)
+            ? data.sub_products.filter(Boolean).map(String)
+            : ((data.subProduct ?? data.sub_product) ? [String(data.subProduct ?? data.sub_product)] : [])),
 
       projectLeadId: String(data.projectLeadId ?? data.project_lead_id ?? ''),
       assigneeId: String(data.assigneeId ?? data.assignee_id ?? ''),
