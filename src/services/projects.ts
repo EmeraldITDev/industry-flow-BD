@@ -458,6 +458,15 @@ export const projectsService = {
       }
     });
 
+    // Dual-write: populate legacy product/sub_product strings from the new array fields
+    // so older backends still get a value until they handle JSON arrays.
+    if (Array.isArray(requestData.products)) {
+      requestData.product = requestData.products[0] ?? null;
+    }
+    if (Array.isArray(requestData.subproducts)) {
+      requestData.subProduct = requestData.subproducts[0] ?? null;
+    }
+
     // Add snake_case aliases for backends expecting snake_case keys
     const snakeCaseMap: Record<string, string> = {
       contractValueNGN: 'contract_value_ngn',
