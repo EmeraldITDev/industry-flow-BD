@@ -471,13 +471,31 @@ export default function ProjectDetail() {
                     <p className="font-medium text-sm capitalize">{project.pipelineStage}</p>
                   </div>
                 )}
-                {project.product && (
+                {(project.products && project.products.length > 0) ? (
+                  <div>
+                    <p className="text-xs text-muted-foreground">Product</p>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {project.products.map((p) => (
+                        <Badge key={p} variant="secondary" className="text-xs">{p}</Badge>
+                      ))}
+                    </div>
+                  </div>
+                ) : project.product && (
                   <div>
                     <p className="text-xs text-muted-foreground">Product</p>
                     <p className="font-medium text-sm">{project.product}</p>
                   </div>
                 )}
-                {project.subProduct && (
+                {(project.subproducts && project.subproducts.length > 0) ? (
+                  <div>
+                    <p className="text-xs text-muted-foreground">Sub Product</p>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {project.subproducts.map((p) => (
+                        <Badge key={p} variant="secondary" className="text-xs">{p}</Badge>
+                      ))}
+                    </div>
+                  </div>
+                ) : project.subProduct && (
                   <div>
                     <p className="text-xs text-muted-foreground">Sub Product</p>
                     <p className="font-medium text-sm">{project.subProduct}</p>
