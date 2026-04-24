@@ -123,6 +123,14 @@ export default function ProjectDetail() {
         expectedCloseDate: data.expected_close_date || data.expectedCloseDate,
         product: data.product,
         subProduct: data.sub_product || data.subProduct,
+        products: Array.isArray(data.products)
+          ? data.products.filter(Boolean).map((v: any) => String(v))
+          : (data.product ? [String(data.product)] : []),
+        subproducts: Array.isArray(data.subproducts)
+          ? data.subproducts.filter(Boolean).map((v: any) => String(v))
+          : (Array.isArray(data.sub_products)
+              ? data.sub_products.filter(Boolean).map((v: any) => String(v))
+              : ((data.sub_product ?? data.subProduct) ? [String(data.sub_product ?? data.subProduct)] : [])),
         channelPartner: data.channel_partner || data.channelPartner,
         contractValueNGN: parseFloat(data.contractValueNGN ?? data.contract_value_ngn) || 0,
         contractValueUSD: parseFloat(data.contractValueUSD ?? data.contract_value_usd) || 0,
