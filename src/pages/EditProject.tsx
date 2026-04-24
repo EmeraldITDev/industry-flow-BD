@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,6 +20,12 @@ import { PipelineStageSelector } from '@/components/projects/PipelineStageSelect
 import { ProjectImageUpload } from '@/components/projects/ProjectImageUpload';
 import { projectsService } from '@/services/projects';
 import { teamService } from '@/services/team';
+import { MultiSearchableSelect } from '@/components/ui/multi-searchable-select';
+
+const PRODUCT_OPTIONS = ['EQMTCE', 'Meters', 'Fabrication', 'Other Services', 'Petroleum Products', 'CNG', 'Power Gen']
+  .map((v) => ({ value: v, label: v }));
+const SUBPRODUCT_OPTIONS = ['Capital Parts', 'O&M', 'Services', 'Consumables', 'Manpower', 'Meters', 'AGO', 'Jet Fuel', 'PMS', 'Gas', 'Other', 'New Units (NU)', 'IPP', 'Urea']
+  .map((v) => ({ value: v, label: v }));
 
 const dealProbabilities: { value: RiskLevel; label: string; color: string }[] = [
   { value: 'low', label: 'Low', color: 'bg-chart-2/20 text-chart-2' },
@@ -32,6 +38,7 @@ const dealProbabilities: { value: RiskLevel; label: string; color: string }[] = 
 export default function EditProject() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Fetch project data
@@ -68,8 +75,8 @@ export default function EditProject() {
     location: '',
     expectedCloseDate: undefined as Date | undefined,
     businessSegment: '' as BusinessSegment | '',
-    product: '',
-    subProduct: '',
+    products: [] as string[],
+    subproducts: [] as string[],
     projectLeadId: '',
     assigneeId: '',
     channelPartner: '',
@@ -128,8 +135,14 @@ export default function EditProject() {
       oem: data.oem ?? '',
       location: data.location ?? '',
       businessSegment: (data.businessSegment ?? data.business_segment ?? '') as BusinessSegment | '',
-      product: data.product ?? data.product ?? '',
-      subProduct: data.subProduct ?? data.sub_product ?? '',
+      products: Array.isArray(data.products)
+        ? data.products.filter(Boolean).map(String)
+        : (data.product ? [String(data.product)] : []),
+      subproducts: Array.isArray(data.subproducts)
+        ? data.subproducts.filter(Boolean).map(String)
+        : (Array.isArray(data.sub_products)
+            ? data.sub_products.filter(Boolean).map(String)
+            : ((data.subProduct ?? data.sub_product) ? [String(data.subProduct ?? data.sub_product)] : [])),
 
       projectLeadId: String(data.projectLeadId ?? data.project_lead_id ?? ''),
       assigneeId: String(data.assigneeId ?? data.assignee_id ?? ''),
@@ -172,8 +185,8 @@ export default function EditProject() {
         location: formData.location || undefined,
         expectedCloseDate: formData.expectedCloseDate?.toISOString(),
         businessSegment: formData.businessSegment as BusinessSegment || undefined,
-        product: formData.product || undefined,
-        subProduct: formData.subProduct || undefined,
+        products: formData.products,
+        subproducts: formData.subproducts,
         projectLeadId: formData.projectLeadId || undefined,
         assigneeId: formData.assigneeId || null,
         channelPartner: formData.channelPartner || undefined,
@@ -195,6 +208,9 @@ export default function EditProject() {
         dealProbability: formData.dealProbability,
       });
       toast.success('Project updated successfully!');
+      // Invalidate caches so detail/list pages re-fetch fresh data
+      queryClient.invalidateQueries({ queryKey: ['project', id] });
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
       navigate(`/projects/${id}`);
     } catch (error: any) {
       console.error('Failed to update project:', error);
@@ -458,21 +474,23 @@ export default function EditProject() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="product">Product</Label>
-                <Input
-                  id="product"
-                  value={formData.product}
-                  onChange={(e) => setFormData({ ...formData, product: e.target.value })}
-                  placeholder="Product name"
+                <MultiSearchableSelect
+                  values={formData.products}
+                  onValuesChange={(vals) => setFormData({ ...formData, products: vals })}
+                  options={PRODUCT_OPTIONS}
+                  placeholder="Select products"
+                  searchPlaceholder="Search products..."
                 />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="subProduct">Sub Product</Label>
-                <Input
-                  id="subProduct"
-                  value={formData.subProduct}
-                  onChange={(e) => setFormData({ ...formData, subProduct: e.target.value })}
-                  placeholder="Sub product name"
+                <MultiSearchableSelect
+                  values={formData.subproducts}
+                  onValuesChange={(vals) => setFormData({ ...formData, subproducts: vals })}
+                  options={SUBPRODUCT_OPTIONS}
+                  placeholder="Select sub products"
+                  searchPlaceholder="Search sub products..."
                 />
               </div>
             </div>

@@ -21,6 +21,8 @@ export interface CreateProjectData {
   businessSegment?: BusinessSegment;
   product?: string;
   subProduct?: string;
+  products?: string[];
+  subproducts?: string[];
   projectLeadId?: string;
   assigneeId?: string;
   salesLead?: string;
@@ -187,6 +189,14 @@ const normalizeProject = (project: any): Project => {
     expectedCloseDate: project.expectedCloseDate ?? project.expected_close_date ?? null,
     businessSegment: project.businessSegment ?? project.business_segment ?? '',
     subProduct: project.subProduct ?? project.sub_product ?? '',
+    products: Array.isArray(project.products)
+      ? project.products.filter(Boolean).map(String)
+      : (project.product ? [String(project.product)] : []),
+    subproducts: Array.isArray(project.subproducts)
+      ? project.subproducts.filter(Boolean).map(String)
+      : (Array.isArray(project.sub_products)
+          ? project.sub_products.filter(Boolean).map(String)
+          : ((project.subProduct ?? project.sub_product) ? [String(project.subProduct ?? project.sub_product)] : [])),
     projectLeadId,
     assigneeId,
     salesLead: project.salesLead ?? project.sales_lead ?? null,
@@ -358,6 +368,15 @@ export const projectsService = {
       }
     });
 
+    // Dual-write: keep legacy product/sub_product strings populated from the new arrays
+    // so older backends still receive a value until they're updated to handle JSON arrays.
+    if (Array.isArray(requestData.products)) {
+      requestData.product = requestData.products[0] ?? null;
+    }
+    if (Array.isArray(requestData.subproducts)) {
+      requestData.subProduct = requestData.subproducts[0] ?? null;
+    }
+
     // Add snake_case aliases for Laravel backend
     const snakeCaseMap: Record<string, string> = {
       contractValueNGN: 'contract_value_ngn',
@@ -438,6 +457,15 @@ export const projectsService = {
         requestData[key] = null;
       }
     });
+
+    // Dual-write: populate legacy product/sub_product strings from the new array fields
+    // so older backends still get a value until they handle JSON arrays.
+    if (Array.isArray(requestData.products)) {
+      requestData.product = requestData.products[0] ?? null;
+    }
+    if (Array.isArray(requestData.subproducts)) {
+      requestData.subProduct = requestData.subproducts[0] ?? null;
+    }
 
     // Add snake_case aliases for backends expecting snake_case keys
     const snakeCaseMap: Record<string, string> = {

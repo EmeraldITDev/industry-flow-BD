@@ -125,6 +125,8 @@ export interface Project {
   businessSegment?: BusinessSegment;
   product?: string;
   subProduct?: string;
+  products?: string[];
+  subproducts?: string[];
   projectLeadId?: string;
   assigneeId?: string;
   salesLead?: string;
