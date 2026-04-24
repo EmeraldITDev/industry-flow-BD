@@ -474,21 +474,23 @@ export default function EditProject() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="product">Product</Label>
-                <Input
-                  id="product"
-                  value={formData.product}
-                  onChange={(e) => setFormData({ ...formData, product: e.target.value })}
-                  placeholder="Product name"
+                <MultiSearchableSelect
+                  values={formData.products}
+                  onValuesChange={(vals) => setFormData({ ...formData, products: vals })}
+                  options={PRODUCT_OPTIONS}
+                  placeholder="Select products"
+                  searchPlaceholder="Search products..."
                 />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="subProduct">Sub Product</Label>
-                <Input
-                  id="subProduct"
-                  value={formData.subProduct}
-                  onChange={(e) => setFormData({ ...formData, subProduct: e.target.value })}
-                  placeholder="Sub product name"
+                <MultiSearchableSelect
+                  values={formData.subproducts}
+                  onValuesChange={(vals) => setFormData({ ...formData, subproducts: vals })}
+                  options={SUBPRODUCT_OPTIONS}
+                  placeholder="Select sub products"
+                  searchPlaceholder="Search sub products..."
                 />
               </div>
             </div>
