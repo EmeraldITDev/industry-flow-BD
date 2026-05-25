@@ -183,8 +183,10 @@ export function generateProjectsReport(
     pdf.text(p.status || '—', cols[4].x, y + 14);
     pdf.text(fmtCurrency(p.contractValueUSD, 'USD '), cols[5].x, y + 14);
     pdf.text(fmtCurrency(p.contractValueNGN, 'NGN '), cols[6].x, y + 14);
-    const marginPct = p.marginPercentUSD ?? p.marginPercentNGN;
-    pdf.text(marginPct != null && marginPct !== 0 ? `${marginPct}%` : '—', cols[7].x, y + 14);
+    const marginPct = (p.marginPercentUSD && p.marginPercentUSD !== 0)
+      ? p.marginPercentUSD
+      : (p.marginPercentNGN && p.marginPercentNGN !== 0 ? p.marginPercentNGN : null);
+    pdf.text(marginPct != null ? `${marginPct}%` : '—', cols[7].x, y + 14);
     pdf.text(p.dealProbability || '—', cols[8].x, y + 14);
     pdf.text(truncate(p.location || '', 14), cols[9].x, y + 14);
 
