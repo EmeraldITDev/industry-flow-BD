@@ -29,6 +29,7 @@ import {
   SidebarMenuItem,
   SidebarHeader,
   SidebarFooter,
+  useSidebar,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 
@@ -55,18 +56,24 @@ export function AppSidebar() {
   const searchParams = new URLSearchParams(location.search);
   const currentSector = searchParams.get('sector');
   const { canCreateProjects, canManageSettings } = usePermissions();
+  const { state } = useSidebar();
+  const collapsed = state === 'collapsed';
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
-      <SidebarHeader className="p-4 border-b border-sidebar-border">
-        <NavLink to="/" className="flex items-center gap-3 mb-3">
-          <img src={emeraldLogo} alt="Emerald PM" className="h-10 w-auto" />
+      <SidebarHeader className={cn("border-b border-sidebar-border", collapsed ? "p-2" : "p-4")}>
+        <NavLink to="/" className="flex items-center justify-center gap-3 mb-3">
+          <img
+            src={collapsed ? '/favicon.png' : emeraldLogo}
+            alt="Emerald PM"
+            className={collapsed ? 'h-8 w-8' : 'h-10 w-auto'}
+          />
         </NavLink>
         {canCreateProjects && (
-          <NavLink to="/projects/new">
-            <Button className="w-full" size="sm">
-              <Plus className="w-4 h-4 mr-2" />
-              New Project
+          <NavLink to="/projects/new" title="New Project">
+            <Button className="w-full" size={collapsed ? 'icon' : 'sm'}>
+              <Plus className="w-4 h-4" />
+              {!collapsed && <span className="ml-2">New Project</span>}
             </Button>
           </NavLink>
         )}
