@@ -57,7 +57,7 @@ export function AppSidebar() {
   const { canCreateProjects, canManageSettings } = usePermissions();
 
   return (
-    <Sidebar className="border-r border-sidebar-border">
+    <Sidebar collapsible="icon" className="border-r border-sidebar-border">
       <SidebarHeader className="p-4 border-b border-sidebar-border">
         <NavLink to="/" className="flex items-center gap-3 mb-3">
           <img src={emeraldLogo} alt="Emerald PM" className="h-10 w-auto" />
