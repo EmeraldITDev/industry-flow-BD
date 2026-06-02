@@ -165,27 +165,30 @@ export function generateProjectsReport(
   y = drawTableHeader(pdf, cols, y);
 
   projects.forEach((p, idx) => {
-    y = checkPageBreak(pdf, y, ROW_H + 4);
+    pdf.setFontSize(11);
+    pdf.setFont('helvetica', 'normal');
 
-    // If we just started a new page, redraw headers
+    const stageLabel = PIPELINE_STAGES.find(s => s.value === p.pipelineStage)?.label || p.pipelineStage || '—';
+    const descLines: string[] = p.description
+      ? pdf.splitTextToSize(p.description, cols[1].w - 6) as string[]
+      : ['—'];
+    const LINE_H = 12;
+    const rowH = Math.max(ROW_H, descLines.length * LINE_H + 10);
+
+    y = checkPageBreak(pdf, y, rowH + 4);
     if (y < MARGIN + 20) {
       y = drawTableHeader(pdf, cols, y);
     }
 
-    // Alternating row bg
     if (idx % 2 === 0) {
       pdf.setFillColor(248, 250, 252);
-      pdf.rect(MARGIN, y - 4, CONTENT_W, ROW_H, 'F');
+      pdf.rect(MARGIN, y - 4, CONTENT_W, rowH, 'F');
     }
 
-    pdf.setFontSize(11);
-    pdf.setFont('helvetica', 'normal');
     pdf.setTextColor(30, 41, 59);
 
-    const stageLabel = PIPELINE_STAGES.find(s => s.value === p.pipelineStage)?.label || p.pipelineStage || '—';
-
     pdf.text(truncate(p.name, 22), cols[0].x, y + 14);
-    pdf.text(truncate(p.description || '', 30), cols[1].x, y + 14);
+    pdf.text(descLines, cols[1].x, y + 14);
     pdf.text(truncate(p.clientName || '', 18), cols[2].x, y + 14);
     pdf.text(truncate(p.channelPartner || '', 17), cols[3].x, y + 14);
     pdf.text(truncate(p.sector || '', 13), cols[4].x, y + 14);
@@ -200,7 +203,7 @@ export function generateProjectsReport(
     pdf.text(p.dealProbability || '—', cols[10].x, y + 14);
     pdf.text(truncate(p.location || '', 12), cols[11].x, y + 14);
 
-    y += ROW_H;
+    y += rowH;
   });
 
   // Summary totals
