@@ -172,8 +172,11 @@ export function generateProjectsReport(
     const descLines: string[] = p.description
       ? pdf.splitTextToSize(p.description, cols[1].w - 6) as string[]
       : ['—'];
+    const nameLines: string[] = p.name
+      ? pdf.splitTextToSize(p.name, cols[0].w - 6) as string[]
+      : ['—'];
     const LINE_H = 12;
-    const rowH = Math.max(ROW_H, descLines.length * LINE_H + 10);
+    const rowH = Math.max(ROW_H, descLines.length * LINE_H + 10, nameLines.length * LINE_H + 10);
 
     y = checkPageBreak(pdf, y, rowH + 4);
     if (y < MARGIN + 20) {
@@ -187,7 +190,7 @@ export function generateProjectsReport(
 
     pdf.setTextColor(30, 41, 59);
 
-    pdf.text(truncate(p.name, 22), cols[0].x, y + 14);
+    pdf.text(nameLines, cols[0].x, y + 14);
     pdf.text(descLines, cols[1].x, y + 14);
     pdf.text(truncate(p.clientName || '', 18), cols[2].x, y + 14);
     pdf.text(truncate(p.channelPartner || '', 17), cols[3].x, y + 14);
