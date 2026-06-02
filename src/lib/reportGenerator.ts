@@ -141,18 +141,26 @@ export function generateProjectsReport(
   let y = addReportHeader(pdf, title, filterStr, projects.length, MARGIN + 10);
 
   // Column definitions
-  const cols = [
-    { label: 'Project Name', x: MARGIN, w: 200 },
-    { label: 'Client', x: MARGIN + 200, w: 140 },
-    { label: 'Sector', x: MARGIN + 340, w: 100 },
-    { label: 'Stage', x: MARGIN + 440, w: 90 },
-    { label: 'Status', x: MARGIN + 530, w: 65 },
-    { label: 'Value (USD)', x: MARGIN + 595, w: 120 },
-    { label: 'Value (NGN)', x: MARGIN + 715, w: 140 },
-    { label: 'Margin %', x: MARGIN + 855, w: 60 },
-    { label: 'Probability', x: MARGIN + 915, w: 70 },
-    { label: 'Location', x: MARGIN + 985, w: 80 },
+  const colDefs: { label: string; w: number }[] = [
+    { label: 'Project Name',    w: 130 },
+    { label: 'Description',     w: 160 },
+    { label: 'Client',          w: 105 },
+    { label: 'Channel Partner', w: 100 },
+    { label: 'Sector',          w: 75 },
+    { label: 'Stage',           w: 70 },
+    { label: 'Status',          w: 55 },
+    { label: 'Value (USD)',     w: 100 },
+    { label: 'Value (NGN)',     w: 115 },
+    { label: 'Margin %',        w: 50 },
+    { label: 'Probability',     w: 60 },
+    { label: 'Location',        w: 65 },
   ];
+  const cols = colDefs.reduce<{ label: string; x: number; w: number }[]>((acc, c) => {
+    const prev = acc[acc.length - 1];
+    const x = prev ? prev.x + prev.w : MARGIN;
+    acc.push({ ...c, x });
+    return acc;
+  }, []);
 
   y = drawTableHeader(pdf, cols, y);
 
@@ -176,19 +184,21 @@ export function generateProjectsReport(
 
     const stageLabel = PIPELINE_STAGES.find(s => s.value === p.pipelineStage)?.label || p.pipelineStage || '—';
 
-    pdf.text(truncate(p.name, 34), cols[0].x, y + 14);
-    pdf.text(truncate(p.clientName || '', 22), cols[1].x, y + 14);
-    pdf.text(truncate(p.sector || '', 16), cols[2].x, y + 14);
-    pdf.text(truncate(stageLabel, 14), cols[3].x, y + 14);
-    pdf.text(p.status || '—', cols[4].x, y + 14);
-    pdf.text(fmtCurrency(p.contractValueUSD, 'USD '), cols[5].x, y + 14);
-    pdf.text(fmtCurrency(p.contractValueNGN, 'NGN '), cols[6].x, y + 14);
+    pdf.text(truncate(p.name, 22), cols[0].x, y + 14);
+    pdf.text(truncate(p.description || '', 30), cols[1].x, y + 14);
+    pdf.text(truncate(p.clientName || '', 18), cols[2].x, y + 14);
+    pdf.text(truncate(p.channelPartner || '', 17), cols[3].x, y + 14);
+    pdf.text(truncate(p.sector || '', 13), cols[4].x, y + 14);
+    pdf.text(truncate(stageLabel, 12), cols[5].x, y + 14);
+    pdf.text(p.status || '—', cols[6].x, y + 14);
+    pdf.text(fmtCurrency(p.contractValueUSD, 'USD '), cols[7].x, y + 14);
+    pdf.text(fmtCurrency(p.contractValueNGN, 'NGN '), cols[8].x, y + 14);
     const marginPct = (p.marginPercentUSD && p.marginPercentUSD !== 0)
       ? p.marginPercentUSD
       : (p.marginPercentNGN && p.marginPercentNGN !== 0 ? p.marginPercentNGN : null);
-    pdf.text(marginPct != null ? `${marginPct}%` : '—', cols[7].x, y + 14);
-    pdf.text(p.dealProbability || '—', cols[8].x, y + 14);
-    pdf.text(truncate(p.location || '', 14), cols[9].x, y + 14);
+    pdf.text(marginPct != null ? `${marginPct}%` : '—', cols[9].x, y + 14);
+    pdf.text(p.dealProbability || '—', cols[10].x, y + 14);
+    pdf.text(truncate(p.location || '', 12), cols[11].x, y + 14);
 
     y += ROW_H;
   });
