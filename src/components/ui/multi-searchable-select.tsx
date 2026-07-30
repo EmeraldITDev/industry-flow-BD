@@ -1,21 +1,10 @@
-import { useState } from 'react';
-import { Check, ChevronsUpDown, X } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '@/components/ui/command';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
+import { useState } from "react";
+import { Check, ChevronsUpDown, X } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface MultiSearchableSelectProps {
   values: string[];
@@ -30,9 +19,9 @@ export function MultiSearchableSelect({
   values,
   onValuesChange,
   options,
-  placeholder = 'Select...',
-  searchPlaceholder = 'Search...',
-  emptyText = 'No results found.',
+  placeholder = "Select...",
+  searchPlaceholder = "Search...",
+  emptyText = "No results found.",
 }: MultiSearchableSelectProps) {
   const [open, setOpen] = useState(false);
 
@@ -44,20 +33,12 @@ export function MultiSearchableSelect({
     }
   };
 
-  const removeValue = (val: string, e: React.MouseEvent) => {
+  const removeValue = (val: string, e: React.MouseEvent | React.PointerEvent) => {
     e.preventDefault();
     e.stopPropagation();
     onValuesChange(values.filter((v) => v !== val));
   };
-
-  const preventTriggerToggle = (e: React.PointerEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-  };
-
-  const selectedLabels = values
-    .map((v) => options.find((o) => o.value === v))
-    .filter(Boolean);
+  const selectedLabels = values.map((v) => options.find((o) => o.value === v)).filter(Boolean);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -73,17 +54,20 @@ export function MultiSearchableSelect({
               <span className="text-muted-foreground">{placeholder}</span>
             ) : (
               selectedLabels.map((opt) => (
-                <Badge
-                  key={opt!.value}
-                  variant="secondary"
-                  className="gap-1 text-xs"
-                >
+                <Badge key={opt!.value} variant="secondary" className="gap-1 text-xs">
                   {opt!.label}
-                  <X
-                    className="w-3 h-3 cursor-pointer"
-                     onPointerDown={preventTriggerToggle}
+                  <span
+                    role="button"
+                    tabIndex={-1}
+                    className="w-3 h-3 cursor-pointer inline-flex items-center justify-center"
+                    onPointerDown={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }}
                     onClick={(e) => removeValue(opt!.value, e)}
-                  />
+                  >
+                    <X className="w-3 h-3" />
+                  </span>
                 </Badge>
               ))
             )}
@@ -98,17 +82,8 @@ export function MultiSearchableSelect({
             <CommandEmpty>{emptyText}</CommandEmpty>
             <CommandGroup>
               {options.map((option) => (
-                <CommandItem
-                  key={option.value}
-                  value={option.label}
-                  onSelect={() => toggleValue(option.value)}
-                >
-                  <Check
-                    className={cn(
-                      'mr-2 h-4 w-4',
-                      values.includes(option.value) ? 'opacity-100' : 'opacity-0'
-                    )}
-                  />
+                <CommandItem key={option.value} value={option.label} onSelect={() => toggleValue(option.value)}>
+                  <Check className={cn("mr-2 h-4 w-4", values.includes(option.value) ? "opacity-100" : "opacity-0")} />
                   {option.label}
                 </CommandItem>
               ))}
