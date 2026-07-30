@@ -433,67 +433,67 @@ export function AdvancedFilters({ filters, onFiltersChange, projects = [], teamM
           {filters.sectors.map((s) => (
             <Badge key={`sector-${s}`} variant="secondary" className="gap-1">
               Sector: {s}
-              <X className="w-3 h-3 cursor-pointer" onClick={() => onFiltersChange({ ...filters, sectors: filters.sectors.filter(v => v !== s) })} />
+              <X className="w-3 h-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); onFiltersChange({ ...filters, sectors: filters.sectors.filter(v => v !== s) }); }} />
             </Badge>
           ))}
           {filters.statuses.map((s) => (
             <Badge key={`status-${s}`} variant="secondary" className="gap-1 capitalize">
               Status: {getStatusLabel(s as any)}
-              <X className="w-3 h-3 cursor-pointer" onClick={() => onFiltersChange({ ...filters, statuses: filters.statuses.filter(v => v !== s) })} />
+              <X className="w-3 h-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); onFiltersChange({ ...filters, statuses: filters.statuses.filter(v => v !== s) }); }} />
             </Badge>
           ))}
           {filters.pipelineStages.map((s) => (
             <Badge key={`stage-${s}`} variant="secondary" className="gap-1 capitalize">
               Stage: {PIPELINE_STAGES.find(ps => ps.value === s)?.label || s}
-              <X className="w-3 h-3 cursor-pointer" onClick={() => onFiltersChange({ ...filters, pipelineStages: filters.pipelineStages.filter(v => v !== s) })} />
+              <X className="w-3 h-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); onFiltersChange({ ...filters, pipelineStages: filters.pipelineStages.filter(v => v !== s) }); }} />
             </Badge>
           ))}
           {filters.businessSegments.map((s) => (
             <Badge key={`segment-${s}`} variant="secondary" className="gap-1">
               Segment: {s}
-              <X className="w-3 h-3 cursor-pointer" onClick={() => onFiltersChange({ ...filters, businessSegments: filters.businessSegments.filter(v => v !== s) })} />
+              <X className="w-3 h-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); onFiltersChange({ ...filters, businessSegments: filters.businessSegments.filter(v => v !== s) }); }} />
             </Badge>
           ))}
           {filters.projectLeads.map((s) => (
             <Badge key={`lead-${s}`} variant="secondary" className="gap-1">
               Lead: {projectLeadOptions.find(o => o.value === s)?.label || s}
-              <X className="w-3 h-3 cursor-pointer" onClick={() => onFiltersChange({ ...filters, projectLeads: filters.projectLeads.filter(v => v !== s) })} />
+              <X className="w-3 h-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); onFiltersChange({ ...filters, projectLeads: filters.projectLeads.filter(v => v !== s) }); }} />
             </Badge>
           ))}
           {filters.assignees.map((s) => (
             <Badge key={`assignee-${s}`} variant="secondary" className="gap-1">
               Assignee: {assigneeOptions.find(o => o.value === s)?.label || s}
-              <X className="w-3 h-3 cursor-pointer" onClick={() => onFiltersChange({ ...filters, assignees: filters.assignees.filter(v => v !== s) })} />
+              <X className="w-3 h-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); onFiltersChange({ ...filters, assignees: filters.assignees.filter(v => v !== s) }); }} />
             </Badge>
           ))}
           {filters.clientNames.map((s) => (
             <Badge key={`client-${s}`} variant="secondary" className="gap-1">
               Client: {s}
-              <X className="w-3 h-3 cursor-pointer" onClick={() => onFiltersChange({ ...filters, clientNames: filters.clientNames.filter(v => v !== s) })} />
+              <X className="w-3 h-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); onFiltersChange({ ...filters, clientNames: filters.clientNames.filter(v => v !== s) }); }} />
             </Badge>
           ))}
           {filters.oems.map((s) => (
             <Badge key={`oem-${s}`} variant="secondary" className="gap-1">
               OEM: {s}
-              <X className="w-3 h-3 cursor-pointer" onClick={() => onFiltersChange({ ...filters, oems: filters.oems.filter(v => v !== s) })} />
+              <X className="w-3 h-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); onFiltersChange({ ...filters, oems: filters.oems.filter(v => v !== s) }); }} />
             </Badge>
           ))}
           {filters.locations.map((s) => (
             <Badge key={`loc-${s}`} variant="secondary" className="gap-1">
               Location: {s}
-              <X className="w-3 h-3 cursor-pointer" onClick={() => onFiltersChange({ ...filters, locations: filters.locations.filter(v => v !== s) })} />
+              <X className="w-3 h-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); onFiltersChange({ ...filters, locations: filters.locations.filter(v => v !== s) }); }} />
             </Badge>
           ))}
           {filters.channelPartners.map((s) => (
             <Badge key={`partner-${s}`} variant="secondary" className="gap-1">
               Partner: {s}
-              <X className="w-3 h-3 cursor-pointer" onClick={() => onFiltersChange({ ...filters, channelPartners: filters.channelPartners.filter(v => v !== s) })} />
+              <X className="w-3 h-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); onFiltersChange({ ...filters, channelPartners: filters.channelPartners.filter(v => v !== s) }); }} />
             </Badge>
           ))}
           {filters.dealProbabilities.map((s) => (
             <Badge key={`prob-${s}`} variant="secondary" className="gap-1 capitalize">
               Probability: {s}
-              <X className="w-3 h-3 cursor-pointer" onClick={() => onFiltersChange({ ...filters, dealProbabilities: filters.dealProbabilities.filter(v => v !== s) })} />
+              <X className="w-3 h-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); onFiltersChange({ ...filters, dealProbabilities: filters.dealProbabilities.filter(v => v !== s) }); }} />
             </Badge>
           ))}
         </div>
