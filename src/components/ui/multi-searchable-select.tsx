@@ -63,8 +63,12 @@ export function MultiSearchableSelect({
                     onPointerDown={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
+                      removeValue(opt!.value, e);
                     }}
-                    onClick={(e) => removeValue(opt!.value, e)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }}
                   >
                     <X className="w-3 h-3" />
                   </span>
