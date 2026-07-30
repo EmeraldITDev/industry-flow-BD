@@ -45,8 +45,14 @@ export function MultiSearchableSelect({
   };
 
   const removeValue = (val: string, e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
     onValuesChange(values.filter((v) => v !== val));
+  };
+
+  const preventTriggerToggle = (e: React.PointerEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
   };
 
   const selectedLabels = values
@@ -75,6 +81,7 @@ export function MultiSearchableSelect({
                   {opt!.label}
                   <X
                     className="w-3 h-3 cursor-pointer"
+                     onPointerDown={preventTriggerToggle}
                     onClick={(e) => removeValue(opt!.value, e)}
                   />
                 </Badge>
