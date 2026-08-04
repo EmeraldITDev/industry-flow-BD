@@ -12,6 +12,7 @@ import { Plus, Grid3X3, List, Loader2, Upload, Trash2, X, RefreshCw, FileText } 
 import { usePermissions } from '@/hooks/usePermissions';
 import { Project, Sector } from '@/types';
 import { ProjectImportDialog } from '@/components/projects/ProjectImportDialog';
+import { ExportProjectsButton } from '@/components/projects/ExportProjectsButton';
 import { Checkbox } from '@/components/ui/checkbox';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
