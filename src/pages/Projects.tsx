@@ -298,7 +298,7 @@ export default function Projects() {
             <FileText className="w-4 h-4 mr-2" />
             Generate Report
           </Button>
-          <ExportProjectsButton />
+          <ExportProjectsButton projects={filteredProjects} />
           {canCreateProjects && (
             <>
               {!selectMode ? (
