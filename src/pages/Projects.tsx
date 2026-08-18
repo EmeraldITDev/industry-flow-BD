@@ -20,13 +20,11 @@ import { generateProjectsReport, ProjectFilterSummary } from '@/lib/reportGenera
 
 // Mapping for sector display names
 const sectorDisplayNames: Record<string, string> = {
-  'EMR_OGP': 'EMR_OGP Projects',
-  'EMR_MFG': 'EMR_MFG Projects',
-  'EMR_Services': 'EMR_Services Projects',
-  'BEDS_Services': 'BEDS_Services Projects',
-  'EMR_Healthcare': 'EMR_Healthcare Projects',
-  'EMR_Renewables': 'EMR_Renewables Projects',
+  'EMR_Aftermarket Services': 'EMR_Aftermarket Services Projects',
+  'EMR_O&M': 'EMR_O&M Projects',
+  'EMR_Special Projects': 'EMR_Special Projects',
   'EMR_Trading': 'EMR_Trading Projects',
+  'EMR_Manufacturing': 'EMR_Manufacturing Projects',
 };
 
 // Array filter keys that map to URL params (comma-separated)

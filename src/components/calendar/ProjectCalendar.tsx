@@ -91,20 +91,16 @@ export function ProjectCalendar() {
 
   const getSectorColor = (sector: string) => {
     switch (sector) {
-      case 'EMR_OGP':
+      case 'EMR_Aftermarket Services':
         return 'bg-chart-1/20 text-chart-1 border-chart-1/30';
-      case 'EMR_MFG':
+      case 'EMR_O&M':
         return 'bg-chart-2/20 text-chart-2 border-chart-2/30';
-      case 'EMR_Services':
+      case 'EMR_Special Projects':
         return 'bg-chart-3/20 text-chart-3 border-chart-3/30';
-      case 'BEDS_Services':
-        return 'bg-chart-4/20 text-chart-4 border-chart-4/30';
-      case 'EMR_Healthcare':
-        return 'bg-chart-5/20 text-chart-5 border-chart-5/30';
-      case 'EMR_Renewables':
-        return 'bg-chart-1/20 text-chart-1 border-chart-1/30';
       case 'EMR_Trading':
-        return 'bg-chart-2/20 text-chart-2 border-chart-2/30';
+        return 'bg-chart-4/20 text-chart-4 border-chart-4/30';
+      case 'EMR_Manufacturing':
+        return 'bg-chart-5/20 text-chart-5 border-chart-5/30';
       default:
         return 'bg-muted text-muted-foreground';
     }
