@@ -10,6 +10,7 @@ import { CurrencyProvider } from "@/context/CurrencyContext";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { UpdateAvailableBanner } from "@/components/UpdateAvailableBanner";
 import Index from "./pages/Index";
 import LoginPage from "./pages/LoginPage";
 import ProjectsPage from "./pages/ProjectsPage";
@@ -42,6 +43,7 @@ const App = () => (
                 <NotificationProvider>
                   <Toaster />
                   <Sonner />
+                  <UpdateAvailableBanner />
                   <BrowserRouter>
                   <Routes>
                     <Route path="/login" element={<LoginPage />} />
