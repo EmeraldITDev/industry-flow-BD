@@ -21,6 +21,7 @@ async function fetchVersion(): Promise<string | null> {
 export function useAppVersionCheck() {
   const loadedVersionRef = useRef<string | null>(null);
   const [updateAvailable, setUpdateAvailable] = useState(false);
+  const [checkCount, setCheckCount] = useState(0);
 
   const check = useCallback(async () => {
     const remote = await fetchVersion();
@@ -31,6 +32,7 @@ export function useAppVersionCheck() {
     }
     if (remote !== loadedVersionRef.current) {
       setUpdateAvailable(true);
+      setCheckCount((c) => c + 1);
     }
   }, []);
 
@@ -49,5 +51,5 @@ export function useAppVersionCheck() {
     };
   }, [check]);
 
-  return { updateAvailable };
+  return { updateAvailable, checkCount };
 }

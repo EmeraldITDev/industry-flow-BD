@@ -3,14 +3,14 @@ import { RefreshCw, X } from 'lucide-react';
 import { useAppVersionCheck } from '@/hooks/useAppVersionCheck';
 
 export function UpdateAvailableBanner() {
-  const { updateAvailable } = useAppVersionCheck();
+  const { updateAvailable, checkCount } = useAppVersionCheck();
   const [dismissed, setDismissed] = useState(false);
 
   // Re-show on the next detection cycle after a dismiss.
   useEffect(() => {
-    if (!updateAvailable) return;
+    if (checkCount === 0) return;
     setDismissed(false);
-  }, [updateAvailable]);
+  }, [checkCount]);
 
   if (!updateAvailable || dismissed) return null;
 
