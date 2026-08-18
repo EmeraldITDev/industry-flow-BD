@@ -311,6 +311,11 @@ export default function EditProject() {
                     <SelectValue placeholder="Select sector" />
                   </SelectTrigger>
                   <SelectContent>
+                    {formData.sector && !(sectors as string[]).includes(formData.sector) && (
+                      <SelectItem value={formData.sector} disabled className="text-muted-foreground italic">
+                        {formData.sector} — Unknown, please update
+                      </SelectItem>
+                    )}
                     {sectors.map((sector) => (
                       <SelectItem key={sector} value={sector}>
                         {sector}
