@@ -2,16 +2,14 @@ import {
   LayoutDashboard, 
   FolderKanban, 
   Factory, 
-  Zap, 
-  Fuel, 
+  Wrench,
+  Settings2,
   TrendingUp,
   Settings,
   Users,
   Calendar,
   Plus,
   Building2,
-  Heart,
-  Leaf,
   ListChecks
 } from 'lucide-react';
 import emeraldLogo from '@/assets/emerald-logo.png';
@@ -42,13 +40,11 @@ const mainNavItems = [
 ];
 
 const sectorNavItems = [
-  { title: 'EMR_OGP', sector: 'EMR_OGP', icon: Fuel },
-  { title: 'EMR_MFG', sector: 'EMR_MFG', icon: Factory },
-  { title: 'EMR_Services', sector: 'EMR_Services', icon: Building2 },
-  { title: 'BEDS_Services', sector: 'BEDS_Services', icon: Building2 },
-  { title: 'EMR_Healthcare', sector: 'EMR_Healthcare', icon: Heart },
-  { title: 'EMR_Renewables', sector: 'EMR_Renewables', icon: Leaf },
+  { title: 'EMR_Aftermarket Services', sector: 'EMR_Aftermarket Services', icon: Settings2 },
+  { title: 'EMR_O&M', sector: 'EMR_O&M', icon: Wrench },
+  { title: 'EMR_Special Projects', sector: 'EMR_Special Projects', icon: Building2 },
   { title: 'EMR_Trading', sector: 'EMR_Trading', icon: TrendingUp },
+  { title: 'EMR_Manufacturing', sector: 'EMR_Manufacturing', icon: Factory },
 ];
 
 export function AppSidebar() {
@@ -119,7 +115,7 @@ export function AppSidebar() {
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild>
                       <NavLink 
-                        to={`/projects?sector=${item.sector}`}
+                        to={`/projects?sector=${encodeURIComponent(item.sector)}`}
                         className={cn(
                           "flex items-center gap-3 px-3 py-2 rounded-md text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors",
                           isActive && "bg-primary/10 text-primary font-medium"
