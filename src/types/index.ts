@@ -1,4 +1,4 @@
-export type Sector = 'EMR_OGP' | 'EMR_MFG' | 'EMR_Services' | 'BEDS_Services' | 'EMR_Healthcare' | 'EMR_Renewables' | 'EMR_Trading';
+export type Sector = 'EMR_Aftermarket Services' | 'EMR_O&M' | 'EMR_Special Projects' | 'EMR_Trading' | 'EMR_Manufacturing';
 
 export type TaskStatus = 'todo' | 'in-progress' | 'review' | 'completed';
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
@@ -30,14 +30,7 @@ export const PIPELINE_STAGES: { value: PipelineStage; label: string; order: numb
   { value: 'lost', label: 'Lost', order: 8 },
 ];
 
-export type BusinessSegment = 
-  | 'EMR_MFG'
-  | 'EMR_OGP'
-  | 'EMR_Renewables'
-  | 'BEDS_Services'
-  | 'EMR_Services'
-  | 'EMR_Healthcare'
-  | 'EMR_Trading';
+export type BusinessSegment = 'EMR_Aftermarket Services' | 'EMR_O&M' | 'EMR_Special Projects' | 'EMR_Trading' | 'EMR_Manufacturing';
 
 export type DocumentType = 'rfq' | 'proposal' | 'contract' | 'supporting';
 

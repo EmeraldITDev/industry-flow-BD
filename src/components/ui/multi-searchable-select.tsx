@@ -13,6 +13,7 @@ interface MultiSearchableSelectProps {
   placeholder?: string;
   searchPlaceholder?: string;
   emptyText?: string;
+  disabled?: boolean;
 }
 
 export function MultiSearchableSelect({
@@ -22,6 +23,7 @@ export function MultiSearchableSelect({
   placeholder = "Select...",
   searchPlaceholder = "Search...",
   emptyText = "No results found.",
+  disabled = false,
 }: MultiSearchableSelectProps) {
   const [open, setOpen] = useState(false);
 
@@ -38,7 +40,9 @@ export function MultiSearchableSelect({
     e.stopPropagation();
     onValuesChange(values.filter((v) => v !== val));
   };
-  const selectedLabels = values.map((v) => options.find((o) => o.value === v)).filter(Boolean);
+  const selectedLabels = values.map(
+    (v) => options.find((o) => o.value === v) ?? { value: v, label: `${v} — Unknown, please update` }
+  );
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -47,6 +51,7 @@ export function MultiSearchableSelect({
           variant="outline"
           role="combobox"
           aria-expanded={open}
+          disabled={disabled}
           className="w-full justify-between font-normal h-auto min-h-10 py-1.5"
         >
           <div className="flex flex-wrap gap-1 flex-1">

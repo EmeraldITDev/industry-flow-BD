@@ -21,11 +21,8 @@ import { ProjectImageUpload } from '@/components/projects/ProjectImageUpload';
 import { projectsService } from '@/services/projects';
 import { teamService } from '@/services/team';
 import { MultiSearchableSelect } from '@/components/ui/multi-searchable-select';
+import { PRODUCT_OPTIONS, getSubproductOptions } from '@/data/productCatalog';
 
-const PRODUCT_OPTIONS = ['EQMTCE', 'Meters', 'Fabrication', 'Other Services', 'Petroleum Products', 'CNG', 'Power Gen']
-  .map((v) => ({ value: v, label: v }));
-const SUBPRODUCT_OPTIONS = ['Capital Parts', 'O&M', 'Services', 'Consumables', 'Manpower', 'Meters', 'AGO', 'Jet Fuel', 'PMS', 'Gas', 'Other', 'New Units (NU)', 'IPP', 'Urea']
-  .map((v) => ({ value: v, label: v }));
 
 const dealProbabilities: { value: RiskLevel; label: string; color: string }[] = [
   { value: 'low', label: 'Low', color: 'bg-chart-2/20 text-chart-2' },
@@ -314,6 +311,11 @@ export default function EditProject() {
                     <SelectValue placeholder="Select sector" />
                   </SelectTrigger>
                   <SelectContent>
+                    {formData.sector && !(sectors as string[]).includes(formData.sector) && (
+                      <SelectItem value={formData.sector} disabled className="text-muted-foreground italic">
+                        {formData.sector} — Unknown, please update
+                      </SelectItem>
+                    )}
                     {sectors.map((sector) => (
                       <SelectItem key={sector} value={sector}>
                         {sector}
@@ -476,7 +478,7 @@ export default function EditProject() {
                 <Label htmlFor="product">Product</Label>
                 <MultiSearchableSelect
                   values={formData.products}
-                  onValuesChange={(vals) => setFormData({ ...formData, products: vals })}
+                  onValuesChange={(vals) => setFormData({ ...formData, products: vals, subproducts: formData.subproducts.filter((sp) => getSubproductOptions(vals).some((o) => o.value === sp)) })}
                   options={PRODUCT_OPTIONS}
                   placeholder="Select products"
                   searchPlaceholder="Search products..."
@@ -488,8 +490,9 @@ export default function EditProject() {
                 <MultiSearchableSelect
                   values={formData.subproducts}
                   onValuesChange={(vals) => setFormData({ ...formData, subproducts: vals })}
-                  options={SUBPRODUCT_OPTIONS}
-                  placeholder="Select sub products"
+                  options={getSubproductOptions(formData.products)}
+                  disabled={getSubproductOptions(formData.products).length === 0}
+                  placeholder={formData.products.length === 0 ? 'Select a product first' : 'Select sub products'}
                   searchPlaceholder="Search sub products..."
                 />
               </div>

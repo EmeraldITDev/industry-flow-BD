@@ -23,12 +23,11 @@ export function SegmentBreakdown({
 
   const getBarColor = (sector: string) => {
     switch (sector) {
-      case 'EMR_OGP': return '#0077ff';
-      case 'EMR_MFG': return '#00c2a8';
-      case 'EMR_Renewables': return '#8b5cf6';
+      case 'EMR_Aftermarket Services': return '#0077ff';
+      case 'EMR_O&M': return '#00c2a8';
+      case 'EMR_Special Projects': return '#8b5cf6';
       case 'EMR_Trading': return '#f0a500';
-      case 'EMR_Services': return '#e84393';
-      case 'EMR_Healthcare': return '#34d399';
+      case 'EMR_Manufacturing': return '#e84393';
       default: return '#3a5070';
     }
   };

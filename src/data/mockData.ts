@@ -1,27 +1,23 @@
 import { Project, Task, Sector, TeamMember, PipelineStage, BusinessSegment, ProjectDocument } from '@/types';
 
-export const sectors: Sector[] = ['EMR_OGP', 'EMR_MFG', 'EMR_Services', 'BEDS_Services', 'EMR_Healthcare', 'EMR_Renewables', 'EMR_Trading'];
+export const sectors: Sector[] = ['EMR_Aftermarket Services', 'EMR_O&M', 'EMR_Special Projects', 'EMR_Trading', 'EMR_Manufacturing'];
 
-export const businessSegments: BusinessSegment[] = ['EMR_MFG', 'EMR_OGP', 'EMR_Renewables', 'EMR_Services', 'BEDS_Services', 'EMR_Healthcare', 'EMR_Trading'];
+export const businessSegments: BusinessSegment[] = ['EMR_Aftermarket Services', 'EMR_O&M', 'EMR_Special Projects', 'EMR_Trading', 'EMR_Manufacturing'];
 
 export const sectorColors: Record<Sector, string> = {
-  EMR_OGP: 'bg-chart-1/20 text-chart-1',
-  EMR_MFG: 'bg-chart-2/20 text-chart-2',
-  EMR_Services: 'bg-chart-3/20 text-chart-3',
-  BEDS_Services: 'bg-chart-4/20 text-chart-4',
-  EMR_Healthcare: 'bg-chart-5/20 text-chart-5',
-  EMR_Renewables: 'bg-chart-1/20 text-chart-1',
-  EMR_Trading: 'bg-chart-2/20 text-chart-2',
+  'EMR_Aftermarket Services': 'bg-chart-1/20 text-chart-1',
+  'EMR_O&M': 'bg-chart-2/20 text-chart-2',
+  'EMR_Special Projects': 'bg-chart-3/20 text-chart-3',
+  'EMR_Trading': 'bg-chart-4/20 text-chart-4',
+  'EMR_Manufacturing': 'bg-chart-5/20 text-chart-5',
 };
 
 export const sectorIcons: Record<Sector, string> = {
-  EMR_OGP: '🛢️',
-  EMR_MFG: '🏭',
-  EMR_Services: '⚙️',
-  BEDS_Services: '💼',
-  EMR_Healthcare: '🏥',
-  EMR_Renewables: '⚡',
-  EMR_Trading: '📈',
+  'EMR_Aftermarket Services': '⚙️',
+  'EMR_O&M': '🔧',
+  'EMR_Special Projects': '🏗️',
+  'EMR_Trading': '📈',
+  'EMR_Manufacturing': '🏭',
 };
 
 export const stageColors: Record<PipelineStage, string> = {
