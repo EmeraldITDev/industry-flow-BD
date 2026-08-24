@@ -48,6 +48,8 @@ interface AdvancedFiltersProps {
   teamMembers?: TeamMember[];
 }
 
+const MAX_ACTIVE_TAGS = 5;
+
 export const defaultFilters: FilterState = {
   search: '',
   sectors: [],
@@ -429,75 +431,56 @@ export function AdvancedFilters({ filters, onFiltersChange, projects = [], teamM
 
       {/* Active Filter Tags */}
       {activeFilterCount > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {filters.sectors.map((s) => (
-            <Badge key={`sector-${s}`} variant="secondary" className="gap-1">
-              Sector: {s}
-              <X className="w-3 h-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); onFiltersChange({ ...filters, sectors: filters.sectors.filter(v => v !== s) }); }} />
-            </Badge>
-          ))}
-          {filters.statuses.map((s) => (
-            <Badge key={`status-${s}`} variant="secondary" className="gap-1 capitalize">
-              Status: {getStatusLabel(s as any)}
-              <X className="w-3 h-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); onFiltersChange({ ...filters, statuses: filters.statuses.filter(v => v !== s) }); }} />
-            </Badge>
-          ))}
-          {filters.pipelineStages.map((s) => (
-            <Badge key={`stage-${s}`} variant="secondary" className="gap-1 capitalize">
-              Stage: {PIPELINE_STAGES.find(ps => ps.value === s)?.label || s}
-              <X className="w-3 h-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); onFiltersChange({ ...filters, pipelineStages: filters.pipelineStages.filter(v => v !== s) }); }} />
-            </Badge>
-          ))}
-          {filters.businessSegments.map((s) => (
-            <Badge key={`segment-${s}`} variant="secondary" className="gap-1">
-              Segment: {s}
-              <X className="w-3 h-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); onFiltersChange({ ...filters, businessSegments: filters.businessSegments.filter(v => v !== s) }); }} />
-            </Badge>
-          ))}
-          {filters.projectLeads.map((s) => (
-            <Badge key={`lead-${s}`} variant="secondary" className="gap-1">
-              Lead: {projectLeadOptions.find(o => o.value === s)?.label || s}
-              <X className="w-3 h-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); onFiltersChange({ ...filters, projectLeads: filters.projectLeads.filter(v => v !== s) }); }} />
-            </Badge>
-          ))}
-          {filters.assignees.map((s) => (
-            <Badge key={`assignee-${s}`} variant="secondary" className="gap-1">
-              Assignee: {assigneeOptions.find(o => o.value === s)?.label || s}
-              <X className="w-3 h-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); onFiltersChange({ ...filters, assignees: filters.assignees.filter(v => v !== s) }); }} />
-            </Badge>
-          ))}
-          {filters.clientNames.map((s) => (
-            <Badge key={`client-${s}`} variant="secondary" className="gap-1">
-              Client: {s}
-              <X className="w-3 h-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); onFiltersChange({ ...filters, clientNames: filters.clientNames.filter(v => v !== s) }); }} />
-            </Badge>
-          ))}
-          {filters.oems.map((s) => (
-            <Badge key={`oem-${s}`} variant="secondary" className="gap-1">
-              OEM: {s}
-              <X className="w-3 h-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); onFiltersChange({ ...filters, oems: filters.oems.filter(v => v !== s) }); }} />
-            </Badge>
-          ))}
-          {filters.locations.map((s) => (
-            <Badge key={`loc-${s}`} variant="secondary" className="gap-1">
-              Location: {s}
-              <X className="w-3 h-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); onFiltersChange({ ...filters, locations: filters.locations.filter(v => v !== s) }); }} />
-            </Badge>
-          ))}
-          {filters.channelPartners.map((s) => (
-            <Badge key={`partner-${s}`} variant="secondary" className="gap-1">
-              Partner: {s}
-              <X className="w-3 h-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); onFiltersChange({ ...filters, channelPartners: filters.channelPartners.filter(v => v !== s) }); }} />
-            </Badge>
-          ))}
-          {filters.dealProbabilities.map((s) => (
-            <Badge key={`prob-${s}`} variant="secondary" className="gap-1 capitalize">
-              Probability: {s}
-              <X className="w-3 h-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); onFiltersChange({ ...filters, dealProbabilities: filters.dealProbabilities.filter(v => v !== s) }); }} />
-            </Badge>
-          ))}
+        <div className="flex flex-wrap gap-2 max-h-28 overflow-y-auto">
+          {([
+            { key: 'pipelineStages', prefix: 'Stage', label: (v: string) => PIPELINE_STAGES.find(ps => ps.value === v)?.label || v },
+            { key: 'businessSegments', prefix: 'Segment', label: (v: string) => v },
+            { key: 'sectors', prefix: 'Sector', label: (v: string) => v },
+            { key: 'statuses', prefix: 'Status', label: (v: string) => getStatusLabel(v as any) },
+            { key: 'projectLeads', prefix: 'Lead', label: (v: string) => projectLeadOptions.find(o => o.value === v)?.label || v },
+            { key: 'assignees', prefix: 'Assignee', label: (v: string) => assigneeOptions.find(o => o.value === v)?.label || v },
+            { key: 'clientNames', prefix: 'Client', label: (v: string) => v },
+            { key: 'oems', prefix: 'OEM', label: (v: string) => v },
+            { key: 'locations', prefix: 'Location', label: (v: string) => v },
+            { key: 'channelPartners', prefix: 'Partner', label: (v: string) => v },
+            { key: 'dealProbabilities', prefix: 'Probability', label: (v: string) => v },
+          ] as const).map(({ key, prefix, label }) => {
+            const list = (filters[key] as string[]) || [];
+            if (list.length === 0) return null;
+            const shown = list.slice(0, MAX_ACTIVE_TAGS);
+            const overflow = list.length - shown.length;
+            return (
+              <div key={key} className="flex flex-wrap gap-2">
+                {shown.map((s) => (
+                  <Badge key={`${key}-${s}`} variant="secondary" className="gap-1 max-w-[220px]">
+                    <span className="truncate">{prefix}: {label(s)}</span>
+                    <X
+                      className="w-3 h-3 cursor-pointer shrink-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onFiltersChange({ ...filters, [key]: list.filter((v) => v !== s) });
+                      }}
+                    />
+                  </Badge>
+                ))}
+                {overflow > 0 && (
+                  <Badge variant="outline" className="gap-1">
+                    +{overflow} more {prefix.toLowerCase()}
+                    <X
+                      className="w-3 h-3 cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onFiltersChange({ ...filters, [key]: [] });
+                      }}
+                    />
+                  </Badge>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
+
     </div>
   );
 }
