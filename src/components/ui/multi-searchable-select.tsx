@@ -26,6 +26,13 @@ export function MultiSearchableSelect({
   disabled = false,
 }: MultiSearchableSelectProps) {
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+
+  const visibleOptions = query
+    ? options.filter((o) => o.label.toLowerCase().includes(query.toLowerCase()))
+    : options;
+  const allVisibleSelected =
+    visibleOptions.length > 0 && visibleOptions.every((o) => values.includes(o.value));
 
   const toggleValue = (val: string) => {
     if (values.includes(val)) {
@@ -86,7 +93,40 @@ export function MultiSearchableSelect({
       </PopoverTrigger>
       <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
         <Command>
-          <CommandInput placeholder={searchPlaceholder} />
+          <CommandInput placeholder={searchPlaceholder} value={query} onValueChange={setQuery} />
+          {visibleOptions.length > 0 && (
+            <div className="flex items-center justify-between gap-2 border-b px-2 py-1.5">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 text-xs"
+                onClick={() => {
+                  if (allVisibleSelected) {
+                    onValuesChange(values.filter((v) => !visibleOptions.some((o) => o.value === v)));
+                  } else {
+                    const next = new Set(values);
+                    visibleOptions.forEach((o) => next.add(o.value));
+                    onValuesChange(Array.from(next));
+                  }
+                }}
+              >
+                {allVisibleSelected ? "Deselect all" : "Select all"}
+                {query ? " (filtered)" : ""}
+              </Button>
+              {values.length > 0 && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 text-xs text-muted-foreground"
+                  onClick={() => onValuesChange([])}
+                >
+                  Clear
+                </Button>
+              )}
+            </div>
+          )}
           <CommandList>
             <CommandEmpty>{emptyText}</CommandEmpty>
             <CommandGroup>
