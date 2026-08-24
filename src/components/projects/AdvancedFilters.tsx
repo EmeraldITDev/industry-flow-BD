@@ -48,6 +48,8 @@ interface AdvancedFiltersProps {
   teamMembers?: TeamMember[];
 }
 
+const MAX_ACTIVE_TAGS = 5;
+
 export const defaultFilters: FilterState = {
   search: '',
   sectors: [],
