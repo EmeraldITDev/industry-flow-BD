@@ -66,8 +66,17 @@ export function AppSidebar() {
           />
         </NavLink>
         {canCreateProjects && (
-          <NavLink to="/projects/new" title="New Project">
-            <Button className="w-full" size={collapsed ? 'icon' : 'sm'}>
+          <NavLink
+            to="/projects/new"
+            title="New Project"
+            className={cn("flex", collapsed ? "justify-center" : "w-full")}
+          >
+            <Button
+              className={cn(
+                collapsed ? "h-9 w-9 p-0 justify-center" : "w-full"
+              )}
+              size={collapsed ? 'icon' : 'sm'}
+            >
               <Plus className="w-4 h-4" />
               {!collapsed && <span className="ml-2">New Project</span>}
             </Button>
