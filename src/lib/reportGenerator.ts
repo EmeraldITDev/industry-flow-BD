@@ -141,73 +141,77 @@ export function generateProjectsReport(
   let y = addReportHeader(pdf, title, filterStr, projects.length, MARGIN + 10);
 
   // Column definitions
-  const colDefs: { label: string; w: number }[] = [
-    { label: 'Project Name',    w: 130 },
-    { label: 'Description',     w: 160 },
-    { label: 'Client',          w: 105 },
-    { label: 'Channel Partner', w: 100 },
-    { label: 'Sector',          w: 75 },
-    { label: 'Stage',           w: 70 },
-    { label: 'Status',          w: 55 },
-    { label: 'Value (USD)',     w: 100 },
-    { label: 'Value (NGN)',     w: 115 },
-    { label: 'Margin %',        w: 50 },
-    { label: 'Probability',     w: 60 },
-    { label: 'Location',        w: 65 },
-  ];
-  const cols = colDefs.reduce<{ label: string; x: number; w: number }[]>((acc, c) => {
-    const prev = acc[acc.length - 1];
-    const x = prev ? prev.x + prev.w : MARGIN;
-    acc.push({ ...c, x });
-    return acc;
-  }, []);
+  const colDefs: { label: string; pct: number }[] = [
+  { label: 'Project Name',      pct: 0.13 },
+  { label: 'Description',       pct: 0.16 },
+  { label: 'Client',            pct: 0.10 },
+  { label: 'Channel Partner',   pct: 0.09 },
+  { label: 'Business Vertical', pct: 0.09 },
+  { label: 'Stage',             pct: 0.08 },
+  { label: 'Status',            pct: 0.06 },
+  { label: 'Value (USD)',       pct: 0.09 },
+  { label: 'Value (NGN)',       pct: 0.10 },
+  { label: 'Margin %',          pct: 0.04 },
+  { label: 'Probability',       pct: 0.06 },
+];
+const cols = colDefs.reduce<{ label: string; x: number; w: number }[]>((acc, c) => {
+  const prev = acc[acc.length - 1];
+  const x = prev ? prev.x + prev.w : MARGIN;
+  const w = c.pct * CONTENT_W;
+  acc.push({ label: c.label, x, w });
+  return acc;
+}, []);
 
   y = drawTableHeader(pdf, cols, y);
 
   projects.forEach((p, idx) => {
-    pdf.setFontSize(11);
-    pdf.setFont('helvetica', 'normal');
+  pdf.setFontSize(9);
+  pdf.setFont('helvetica', 'normal');
 
-    const stageLabel = PIPELINE_STAGES.find(s => s.value === p.pipelineStage)?.label || p.pipelineStage || '—';
-    const descLines: string[] = p.description
-      ? pdf.splitTextToSize(p.description, cols[1].w - 6) as string[]
-      : ['—'];
-    const nameLines: string[] = p.name
-      ? pdf.splitTextToSize(p.name, cols[0].w - 6) as string[]
-      : ['—'];
-    const LINE_H = 12;
-    const rowH = Math.max(ROW_H, descLines.length * LINE_H + 10, nameLines.length * LINE_H + 10);
+  const stageLabel = PIPELINE_STAGES.find(s => s.value === p.pipelineStage)?.label || p.pipelineStage || '—';
+  const marginPct = (p.marginPercentUSD && p.marginPercentUSD !== 0)
+    ? p.marginPercentUSD
+    : (p.marginPercentNGN && p.marginPercentNGN !== 0 ? p.marginPercentNGN : null);
 
-    y = checkPageBreak(pdf, y, rowH + 4);
-    if (y < MARGIN + 20) {
-      y = drawTableHeader(pdf, cols, y);
-    }
+  const cellValues = [
+    p.name || '—',
+    p.description || '—',
+    p.clientName || '—',
+    p.channelPartner || '—',
+    p.sector || '—',
+    stageLabel,
+    p.status || '—',
+    fmtCurrency(p.contractValueUSD, 'USD '),
+    fmtCurrency(p.contractValueNGN, 'NGN '),
+    marginPct != null ? `${marginPct}%` : '—',
+    p.dealProbability || '—',
+  ];
 
-    if (idx % 2 === 0) {
-      pdf.setFillColor(248, 250, 252);
-      pdf.rect(MARGIN, y - 4, CONTENT_W, rowH, 'F');
-    }
+  // Wrap every column, not just name/description
+  const wrappedCells = cellValues.map((val, i) =>
+    pdf.splitTextToSize(val, cols[i].w - 6) as string[]
+  );
+  const LINE_H = 11;
+  const maxLines = Math.max(...wrappedCells.map((lines) => lines.length));
+  const rowH = Math.max(ROW_H, maxLines * LINE_H + 10);
 
-    pdf.setTextColor(30, 41, 59);
+  y = checkPageBreak(pdf, y, rowH + 4);
+  if (y < MARGIN + 20) {
+    y = drawTableHeader(pdf, cols, y);
+  }
 
-    pdf.text(nameLines, cols[0].x, y + 14);
-    pdf.text(descLines, cols[1].x, y + 14);
-    pdf.text(truncate(p.clientName || '', 18), cols[2].x, y + 14);
-    pdf.text(truncate(p.channelPartner || '', 17), cols[3].x, y + 14);
-    pdf.text(truncate(p.sector || '', 13), cols[4].x, y + 14);
-    pdf.text(truncate(stageLabel, 12), cols[5].x, y + 14);
-    pdf.text(p.status || '—', cols[6].x, y + 14);
-    pdf.text(fmtCurrency(p.contractValueUSD, 'USD '), cols[7].x, y + 14);
-    pdf.text(fmtCurrency(p.contractValueNGN, 'NGN '), cols[8].x, y + 14);
-    const marginPct = (p.marginPercentUSD && p.marginPercentUSD !== 0)
-      ? p.marginPercentUSD
-      : (p.marginPercentNGN && p.marginPercentNGN !== 0 ? p.marginPercentNGN : null);
-    pdf.text(marginPct != null ? `${marginPct}%` : '—', cols[9].x, y + 14);
-    pdf.text(p.dealProbability || '—', cols[10].x, y + 14);
-    pdf.text(truncate(p.location || '', 12), cols[11].x, y + 14);
+  if (idx % 2 === 0) {
+    pdf.setFillColor(248, 250, 252);
+    pdf.rect(MARGIN, y - 4, CONTENT_W, rowH, 'F');
+  }
 
-    y += rowH;
+  pdf.setTextColor(30, 41, 59);
+  wrappedCells.forEach((lines, i) => {
+    pdf.text(lines, cols[i].x, y + 14);
   });
+
+  y += rowH;
+});
 
   // Summary totals
   y = checkPageBreak(pdf, y, 40);
@@ -673,6 +677,7 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
   drawSectionTitle('Project Overview');
   drawFieldRows([
     { label: 'Sector', value: project.sector },
+    { label: 'Business Vertical', value: project.sector },
     { label: 'Business Segment', value: project.businessSegment },
     { label: 'Client', value: project.clientName },
     { label: 'Client Contact', value: project.clientContact },
@@ -800,11 +805,9 @@ export function generateTasksReport(
     const assignee = t.assigneeId ? (teamMap[String(t.assigneeId)] || (typeof t.assignee === 'string' ? t.assignee : 'Unassigned')) : 'Unassigned';
     const dueDate = t.dueDate ? new Date(t.dueDate).toLocaleDateString() : '—';
 
-    pdf.text(truncate(t.title, 50), cols[0].x, y + 14);
-    pdf.text(truncate(projName, 40), cols[1].x, y + 14);
+    
     pdf.text(t.status || '—', cols[2].x, y + 14);
     pdf.text(t.priority || '—', cols[3].x, y + 14);
-    pdf.text(truncate(assignee, 30), cols[4].x, y + 14);
     pdf.text(dueDate, cols[5].x, y + 14);
 
     y += ROW_H;
