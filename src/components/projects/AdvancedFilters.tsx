@@ -28,6 +28,7 @@ export interface FilterState {
   sectors: string[];
   statuses: string[];
   pipelineStages: string[];
+  businessSegments: string[];
   products: string[];
   subproducts: string[];
   projectLeads: string[];
@@ -56,6 +57,7 @@ export const defaultFilters: FilterState = {
   search: '',
   sectors: [],
   statuses: [],
+  businessSegments: [],
   pipelineStages: [],
   products: [],
   subproducts: [],
@@ -157,7 +159,6 @@ export function AdvancedFilters({ filters, onFiltersChange, projects = [], teamM
 
   const sectorOptions = sectors.map((s) => ({ value: s, label: s }));
 
-  const segmentOptions = businessSegments.map((s) => ({ value: s, label: s }));
   const productOptions = PRODUCT_OPTIONS.map((p) => ({ value: p.value, label: p.label }));
 
   const statusOptions = ALL_PROJECT_STATUSES.map((s) => ({
