@@ -707,7 +707,14 @@ export default function EditProject() {
                   onValuesChange={(vals) =>
                     setFormData({ ...formData, products: vals })
                   }
-                  options={PRODUCT_OPTIONS}
+                  options={(() => {
+                    const extraSaved = formData.products
+                      .filter(
+                        (p) => !PRODUCT_OPTIONS.some((o) => o.value === p),
+                      )
+                      .map((p) => ({ value: p, label: p }));
+                    return [...PRODUCT_OPTIONS, ...extraSaved];
+                  })()}
                   placeholder="Select products"
                   searchPlaceholder="Search products..."
                 />

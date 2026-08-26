@@ -462,15 +462,16 @@ export default function NewProject() {
                 <MultiSearchableSelect
                   values={formData.products}
                   onValuesChange={(vals) =>
-                    setFormData({
-                      ...formData,
-                      products: vals,
-                      subproducts: formData.subproducts.filter((sp) =>
-                        getSubproductOptions(vals).some((o) => o.value === sp),
-                      ),
-                    })
+                    setFormData({ ...formData, products: vals })
                   }
-                  options={PRODUCT_OPTIONS}
+                  options={(() => {
+                    const extraSaved = formData.products
+                      .filter(
+                        (p) => !PRODUCT_OPTIONS.some((o) => o.value === p),
+                      )
+                      .map((p) => ({ value: p, label: p }));
+                    return [...PRODUCT_OPTIONS, ...extraSaved];
+                  })()}
                   placeholder="Select products"
                   searchPlaceholder="Search products..."
                 />
