@@ -1,97 +1,138 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Separator } from '@/components/ui/separator';
-import { CalendarIcon, Plus, X, AlertTriangle, Loader2 } from 'lucide-react';
-import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
-import { sectors, businessSegments } from '@/data/mockData';
-import { parseNumberInput } from '@/lib/utils';
-import { Sector, RiskLevel, Milestone, PipelineStage, BusinessSegment, PIPELINE_STAGES, ProjectDocument, TeamMember } from '@/types';
-import { toast } from 'sonner';
-import { PipelineStageSelector } from '@/components/projects/PipelineStageSelector';
-import { DocumentManager } from '@/components/projects/DocumentManager';
-import { ProjectImageUpload } from '@/components/projects/ProjectImageUpload';
-import { projectsService } from '@/services/projects';
-import { teamService } from '@/services/team';
-import { useAuth } from '@/context/AuthContext';
-import { MultiSearchableSelect } from '@/components/ui/multi-searchable-select';
-import { PRODUCT_OPTIONS, getSubproductOptions } from '@/data/productCatalog';
+} from "@/components/ui/select";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Separator } from "@/components/ui/separator";
+import { CalendarIcon, Plus, X, AlertTriangle, Loader2 } from "lucide-react";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
+import { sectors, businessSegments } from "@/data/mockData";
+import { parseNumberInput } from "@/lib/utils";
+import {
+  Sector,
+  RiskLevel,
+  Milestone,
+  PipelineStage,
+  BusinessSegment,
+  PIPELINE_STAGES,
+  ProjectDocument,
+  TeamMember,
+} from "@/types";
+import { toast } from "sonner";
+import { PipelineStageSelector } from "@/components/projects/PipelineStageSelector";
+import { DocumentManager } from "@/components/projects/DocumentManager";
+import { ProjectImageUpload } from "@/components/projects/ProjectImageUpload";
+import { projectsService } from "@/services/projects";
+import { teamService } from "@/services/team";
+import { useAuth } from "@/context/AuthContext";
+import { MultiSearchableSelect } from "@/components/ui/multi-searchable-select";
+import { PRODUCT_OPTIONS, getSubproductOptions } from "@/data/productCatalog";
 
-
-const dealProbabilities: { value: RiskLevel; label: string; color: string }[] = [
-  { value: 'low', label: 'Low', color: 'bg-chart-2/20 text-chart-2' },
-  { value: 'medium', label: 'Medium', color: 'bg-chart-4/20 text-chart-4' },
-  { value: 'high', label: 'High', color: 'bg-chart-3/20 text-chart-3' },
-  { value: 'critical', label: 'Critical', color: 'bg-destructive/20 text-destructive' },
-  { value: 'uncertain', label: 'Uncertain', color: 'bg-muted/50 text-muted-foreground' },
-];
+const dealProbabilities: { value: RiskLevel; label: string; color: string }[] =
+  [
+    { value: "low", label: "Low", color: "bg-chart-2/20 text-chart-2" },
+    { value: "medium", label: "Medium", color: "bg-chart-4/20 text-chart-4" },
+    { value: "high", label: "High", color: "bg-chart-3/20 text-chart-3" },
+    {
+      value: "critical",
+      label: "Critical",
+      color: "bg-destructive/20 text-destructive",
+    },
+    {
+      value: "uncertain",
+      label: "Uncertain",
+      color: "bg-muted/50 text-muted-foreground",
+    },
+  ];
 
 export default function NewProject() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  
+
   // Fetch team members from backend
   const { data: teamMembers = [], isLoading: isLoadingTeam } = useQuery({
-    queryKey: ['team'],
+    queryKey: ["team"],
     queryFn: () => teamService.getAll(),
     staleTime: 5 * 60 * 1000,
   });
 
+  const { data: allProjects = [] } = useQuery({
+    queryKey: ["projects-for-oem-options"],
+    queryFn: () => projectsService.getAll(),
+    staleTime: 5 * 60 * 1000, // 5 min cache, this list barely changes
+  });
+  const oemOptions = Array.from(
+    new Set(
+      allProjects
+        .map((p) => p.oem?.trim())
+        .filter((o): o is string => !!o && o !== "n/a"),
+    ),
+  ).sort();
+
   // Find admin user (Chiemela) to default as project lead
-  const adminUser = teamMembers.find((m: any) => 
-    m.email?.toLowerCase().includes('chiemela') || 
-    m.role?.toLowerCase() === 'admin' ||
-    m.systemRole?.toLowerCase() === 'admin'
+  const adminUser = teamMembers.find(
+    (m: any) =>
+      m.email?.toLowerCase().includes("chiemela") ||
+      m.role?.toLowerCase() === "admin" ||
+      m.systemRole?.toLowerCase() === "admin",
   );
-  
+
   const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    sector: '' as Sector | '',
-    status: 'active' as 'active' | 'on-hold' | 'completed' | 'inactive',
+    name: "",
+    description: "",
+    sector: "" as Sector | "",
+    status: "active" as "active" | "on-hold" | "completed" | "inactive",
     startDate: undefined as Date | undefined,
     endDate: undefined as Date | undefined,
-    dealProbability: 'low' as RiskLevel,
+    dealProbability: "low" as RiskLevel,
     teamMemberIds: [] as string[],
     // Pipeline fields
-    pipelineStage: 'initiation' as PipelineStage,
+    pipelineStage: "initiation" as PipelineStage,
     pipelineIntakeDate: new Date() as Date | undefined,
     // Client fields
-    clientName: '',
-    clientContact: '',
+    clientName: "",
+    clientContact: "",
     // Extended fields
-    oem: '',
-    location: '',
+    oem: "",
+    location: "",
     expectedCloseDate: undefined as Date | undefined,
-    businessSegment: '' as BusinessSegment | '',
+    businessSegment: "" as BusinessSegment | "",
     products: [] as string[],
     subproducts: [] as string[],
-    projectLeadId: '',
-    assigneeId: '',
-    channelPartner: '',
+    projectLeadId: "",
+    assigneeId: "",
+    channelPartner: "",
     // Financial fields (independent currencies)
-    contractValueNGN: '',
-    contractValueUSD: '',
-    marginPercentNGN: '',
-    marginPercentUSD: '',
-    projectLeadComments: '',
-    supportNeeded: '',
+    contractValueNGN: "",
+    contractValueUSD: "",
+    marginPercentNGN: "",
+    marginPercentUSD: "",
+    projectLeadComments: "",
+    supportNeeded: "",
     // Image
     projectImage: undefined as string | undefined,
   });
@@ -99,21 +140,31 @@ export default function NewProject() {
   // Set default project lead when team members load
   useEffect(() => {
     if (adminUser && !formData.projectLeadId) {
-      setFormData(prev => ({ ...prev, projectLeadId: String(adminUser.id) }));
+      setFormData((prev) => ({ ...prev, projectLeadId: String(adminUser.id) }));
     }
   }, [adminUser, formData.projectLeadId]);
 
-  const [milestones, setMilestones] = useState<Omit<Milestone, 'id'>[]>([]);
-  const [newMilestone, setNewMilestone] = useState({ title: '', dueDate: undefined as Date | undefined });
+  const [milestones, setMilestones] = useState<Omit<Milestone, "id">[]>([]);
+  const [newMilestone, setNewMilestone] = useState({
+    title: "",
+    dueDate: undefined as Date | undefined,
+  });
   const [documents, setDocuments] = useState<ProjectDocument[]>([]);
 
   const handleAddMilestone = () => {
     if (!newMilestone.title || !newMilestone.dueDate) {
-      toast.error('Please provide milestone title and due date');
+      toast.error("Please provide milestone title and due date");
       return;
     }
-    setMilestones([...milestones, { ...newMilestone, dueDate: newMilestone.dueDate.toISOString(), completed: false }]);
-    setNewMilestone({ title: '', dueDate: undefined });
+    setMilestones([
+      ...milestones,
+      {
+        ...newMilestone,
+        dueDate: newMilestone.dueDate.toISOString(),
+        completed: false,
+      },
+    ]);
+    setNewMilestone({ title: "", dueDate: undefined });
   };
 
   const handleRemoveMilestone = (index: number) => {
@@ -121,11 +172,11 @@ export default function NewProject() {
   };
 
   const handleTeamMemberToggle = (memberId: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       teamMemberIds: prev.teamMemberIds.includes(memberId)
-        ? prev.teamMemberIds.filter(id => id !== memberId)
-        : [...prev.teamMemberIds, memberId]
+        ? prev.teamMemberIds.filter((id) => id !== memberId)
+        : [...prev.teamMemberIds, memberId],
     }));
   };
 
@@ -133,9 +184,9 @@ export default function NewProject() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.name || !formData.description || !formData.sector) {
-      toast.error('Please fill in all required fields');
+      toast.error("Please fill in all required fields");
       return;
     }
 
@@ -146,13 +197,15 @@ export default function NewProject() {
       const contractValueUSD = parseNumberInput(formData.contractValueUSD);
       const marginPercentNGN = parseNumberInput(formData.marginPercentNGN);
       const marginPercentUSD = parseNumberInput(formData.marginPercentUSD);
-      
-      const marginValueNGN = (contractValueNGN != null && marginPercentNGN != null)
-        ? (contractValueNGN * marginPercentNGN / 100)
-        : undefined;
-      const marginValueUSD = (contractValueUSD != null && marginPercentUSD != null)
-        ? (contractValueUSD * marginPercentUSD / 100)
-        : undefined;
+
+      const marginValueNGN =
+        contractValueNGN != null && marginPercentNGN != null
+          ? (contractValueNGN * marginPercentNGN) / 100
+          : undefined;
+      const marginValueUSD =
+        contractValueUSD != null && marginPercentUSD != null
+          ? (contractValueUSD * marginPercentUSD) / 100
+          : undefined;
 
       await projectsService.create({
         name: formData.name,
@@ -168,8 +221,7 @@ export default function NewProject() {
         oem: formData.oem || undefined,
         location: formData.location || undefined,
         expectedCloseDate: formData.expectedCloseDate?.toISOString(),
-        businessSegment: formData.businessSegment as BusinessSegment || undefined,
-        products: formData.products,
+        businessSegment: (formData.sector as BusinessSegment) || undefined, // mirrors sector; column consolidation is a backend task        products: formData.products,
         subproducts: formData.subproducts,
         projectLeadId: formData.projectLeadId || undefined,
         assigneeId: formData.assigneeId || undefined,
@@ -184,13 +236,19 @@ export default function NewProject() {
         projectLeadComments: formData.projectLeadComments || undefined,
         supportNeeded: formData.supportNeeded || undefined,
         projectImage: formData.projectImage || undefined,
-        teamMemberIds: formData.teamMemberIds.length > 0 ? formData.teamMemberIds : undefined,
+        teamMemberIds:
+          formData.teamMemberIds.length > 0
+            ? formData.teamMemberIds
+            : undefined,
       } as any);
-      toast.success('Project created successfully!');
-      navigate('/projects');
+      toast.success("Project created successfully!");
+      navigate("/projects");
     } catch (error: any) {
-      console.error('Failed to create project:', error);
-      toast.error(error.response?.data?.message || 'Failed to create project. Please try again.');
+      console.error("Failed to create project:", error);
+      toast.error(
+        error.response?.data?.message ||
+          "Failed to create project. Please try again.",
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -199,8 +257,12 @@ export default function NewProject() {
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 pb-8 overflow-x-hidden">
       <div>
-        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">Create New Project</h1>
-        <p className="text-xs sm:text-sm text-muted-foreground mt-1">Fill in the details to create a new project</p>
+        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">
+          Create New Project
+        </h1>
+        <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+          Fill in the details to create a new project
+        </p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -208,12 +270,16 @@ export default function NewProject() {
         <Card>
           <CardHeader>
             <CardTitle>Pipeline Stage</CardTitle>
-            <CardDescription>Current stage in the sales pipeline</CardDescription>
+            <CardDescription>
+              Current stage in the sales pipeline
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <PipelineStageSelector
               currentStage={formData.pipelineStage}
-              onStageChange={(stage) => setFormData({ ...formData, pipelineStage: stage })}
+              onStageChange={(stage) =>
+                setFormData({ ...formData, pipelineStage: stage })
+              }
             />
           </CardContent>
         </Card>
@@ -231,22 +297,28 @@ export default function NewProject() {
                 <Input
                   id="name"
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
                   placeholder="Enter project name"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="sector">Sector *</Label>
+                <Label htmlFor="sector">Business Vertical *</Label>
                 <Select
                   value={formData.sector}
-                  onValueChange={(value: Sector) => setFormData({ ...formData, sector: value })}
+                  onValueChange={(value: Sector) =>
+                    setFormData({ ...formData, sector: value })
+                  }
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select sector" />
+                    <SelectValue placeholder="Select business vertical" />
                   </SelectTrigger>
                   <SelectContent>
                     {sectors.map((sector) => (
-                      <SelectItem key={sector} value={sector}>{sector}</SelectItem>
+                      <SelectItem key={sector} value={sector}>
+                        {sector}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -257,7 +329,9 @@ export default function NewProject() {
               <Textarea
                 id="description"
                 value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, description: e.target.value })
+                }
                 placeholder="Describe the project objectives and scope"
                 rows={3}
               />
@@ -267,42 +341,100 @@ export default function NewProject() {
                 <Label>Pipeline Intake Date</Label>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className={cn('w-full justify-start text-left font-normal', !formData.pipelineIntakeDate && 'text-muted-foreground')}>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !formData.pipelineIntakeDate && "text-muted-foreground",
+                      )}
+                    >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {formData.pipelineIntakeDate ? format(formData.pipelineIntakeDate, 'PPP') : 'Pick a date'}
+                      {formData.pipelineIntakeDate
+                        ? format(formData.pipelineIntakeDate, "PPP")
+                        : "Pick a date"}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={formData.pipelineIntakeDate} onSelect={(date) => setFormData({ ...formData, pipelineIntakeDate: date })} initialFocus /></PopoverContent>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={formData.pipelineIntakeDate}
+                      onSelect={(date) =>
+                        setFormData({ ...formData, pipelineIntakeDate: date })
+                      }
+                      initialFocus
+                    />
+                  </PopoverContent>
                 </Popover>
               </div>
               <div className="space-y-2">
                 <Label>Start Date</Label>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className={cn('w-full justify-start text-left font-normal', !formData.startDate && 'text-muted-foreground')}>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !formData.startDate && "text-muted-foreground",
+                      )}
+                    >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {formData.startDate ? format(formData.startDate, 'PPP') : 'Pick a date'}
+                      {formData.startDate
+                        ? format(formData.startDate, "PPP")
+                        : "Pick a date"}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={formData.startDate} onSelect={(date) => setFormData({ ...formData, startDate: date })} initialFocus /></PopoverContent>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={formData.startDate}
+                      onSelect={(date) =>
+                        setFormData({ ...formData, startDate: date })
+                      }
+                      initialFocus
+                    />
+                  </PopoverContent>
                 </Popover>
               </div>
               <div className="space-y-2">
                 <Label>Expected Close Date</Label>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className={cn('w-full justify-start text-left font-normal', !formData.expectedCloseDate && 'text-muted-foreground')}>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !formData.expectedCloseDate && "text-muted-foreground",
+                      )}
+                    >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {formData.expectedCloseDate ? format(formData.expectedCloseDate, 'PPP') : 'Pick a date'}
+                      {formData.expectedCloseDate
+                        ? format(formData.expectedCloseDate, "PPP")
+                        : "Pick a date"}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={formData.expectedCloseDate} onSelect={(date) => setFormData({ ...formData, expectedCloseDate: date })} initialFocus /></PopoverContent>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={formData.expectedCloseDate}
+                      onSelect={(date) =>
+                        setFormData({ ...formData, expectedCloseDate: date })
+                      }
+                      initialFocus
+                    />
+                  </PopoverContent>
                 </Popover>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="status">Status</Label>
-                <Select value={formData.status} onValueChange={(value: 'active' | 'on-hold' | 'completed' | 'inactive') => setFormData({ ...formData, status: value })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                <Select
+                  value={formData.status}
+                  onValueChange={(
+                    value: "active" | "on-hold" | "completed" | "inactive",
+                  ) => setFormData({ ...formData, status: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="active">Active</SelectItem>
                     <SelectItem value="on-hold">On Hold</SelectItem>
@@ -319,24 +451,25 @@ export default function NewProject() {
         <Card>
           <CardHeader>
             <CardTitle>Product & Business Details</CardTitle>
-            <CardDescription>Product and business segment information</CardDescription>
+            <CardDescription>
+              Product and business segment information
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               <div className="space-y-2">
-                <Label>Business Segment</Label>
-                <Select value={formData.businessSegment} onValueChange={(value: BusinessSegment) => setFormData({ ...formData, businessSegment: value })}>
-                  <SelectTrigger><SelectValue placeholder="Select segment" /></SelectTrigger>
-                  <SelectContent>
-                    {businessSegments.map((seg) => (<SelectItem key={seg} value={seg}>{seg}</SelectItem>))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
                 <Label>Product</Label>
                 <MultiSearchableSelect
                   values={formData.products}
-                  onValuesChange={(vals) => setFormData({ ...formData, products: vals, subproducts: formData.subproducts.filter((sp) => getSubproductOptions(vals).some((o) => o.value === sp)) })}
+                  onValuesChange={(vals) =>
+                    setFormData({
+                      ...formData,
+                      products: vals,
+                      subproducts: formData.subproducts.filter((sp) =>
+                        getSubproductOptions(vals).some((o) => o.value === sp),
+                      ),
+                    })
+                  }
                   options={PRODUCT_OPTIONS}
                   placeholder="Select products"
                   searchPlaceholder="Search products..."
@@ -346,24 +479,61 @@ export default function NewProject() {
                 <Label>Sub Product</Label>
                 <MultiSearchableSelect
                   values={formData.subproducts}
-                  onValuesChange={(vals) => setFormData({ ...formData, subproducts: vals })}
+                  onValuesChange={(vals) =>
+                    setFormData({ ...formData, subproducts: vals })
+                  }
                   options={getSubproductOptions(formData.products)}
-                  disabled={getSubproductOptions(formData.products).length === 0}
-                  placeholder={formData.products.length === 0 ? 'Select a product first' : 'Select sub products'}
+                  disabled={
+                    getSubproductOptions(formData.products).length === 0
+                  }
+                  placeholder={
+                    formData.products.length === 0
+                      ? "Select a product first"
+                      : "Select sub products"
+                  }
                   searchPlaceholder="Search sub products..."
                 />
               </div>
               <div className="space-y-2">
                 <Label>OEM</Label>
-                <Input value={formData.oem} onChange={(e) => setFormData({ ...formData, oem: e.target.value })} placeholder="e.g., Siemens" />
+                <Select
+                  value={formData.oem || "n/a"}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, oem: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select OEM" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="n/a">n/a</SelectItem>
+                    {oemOptions.map((opt) => (
+                      <SelectItem key={opt} value={opt}>
+                        {opt}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label>Location</Label>
-                <Input value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })} placeholder="e.g., Lagos, Nigeria" />
+                <Input
+                  value={formData.location}
+                  onChange={(e) =>
+                    setFormData({ ...formData, location: e.target.value })
+                  }
+                  placeholder="e.g., Lagos, Nigeria"
+                />
               </div>
               <div className="space-y-2">
                 <Label>Channel Partner</Label>
-                <Input value={formData.channelPartner} onChange={(e) => setFormData({ ...formData, channelPartner: e.target.value })} placeholder="Partner company name" />
+                <Input
+                  value={formData.channelPartner}
+                  onChange={(e) =>
+                    setFormData({ ...formData, channelPartner: e.target.value })
+                  }
+                  placeholder="Partner company name"
+                />
               </div>
             </div>
           </CardContent>
@@ -378,11 +548,23 @@ export default function NewProject() {
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label>Client Name</Label>
-                <Input value={formData.clientName} onChange={(e) => setFormData({ ...formData, clientName: e.target.value })} placeholder="Client company name" />
+                <Input
+                  value={formData.clientName}
+                  onChange={(e) =>
+                    setFormData({ ...formData, clientName: e.target.value })
+                  }
+                  placeholder="Client company name"
+                />
               </div>
               <div className="space-y-2">
                 <Label>Client Contact</Label>
-                <Input value={formData.clientContact} onChange={(e) => setFormData({ ...formData, clientContact: e.target.value })} placeholder="Email or phone" />
+                <Input
+                  value={formData.clientContact}
+                  onChange={(e) =>
+                    setFormData({ ...formData, clientContact: e.target.value })
+                  }
+                  placeholder="Email or phone"
+                />
               </div>
             </div>
           </CardContent>
@@ -392,7 +574,9 @@ export default function NewProject() {
         <Card>
           <CardHeader>
             <CardTitle>Financial Details</CardTitle>
-            <CardDescription>Contract value and margin in both Naira and USD</CardDescription>
+            <CardDescription>
+              Contract value and margin in both Naira and USD
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
@@ -400,28 +584,49 @@ export default function NewProject() {
                 <h4 className="font-medium">Nigerian Naira (₦)</h4>
                 <div className="space-y-2">
                   <Label>Contract/PO Value (₦)</Label>
-                  <Input 
-                    type="number" 
-                    value={formData.contractValueNGN} 
-                    onChange={(e) => setFormData({ ...formData, contractValueNGN: e.target.value })} 
-                    placeholder="0" 
+                  <Input
+                    type="number"
+                    value={formData.contractValueNGN}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        contractValueNGN: e.target.value,
+                      })
+                    }
+                    placeholder="0"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div className="space-y-2">
                     <Label>Margin %</Label>
-                    <Input type="number" value={formData.marginPercentNGN} onChange={(e) => setFormData({ ...formData, marginPercentNGN: e.target.value })} placeholder="0" />
+                    <Input
+                      type="number"
+                      value={formData.marginPercentNGN}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          marginPercentNGN: e.target.value,
+                        })
+                      }
+                      placeholder="0"
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label>Margin Value (₦)</Label>
-                    <Input 
-                      type="number" 
-                      value={formData.contractValueNGN && formData.marginPercentNGN 
-                        ? (parseFloat(formData.contractValueNGN) * parseFloat(formData.marginPercentNGN) / 100).toFixed(2) 
-                        : ''} 
-                      readOnly 
-                      className="bg-muted cursor-not-allowed" 
-                      placeholder="Auto-calculated" 
+                    <Input
+                      type="number"
+                      value={
+                        formData.contractValueNGN && formData.marginPercentNGN
+                          ? (
+                              (parseFloat(formData.contractValueNGN) *
+                                parseFloat(formData.marginPercentNGN)) /
+                              100
+                            ).toFixed(2)
+                          : ""
+                      }
+                      readOnly
+                      className="bg-muted cursor-not-allowed"
+                      placeholder="Auto-calculated"
                     />
                   </div>
                 </div>
@@ -430,28 +635,49 @@ export default function NewProject() {
                 <h4 className="font-medium">US Dollar ($)</h4>
                 <div className="space-y-2">
                   <Label>Contract/PO Value ($)</Label>
-                  <Input 
-                    type="number" 
-                    value={formData.contractValueUSD} 
-                    onChange={(e) => setFormData({ ...formData, contractValueUSD: e.target.value })} 
-                    placeholder="0" 
+                  <Input
+                    type="number"
+                    value={formData.contractValueUSD}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        contractValueUSD: e.target.value,
+                      })
+                    }
+                    placeholder="0"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div className="space-y-2">
                     <Label>Margin %</Label>
-                    <Input type="number" value={formData.marginPercentUSD} onChange={(e) => setFormData({ ...formData, marginPercentUSD: e.target.value })} placeholder="0" />
+                    <Input
+                      type="number"
+                      value={formData.marginPercentUSD}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          marginPercentUSD: e.target.value,
+                        })
+                      }
+                      placeholder="0"
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label>Margin Value ($)</Label>
-                    <Input 
-                      type="number" 
-                      value={formData.contractValueUSD && formData.marginPercentUSD 
-                        ? (parseFloat(formData.contractValueUSD) * parseFloat(formData.marginPercentUSD) / 100).toFixed(2) 
-                        : ''} 
-                      readOnly 
-                      className="bg-muted cursor-not-allowed" 
-                      placeholder="Auto-calculated" 
+                    <Input
+                      type="number"
+                      value={
+                        formData.contractValueUSD && formData.marginPercentUSD
+                          ? (
+                              (parseFloat(formData.contractValueUSD) *
+                                parseFloat(formData.marginPercentUSD)) /
+                              100
+                            ).toFixed(2)
+                          : ""
+                      }
+                      readOnly
+                      className="bg-muted cursor-not-allowed"
+                      placeholder="Auto-calculated"
                     />
                   </div>
                 </div>
@@ -459,12 +685,24 @@ export default function NewProject() {
             </div>
             <div className="space-y-2">
               <Label>Deal Probability</Label>
-              <Select value={formData.dealProbability} onValueChange={(value: RiskLevel) => setFormData({ ...formData, dealProbability: value })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+              <Select
+                value={formData.dealProbability}
+                onValueChange={(value: RiskLevel) =>
+                  setFormData({ ...formData, dealProbability: value })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   {dealProbabilities.map((level) => (
                     <SelectItem key={level.value} value={level.value}>
-                      <div className={cn("flex items-center gap-2 px-2 py-0.5 rounded-md", level.color)}>
+                      <div
+                        className={cn(
+                          "flex items-center gap-2 px-2 py-0.5 rounded-md",
+                          level.color,
+                        )}
+                      >
                         <AlertTriangle className="h-4 w-4" />
                         {level.label}
                       </div>
@@ -485,35 +723,74 @@ export default function NewProject() {
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label>Project Lead</Label>
-                <Select value={formData.projectLeadId} onValueChange={(value) => setFormData({ ...formData, projectLeadId: value })}>
-                  <SelectTrigger><SelectValue placeholder={isLoadingTeam ? "Loading..." : "Select lead"} /></SelectTrigger>
+                <Select
+                  value={formData.projectLeadId}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, projectLeadId: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue
+                      placeholder={isLoadingTeam ? "Loading..." : "Select lead"}
+                    />
+                  </SelectTrigger>
                   <SelectContent>
                     {isLoadingTeam ? (
-                      <div className="py-2 px-2 text-sm text-muted-foreground">Loading team members...</div>
+                      <div className="py-2 px-2 text-sm text-muted-foreground">
+                        Loading team members...
+                      </div>
                     ) : teamMembers.length === 0 ? (
-                      <div className="py-2 px-2 text-sm text-muted-foreground">No team members found</div>
+                      <div className="py-2 px-2 text-sm text-muted-foreground">
+                        No team members found
+                      </div>
                     ) : (
-                      teamMembers.filter((m: any) => m.id).map((m: any) => (
-                        <SelectItem key={m.id} value={String(m.id)}>{m.name}</SelectItem>
-                      ))
+                      teamMembers
+                        .filter((m: any) => m.id)
+                        .map((m: any) => (
+                          <SelectItem key={m.id} value={String(m.id)}>
+                            {m.name}
+                          </SelectItem>
+                        ))
                     )}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
                 <Label>Assignee</Label>
-                <Select value={formData.assigneeId || '__none__'} onValueChange={(value) => setFormData({ ...formData, assigneeId: value === '__none__' ? '' : value })}>
-                  <SelectTrigger><SelectValue placeholder={isLoadingTeam ? "Loading..." : "Select assignee"} /></SelectTrigger>
+                <Select
+                  value={formData.assigneeId || "__none__"}
+                  onValueChange={(value) =>
+                    setFormData({
+                      ...formData,
+                      assigneeId: value === "__none__" ? "" : value,
+                    })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue
+                      placeholder={
+                        isLoadingTeam ? "Loading..." : "Select assignee"
+                      }
+                    />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__none__">— No Assignee —</SelectItem>
                     {isLoadingTeam ? (
-                      <div className="py-2 px-2 text-sm text-muted-foreground">Loading team members...</div>
+                      <div className="py-2 px-2 text-sm text-muted-foreground">
+                        Loading team members...
+                      </div>
                     ) : teamMembers.length === 0 ? (
-                      <div className="py-2 px-2 text-sm text-muted-foreground">No team members found</div>
+                      <div className="py-2 px-2 text-sm text-muted-foreground">
+                        No team members found
+                      </div>
                     ) : (
-                      teamMembers.filter((m: any) => m.id).map((m: any) => (
-                        <SelectItem key={m.id} value={String(m.id)}>{m.name}</SelectItem>
-                      ))
+                      teamMembers
+                        .filter((m: any) => m.id)
+                        .map((m: any) => (
+                          <SelectItem key={m.id} value={String(m.id)}>
+                            {m.name}
+                          </SelectItem>
+                        ))
                     )}
                   </SelectContent>
                 </Select>
@@ -522,20 +799,31 @@ export default function NewProject() {
             <div>
               <Label className="mb-2 block">Team Members</Label>
               {isLoadingTeam ? (
-                <p className="text-sm text-muted-foreground">Loading team members...</p>
+                <p className="text-sm text-muted-foreground">
+                  Loading team members...
+                </p>
               ) : teamMembers.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No team members found. Add team members in the Team page first.</p>
+                <p className="text-sm text-muted-foreground">
+                  No team members found. Add team members in the Team page
+                  first.
+                </p>
               ) : (
                 <div className="flex flex-wrap gap-2">
                   {teamMembers.map((member: any) => (
-                    <Badge 
-                      key={member.id} 
-                      variant={formData.teamMemberIds.includes(String(member.id)) ? 'default' : 'outline'} 
-                      className="cursor-pointer" 
+                    <Badge
+                      key={member.id}
+                      variant={
+                        formData.teamMemberIds.includes(String(member.id))
+                          ? "default"
+                          : "outline"
+                      }
+                      className="cursor-pointer"
                       onClick={() => handleTeamMemberToggle(String(member.id))}
                     >
                       {member.name}
-                      {formData.teamMemberIds.includes(String(member.id)) && <X className="ml-1 h-3 w-3" />}
+                      {formData.teamMemberIds.includes(String(member.id)) && (
+                        <X className="ml-1 h-3 w-3" />
+                      )}
                     </Badge>
                   ))}
                 </div>
@@ -550,7 +838,17 @@ export default function NewProject() {
             <CardTitle>Project Lead Comments</CardTitle>
           </CardHeader>
           <CardContent>
-            <Textarea value={formData.projectLeadComments} onChange={(e) => setFormData({ ...formData, projectLeadComments: e.target.value })} placeholder="Add any notes or comments..." rows={3} />
+            <Textarea
+              value={formData.projectLeadComments}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  projectLeadComments: e.target.value,
+                })
+              }
+              placeholder="Add any notes or comments..."
+              rows={3}
+            />
           </CardContent>
         </Card>
 
@@ -558,10 +856,19 @@ export default function NewProject() {
         <Card>
           <CardHeader>
             <CardTitle>Support Needed</CardTitle>
-            <CardDescription>Areas where support is needed on this project</CardDescription>
+            <CardDescription>
+              Areas where support is needed on this project
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <Textarea value={formData.supportNeeded} onChange={(e) => setFormData({ ...formData, supportNeeded: e.target.value })} placeholder="Describe any areas where support is needed..." rows={3} />
+            <Textarea
+              value={formData.supportNeeded}
+              onChange={(e) =>
+                setFormData({ ...formData, supportNeeded: e.target.value })
+              }
+              placeholder="Describe any areas where support is needed..."
+              rows={3}
+            />
           </CardContent>
         </Card>
 
@@ -574,31 +881,68 @@ export default function NewProject() {
             <div className="flex flex-col sm:flex-row gap-4 items-end">
               <div className="flex-1 space-y-2 w-full">
                 <Label>Milestone Title</Label>
-                <Input value={newMilestone.title} onChange={(e) => setNewMilestone({ ...newMilestone, title: e.target.value })} placeholder="e.g., Phase 1 Completion" />
+                <Input
+                  value={newMilestone.title}
+                  onChange={(e) =>
+                    setNewMilestone({ ...newMilestone, title: e.target.value })
+                  }
+                  placeholder="e.g., Phase 1 Completion"
+                />
               </div>
               <div className="space-y-2">
                 <Label>Due Date</Label>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className={cn('w-full sm:w-[180px] justify-start text-left font-normal', !newMilestone.dueDate && 'text-muted-foreground')}>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full sm:w-[180px] justify-start text-left font-normal",
+                        !newMilestone.dueDate && "text-muted-foreground",
+                      )}
+                    >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {newMilestone.dueDate ? format(newMilestone.dueDate, 'PPP') : 'Pick date'}
+                      {newMilestone.dueDate
+                        ? format(newMilestone.dueDate, "PPP")
+                        : "Pick date"}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={newMilestone.dueDate} onSelect={(date) => setNewMilestone({ ...newMilestone, dueDate: date })} initialFocus /></PopoverContent>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={newMilestone.dueDate}
+                      onSelect={(date) =>
+                        setNewMilestone({ ...newMilestone, dueDate: date })
+                      }
+                      initialFocus
+                    />
+                  </PopoverContent>
                 </Popover>
               </div>
-              <Button type="button" onClick={handleAddMilestone}><Plus className="h-4 w-4" /></Button>
+              <Button type="button" onClick={handleAddMilestone}>
+                <Plus className="h-4 w-4" />
+              </Button>
             </div>
             {milestones.length > 0 && (
               <div className="space-y-2">
                 {milestones.map((milestone, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-3 bg-muted rounded-lg"
+                  >
                     <div>
                       <p className="font-medium">{milestone.title}</p>
-                      <p className="text-sm text-muted-foreground">Due: {format(new Date(milestone.dueDate), 'PPP')}</p>
+                      <p className="text-sm text-muted-foreground">
+                        Due: {format(new Date(milestone.dueDate), "PPP")}
+                      </p>
                     </div>
-                    <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveMilestone(index)}><X className="h-4 w-4" /></Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleRemoveMilestone(index)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
                   </div>
                 ))}
               </div>
@@ -610,26 +954,40 @@ export default function NewProject() {
         <Card>
           <CardHeader>
             <CardTitle>Project Image</CardTitle>
-            <CardDescription>Upload an image to represent this project</CardDescription>
+            <CardDescription>
+              Upload an image to represent this project
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <ProjectImageUpload
               value={formData.projectImage}
-              onChange={(img) => setFormData({ ...formData, projectImage: img })}
+              onChange={(img) =>
+                setFormData({ ...formData, projectImage: img })
+              }
             />
           </CardContent>
         </Card>
 
         {/* Documents */}
-        <DocumentManager documents={documents} onDocumentsChange={setDocuments} />
+        <DocumentManager
+          documents={documents}
+          onDocumentsChange={setDocuments}
+        />
 
         <Separator />
 
         <div className="flex flex-col-reverse sm:flex-row justify-end gap-4">
-          <Button type="button" variant="outline" onClick={() => navigate('/projects')} disabled={isSubmitting}>Cancel</Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => navigate("/projects")}
+            disabled={isSubmitting}
+          >
+            Cancel
+          </Button>
           <Button type="submit" disabled={isSubmitting}>
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isSubmitting ? 'Creating...' : 'Create Project'}
+            {isSubmitting ? "Creating..." : "Create Project"}
           </Button>
         </div>
       </form>

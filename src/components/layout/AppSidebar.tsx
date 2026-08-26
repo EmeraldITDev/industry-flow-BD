@@ -114,7 +114,7 @@ export function AppSidebar() {
 
         <SidebarGroup>
           <SidebarGroupLabel className="text-xs font-medium text-muted-foreground px-2 py-2">
-            Sectors
+            Business Verticals
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
