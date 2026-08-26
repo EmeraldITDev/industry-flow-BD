@@ -41,7 +41,22 @@ function filtersFromParams(params: URLSearchParams): FilterState {
 
   for (const key of ARRAY_FILTER_KEYS) {
     const raw = params.get(key);
-    if (raw) (f as any)[key] = raw.split(',').filter(Boolean);
+    if (!raw) continue;
+
+    const trimmed = raw.trim();
+    if (trimmed.startsWith('[')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) {
+          (f as any)[key] = parsed.filter((value): value is string => typeof value === 'string' && value.length > 0);
+          continue;
+        }
+      } catch {
+        // Fall back to legacy comma-separated parsing below.
+      }
+    }
+
+    (f as any)[key] = raw.split(',').filter(Boolean);
   }
 
   // Legacy single-value params (from dashboard deep links)
@@ -69,7 +84,7 @@ function filtersToParams(filters: FilterState): URLSearchParams {
 
   for (const key of ARRAY_FILTER_KEYS) {
     const arr = (filters as any)[key] as string[];
-    if (arr && arr.length > 0) params.set(key, arr.join(','));
+    if (arr && arr.length > 0) params.set(key, JSON.stringify(arr));
   }
 
   if (filters.dateFrom) params.set('dateFrom', filters.dateFrom.toISOString());
