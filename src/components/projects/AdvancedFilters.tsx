@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
-import { Sector, PipelineStage, BusinessSegment, PIPELINE_STAGES, Project, TeamMember } from '@/types';
-import { sectors, businessSegments } from '@/data/mockData';
+import { Sector, PipelineStage, PIPELINE_STAGES, Project, TeamMember } from '@/types';
+import { sectors } from '@/data/mockData';
+import { PRODUCT_OPTIONS, getSubproductOptions } from '@/data/productCatalog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -27,7 +28,8 @@ export interface FilterState {
   sectors: string[];
   statuses: string[];
   pipelineStages: string[];
-  businessSegments: string[];
+  products: string[];
+  subproducts: string[];
   projectLeads: string[];
   assignees: string[];
   clientNames: string[];
@@ -55,7 +57,8 @@ export const defaultFilters: FilterState = {
   sectors: [],
   statuses: [],
   pipelineStages: [],
-  businessSegments: [],
+  products: [],
+  subproducts: [],
   projectLeads: [],
   assignees: [],
   clientNames: [],
@@ -155,6 +158,7 @@ export function AdvancedFilters({ filters, onFiltersChange, projects = [], teamM
   const sectorOptions = sectors.map((s) => ({ value: s, label: s }));
 
   const segmentOptions = businessSegments.map((s) => ({ value: s, label: s }));
+  const productOptions = PRODUCT_OPTIONS.map((p) => ({ value: p.value, label: p.label }));
 
   const statusOptions = ALL_PROJECT_STATUSES.map((s) => ({
     value: s,
@@ -220,24 +224,36 @@ export function AdvancedFilters({ filters, onFiltersChange, projects = [], teamM
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Business Segment</Label>
-                  <MultiSearchableSelect
-                    values={filters.businessSegments}
-                    onValuesChange={(values) => onFiltersChange({ ...filters, businessSegments: values })}
-                    options={segmentOptions}
-                    placeholder="All Segments"
-                    searchPlaceholder="Search segments..."
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Sector</Label>
+                  <Label>Business Vertical</Label>
                   <MultiSearchableSelect
                     values={filters.sectors}
                     onValuesChange={(values) => onFiltersChange({ ...filters, sectors: values })}
                     options={sectorOptions}
-                    placeholder="All Sectors"
-                    searchPlaceholder="Search sectors..."
+                    placeholder="All Business Verticals"
+                    searchPlaceholder="Search business verticals..."
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Product</Label>
+                  <MultiSearchableSelect
+                    values={filters.products}
+                    onValuesChange={(values) => onFiltersChange({ ...filters, products: values })}
+                    options={productOptions}
+                    placeholder="All Products"
+                    searchPlaceholder="Search products..."
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Sub Product</Label>
+                  <MultiSearchableSelect
+                    values={filters.subproducts}
+                    onValuesChange={(values) => onFiltersChange({ ...filters, subproducts: values })}
+                    options={getSubproductOptions(filters.products || [])}
+                    placeholder={filters.products.length === 0 ? 'Select a product first' : 'All Sub Products'}
+                    searchPlaceholder="Search sub products..."
+                    disabled={filters.products.length === 0}
                   />
                 </div>
 
