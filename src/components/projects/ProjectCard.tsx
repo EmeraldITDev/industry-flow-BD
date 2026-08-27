@@ -1,14 +1,14 @@
-import { Project, Sector, PIPELINE_STAGES } from '@/types';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { sectorColors, sectorIcons, stageColors } from '@/data/mockData';
-import { Calendar, Users, CheckSquare, MessageSquare } from 'lucide-react';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Link } from 'react-router-dom';
-import { format, isValid } from 'date-fns';
-import { useCurrency } from '@/context/CurrencyContext';
-import { getStageProgress } from '@/lib/stageProgress';
+import { Project, Sector, PIPELINE_STAGES } from "@/types";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { sectorColors, sectorIcons, stageColors } from "@/data/mockData";
+import { Calendar, Users, CheckSquare, MessageSquare } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Link } from "react-router-dom";
+import { format, isValid } from "date-fns";
+import { useCurrency } from "@/context/CurrencyContext";
+import { getStageProgress } from "@/lib/stageProgress";
 
 interface ProjectCardProps {
   project: Project;
@@ -17,31 +17,43 @@ interface ProjectCardProps {
   onSelectToggle?: (id: string) => void;
 }
 
-function safeFormatDate(dateStr: string | undefined, formatStr: string): string {
-  if (!dateStr) return '-';
+function safeFormatDate(
+  dateStr: string | undefined,
+  formatStr: string,
+): string {
+  if (!dateStr) return "-";
   const date = new Date(dateStr);
-  return isValid(date) ? format(date, formatStr) : '-';
+  return isValid(date) ? format(date, formatStr) : "-";
 }
 
-export function ProjectCard({ project, selectable, selected, onSelectToggle }: ProjectCardProps) {
-  const { currency, formatCurrency, getContractValue, getMarginValue } = useCurrency();
-  
+export function ProjectCard({
+  project,
+  selectable,
+  selected,
+  onSelectToggle,
+}: ProjectCardProps) {
+  const { currency, formatCurrency, getContractValue, getMarginValue } =
+    useCurrency();
+
   const statusColors = {
-    active: 'bg-chart-1/20 text-chart-1 border-chart-1/30',
-    'on-hold': 'bg-chart-5/20 text-chart-5 border-chart-5/30',
-    completed: 'bg-chart-2/20 text-chart-2 border-chart-2/30',
+    active: "bg-chart-1/20 text-chart-1 border-chart-1/30",
+    "on-hold": "bg-chart-5/20 text-chart-5 border-chart-5/30",
+    completed: "bg-chart-2/20 text-chart-2 border-chart-2/30",
   };
 
   const tasks = Array.isArray(project.tasks) ? project.tasks : [];
-  const completedTasks = tasks.filter(t => t.status === 'completed').length;
-  const stageLabel = PIPELINE_STAGES.find(s => s.value === project.pipelineStage)?.label || project.pipelineStage;
-  
+  const completedTasks = tasks.filter((t) => t.status === "completed").length;
+  const stageLabel =
+    PIPELINE_STAGES.find((s) => s.value === project.pipelineStage)?.label ||
+    project.pipelineStage;
+
   const contractValue = getContractValue(project);
   const marginValue = getMarginValue(project);
-  
 
   const card = (
-    <Card className={`hover:border-primary/50 hover:shadow-md transition-all cursor-pointer group relative ${selected ? 'border-primary ring-2 ring-primary/20' : ''}`}>
+    <Card
+      className={`hover:border-primary/50 hover:shadow-md transition-all cursor-pointer group relative ${selected ? "border-primary ring-2 ring-primary/20" : ""}`}
+    >
       {selectable && (
         <div
           className="absolute top-2 left-2 z-10"
@@ -54,13 +66,24 @@ export function ProjectCard({ project, selectable, selected, onSelectToggle }: P
           <Checkbox checked={selected} />
         </div>
       )}
-      <CardHeader className={`p-3 sm:p-6 pb-2 sm:pb-3 ${selectable ? 'pl-9' : ''}`}>
+      <CardHeader
+        className={`p-3 sm:p-6 pb-2 sm:pb-3 ${selectable ? "pl-9" : ""}`}
+      >
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap min-w-0">
-            <span className={`text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md font-medium truncate max-w-[120px] sm:max-w-none ${sectorColors[project.sector as Sector] || 'bg-muted text-muted-foreground'}`}>
-              {sectorIcons[project.sector as Sector] || '📁'} <span className="hidden sm:inline">{project.sector}</span>
+            <span
+              className={`text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md font-medium truncate max-w-[120px] sm:max-w-none ${sectorColors[project.businessVertical as Sector] || "bg-muted text-muted-foreground"}`}
+            >
+              {sectorIcons[project.businessVertical as Sector] || "📁"}{" "}
+              <span className="hidden sm:inline">
+                {project.businessVertical || "Unassigned"}
+              </span>
             </span>
-            <Badge variant="outline" className={`text-[10px] sm:text-xs ${statusColors[project.status] || ''}`}>
+
+            <Badge
+              variant="outline"
+              className={`text-[10px] sm:text-xs ${statusColors[project.status] || ""}`}
+            >
               {project.status}
             </Badge>
           </div>
@@ -75,7 +98,10 @@ export function ProjectCard({ project, selectable, selected, onSelectToggle }: P
         <h3 className="font-semibold text-sm sm:text-lg mt-1.5 sm:mt-2 group-hover:text-primary transition-colors line-clamp-2">
           {project.name}
         </h3>
-        <Badge variant="outline" className={`w-fit text-[10px] sm:text-xs ${stageColors[project.pipelineStage] || ''}`}>
+        <Badge
+          variant="outline"
+          className={`w-fit text-[10px] sm:text-xs ${stageColors[project.pipelineStage] || ""}`}
+        >
           {stageLabel}
         </Badge>
       </CardHeader>
@@ -83,35 +109,46 @@ export function ProjectCard({ project, selectable, selected, onSelectToggle }: P
         <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 break-words">
           {project.description}
         </p>
-        
+
         {(project.clientName || contractValue > 0) && (
           <div className="space-y-1.5 sm:space-y-2">
             <div className="flex items-center justify-between text-xs sm:text-sm gap-2">
-              <span className="text-muted-foreground truncate flex-1 min-w-0">{project.clientName || '-'}</span>
+              <span className="text-muted-foreground truncate flex-1 min-w-0">
+                {project.clientName || "-"}
+              </span>
             </div>
             <div className="flex flex-col gap-1 text-[10px] sm:text-xs">
               {contractValue > 0 && (
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">Contract Value:</span>
-                  <span className="font-medium">{formatCurrency(contractValue)}</span>
+                  <span className="font-medium">
+                    {formatCurrency(contractValue)}
+                  </span>
                 </div>
               )}
               {marginValue > 0 && (
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">Margin:</span>
-                  <span className="font-medium text-chart-2">{formatCurrency(marginValue)}</span>
+                  <span className="font-medium text-chart-2">
+                    {formatCurrency(marginValue)}
+                  </span>
                 </div>
               )}
             </div>
           </div>
         )}
-        
+
         <div className="space-y-1 sm:space-y-2">
           <div className="flex items-center justify-between text-xs sm:text-sm">
             <span className="text-muted-foreground">Progress</span>
-            <span className="font-medium">{getStageProgress(project.pipelineStage, project.progress)}%</span>
+            <span className="font-medium">
+              {getStageProgress(project.pipelineStage, project.progress)}%
+            </span>
           </div>
-          <Progress value={getStageProgress(project.pipelineStage, project.progress)} className="h-1.5 sm:h-2" />
+          <Progress
+            value={getStageProgress(project.pipelineStage, project.progress)}
+            className="h-1.5 sm:h-2"
+          />
         </div>
 
         {/* Project Lead Comments */}
@@ -134,11 +171,13 @@ export function ProjectCard({ project, selectable, selected, onSelectToggle }: P
           </div>
           <div className="flex items-center gap-0.5 sm:gap-1">
             <CheckSquare className="w-3 h-3 sm:w-4 sm:h-4" />
-            <span>{completedTasks}/{tasks.length}</span>
+            <span>
+              {completedTasks}/{tasks.length}
+            </span>
           </div>
           <div className="flex items-center gap-0.5 sm:gap-1">
             <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
-            <span>{safeFormatDate(project.startDate, 'MMM d')}</span>
+            <span>{safeFormatDate(project.startDate, "MMM d")}</span>
           </div>
         </div>
       </CardContent>
@@ -147,7 +186,10 @@ export function ProjectCard({ project, selectable, selected, onSelectToggle }: P
 
   if (selectable) {
     return (
-      <div onClick={() => onSelectToggle?.(project.id)} className="cursor-pointer">
+      <div
+        onClick={() => onSelectToggle?.(project.id)}
+        className="cursor-pointer"
+      >
         {card}
       </div>
     );
