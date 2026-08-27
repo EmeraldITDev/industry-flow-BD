@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Sector, PipelineStage, PIPELINE_STAGES, Project, TeamMember } from '@/types';
-import { sectors } from '@/data/mockData';
+import { businessVerticals, industrySectors } from '@/data/mockData';
 import { PRODUCT_OPTIONS, getSubproductOptions } from '@/data/productCatalog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,6 +25,7 @@ import { ALL_PROJECT_STATUSES, getStatusLabel } from '@/lib/stageStatusRules';
 
 export interface FilterState {
   search: string;
+  businessVerticals: string[];
   sectors: string[];
   statuses: string[];
   pipelineStages: string[];
@@ -55,6 +56,7 @@ const MAX_ACTIVE_TAGS = 5;
 
 export const defaultFilters: FilterState = {
   search: '',
+  businessVerticals: [],
   sectors: [],
   statuses: [],
   businessSegments: [],
@@ -157,7 +159,9 @@ export function AdvancedFilters({ filters, onFiltersChange, projects = [], teamM
     label: stage.label,
   }));
 
-  const sectorOptions = sectors.map((s) => ({ value: s, label: s }));
+  const businessVerticalOptions = businessVerticals.map((s) => ({ value: s, label: s }));
+
+  const sectorOptions = industrySectors.map((s) => ({ value: s, label: s }));
 
   const productOptions = PRODUCT_OPTIONS.map((p) => ({ value: p.value, label: p.label }));
 
@@ -227,11 +231,22 @@ export function AdvancedFilters({ filters, onFiltersChange, projects = [], teamM
                 <div className="space-y-2">
                   <Label>Business Vertical</Label>
                   <MultiSearchableSelect
+                    values={filters.businessVerticals}
+                    onValuesChange={(values) => onFiltersChange({ ...filters, businessVerticals: values })}
+                    options={businessVerticalOptions}
+                    placeholder="All Business Verticals"
+                    searchPlaceholder="Search business verticals..."
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Sector</Label>
+                  <MultiSearchableSelect
                     values={filters.sectors}
                     onValuesChange={(values) => onFiltersChange({ ...filters, sectors: values })}
                     options={sectorOptions}
-                    placeholder="All Business Verticals"
-                    searchPlaceholder="Search business verticals..."
+                    placeholder="All Sectors"
+                    searchPlaceholder="Search sectors..."
                   />
                 </div>
 
@@ -452,6 +467,7 @@ export function AdvancedFilters({ filters, onFiltersChange, projects = [], teamM
           {([
             { key: 'pipelineStages', prefix: 'Stage', label: (v: string) => PIPELINE_STAGES.find(ps => ps.value === v)?.label || v },
             { key: 'businessSegments', prefix: 'Segment', label: (v: string) => v },
+            { key: 'businessVerticals', prefix: 'Vertical', label: (v: string) => v },
             { key: 'sectors', prefix: 'Sector', label: (v: string) => v },
             { key: 'statuses', prefix: 'Status', label: (v: string) => getStatusLabel(v as any) },
             { key: 'projectLeads', prefix: 'Lead', label: (v: string) => projectLeadOptions.find(o => o.value === v)?.label || v },

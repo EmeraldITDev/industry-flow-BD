@@ -39,18 +39,18 @@ const mainNavItems = [
   { title: 'Team', url: '/team', icon: Users },
 ];
 
-const sectorNavItems = [
-  { title: 'EMR_Aftermarket Services', sector: 'EMR_Aftermarket Services', icon: Settings2 },
-  { title: 'EMR_O&M', sector: 'EMR_O&M', icon: Wrench },
-  { title: 'EMR_Special Projects', sector: 'EMR_Special Projects', icon: Building2 },
-  { title: 'EMR_Trading', sector: 'EMR_Trading', icon: TrendingUp },
-  { title: 'EMR_Manufacturing', sector: 'EMR_Manufacturing', icon: Factory },
+const businessVerticalNavItems = [
+  { title: 'EMR_Aftermarket Services', businessVertical: 'EMR_Aftermarket Services', icon: Settings2 },
+  { title: 'EMR_O&M', businessVertical: 'EMR_O&M', icon: Wrench },
+  { title: 'EMR_Special Projects', businessVertical: 'EMR_Special Projects', icon: Building2 },
+  { title: 'EMR_Trading', businessVertical: 'EMR_Trading', icon: TrendingUp },
+  { title: 'EMR_Manufacturing', businessVertical: 'EMR_Manufacturing', icon: Factory },
 ];
 
 export function AppSidebar() {
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
-  const currentSector = searchParams.get('sector');
+  const currentBusinessVertical = searchParams.get('businessVertical');
   const { canCreateProjects, canManageSettings } = usePermissions();
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
@@ -118,13 +118,13 @@ export function AppSidebar() {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {sectorNavItems.map((item) => {
-                const isActive = location.pathname === '/projects' && currentSector === item.sector;
+              {businessVerticalNavItems.map((item) => {
+                const isActive = location.pathname === '/projects' && currentBusinessVertical === item.businessVertical;
                 return (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild>
                       <NavLink 
-                        to={`/projects?sector=${encodeURIComponent(item.sector)}`}
+                        to={`/projects?businessVertical=${encodeURIComponent(item.businessVertical)}`}
                         className={cn(
                           "flex items-center gap-3 px-3 py-2 rounded-md text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors",
                           isActive && "bg-primary/10 text-primary font-medium"

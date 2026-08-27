@@ -110,6 +110,7 @@ function checkPageBreak(pdf: jsPDF, y: number, needed: number): number {
 /* ------------------------------------------------------------------ */
 
 export interface ProjectFilterSummary {
+  businessVerticals?: string[];
   sectors?: string[];
   statuses?: string[];
   pipelineStages?: string[];
@@ -122,6 +123,7 @@ export interface ProjectFilterSummary {
 function buildFilterString(filters: ProjectFilterSummary): string {
   const parts: string[] = [];
   if (filters.search) parts.push(`Search: "${filters.search}"`);
+  if (filters.businessVerticals?.length) parts.push(`Business Verticals: ${filters.businessVerticals.join(', ')}`);
   if (filters.sectors?.length) parts.push(`Sectors: ${filters.sectors.join(', ')}`);
   if (filters.statuses?.length) parts.push(`Status: ${filters.statuses.join(', ')}`);
   if (filters.pipelineStages?.length) parts.push(`Stages: ${filters.pipelineStages.join(', ')}`);
@@ -142,12 +144,13 @@ export function generateProjectsReport(
 
   // Column definitions
   const colDefs: { label: string; pct: number }[] = [
-  { label: 'Project Name',      pct: 0.13 },
-  { label: 'Description',       pct: 0.16 },
-  { label: 'Client',            pct: 0.10 },
+  { label: 'Project Name',      pct: 0.12 },
+  { label: 'Description',       pct: 0.13 },
+  { label: 'Client',            pct: 0.08 },
   { label: 'Channel Partner',   pct: 0.09 },
   { label: 'Business Vertical', pct: 0.09 },
-  { label: 'Stage',             pct: 0.08 },
+  { label: 'Sector',            pct: 0.07 },
+  { label: 'Stage',             pct: 0.07 },
   { label: 'Status',            pct: 0.06 },
   { label: 'Value (USD)',       pct: 0.09 },
   { label: 'Value (NGN)',       pct: 0.10 },
@@ -178,6 +181,7 @@ const cols = colDefs.reduce<{ label: string; x: number; w: number }[]>((acc, c) 
     p.description || '—',
     p.clientName || '—',
     p.channelPartner || '—',
+    p.businessVertical || '—',
     p.sector || '—',
     stageLabel,
     p.status || '—',
@@ -676,8 +680,8 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
 
   drawSectionTitle('Project Overview');
   drawFieldRows([
+    { label: 'Business Vertical', value: project.businessVertical },
     { label: 'Sector', value: project.sector },
-    { label: 'Business Vertical', value: project.sector },
     { label: 'Business Segment', value: project.businessSegment },
     { label: 'Client', value: project.clientName },
     { label: 'Client Contact', value: project.clientContact },

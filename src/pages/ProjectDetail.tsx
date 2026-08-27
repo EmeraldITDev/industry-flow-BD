@@ -124,6 +124,7 @@ export default function ProjectDetail() {
         oem: data.oem,
         location: data.location,
         businessSegment: data.business_segment || data.businessSegment,
+        businessVertical: data.businessVertical || data.business_vertical || undefined,
         pipelineStage: data.pipeline_stage || data.pipelineStage,
         pipelineIntakeDate:
           data.pipeline_intake_date || data.pipelineIntakeDate,
@@ -369,10 +370,12 @@ export default function ProjectDetail() {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 sm:gap-2 mb-1 flex-wrap">
             <span
-              className={`text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md font-medium ${sectorColors[project.sector as Sector] || "bg-muted text-muted-foreground"}`}
+              className={`text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md font-medium ${sectorColors[project.businessVertical as Sector] || "bg-muted text-muted-foreground"}`}
             >
-              {sectorIcons[project.sector as Sector] || "📁"}{" "}
-              <span className="hidden sm:inline">{project.sector}</span>
+              {sectorIcons[project.businessVertical as Sector] || "📁"}{" "}
+              <span className="hidden sm:inline">
+                {project.businessVertical || project.sector}
+              </span>
             </span>
             <Badge
               variant="outline"
@@ -533,11 +536,19 @@ export default function ProjectDetail() {
                     <p className="font-medium text-sm">{project.location}</p>
                   </div>
                 )}
-                {project.sector && (
+                {project.businessVertical && (
                   <div>
                     <p className="text-xs text-muted-foreground">
                       Business Vertical
                     </p>
+                    <p className="font-medium text-sm">
+                      {project.businessVertical}
+                    </p>
+                  </div>
+                )}
+                {project.sector && (
+                  <div>
+                    <p className="text-xs text-muted-foreground">Sector</p>
                     <p className="font-medium text-sm">{project.sector}</p>
                   </div>
                 )}

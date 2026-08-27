@@ -30,7 +30,7 @@ import { Separator } from "@/components/ui/separator";
 import { CalendarIcon, Plus, X, AlertTriangle, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { sectors, businessSegments } from "@/data/mockData";
+import { businessVerticals, industrySectors, businessSegments } from "@/data/mockData";
 import { parseNumberInput } from "@/lib/utils";
 import {
   Sector,
@@ -104,7 +104,8 @@ export default function NewProject() {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    sector: "" as Sector | "",
+    sector: "",
+    businessVertical: "",
     status: "active" as "active" | "on-hold" | "completed" | "inactive",
     startDate: undefined as Date | undefined,
     endDate: undefined as Date | undefined,
@@ -185,7 +186,7 @@ export default function NewProject() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.name || !formData.description || !formData.sector) {
+    if (!formData.name || !formData.description || !formData.businessVertical) {
       toast.error("Please fill in all required fields");
       return;
     }
@@ -210,7 +211,8 @@ export default function NewProject() {
       await projectsService.create({
         name: formData.name,
         description: formData.description,
-        sector: formData.sector as Sector,
+        sector: (formData.sector || undefined) as Sector | undefined,
+        businessVertical: formData.businessVertical || undefined,
         status: formData.status,
         startDate: formData.startDate?.toISOString(),
         endDate: formData.endDate?.toISOString(),
@@ -221,7 +223,8 @@ export default function NewProject() {
         oem: formData.oem || undefined,
         location: formData.location || undefined,
         expectedCloseDate: formData.expectedCloseDate?.toISOString(),
-        businessSegment: (formData.sector as BusinessSegment) || undefined, // mirrors sector; column consolidation is a backend task        products: formData.products,
+        businessSegment: (formData.businessVertical as BusinessSegment) || undefined,
+        products: formData.products,
         subproducts: formData.subproducts,
         projectLeadId: formData.projectLeadId || undefined,
         assigneeId: formData.assigneeId || undefined,
@@ -304,20 +307,40 @@ export default function NewProject() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="sector">Business Vertical *</Label>
+                <Label htmlFor="businessVertical">Business Vertical *</Label>
                 <Select
-                  value={formData.sector}
-                  onValueChange={(value: Sector) =>
-                    setFormData({ ...formData, sector: value })
+                  value={formData.businessVertical}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, businessVertical: value })
                   }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select business vertical" />
                   </SelectTrigger>
                   <SelectContent>
-                    {sectors.map((sector) => (
-                      <SelectItem key={sector} value={sector}>
-                        {sector}
+                    {businessVerticals.map((bv) => (
+                      <SelectItem key={bv} value={bv}>
+                        {bv}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="sector">Sector</Label>
+                <Select
+                  value={formData.sector}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, sector: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select sector" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {industrySectors.map((s) => (
+                      <SelectItem key={s} value={s}>
+                        {s}
                       </SelectItem>
                     ))}
                   </SelectContent>

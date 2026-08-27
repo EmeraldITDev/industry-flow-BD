@@ -6,7 +6,8 @@ import { getDefaultStatusForStage, isValidStageStatus, type ProjectStatus } from
 export interface CreateProjectData {
   name: string;
   description: string;
-  sector: Sector;
+  sector?: Sector | string;
+  businessVertical?: string;
   status?: 'active' | 'on-hold' | 'completed' | 'inactive';
   startDate: string;
   endDate?: string;
@@ -395,6 +396,7 @@ export const projectsService = {
       pipelineIntakeDate: 'pipeline_intake_date',
       expectedCloseDate: 'expected_close_date',
       businessSegment: 'business_segment',
+      businessVertical: 'business_vertical',
       subProduct: 'sub_product',
       projectLeadId: 'project_lead_id',
       assigneeId: 'assignee_id',
@@ -485,6 +487,7 @@ export const projectsService = {
       pipelineIntakeDate: 'pipeline_intake_date',
       expectedCloseDate: 'expected_close_date',
       businessSegment: 'business_segment',
+      businessVertical: 'business_vertical',
       subProduct: 'sub_product',
       projectLeadId: 'project_lead_id',
       assigneeId: 'assignee_id',

@@ -1,5 +1,5 @@
 import { Sector } from '@/types';
-import { sectors, sectorIcons } from '@/data/mockData';
+import { businessVerticals as sectors, sectorIcons } from '@/data/mockData';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 

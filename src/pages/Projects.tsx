@@ -29,7 +29,7 @@ const sectorDisplayNames: Record<string, string> = {
 
 // Array filter keys that map to URL params (comma-separated)
 const ARRAY_FILTER_KEYS: (keyof FilterState)[] = [
-  'sectors', 'statuses', 'pipelineStages', 'businessSegments',
+  'businessVerticals', 'sectors', 'statuses', 'pipelineStages', 'businessSegments',
   'projectLeads', 'assignees', 'clientNames', 'oems',
   'locations', 'channelPartners', 'dealProbabilities',
 ];
@@ -60,7 +60,7 @@ function filtersFromParams(params: URLSearchParams): FilterState {
   }
 
   // Legacy single-value params (from dashboard deep links)
-  if (f.sectors.length === 0 && params.get('sector')) f.sectors = [params.get('sector')!];
+  if (f.businessVerticals.length === 0 && params.get('businessVertical')) f.businessVerticals = [params.get('businessVertical')!];
   if (f.statuses.length === 0 && params.get('status')) f.statuses = [params.get('status')!];
   if (f.dealProbabilities.length === 0 && params.get('dealProbability')) f.dealProbabilities = [params.get('dealProbability')!];
 
@@ -113,7 +113,7 @@ export default function Projects() {
   const [isDeleting, setIsDeleting] = useState(false);
   
   // Calculate page title based on sector filter
-  const sectorParam = filters.sectors.length === 1 ? filters.sectors[0] : null;
+  const sectorParam = filters.businessVerticals.length === 1 ? filters.businessVerticals[0] : null;
   const pageTitle = sectorParam && sectorDisplayNames[sectorParam] 
     ? sectorDisplayNames[sectorParam] 
     : 'Projects';
@@ -192,6 +192,7 @@ export default function Projects() {
       }
       
       // Multi-select filters (empty array = no filter / show all)
+      if (filters.businessVerticals.length > 0 && !filters.businessVerticals.includes(project.businessVertical || '')) return false;
       if (filters.sectors.length > 0 && !filters.sectors.includes(project.sector)) return false;
       if (filters.statuses.length > 0 && !filters.statuses.includes(project.status)) return false;
       if (filters.pipelineStages.length > 0 && !filters.pipelineStages.includes(project.pipelineStage)) return false;
@@ -297,6 +298,7 @@ export default function Projects() {
             onClick={() => {
               const filterSummary: ProjectFilterSummary = {
                 search: filters.search || undefined,
+                businessVerticals: filters.businessVerticals,
                 sectors: filters.sectors,
                 statuses: filters.statuses,
                 pipelineStages: filters.pipelineStages,
