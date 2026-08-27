@@ -36,6 +36,7 @@ const date = (v?: string) => (v ? String(v).split('T')[0] : '');
 const COLUMNS: Column[] = [
   { header: 'Project Name', get: (p) => p.name || '' },
   { header: 'Description', get: (p) => p.description || '' },
+  { header: 'Business Vertical', get: (p) => p.businessVertical || '' },
   { header: 'Sector', get: (p) => p.sector || '' },
   { header: 'Business Segment', get: (p) => p.businessSegment || '' },
   { header: 'Status', get: (p) => p.status || '' },
