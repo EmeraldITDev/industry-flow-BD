@@ -28,7 +28,7 @@ import {
 import { CalendarIcon, Loader2, ArrowLeft } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
-import { sectors, businessSegments } from "@/data/mockData";
+import { businessVerticals, industrySectors, businessSegments } from "@/data/mockData";
 import {
   Sector,
   RiskLevel,
@@ -102,7 +102,8 @@ export default function EditProject() {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    sector: "" as Sector | "",
+    sector: "",
+    businessVertical: "",
     status: "active" as "active" | "on-hold" | "completed" | "inactive",
     startDate: undefined as Date | undefined,
     endDate: undefined as Date | undefined,
@@ -161,6 +162,7 @@ export default function EditProject() {
       name: data.name ?? "",
       description: data.description ?? "",
       sector: data.sector ?? "",
+      businessVertical: data.businessVertical ?? data.business_vertical ?? "",
       status: data.status ?? "active",
 
       // Prefer normalized camelCase fields but fall back to snake_case from the API
@@ -255,7 +257,7 @@ export default function EditProject() {
     if (
       !formData.name ||
       !formData.description ||
-      !formData.sector ||
+      !formData.businessVertical ||
       !formData.startDate ||
       !id
     ) {
@@ -268,7 +270,8 @@ export default function EditProject() {
       await projectsService.update(id, {
         name: formData.name,
         description: formData.description,
-        sector: formData.sector as Sector,
+        sector: (formData.sector || undefined) as Sector | undefined,
+        businessVertical: formData.businessVertical || undefined,
         status: formData.status,
         startDate: formData.startDate.toISOString(),
         endDate: formData.endDate?.toISOString(),
@@ -279,7 +282,7 @@ export default function EditProject() {
         oem: formData.oem || undefined,
         location: formData.location || undefined,
         expectedCloseDate: formData.expectedCloseDate?.toISOString(),
-        businessSegment: (formData.sector as BusinessSegment) || undefined,
+        businessSegment: (formData.businessVertical as BusinessSegment) || undefined,
         products: formData.products,
         subproducts: formData.subproducts,
         projectLeadId: formData.projectLeadId || undefined,
@@ -444,7 +447,7 @@ export default function EditProject() {
                     <SelectValue placeholder="Select business vertical" />
                   </SelectTrigger>
                   <SelectContent>
-                    {businessVerticalOptions.map((bv) => (
+                    {businessVerticals.map((bv) => (
                       <SelectItem key={bv} value={bv}>
                         {bv}
                       </SelectItem>
@@ -463,12 +466,11 @@ export default function EditProject() {
                     <SelectValue placeholder="Select sector" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Oil & Gas">Oil & Gas</SelectItem>
-                    <SelectItem value="Petrochemicals">
-                      Petrochemicals
-                    </SelectItem>
-                    <SelectItem value="Power">Power</SelectItem>
-                    <SelectItem value="Other">Other</SelectItem>
+                    {industrySectors.map((s) => (
+                      <SelectItem key={s} value={s}>
+                        {s}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

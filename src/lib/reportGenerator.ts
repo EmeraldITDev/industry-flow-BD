@@ -144,9 +144,9 @@ export function generateProjectsReport(
 
   // Column definitions
   const colDefs: { label: string; pct: number }[] = [
-  { label: 'Project Name',      pct: 0.13 },
-  { label: 'Description',       pct: 0.16 },
-  { label: 'Client',            pct: 0.10 },
+  { label: 'Project Name',      pct: 0.12 },
+  { label: 'Description',       pct: 0.13 },
+  { label: 'Client',            pct: 0.08 },
   { label: 'Channel Partner',   pct: 0.09 },
   { label: 'Business Vertical', pct: 0.09 },
   { label: 'Sector',            pct: 0.07 },

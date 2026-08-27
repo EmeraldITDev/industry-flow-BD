@@ -124,6 +124,7 @@ export default function ProjectDetail() {
         oem: data.oem,
         location: data.location,
         businessSegment: data.business_segment || data.businessSegment,
+        businessVertical: data.businessVertical || data.business_vertical || undefined,
         pipelineStage: data.pipeline_stage || data.pipelineStage,
         pipelineIntakeDate:
           data.pipeline_intake_date || data.pipelineIntakeDate,
@@ -533,11 +534,19 @@ export default function ProjectDetail() {
                     <p className="font-medium text-sm">{project.location}</p>
                   </div>
                 )}
-                {project.sector && (
+                {project.businessVertical && (
                   <div>
                     <p className="text-xs text-muted-foreground">
                       Business Vertical
                     </p>
+                    <p className="font-medium text-sm">
+                      {project.businessVertical}
+                    </p>
+                  </div>
+                )}
+                {project.sector && (
+                  <div>
+                    <p className="text-xs text-muted-foreground">Sector</p>
                     <p className="font-medium text-sm">{project.sector}</p>
                   </div>
                 )}
