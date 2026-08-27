@@ -1,6 +1,9 @@
 import { Project, Task, Sector, TeamMember, PipelineStage, BusinessSegment, ProjectDocument } from '@/types';
 
-export const sectors: Sector[] = ['EMR_Aftermarket Services', 'EMR_O&M', 'EMR_Special Projects', 'EMR_Trading', 'EMR_Manufacturing'];
+export const businessVerticals: Sector[] = ['EMR_Aftermarket Services', 'EMR_O&M', 'EMR_Special Projects', 'EMR_Trading', 'EMR_Manufacturing'];
+
+// Industry classification (independent of Business Vertical)
+export const industrySectors: string[] = ['Oil & Gas', 'Petrochemicals', 'Power', 'Other'];
 
 export const businessSegments: BusinessSegment[] = ['EMR_Aftermarket Services', 'EMR_O&M', 'EMR_Special Projects', 'EMR_Trading', 'EMR_Manufacturing'];
 
