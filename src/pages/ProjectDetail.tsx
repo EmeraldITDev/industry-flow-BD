@@ -374,7 +374,7 @@ export default function ProjectDetail() {
             >
               {sectorIcons[project.businessVertical as Sector] || "📁"}{" "}
               <span className="hidden sm:inline">
-                {project.businessVertical || project.sector}
+                {project.businessVertical || "Unassigned"}
               </span>
             </span>
             <Badge
