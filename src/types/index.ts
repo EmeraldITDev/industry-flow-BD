@@ -93,6 +93,7 @@ export interface Project {
   sector: Sector;
   status: 'active' | 'on-hold' | 'completed' | 'inactive';
   progress: number;
+  businessVertical?: string;
   startDate: string;
   endDate?: string;
   teamSize: number;

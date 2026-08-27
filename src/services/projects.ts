@@ -188,6 +188,7 @@ const normalizeProject = (project: any): Project => {
     pipelineIntakeDate: project.pipelineIntakeDate ?? project.pipeline_intake_date ?? null,
     expectedCloseDate: project.expectedCloseDate ?? project.expected_close_date ?? null,
     businessSegment: project.businessSegment ?? project.business_segment ?? '',
+    businessVertical: project.businessVertical ?? project.business_vertical ?? '',
     oem: project.oem ?? project.OEM ?? 'n/a',
     subProduct: project.subProduct ?? project.sub_product ?? '',
     products: Array.isArray(project.products)

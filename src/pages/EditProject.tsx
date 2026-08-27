@@ -435,30 +435,40 @@ export default function EditProject() {
               <div className="space-y-2">
                 <Label>Business Vertical *</Label>
                 <Select
-                  value={formData.sector}
-                  onValueChange={(value: Sector) =>
-                    setFormData({ ...formData, sector: value })
+                  value={formData.businessVertical}
+                  onValueChange={(v) =>
+                    setFormData({ ...formData, businessVertical: v })
                   }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select business vertical" />
                   </SelectTrigger>
                   <SelectContent>
-                    {formData.sector &&
-                      !(sectors as string[]).includes(formData.sector) && (
-                        <SelectItem
-                          value={formData.sector}
-                          disabled
-                          className="text-muted-foreground italic"
-                        >
-                          {formData.sector} — Unknown, please update
-                        </SelectItem>
-                      )}
-                    {sectors.map((sector) => (
-                      <SelectItem key={sector} value={sector}>
-                        {sector}
+                    {businessVerticalOptions.map((bv) => (
+                      <SelectItem key={bv} value={bv}>
+                        {bv}
                       </SelectItem>
                     ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Sector</Label>
+                <Select
+                  value={formData.sector || ""}
+                  onValueChange={(v) => setFormData({ ...formData, sector: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select sector" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Oil & Gas">Oil & Gas</SelectItem>
+                    <SelectItem value="Petrochemicals">
+                      Petrochemicals
+                    </SelectItem>
+                    <SelectItem value="Power">Power</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
