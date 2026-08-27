@@ -371,7 +371,7 @@ export default function ProjectDetail() {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 sm:gap-2 mb-1 flex-wrap">
             <span
-              className={`... ${sectorColors[project.businessVertical as Sector] || "bg-muted text-muted-foreground"}`}
+              className={`text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md font-medium truncate max-w-[120px] sm:max-w-none ${sectorColors[project.businessVertical as Sector] || "bg-muted text-muted-foreground"}`}
             >
               {sectorIcons[project.businessVertical as Sector] || "📁"}{" "}
               <span className="hidden sm:inline">
