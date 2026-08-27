@@ -370,10 +370,12 @@ export default function ProjectDetail() {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 sm:gap-2 mb-1 flex-wrap">
             <span
-              className={`text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md font-medium ${sectorColors[project.sector as Sector] || "bg-muted text-muted-foreground"}`}
+              className={`text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md font-medium ${sectorColors[project.businessVertical as Sector] || "bg-muted text-muted-foreground"}`}
             >
-              {sectorIcons[project.sector as Sector] || "📁"}{" "}
-              <span className="hidden sm:inline">{project.sector}</span>
+              {sectorIcons[project.businessVertical as Sector] || "📁"}{" "}
+              <span className="hidden sm:inline">
+                {project.businessVertical || project.sector}
+              </span>
             </span>
             <Badge
               variant="outline"
