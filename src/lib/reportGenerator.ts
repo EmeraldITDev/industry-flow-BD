@@ -11,6 +11,72 @@ const MARGIN = 36;
 const CONTENT_W = PAGE_W - MARGIN * 2;
 const ROW_H = 28;
 const HEADER_ROW_H = 32;
+/** Horizontal inset so wrapped lines never touch the next column's gutter. */
+const CELL_PAD_LEFT = 4;
+const CELL_PAD_RIGHT = 8;
+/** Cap tall narrative fields so one row cannot consume an entire page. */
+const MAX_CELL_LINES = 8;
+
+function cellTextWidth(colWidth: number): number {
+  return Math.max(12, colWidth - CELL_PAD_LEFT - CELL_PAD_RIGHT);
+}
+
+function normalizeCellText(text: string): string {
+  return (text || '—').replace(/\r?\n/g, ' ').replace(/\s+/g, ' ').trim() || '—';
+}
+
+/** Hard-clips a single line to maxWidth (splitTextToSize can still overshoot). */
+function truncateLineToWidth(pdf: jsPDF, line: string, maxWidth: number): string {
+  if (pdf.getTextWidth(line) <= maxWidth) return line;
+  const ellipsis = '…';
+  let truncated = line;
+  while (truncated.length > 0 && pdf.getTextWidth(truncated + ellipsis) > maxWidth) {
+    truncated = truncated.slice(0, -1);
+  }
+  return truncated.length > 0 ? truncated + ellipsis : ellipsis;
+}
+
+function wrapCellText(
+  pdf: jsPDF,
+  text: string,
+  maxWidth: number,
+  maxLines = MAX_CELL_LINES
+): string[] {
+  const normalized = normalizeCellText(text);
+  let lines = pdf.splitTextToSize(normalized, maxWidth) as string[];
+
+  // jsPDF occasionally returns lines wider than maxWidth — re-split and truncate.
+  lines = lines
+    .flatMap((line) => {
+      if (pdf.getTextWidth(line) <= maxWidth) return [line];
+      return pdf.splitTextToSize(line, maxWidth * 0.92) as string[];
+    })
+    .map((line) => truncateLineToWidth(pdf, line, maxWidth));
+
+  if (lines.length > maxLines) {
+    lines = lines.slice(0, maxLines);
+    lines[maxLines - 1] = truncateLineToWidth(
+      pdf,
+      lines[maxLines - 1].replace(/\u2026$/, ''),
+      maxWidth
+    );
+  }
+
+  return lines.length > 0 ? lines : ['—'];
+}
+
+function drawCellLines(
+  pdf: jsPDF,
+  lines: string[],
+  x: number,
+  y: number,
+  lineHeight: number,
+  firstLineOffset = 14
+): void {
+  lines.forEach((line, index) => {
+    pdf.text(line, x + CELL_PAD_LEFT, y + firstLineOffset + index * lineHeight);
+  });
+}
 
 function fmtNum(n: number | undefined | null): string {
   if (n == null || isNaN(n)) return '—';
@@ -92,7 +158,7 @@ function drawTableHeader(
 
   // Narrow columns need their label wrapped, which in turn grows the header row.
   const lineH = fontSize * 1.2;
-  const wrapped = columns.map(col => pdf.splitTextToSize(col.label, col.w - 6) as string[]);
+  const wrapped = columns.map((col) => wrapCellText(pdf, col.label, cellTextWidth(col.w), 3));
   const maxLines = Math.max(1, ...wrapped.map(lines => lines.length));
   const rowH = Math.max(HEADER_ROW_H, maxLines * lineH + 12);
 
@@ -101,7 +167,7 @@ function drawTableHeader(
 
   pdf.setTextColor(51, 65, 85);
   wrapped.forEach((lines, i) => {
-    pdf.text(lines, columns[i].x, y + fontSize);
+    drawCellLines(pdf, lines, columns[i].x, y, lineH, fontSize);
   });
 
   return y + rowH + 4;
@@ -259,11 +325,11 @@ export function generateProjectsReport(
   pdf.setFontSize(bodyFont);
   pdf.setFont('helvetica', 'normal');
 
-  // Wrap every column, not just name/description
+  // Wrap every column; enforce width + line cap so text cannot bleed sideways.
   const wrappedCells = selectedColumns.map((c, i) =>
-    pdf.splitTextToSize(c.get(p), cols[i].w - 6) as string[]
+    wrapCellText(pdf, c.get(p), cellTextWidth(cols[i].w))
   );
-  const maxLines = Math.max(...wrappedCells.map((lines) => lines.length));
+  const maxLines = Math.max(1, ...wrappedCells.map((lines) => lines.length));
   const rowH = Math.max(ROW_H, maxLines * LINE_H + 10);
 
   y = checkPageBreak(pdf, y, rowH + 4);
@@ -281,7 +347,7 @@ export function generateProjectsReport(
 
   pdf.setTextColor(30, 41, 59);
   wrappedCells.forEach((lines, i) => {
-    pdf.text(lines, cols[i].x, y + 14);
+    drawCellLines(pdf, lines, cols[i].x, y, LINE_H);
   });
 
   y += rowH;
