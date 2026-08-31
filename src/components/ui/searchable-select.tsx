@@ -49,10 +49,15 @@ export function SearchableSelect({
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-        <Command>
+      <PopoverContent
+        className="w-[--radix-popover-trigger-width] p-0 flex flex-col overflow-hidden max-h-[min(24rem,var(--radix-popover-content-available-height))]"
+        align="start"
+        side="bottom"
+        collisionPadding={16}
+      >
+        <Command className="min-h-0">
           <CommandInput placeholder={searchPlaceholder} />
-          <CommandList>
+          <CommandList className="max-h-none min-h-0 flex-1">
             <CommandEmpty>{emptyText}</CommandEmpty>
             <CommandGroup>
               {options.map((option) => (

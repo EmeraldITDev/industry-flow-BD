@@ -8,15 +8,16 @@ import { projectsService } from '@/services/projects';
 import { teamService } from '@/services/team';
 import { tasksService } from '@/services/tasks';
 import { Button } from '@/components/ui/button';
-import { Plus, Grid3X3, List, Loader2, Upload, Trash2, X, RefreshCw, FileText } from 'lucide-react';
+import { Plus, Grid3X3, List, Loader2, Upload, Trash2, X, RefreshCw } from 'lucide-react';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Project, Sector } from '@/types';
 import { ProjectImportDialog } from '@/components/projects/ProjectImportDialog';
 import { ExportProjectsButton } from '@/components/projects/ExportProjectsButton';
+import { GenerateReportButton } from '@/components/projects/GenerateReportButton';
 import { Checkbox } from '@/components/ui/checkbox';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { generateProjectsReport, ProjectFilterSummary } from '@/lib/reportGenerator';
+import { ProjectFilterSummary } from '@/lib/reportGenerator';
 
 // Mapping for sector display names
 const sectorDisplayNames: Record<string, string> = {
@@ -223,6 +224,16 @@ export default function Projects() {
     });
   }, [projects, filters]);
 
+  const reportFilterSummary = useMemo<ProjectFilterSummary>(() => ({
+    search: filters.search || undefined,
+    businessVerticals: filters.businessVerticals,
+    sectors: filters.sectors,
+    statuses: filters.statuses,
+    pipelineStages: filters.pipelineStages,
+    clientNames: filters.clientNames,
+    projectLeads: filters.projectLeads,
+  }), [filters]);
+
   // Selection helpers
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => {
@@ -292,27 +303,14 @@ export default function Projects() {
             <RefreshCw className={cn("w-4 h-4 mr-2", isFetching && "animate-spin")} />
             Refresh
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              const filterSummary: ProjectFilterSummary = {
-                search: filters.search || undefined,
-                businessVerticals: filters.businessVerticals,
-                sectors: filters.sectors,
-                statuses: filters.statuses,
-                pipelineStages: filters.pipelineStages,
-                clientNames: filters.clientNames,
-                projectLeads: filters.projectLeads,
-              };
-              generateProjectsReport(filteredProjects, filterSummary, pageTitle + ' Report');
-              toast.success('PDF report generated');
-            }}
-            disabled={filteredProjects.length === 0}
-          >
-            <FileText className="w-4 h-4 mr-2" />
-            Generate Report
-          </Button>
+          <GenerateReportButton
+            projects={filteredProjects}
+            filters={reportFilterSummary}
+            defaultTitle={pageTitle + ' Report'}
+            preselectedProjectIds={
+              selectMode && selectedIds.size > 0 ? selectedIds : undefined
+            }
+          />
           <ExportProjectsButton projects={filteredProjects} />
           {canCreateProjects && (
             <>

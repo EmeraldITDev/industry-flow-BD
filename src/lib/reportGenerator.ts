@@ -81,20 +81,30 @@ function addReportHeader(pdf: jsPDF, title: string, filterSummary: string, recor
   return y;
 }
 
-function drawTableHeader(pdf: jsPDF, columns: { label: string; x: number; w: number }[], y: number): number {
-  // Header background
-  pdf.setFillColor(241, 245, 249);
-  pdf.rect(MARGIN, y - 4, CONTENT_W, HEADER_ROW_H, 'F');
-
-  pdf.setFontSize(13);
+function drawTableHeader(
+  pdf: jsPDF,
+  columns: { label: string; x: number; w: number }[],
+  y: number,
+  fontSize = 13
+): number {
+  pdf.setFontSize(fontSize);
   pdf.setFont('helvetica', 'bold');
-  pdf.setTextColor(51, 65, 85);
 
-  columns.forEach(col => {
-    pdf.text(col.label, col.x, y + 14);
+  // Narrow columns need their label wrapped, which in turn grows the header row.
+  const lineH = fontSize * 1.2;
+  const wrapped = columns.map(col => pdf.splitTextToSize(col.label, col.w - 6) as string[]);
+  const maxLines = Math.max(1, ...wrapped.map(lines => lines.length));
+  const rowH = Math.max(HEADER_ROW_H, maxLines * lineH + 12);
+
+  pdf.setFillColor(241, 245, 249);
+  pdf.rect(MARGIN, y - 4, CONTENT_W, rowH, 'F');
+
+  pdf.setTextColor(51, 65, 85);
+  wrapped.forEach((lines, i) => {
+    pdf.text(lines, columns[i].x, y + fontSize);
   });
 
-  return y + HEADER_ROW_H + 4;
+  return y + rowH + 4;
 }
 
 function checkPageBreak(pdf: jsPDF, y: number, needed: number): number {
@@ -120,6 +130,91 @@ export interface ProjectFilterSummary {
   [key: string]: any;
 }
 
+/**
+ * Every field the projects PDF can render. `weight` is a relative share of the
+ * printable width; it gets renormalised across whichever columns are selected,
+ * so any subset still fills the page edge to edge.
+ */
+export interface ProjectReportColumn {
+  key: string;
+  label: string;
+  weight: number;
+  get: (project: Project) => string;
+}
+
+const stageLabelOf = (project: Project) =>
+  PIPELINE_STAGES.find(s => s.value === project.pipelineStage)?.label || project.pipelineStage || '—';
+
+const marginPercentOf = (project: Project) => {
+  const pct = (project.marginPercentUSD && project.marginPercentUSD !== 0)
+    ? project.marginPercentUSD
+    : (project.marginPercentNGN && project.marginPercentNGN !== 0 ? project.marginPercentNGN : null);
+  return pct != null ? `${pct}%` : '—';
+};
+
+const listOf = (values: string[] | undefined, legacy: string | undefined) =>
+  values && values.length ? values.join(', ') : legacy || '—';
+
+export const PROJECT_REPORT_COLUMNS: ProjectReportColumn[] = [
+  { key: 'name',              label: 'Project Name',        weight: 12, get: p => p.name || '—' },
+  { key: 'description',       label: 'Description',         weight: 13, get: p => p.description || '—' },
+  { key: 'clientName',        label: 'Client',              weight: 8,  get: p => p.clientName || '—' },
+  { key: 'clientContact',     label: 'Client Contact',      weight: 8,  get: p => p.clientContact || '—' },
+  { key: 'channelPartner',    label: 'Channel Partner',     weight: 9,  get: p => p.channelPartner || '—' },
+  { key: 'businessVertical',  label: 'Business Vertical',   weight: 9,  get: p => p.businessVertical || '—' },
+  { key: 'sector',            label: 'Sector',              weight: 7,  get: p => p.sector || '—' },
+  { key: 'businessSegment',   label: 'Business Segment',    weight: 8,  get: p => p.businessSegment || '—' },
+  { key: 'pipelineStage',     label: 'Stage',               weight: 7,  get: stageLabelOf },
+  { key: 'status',            label: 'Status',              weight: 6,  get: p => p.status || '—' },
+  { key: 'contractValueUSD',  label: 'Value (USD)',         weight: 9,  get: p => fmtCurrency(p.contractValueUSD, 'USD ') },
+  { key: 'contractValueNGN',  label: 'Value (NGN)',         weight: 10, get: p => fmtCurrency(p.contractValueNGN, 'NGN ') },
+  { key: 'marginValueUSD',    label: 'Margin (USD)',        weight: 9,  get: p => fmtCurrency(p.marginValueUSD, 'USD ') },
+  { key: 'marginValueNGN',    label: 'Margin (NGN)',        weight: 10, get: p => fmtCurrency(p.marginValueNGN, 'NGN ') },
+  { key: 'marginPercent',     label: 'Margin %',            weight: 5,  get: marginPercentOf },
+  { key: 'dealProbability',   label: 'Probability',         weight: 6,  get: p => p.dealProbability || '—' },
+  { key: 'progress',          label: 'Progress',            weight: 5,  get: p => (p.progress == null ? '—' : `${p.progress}%`) },
+  { key: 'oem',               label: 'OEM',                 weight: 8,  get: p => p.oem || '—' },
+  { key: 'location',          label: 'Location',            weight: 8,  get: p => p.location || '—' },
+  { key: 'products',          label: 'Products',            weight: 10, get: p => listOf(p.products, p.product) },
+  { key: 'subproducts',       label: 'Sub-products',        weight: 10, get: p => listOf(p.subproducts, p.subProduct) },
+  { key: 'salesLead',         label: 'Sales Lead',          weight: 8,  get: p => p.salesLead || '—' },
+  { key: 'teamSize',          label: 'Team Size',           weight: 5,  get: p => (p.teamSize == null ? '—' : String(p.teamSize)) },
+  { key: 'tasks',             label: 'Tasks (done/total)',  weight: 6,  get: p => `${p.completedTasksCount ?? 0}/${p.tasksCount ?? p.tasks?.length ?? 0}` },
+  { key: 'pipelineIntakeDate',label: 'Intake Date',         weight: 8,  get: p => fmtDateValue(p.pipelineIntakeDate) },
+  { key: 'startDate',         label: 'Start Date',          weight: 8,  get: p => fmtDateValue(p.startDate) },
+  { key: 'endDate',           label: 'End Date',            weight: 8,  get: p => fmtDateValue(p.endDate) },
+  { key: 'expectedCloseDate', label: 'Expected Close',      weight: 8,  get: p => fmtDateValue(p.expectedCloseDate) },
+  { key: 'projectLeadComments', label: 'Lead Comments',     weight: 13, get: p => p.projectLeadComments || '—' },
+  { key: 'supportNeeded',     label: 'Support Needed',      weight: 13, get: p => p.supportNeeded || '—' },
+];
+
+/** The historical 12-column layout, used when the caller does not pick columns. */
+export const DEFAULT_PROJECT_REPORT_COLUMN_KEYS = [
+  'name',
+  'description',
+  'clientName',
+  'channelPartner',
+  'businessVertical',
+  'sector',
+  'pipelineStage',
+  'status',
+  'contractValueUSD',
+  'contractValueNGN',
+  'marginPercent',
+  'dealProbability',
+];
+
+function pickColumns(keys: string[]): ProjectReportColumn[] {
+  return keys
+    .map(key => PROJECT_REPORT_COLUMNS.find(c => c.key === key))
+    .filter((c): c is ProjectReportColumn => Boolean(c));
+}
+
+function resolveColumns(keys: string[] | undefined): ProjectReportColumn[] {
+  const selected = keys?.length ? pickColumns(keys) : [];
+  return selected.length ? selected : pickColumns(DEFAULT_PROJECT_REPORT_COLUMN_KEYS);
+}
+
 function buildFilterString(filters: ProjectFilterSummary): string {
   const parts: string[] = [];
   if (filters.search) parts.push(`Search: "${filters.search}"`);
@@ -135,73 +230,48 @@ function buildFilterString(filters: ProjectFilterSummary): string {
 export function generateProjectsReport(
   projects: Project[],
   filters: ProjectFilterSummary,
-  title = 'Projects Report'
+  title = 'Projects Report',
+  columnKeys?: string[]
 ): void {
   const pdf = new jsPDF({ orientation: 'landscape', unit: 'px', format: [PAGE_W, PAGE_H] });
 
   const filterStr = buildFilterString(filters);
   let y = addReportHeader(pdf, title, filterStr, projects.length, MARGIN + 10);
 
-  // Column definitions
-  const colDefs: { label: string; pct: number }[] = [
-  { label: 'Project Name',      pct: 0.12 },
-  { label: 'Description',       pct: 0.13 },
-  { label: 'Client',            pct: 0.08 },
-  { label: 'Channel Partner',   pct: 0.09 },
-  { label: 'Business Vertical', pct: 0.09 },
-  { label: 'Sector',            pct: 0.07 },
-  { label: 'Stage',             pct: 0.07 },
-  { label: 'Status',            pct: 0.06 },
-  { label: 'Value (USD)',       pct: 0.09 },
-  { label: 'Value (NGN)',       pct: 0.10 },
-  { label: 'Margin %',          pct: 0.04 },
-  { label: 'Probability',       pct: 0.06 },
-];
-const cols = colDefs.reduce<{ label: string; x: number; w: number }[]>((acc, c) => {
-  const prev = acc[acc.length - 1];
-  const x = prev ? prev.x + prev.w : MARGIN;
-  const w = c.pct * CONTENT_W;
-  acc.push({ label: c.label, x, w });
-  return acc;
-}, []);
+  const selectedColumns = resolveColumns(columnKeys);
+  const totalWeight = selectedColumns.reduce((sum, c) => sum + c.weight, 0);
+  const cols = selectedColumns.reduce<{ label: string; x: number; w: number }[]>((acc, c) => {
+    const prev = acc[acc.length - 1];
+    const x = prev ? prev.x + prev.w : MARGIN;
+    acc.push({ label: c.label, x, w: (c.weight / totalWeight) * CONTENT_W });
+    return acc;
+  }, []);
 
-  y = drawTableHeader(pdf, cols, y);
+  // Shrink type as columns are added so wide selections stay legible.
+  const colCount = selectedColumns.length;
+  const headerFont = colCount > 18 ? 8 : colCount > 14 ? 10 : colCount > 12 ? 11 : 13;
+  const bodyFont = colCount > 18 ? 6.5 : colCount > 14 ? 7.5 : colCount > 12 ? 8 : 9;
+  const LINE_H = bodyFont * 1.25;
+
+  y = drawTableHeader(pdf, cols, y, headerFont);
 
   projects.forEach((p, idx) => {
-  pdf.setFontSize(9);
+  pdf.setFontSize(bodyFont);
   pdf.setFont('helvetica', 'normal');
 
-  const stageLabel = PIPELINE_STAGES.find(s => s.value === p.pipelineStage)?.label || p.pipelineStage || '—';
-  const marginPct = (p.marginPercentUSD && p.marginPercentUSD !== 0)
-    ? p.marginPercentUSD
-    : (p.marginPercentNGN && p.marginPercentNGN !== 0 ? p.marginPercentNGN : null);
-
-  const cellValues = [
-    p.name || '—',
-    p.description || '—',
-    p.clientName || '—',
-    p.channelPartner || '—',
-    p.businessVertical || '—',
-    p.sector || '—',
-    stageLabel,
-    p.status || '—',
-    fmtCurrency(p.contractValueUSD, 'USD '),
-    fmtCurrency(p.contractValueNGN, 'NGN '),
-    marginPct != null ? `${marginPct}%` : '—',
-    p.dealProbability || '—',
-  ];
-
   // Wrap every column, not just name/description
-  const wrappedCells = cellValues.map((val, i) =>
-    pdf.splitTextToSize(val, cols[i].w - 6) as string[]
+  const wrappedCells = selectedColumns.map((c, i) =>
+    pdf.splitTextToSize(c.get(p), cols[i].w - 6) as string[]
   );
-  const LINE_H = 11;
   const maxLines = Math.max(...wrappedCells.map((lines) => lines.length));
   const rowH = Math.max(ROW_H, maxLines * LINE_H + 10);
 
   y = checkPageBreak(pdf, y, rowH + 4);
   if (y < MARGIN + 20) {
-    y = drawTableHeader(pdf, cols, y);
+    y = drawTableHeader(pdf, cols, y, headerFont);
+    // drawTableHeader leaves the font bold at header size
+    pdf.setFontSize(bodyFont);
+    pdf.setFont('helvetica', 'normal');
   }
 
   if (idx % 2 === 0) {

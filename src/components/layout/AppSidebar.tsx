@@ -31,6 +31,14 @@ import {
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 
+// In icon-only mode the rail is 3rem wide and the menu button is forced to
+// size-8, so every ancestor must drop its horizontal padding for the 32px
+// button (and therefore its icon) to land dead-centre in the 48px rail.
+const navLinkClass =
+  'flex items-center gap-3 px-3 py-2 rounded-md text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:px-0';
+
+const navLabelClass = 'font-medium group-data-[collapsible=icon]:hidden';
+
 const mainNavItems = [
   { title: 'Dashboard', url: '/', icon: LayoutDashboard },
   { title: 'All Projects', url: '/projects', icon: FolderKanban },
@@ -73,7 +81,7 @@ export function AppSidebar() {
           >
             <Button
               className={cn(
-                collapsed ? "h-9 w-9 p-0 justify-center" : "w-full"
+                collapsed ? "h-8 w-8 p-0 justify-center" : "w-full"
               )}
               size={collapsed ? 'icon' : 'sm'}
             >
@@ -84,26 +92,26 @@ export function AppSidebar() {
         )}
       </SidebarHeader>
 
-      <SidebarContent className="px-2">
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-xs font-medium text-muted-foreground px-2 py-2">
+      <SidebarContent className="px-2 group-data-[collapsible=icon]:px-2">
+        <SidebarGroup className="group-data-[collapsible=icon]:px-0">
+          <SidebarGroupLabel className="text-xs font-medium text-muted-foreground px-2 py-2 group-data-[collapsible=icon]:hidden">
             Main
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {mainNavItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
+                  <SidebarMenuButton asChild tooltip={item.title}>
                     <NavLink 
                       to={item.url} 
                       end={item.url === '/' || item.url === '/projects'}
                       className={({ isActive }) => cn(
-                        "flex items-center gap-3 px-3 py-2 rounded-md text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors",
-                        isActive && !currentSector && "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground"
+                        navLinkClass,
+                        isActive && !currentBusinessVertical && "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground"
                       )}
                     >
-                      <item.icon className="w-5 h-5" />
-                      <span className="font-medium">{item.title}</span>
+                      <item.icon className="w-5 h-5 shrink-0" />
+                      <span className={navLabelClass}>{item.title}</span>
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -112,8 +120,8 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-xs font-medium text-muted-foreground px-2 py-2">
+        <SidebarGroup className="group-data-[collapsible=icon]:px-0">
+          <SidebarGroupLabel className="text-xs font-medium text-muted-foreground px-2 py-2 group-data-[collapsible=icon]:hidden">
             Business Verticals
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -122,16 +130,16 @@ export function AppSidebar() {
                 const isActive = location.pathname === '/projects' && currentBusinessVertical === item.businessVertical;
                 return (
                   <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild>
+                    <SidebarMenuButton asChild tooltip={item.title}>
                       <NavLink 
                         to={`/projects?businessVertical=${encodeURIComponent(item.businessVertical)}`}
                         className={cn(
-                          "flex items-center gap-3 px-3 py-2 rounded-md text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors",
+                          navLinkClass,
                           isActive && "bg-primary/10 text-primary font-medium"
                         )}
                       >
-                        <item.icon className="w-5 h-5" />
-                        <span className="font-medium">{item.title}</span>
+                        <item.icon className="w-5 h-5 shrink-0" />
+                        <span className={navLabelClass}>{item.title}</span>
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -143,19 +151,19 @@ export function AppSidebar() {
       </SidebarContent>
 
       {canManageSettings && (
-        <SidebarFooter className="p-4 border-t border-sidebar-border">
+        <SidebarFooter className="p-4 border-t border-sidebar-border group-data-[collapsible=icon]:p-2">
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild>
+              <SidebarMenuButton asChild tooltip="Settings">
                 <NavLink 
                   to="/settings"
                   className={({ isActive }) => cn(
-                    "flex items-center gap-3 px-3 py-2 rounded-md text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors",
+                    navLinkClass,
                     isActive && "bg-primary text-primary-foreground"
                   )}
                 >
-                  <Settings className="w-5 h-5" />
-                  <span className="font-medium">Settings</span>
+                  <Settings className="w-5 h-5 shrink-0" />
+                  <span className={navLabelClass}>Settings</span>
                 </NavLink>
               </SidebarMenuButton>
             </SidebarMenuItem>

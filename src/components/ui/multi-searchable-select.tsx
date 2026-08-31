@@ -140,11 +140,16 @@ export function MultiSearchableSelect({
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-        <Command shouldFilter={false}>
+      <PopoverContent
+        className="w-[--radix-popover-trigger-width] p-0 flex flex-col overflow-hidden max-h-[min(24rem,var(--radix-popover-content-available-height))]"
+        align="start"
+        side="bottom"
+        collisionPadding={16}
+      >
+        <Command shouldFilter={false} className="min-h-0">
           <CommandInput placeholder={searchPlaceholder} value={query} onValueChange={setQuery} />
           {filteredOptions.length > 0 && (
-            <div className="flex items-center justify-between gap-2 border-b px-2 py-1.5">
+            <div className="flex shrink-0 items-center justify-between gap-2 border-b px-2 py-1.5">
               <Button
                 type="button"
                 variant="ghost"
@@ -168,7 +173,7 @@ export function MultiSearchableSelect({
               )}
             </div>
           )}
-          <CommandList>
+          <CommandList className="max-h-none min-h-0 flex-1">
             <CommandEmpty>{emptyText}</CommandEmpty>
             <CommandGroup>
               {renderedOptions.map((option) => (
