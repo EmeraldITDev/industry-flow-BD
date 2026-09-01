@@ -11,6 +11,7 @@ import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { UpdateAvailableBanner } from "@/components/UpdateAvailableBanner";
+import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 import Index from "./pages/Index";
 import LoginPage from "./pages/LoginPage";
 import ProjectsPage from "./pages/ProjectsPage";
@@ -44,6 +45,7 @@ const App = () => (
                   <Toaster />
                   <Sonner />
                   <UpdateAvailableBanner />
+                  <InstallPrompt />
                   <BrowserRouter>
                   <Routes>
                     <Route path="/login" element={<LoginPage />} />
