@@ -76,6 +76,7 @@ export function getInstallInstructions(platform: PwaPlatform): string[] {
 export function usePwaInstall() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [swReady, setSwReady] = useState(false);
+  const [bannerDismissed, setBannerDismissed] = useState(isInstallDismissedRecently);
   const platform = detectPwaPlatform();
   const standalone = isStandaloneMode();
 
@@ -118,9 +119,14 @@ export function usePwaInstall() {
     }
   }, [deferredPrompt]);
 
+  const dismiss = useCallback(() => {
+    dismissInstallPrompt();
+    setBannerDismissed(true);
+  }, []);
+
   const showAutoBanner =
     !standalone &&
-    !isInstallDismissedRecently() &&
+    !bannerDismissed &&
     (canNativePrompt || platform === 'firefox' || platform === 'safari-mac' || platform === 'safari-ios');
 
   return {
@@ -130,7 +136,7 @@ export function usePwaInstall() {
     canNativePrompt,
     showAutoBanner,
     install,
-    dismiss: dismissInstallPrompt,
+    dismiss,
     instructions: getInstallInstructions(platform),
   };
 }
