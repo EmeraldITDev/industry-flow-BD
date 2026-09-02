@@ -36,9 +36,18 @@ import { Button } from '@/components/ui/button';
 // button (and therefore its icon) to land dead-centre in the 48px rail.
 const navLinkClass = (collapsed: boolean) =>
   cn(
-    'flex w-full items-center gap-3 rounded-md px-3 py-2 text-sidebar-foreground',
-    'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors',
+    'flex w-full items-center gap-3 rounded-md px-3 py-2',
+    // Light mode: primary blue (matches Business Verticals / brand). Dark: sidebar tokens.
+    'text-primary dark:text-sidebar-foreground',
+    'hover:bg-primary/10 hover:text-primary dark:hover:bg-sidebar-accent dark:hover:text-sidebar-accent-foreground',
+    'transition-colors',
     collapsed && 'justify-center gap-0 px-0'
+  );
+
+const groupLabelClass = (collapsed: boolean) =>
+  cn(
+    'text-xs font-medium px-2 py-2 text-primary/80 dark:text-sidebar-foreground/70',
+    collapsed && 'hidden'
   );
 
 const navLabelClass = (collapsed: boolean) =>
@@ -110,12 +119,7 @@ export function AppSidebar() {
 
       <SidebarContent className="px-2 group-data-[collapsible=icon]:px-0">
         <SidebarGroup className="group-data-[collapsible=icon]:px-0">
-          <SidebarGroupLabel
-            className={cn(
-              'text-xs font-medium px-2 py-2 text-sidebar-foreground/70',
-              collapsed && 'hidden'
-            )}
-          >
+          <SidebarGroupLabel className={groupLabelClass(collapsed)}>
             Main
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -149,12 +153,7 @@ export function AppSidebar() {
         </SidebarGroup>
 
         <SidebarGroup className="group-data-[collapsible=icon]:px-0">
-          <SidebarGroupLabel
-            className={cn(
-              'text-xs font-medium px-2 py-2 text-sidebar-foreground/70',
-              collapsed && 'hidden'
-            )}
-          >
+          <SidebarGroupLabel className={groupLabelClass(collapsed)}>
             Business Verticals
           </SidebarGroupLabel>
           <SidebarGroupContent>
