@@ -79,6 +79,7 @@ export default defineConfig(({ mode }) => ({
       registerType: "autoUpdate",
       includeAssets: ["favicon.png", "robots.txt", "pwa-*.png"],
       manifest: {
+        id: "/",
         name: "Emerald BDPortal",
         short_name: "BDPortal",
         description:

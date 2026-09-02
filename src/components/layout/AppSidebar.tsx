@@ -34,10 +34,26 @@ import { Button } from '@/components/ui/button';
 // In icon-only mode the rail is 3rem wide and the menu button is forced to
 // size-8, so every ancestor must drop its horizontal padding for the 32px
 // button (and therefore its icon) to land dead-centre in the 48px rail.
-const navLinkClass =
-  'flex items-center gap-3 px-3 py-2 rounded-md text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:px-0';
+const navLinkClass = (collapsed: boolean) =>
+  cn(
+    'flex w-full items-center gap-3 rounded-md px-3 py-2 text-sidebar-foreground',
+    'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors',
+    collapsed && 'justify-center gap-0 px-0'
+  );
 
-const navLabelClass = 'font-medium group-data-[collapsible=icon]:hidden';
+const navLabelClass = (collapsed: boolean) =>
+  cn('font-medium', collapsed ? 'hidden' : 'inline');
+
+function isMainNavActive(
+  url: string,
+  pathname: string,
+  businessVertical: string | null
+): boolean {
+  if (businessVertical) return false;
+  if (url === '/') return pathname === '/';
+  if (url === '/projects') return pathname === '/projects';
+  return pathname === url || pathname.startsWith(`${url}/`);
+}
 
 const mainNavItems = [
   { title: 'Dashboard', url: '/', icon: LayoutDashboard },
@@ -69,7 +85,7 @@ export function AppSidebar() {
         <NavLink to="/" className="flex items-center justify-center gap-3 mb-3">
           <img
             src={collapsed ? '/favicon.png' : emeraldLogo}
-            alt="Emerald PM"
+            alt="Emerald BDPortal"
             className={collapsed ? 'h-8 w-8' : 'h-10 w-auto'}
           />
         </NavLink>
@@ -92,54 +108,73 @@ export function AppSidebar() {
         )}
       </SidebarHeader>
 
-      <SidebarContent className="px-2 group-data-[collapsible=icon]:px-2">
+      <SidebarContent className="px-2 group-data-[collapsible=icon]:px-0">
         <SidebarGroup className="group-data-[collapsible=icon]:px-0">
-          <SidebarGroupLabel className="text-xs font-medium text-muted-foreground px-2 py-2 group-data-[collapsible=icon]:hidden">
+          <SidebarGroupLabel
+            className={cn(
+              'text-xs font-medium px-2 py-2 text-sidebar-foreground/70',
+              collapsed && 'hidden'
+            )}
+          >
             Main
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {mainNavItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild tooltip={item.title}>
-                    <NavLink 
-                      to={item.url} 
-                      end={item.url === '/' || item.url === '/projects'}
-                      className={({ isActive }) => cn(
-                        navLinkClass,
-                        isActive && !currentBusinessVertical && "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground"
-                      )}
-                    >
-                      <item.icon className="w-5 h-5 shrink-0" />
-                      <span className={navLabelClass}>{item.title}</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {mainNavItems.map((item) => {
+                const active = isMainNavActive(
+                  item.url,
+                  location.pathname,
+                  currentBusinessVertical
+                );
+                return (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild isActive={active} tooltip={item.title}>
+                      <NavLink
+                        to={item.url}
+                        end={item.url === '/' || item.url === '/projects'}
+                        className={cn(
+                          navLinkClass(collapsed),
+                          active && 'bg-primary/10 text-primary font-medium hover:bg-primary/15 hover:text-primary'
+                        )}
+                      >
+                        <item.icon className="h-5 w-5 shrink-0" />
+                        <span className={navLabelClass(collapsed)}>{item.title}</span>
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
 
         <SidebarGroup className="group-data-[collapsible=icon]:px-0">
-          <SidebarGroupLabel className="text-xs font-medium text-muted-foreground px-2 py-2 group-data-[collapsible=icon]:hidden">
+          <SidebarGroupLabel
+            className={cn(
+              'text-xs font-medium px-2 py-2 text-sidebar-foreground/70',
+              collapsed && 'hidden'
+            )}
+          >
             Business Verticals
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {businessVerticalNavItems.map((item) => {
-                const isActive = location.pathname === '/projects' && currentBusinessVertical === item.businessVertical;
+                const active =
+                  location.pathname === '/projects' &&
+                  currentBusinessVertical === item.businessVertical;
                 return (
                   <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild tooltip={item.title}>
-                      <NavLink 
+                    <SidebarMenuButton asChild isActive={active} tooltip={item.title}>
+                      <NavLink
                         to={`/projects?businessVertical=${encodeURIComponent(item.businessVertical)}`}
                         className={cn(
-                          navLinkClass,
-                          isActive && "bg-primary/10 text-primary font-medium"
+                          navLinkClass(collapsed),
+                          active && 'bg-primary/10 text-primary font-medium hover:bg-primary/15 hover:text-primary'
                         )}
                       >
-                        <item.icon className="w-5 h-5 shrink-0" />
-                        <span className={navLabelClass}>{item.title}</span>
+                        <item.icon className="h-5 w-5 shrink-0" />
+                        <span className={navLabelClass(collapsed)}>{item.title}</span>
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -154,16 +189,21 @@ export function AppSidebar() {
         <SidebarFooter className="p-4 border-t border-sidebar-border group-data-[collapsible=icon]:p-2">
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip="Settings">
-                <NavLink 
+              <SidebarMenuButton
+                asChild
+                isActive={location.pathname === '/settings'}
+                tooltip="Settings"
+              >
+                <NavLink
                   to="/settings"
-                  className={({ isActive }) => cn(
-                    navLinkClass,
-                    isActive && "bg-primary text-primary-foreground"
+                  className={cn(
+                    navLinkClass(collapsed),
+                    location.pathname === '/settings' &&
+                      'bg-primary/10 text-primary font-medium hover:bg-primary/15 hover:text-primary'
                   )}
                 >
-                  <Settings className="w-5 h-5 shrink-0" />
-                  <span className={navLabelClass}>Settings</span>
+                  <Settings className="h-5 w-5 shrink-0" />
+                  <span className={navLabelClass(collapsed)}>Settings</span>
                 </NavLink>
               </SidebarMenuButton>
             </SidebarMenuItem>

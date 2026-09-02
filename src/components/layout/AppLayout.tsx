@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ACCESS_LEVEL_CONFIG } from '@/types/auth';
 import { Badge } from '@/components/ui/badge';
+import { InstallAppDropdownItem } from '@/components/pwa/InstallPrompt';
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -135,6 +136,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                     <Settings className="mr-2 h-4 w-4" />
                     Settings
                   </DropdownMenuItem>
+                  <InstallAppDropdownItem />
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-destructive focus:text-destructive">
                     <LogOut className="mr-2 h-4 w-4" />

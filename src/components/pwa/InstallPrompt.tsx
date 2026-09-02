@@ -1,106 +1,134 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Download, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import {
-  PWA_INSTALL_DISMISS_DAYS,
-  PWA_INSTALL_DISMISS_KEY,
-  PWA_NAME,
-} from '@/lib/pwaConfig';
+import { DropdownMenuItem } from '@/components/ui/dropdown-menu';
+import { PWA_NAME } from '@/lib/pwaConfig';
+import { usePwaInstall } from '@/hooks/usePwaInstall';
+import { InstallAppDialog } from '@/components/pwa/InstallAppDialog';
 
-function isStandalone(): boolean {
+/** Auto banner — shown on first visits until dismissed (7 days). */
+export function InstallPrompt() {
+  const {
+    platform,
+    swReady,
+    canNativePrompt,
+    showAutoBanner,
+    install,
+    dismiss,
+    instructions,
+  } = usePwaInstall();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [isInstalling, setIsInstalling] = useState(false);
+
+  if (!showAutoBanner) return null;
+
+  const handleInstallClick = async () => {
+    if (canNativePrompt) {
+      setIsInstalling(true);
+      try {
+        const outcome = await install();
+        if (outcome === 'unavailable') {
+          setDialogOpen(true);
+        }
+      } finally {
+        setIsInstalling(false);
+      }
+      return;
+    }
+    setDialogOpen(true);
+  };
+
+  const handleDismiss = () => {
+    dismiss();
+  };
+
   return (
-    window.matchMedia('(display-mode: standalone)').matches ||
-    // iOS Safari
-    ('standalone' in navigator && (navigator as Navigator & { standalone?: boolean }).standalone === true)
+    <>
+      <div className="fixed bottom-[4.5rem] left-1/2 z-[100] w-[min(100%,28rem)] -translate-x-1/2 px-3 sm:bottom-4">
+        <div className="flex items-start gap-3 rounded-xl border border-border bg-card/95 p-4 shadow-lg backdrop-blur">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/15">
+            <Download className="h-5 w-5 text-primary" />
+          </div>
+          <div className="min-w-0 flex-1 space-y-2">
+            <p className="text-sm font-semibold text-foreground">Install {PWA_NAME}</p>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              {canNativePrompt
+                ? 'Add to your home screen for quick access and offline viewing of your last-synced data.'
+                : 'Install this app on your device — we will show the steps for your browser.'}
+            </p>
+            <div className="flex flex-wrap gap-2 pt-1">
+              <Button size="sm" onClick={handleInstallClick} disabled={isInstalling}>
+                {isInstalling ? 'Installing…' : 'Install App'}
+              </Button>
+              <Button size="sm" variant="ghost" onClick={handleDismiss}>
+                Not now
+              </Button>
+            </div>
+          </div>
+          <button
+            type="button"
+            aria-label="Dismiss install prompt"
+            onClick={handleDismiss}
+            className="shrink-0 rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+
+      <InstallAppDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        platform={platform}
+        instructions={instructions}
+        canNativePrompt={canNativePrompt}
+        swReady={swReady}
+        onInstall={install}
+        isInstalling={isInstalling}
+      />
+    </>
   );
 }
 
-function isDismissedRecently(): boolean {
-  const raw = localStorage.getItem(PWA_INSTALL_DISMISS_KEY);
-  if (!raw) return false;
-  const dismissedAt = Number(raw);
-  if (Number.isNaN(dismissedAt)) return false;
-  const ms = PWA_INSTALL_DISMISS_DAYS * 24 * 60 * 60 * 1000;
-  return Date.now() - dismissedAt < ms;
-}
+/** User-menu entry — always available when not already installed. */
+export function InstallAppDropdownItem() {
+  const { standalone, platform, swReady, canNativePrompt, install, instructions } = usePwaInstall();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [isInstalling, setIsInstalling] = useState(false);
 
-/**
- * Custom install banner — captures beforeinstallprompt and shows our own UI
- * instead of relying on the browser's default mini-infobar.
- */
-export function InstallPrompt() {
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [visible, setVisible] = useState(false);
+  if (standalone) return null;
 
-  useEffect(() => {
-    if (isStandalone() || isDismissedRecently()) return;
-
-    const onBeforeInstall = (event: Event) => {
-      event.preventDefault();
-      setDeferredPrompt(event as BeforeInstallPromptEvent);
-      setVisible(true);
-    };
-
-    const onInstalled = () => {
-      setVisible(false);
-      setDeferredPrompt(null);
-    };
-
-    window.addEventListener('beforeinstallprompt', onBeforeInstall);
-    window.addEventListener('appinstalled', onInstalled);
-    return () => {
-      window.removeEventListener('beforeinstallprompt', onBeforeInstall);
-      window.removeEventListener('appinstalled', onInstalled);
-    };
-  }, []);
-
-  const dismiss = useCallback(() => {
-    localStorage.setItem(PWA_INSTALL_DISMISS_KEY, String(Date.now()));
-    setVisible(false);
-    setDeferredPrompt(null);
-  }, []);
-
-  const install = useCallback(async () => {
-    if (!deferredPrompt) return;
-    await deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    setDeferredPrompt(null);
-    if (outcome === 'accepted') {
-      setVisible(false);
+  const openFlow = async () => {
+    if (canNativePrompt) {
+      setIsInstalling(true);
+      try {
+        const outcome = await install();
+        if (outcome === 'unavailable') setDialogOpen(true);
+      } finally {
+        setIsInstalling(false);
+      }
+    } else {
+      setDialogOpen(true);
     }
-  }, [deferredPrompt]);
-
-  if (!visible || !deferredPrompt) return null;
+  };
 
   return (
-    <div className="fixed bottom-[4.5rem] left-1/2 z-[100] w-[min(100%,28rem)] -translate-x-1/2 px-3 sm:bottom-4">
-      <div className="flex items-start gap-3 rounded-xl border border-border bg-card/95 p-4 shadow-lg backdrop-blur">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/15">
-          <Download className="h-5 w-5 text-primary" />
-        </div>
-        <div className="min-w-0 flex-1 space-y-2">
-          <p className="text-sm font-semibold text-foreground">Install {PWA_NAME}</p>
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            Add to your home screen for quick access and offline viewing of your last-synced data.
-          </p>
-          <div className="flex flex-wrap gap-2 pt-1">
-            <Button size="sm" onClick={install}>
-              Install App
-            </Button>
-            <Button size="sm" variant="ghost" onClick={dismiss}>
-              Not now
-            </Button>
-          </div>
-        </div>
-        <button
-          type="button"
-          aria-label="Dismiss install prompt"
-          onClick={dismiss}
-          className="shrink-0 rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-        >
-          <X className="h-4 w-4" />
-        </button>
-      </div>
-    </div>
+    <>
+      <DropdownMenuItem onClick={openFlow} className="cursor-pointer" disabled={isInstalling}>
+        <Download className="mr-2 h-4 w-4" />
+        {isInstalling ? 'Installing…' : 'Install App'}
+      </DropdownMenuItem>
+
+      <InstallAppDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        platform={platform}
+        instructions={instructions}
+        canNativePrompt={canNativePrompt}
+        swReady={swReady}
+        onInstall={install}
+        isInstalling={isInstalling}
+      />
+    </>
   );
 }
