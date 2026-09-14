@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -27,6 +27,9 @@ const sectorDisplayNames: Record<string, string> = {
   'EMR_Trading': 'EMR_Trading Projects',
   'EMR_Manufacturing': 'EMR_Manufacturing Projects',
 };
+
+// How many cards to mount per batch as the user scrolls
+const PAGE_SIZE = 24;
 
 // Array filter keys that map to URL params (comma-separated)
 const ARRAY_FILTER_KEYS: (keyof FilterState)[] = [
@@ -257,27 +260,56 @@ export default function Projects() {
     projectLeads: filters.projectLeads,
   }), [filters]);
 
+  // Render the list incrementally — mounting all cards at once makes every
+  // click wait on hundreds of card renders.
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [filteredProjects]);
+
+  useEffect(() => {
+    const node = sentinelRef.current;
+    if (!node) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setVisibleCount((current) => Math.min(current + PAGE_SIZE, filteredProjects.length));
+        }
+      },
+      { rootMargin: '800px' }
+    );
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [filteredProjects.length, visibleCount]);
+
+  const visibleProjects = useMemo(
+    () => filteredProjects.slice(0, visibleCount),
+    [filteredProjects, visibleCount]
+  );
+
   // Selection helpers
-  const toggleSelect = (id: string) => {
+  const toggleSelect = useCallback((id: string) => {
     setSelectedIds(prev => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id); else next.add(id);
       return next;
     });
-  };
+  }, []);
 
-  const toggleSelectAll = () => {
-    if (selectedIds.size === filteredProjects.length) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(filteredProjects.map(p => p.id)));
-    }
-  };
+  const toggleSelectAll = useCallback(() => {
+    setSelectedIds(prev =>
+      prev.size === filteredProjects.length ? new Set() : new Set(filteredProjects.map(p => p.id))
+    );
+  }, [filteredProjects]);
 
-  const exitSelectMode = () => {
+  const exitSelectMode = useCallback(() => {
     setSelectMode(false);
     setSelectedIds(new Set());
-  };
+  }, []);
 
   const handleBulkDelete = async () => {
     const ids = Array.from(selectedIds);
@@ -408,21 +440,28 @@ export default function Projects() {
           <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
         </div>
       ) : (
-        <div className={viewMode === 'grid' ? "grid grid-cols-1 lg:grid-cols-2 gap-6" : "space-y-4"}>
-          {filteredProjects.map((project, idx) => (
-            <div key={project.id}>
-              <ProjectCard
-                project={project}
-                selectable={selectMode}
-                selected={selectedIds.has(project.id)}
-                onSelectToggle={toggleSelect}
-              />
-              {viewMode === 'list' && idx < filteredProjects.length - 1 && (
-                <div className="border-b border-border mt-4" />
-              )}
+        <>
+          <div className={viewMode === 'grid' ? "grid grid-cols-1 lg:grid-cols-2 gap-6" : "space-y-4"}>
+            {visibleProjects.map((project, idx) => (
+              <div key={project.id}>
+                <ProjectCard
+                  project={project}
+                  selectable={selectMode}
+                  selected={selectedIds.has(project.id)}
+                  onSelectToggle={toggleSelect}
+                />
+                {viewMode === 'list' && idx < visibleProjects.length - 1 && (
+                  <div className="border-b border-border mt-4" />
+                )}
+              </div>
+            ))}
+          </div>
+          {visibleCount < filteredProjects.length && (
+            <div ref={sentinelRef} className="flex items-center justify-center py-6">
+              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
             </div>
-          ))}
-        </div>
+          )}
+        </>
       )}
 
       {!isLoading && filteredProjects.length === 0 && (

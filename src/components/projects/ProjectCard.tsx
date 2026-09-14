@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Project, Sector, PIPELINE_STAGES } from "@/types";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -26,20 +27,19 @@ function safeFormatDate(
   return isValid(date) ? format(date, formatStr) : "-";
 }
 
-export function ProjectCard({
+const statusColors: Record<string, string> = {
+  active: "bg-chart-1/20 text-chart-1 border-chart-1/30",
+  "on-hold": "bg-chart-5/20 text-chart-5 border-chart-5/30",
+  completed: "bg-chart-2/20 text-chart-2 border-chart-2/30",
+};
+
+function ProjectCardComponent({
   project,
   selectable,
   selected,
   onSelectToggle,
 }: ProjectCardProps) {
-  const { currency, formatCurrency, getContractValue, getMarginValue } =
-    useCurrency();
-
-  const statusColors = {
-    active: "bg-chart-1/20 text-chart-1 border-chart-1/30",
-    "on-hold": "bg-chart-5/20 text-chart-5 border-chart-5/30",
-    completed: "bg-chart-2/20 text-chart-2 border-chart-2/30",
-  };
+  const { formatCurrency, getContractValue, getMarginValue } = useCurrency();
 
   const tasks = Array.isArray(project.tasks) ? project.tasks : [];
   const completedTasks = tasks.filter((t) => t.status === "completed").length;
@@ -197,3 +197,6 @@ export function ProjectCard({
 
   return <Link to={`/projects/${project.id}`}>{card}</Link>;
 }
+
+export const ProjectCard = memo(ProjectCardComponent);
+ProjectCard.displayName = "ProjectCard";

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef, memo } from 'react';
 import { Sector, PipelineStage, PIPELINE_STAGES, Project, TeamMember } from '@/types';
 import { businessVerticals, industrySectors } from '@/data/mockData';
 import { PRODUCT_OPTIONS, getSubproductOptions } from '@/data/productCatalog';
@@ -72,9 +72,27 @@ export const defaultFilters: FilterState = {
   dealProbabilities: [],
 };
 
-export function AdvancedFilters({ filters, onFiltersChange, projects = [], teamMembers = [] }: AdvancedFiltersProps) {
+function AdvancedFiltersComponent({ filters, onFiltersChange, projects = [], teamMembers = [] }: AdvancedFiltersProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
+
+  // Typing updates local state immediately and pushes to the URL on a debounce,
+  // so each keystroke doesn't re-filter and re-render the whole project list.
+  const [searchDraft, setSearchDraft] = useState(filters.search);
+  const filtersRef = useRef(filters);
+  filtersRef.current = filters;
+
+  useEffect(() => {
+    setSearchDraft(filters.search);
+  }, [filters.search]);
+
+  useEffect(() => {
+    if (searchDraft === filtersRef.current.search) return;
+    const timer = window.setTimeout(() => {
+      onFiltersChange({ ...filtersRef.current, search: searchDraft });
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [searchDraft, onFiltersChange]);
 
   const activeFilterCount = Object.entries(filters).filter(([key, value]) => {
     if (key === 'search') return false;
@@ -223,8 +241,8 @@ export function AdvancedFilters({ filters, onFiltersChange, projects = [], teamM
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             placeholder="Search projects, clients, OEM..."
-            value={filters.search}
-            onChange={(e) => onFiltersChange({ ...filters, search: e.target.value })}
+            value={searchDraft}
+            onChange={(e) => setSearchDraft(e.target.value)}
             className="pl-10"
           />
         </div>
@@ -589,3 +607,6 @@ export function AdvancedFilters({ filters, onFiltersChange, projects = [], teamM
     </div>
   );
 }
+
+export const AdvancedFilters = memo(AdvancedFiltersComponent);
+AdvancedFilters.displayName = 'AdvancedFilters';
