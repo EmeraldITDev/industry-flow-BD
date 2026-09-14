@@ -23,6 +23,7 @@ import SettingsPage from "./pages/SettingsPage";
 import CalendarPage from "./pages/CalendarPage";
 import AllTasksPage from "./pages/AllTasksPage";
 import ChairmanViewPage from "./pages/ChairmanViewPage";
+import OperationsPage from "./pages/OperationsPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -52,6 +53,7 @@ const App = () => (
                     <Route path="/login" element={<LoginPage />} />
                     <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
                     <Route path="/executive" element={<ProtectedRoute><ChairmanViewPage /></ProtectedRoute>} />
+                    <Route path="/operations" element={<ProtectedRoute><OperationsPage /></ProtectedRoute>} />
                     <Route path="/projects" element={<ProtectedRoute><ProjectsPage /></ProtectedRoute>} />
                     <Route path="/projects/new" element={<ProtectedRoute><NewProjectPage /></ProtectedRoute>} />
                     <Route path="/projects/:id/edit" element={<ProtectedRoute><EditProjectPage /></ProtectedRoute>} />

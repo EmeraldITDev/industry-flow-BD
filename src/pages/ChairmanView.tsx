@@ -100,8 +100,8 @@ export default function ChairmanView() {
           <p className="text-sm text-muted-foreground">
             This view is available to the Chairman and authorised executives only.
           </p>
-          <Button variant="outline" onClick={() => navigate('/')}>
-            Back to dashboard
+          <Button variant="outline" onClick={() => navigate('/operations')}>
+            Back to operations
           </Button>
         </CardContent>
       </Card>

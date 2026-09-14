@@ -17,7 +17,7 @@ import emeraldLogo from '@/assets/emerald-logo.png';
 import { NavLink, useLocation } from 'react-router-dom';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/context/AuthContext';
-import { canViewExecutive } from '@/lib/executive/access';
+import { canViewExecutive, homePathForUser } from '@/lib/executive/access';
 import { cn } from '@/lib/utils';
 import {
   Sidebar,
@@ -92,18 +92,20 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
   const showExecutive = canViewExecutive(user);
+  const homeUrl = homePathForUser(user);
 
   const navItems = showExecutive
     ? [
         { title: "Chairman's View", url: '/executive', icon: Landmark },
-        ...mainNavItems,
+        { title: 'Operations', url: '/operations', icon: LayoutDashboard },
+        ...mainNavItems.filter((item) => item.url !== '/'),
       ]
     : mainNavItems;
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
       <SidebarHeader className={cn("border-b border-sidebar-border", collapsed ? "p-2" : "p-4")}>
-        <NavLink to="/" className="flex items-center justify-center gap-3 mb-3">
+        <NavLink to={homeUrl} className="flex items-center justify-center gap-3 mb-3">
           <img
             src={collapsed ? '/favicon.png' : emeraldLogo}
             alt="Emerald BDPortal"

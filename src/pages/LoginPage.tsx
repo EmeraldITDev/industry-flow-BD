@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
+import { homePathForUser } from '@/lib/executive/access';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,26 +14,53 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
-  const { login, isAuthenticated } = useAuth();
+  const { login, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
 
   // Redirect if already authenticated
   if (isAuthenticated) {
-    navigate('/', { replace: true });
+    navigate(homePathForUser(user), { replace: true });
     return null;
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoggingIn(true);
-    
+
     const normalizedEmail = email.toLowerCase().trim();
     const success = await login(normalizedEmail, password);
-    
+
     if (success) {
-      navigate('/', { replace: true });
+      // Prefer the freshly authenticated identity from storage (state update is async).
+      let homeUser: Parameters<typeof homePathForUser>[0] = {
+        id: '',
+        email: normalizedEmail,
+        name: '',
+        accessLevel: 'employee',
+        createdAt: new Date(),
+        isActive: true,
+      };
+
+      try {
+        const stored = JSON.parse(localStorage.getItem('user') || 'null');
+        if (stored) {
+          homeUser = {
+            id: String(stored.id ?? ''),
+            email: stored.email || normalizedEmail,
+            name: stored.name || '',
+            accessLevel: stored.accessLevel || stored.role || 'employee',
+            systemRole: stored.systemRole,
+            createdAt: new Date(),
+            isActive: true,
+          };
+        }
+      } catch {
+        // use email-based fallback above
+      }
+
+      navigate(homePathForUser(homeUser), { replace: true });
     }
-    
+
     setIsLoggingIn(false);
   };
 
@@ -41,9 +69,9 @@ export default function LoginPage() {
       <Card className="w-full max-w-md border-border/50 shadow-xl">
         <CardHeader className="text-center space-y-4">
           <div className="flex justify-center">
-            <img 
-              src={emeraldLogo} 
-              alt="Emerald CFZE" 
+            <img
+              src={emeraldLogo}
+              alt="Emerald CFZE"
               className="h-16 w-auto"
             />
           </div>
@@ -104,7 +132,7 @@ export default function LoginPage() {
               )}
             </Button>
           </form>
-          
+
           <div className="mt-6 pt-4 border-t border-border/50">
             <p className="text-xs text-muted-foreground text-center">
               Only @emeraldcfze.com email addresses are allowed
