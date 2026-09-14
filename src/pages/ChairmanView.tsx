@@ -98,7 +98,7 @@ export default function ChairmanView() {
           <ShieldAlert className="w-8 h-8 mx-auto text-muted-foreground" />
           <h2 className="font-semibold">Executive View is restricted</h2>
           <p className="text-sm text-muted-foreground">
-            This view is available to the Chairman and authorised executives only.
+            This view is available only to the Chairman (`lazarus.angbazo@emeraldcfze.com`).
           </p>
           <Button variant="outline" onClick={() => navigate('/operations')}>
             Back to operations

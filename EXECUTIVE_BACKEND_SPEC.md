@@ -15,7 +15,7 @@ Do not invent exchange-rate conversion. Keep USD and NGN separate, matching `src
 | Page shell | `src/pages/ChairmanViewPage.tsx` |
 | Dashboard | `src/pages/ChairmanView.tsx` |
 | Analytics engine | `src/lib/executive/analytics.ts` |
-| Access gate | `src/lib/executive/access.ts` (`lazarus.angbazo@emeraldcfze.com` + admins) |
+| Access gate | `src/lib/executive/access.ts` (`lazarus.angbazo@emeraldcfze.com` only — not admins) |
 | Account groups | `src/lib/executive/accountGroups.ts` (localStorage today) |
 | UI panels | `src/components/executive/*` |
 | Route | `/executive` in `src/App.tsx` |
@@ -76,7 +76,7 @@ Do not invent exchange-rate conversion. Keep USD and NGN separate, matching `src
 | Probability change history | Append-only log when `deal_probability` changes |
 | Optional value change history | Useful for “significant value added”; not mandatory for v1 |
 | Authoritative account groups | Table + CRUD if groups must be org-wide |
-| Dedicated executive API auth | Mirror FE allowlist + admin on the server |
+| Dedicated executive API auth | Mirror FE email allowlist on the server (no admin bypass) |
 
 ---
 
@@ -137,7 +137,7 @@ Match clients with case-insensitive substring, same as `matchAccountGroup` today
 
 ## D. Proposed API endpoints
 
-Follow existing `/api/...` Laravel style used by `projects`, `team`, `auth`. Gate every executive route: authenticated **and** (`email ∈ EXECUTIVE_EMAILS` **or** admin role). Return `403` otherwise.
+Follow existing `/api/...` Laravel style used by `projects`, `team`, `auth`. Gate every executive route: authenticated **and** `email ∈ EXECUTIVE_EMAILS` only (admins are not included). Return `403` otherwise.
 
 Query param shared by all analytics endpoints:
 
@@ -216,7 +216,7 @@ Do **not** return the full project list for overview metrics.
 
 ## F. Auth alignment
 
-Mirror `src/lib/executive/access.ts` on the backend (config/env list + admin). Do not rely on “hide the menu” alone — the route is already client-gated, but API must enforce the same rules once aggregations move server-side.
+Mirror `src/lib/executive/access.ts` on the backend (config/env email list only — no admin bypass). Do not rely on “hide the menu” alone — the route is already client-gated, but API must enforce the same rules once aggregations move server-side.
 
 ---
 
