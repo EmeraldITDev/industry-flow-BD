@@ -93,7 +93,7 @@ export default function ChairmanView() {
 
   if (!allowed) {
     return (
-      <Card className="max-w-lg mx-auto mt-12">
+      <Card className="w-full max-w-lg mx-auto mt-12">
         <CardContent className="p-8 text-center space-y-3">
           <ShieldAlert className="w-8 h-8 mx-auto text-muted-foreground" />
           <h2 className="font-semibold">Executive View is restricted</h2>
@@ -121,10 +121,10 @@ export default function ChairmanView() {
   const t = data.totals;
 
   return (
-    <div className="space-y-6 pb-10">
+    <div className="mx-auto w-full max-w-[1600px] p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8 pb-12">
       {/* Header */}
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
+      <div className="flex flex-wrap items-start justify-between gap-4 pb-5 border-b border-border/60">
+        <div className="min-w-0">
           <h1 className="text-2xl lg:text-3xl font-semibold tracking-tight">
             {greeting}, Chairman
           </h1>
@@ -140,9 +140,9 @@ export default function ChairmanView() {
             {serverError ? ' · offline analytics' : ''}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <Select value={period} onValueChange={(v) => setPeriod(v as ReviewPeriodKey)}>
-            <SelectTrigger className="w-[190px]">
+            <SelectTrigger className="w-[170px] sm:w-[190px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -167,8 +167,8 @@ export default function ChairmanView() {
       </div>
 
       {/* 1. Commercial position */}
-      <section id="exec-overview" className="space-y-3">
-        <div className="grid gap-3 grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <section id="exec-overview" className="space-y-4">
+        <div className="grid gap-3 sm:gap-4 grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6">
           <ExecutiveMetric
             label="Active opportunities"
             value={String(t.active)}
