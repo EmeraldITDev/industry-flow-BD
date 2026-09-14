@@ -35,20 +35,22 @@ export function ExecutiveMetric({
     <Card
       onClick={clickable ? () => navigate(`/projects?${drillTo}`) : undefined}
       className={cn(
-        'flex h-full flex-col p-4 sm:p-5 transition-colors',
+        'flex h-full min-h-[7.5rem] flex-col justify-between gap-3 p-5 sm:p-6 transition-colors',
         toneClass[tone],
         clickable && 'cursor-pointer hover:border-primary/60',
         className
       )}
     >
-      <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium leading-tight">
+      <p className="text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-medium leading-tight">
         {label}
       </p>
-      <p className="text-2xl lg:text-[1.75rem] font-semibold mt-2 tabular-nums leading-none">
-        {value}
-      </p>
-      {sub && <p className="text-xs text-muted-foreground mt-2 leading-snug">{sub}</p>}
-      {movement && <p className="text-xs mt-1.5 text-primary leading-snug">{movement}</p>}
+      <div className="space-y-1.5">
+        <p className="text-2xl sm:text-3xl font-semibold tabular-nums leading-none tracking-tight">
+          {value}
+        </p>
+        {sub && <p className="text-xs text-muted-foreground leading-snug">{sub}</p>}
+        {movement && <p className="text-xs text-primary leading-snug">{movement}</p>}
+      </div>
     </Card>
   );
 }

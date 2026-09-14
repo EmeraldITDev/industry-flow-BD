@@ -121,14 +121,15 @@ export default function ChairmanView() {
   const t = data.totals;
 
   return (
-    <div className="mx-auto w-full max-w-[1600px] p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8 pb-12">
+    <div className="w-full px-5 py-6 sm:px-8 sm:py-8 lg:px-10 lg:py-10">
+      <div className="mx-auto w-full max-w-[1400px] space-y-8 sm:space-y-10">
       {/* Header */}
-      <div className="flex flex-wrap items-start justify-between gap-4 pb-5 border-b border-border/60">
-        <div className="min-w-0">
-          <h1 className="text-2xl lg:text-3xl font-semibold tracking-tight">
+      <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between pb-6 border-b border-border">
+        <div className="min-w-0 max-w-3xl">
+          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">
             {greeting}, Chairman
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
             Commercial position as of{' '}
             {new Date().toLocaleDateString(undefined, {
               day: 'numeric',
@@ -142,7 +143,7 @@ export default function ChairmanView() {
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <Select value={period} onValueChange={(v) => setPeriod(v as ReviewPeriodKey)}>
-            <SelectTrigger className="w-[170px] sm:w-[190px]">
+            <SelectTrigger className="w-[180px] sm:w-[200px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -167,8 +168,8 @@ export default function ChairmanView() {
       </div>
 
       {/* 1. Commercial position */}
-      <section id="exec-overview" className="space-y-4">
-        <div className="grid gap-3 sm:gap-4 grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6">
+      <section id="exec-overview" className="space-y-6">
+        <div className="grid gap-4 sm:gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           <ExecutiveMetric
             label="Active opportunities"
             value={String(t.active)}
@@ -231,10 +232,10 @@ export default function ChairmanView() {
         </div>
 
         <Card>
-          <CardHeader className="pb-2">
+          <CardHeader className="pb-3">
             <CardTitle className="text-base">Executive Summary</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent className="space-y-3 max-w-4xl">
             {data.summary.map((line, i) => (
               <p key={i} className="text-sm text-muted-foreground leading-relaxed">
                 {line}
@@ -307,6 +308,7 @@ export default function ChairmanView() {
         onOpenChange={setGroupManagerOpen}
         onSaved={setAccountGroups}
       />
+      </div>
     </div>
   );
 }
