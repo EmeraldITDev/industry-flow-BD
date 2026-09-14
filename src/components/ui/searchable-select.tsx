@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Check, ChevronsUpDown } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Check, ChevronsUpDown, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
@@ -23,6 +23,10 @@ interface SearchableSelectProps {
   placeholder?: string;
   searchPlaceholder?: string;
   emptyText?: string;
+  /** Allow typing a value that is not in the options list. */
+  allowCreate?: boolean;
+  createLabel?: (query: string) => string;
+  disabled?: boolean;
 }
 
 export function SearchableSelect({
@@ -32,17 +36,49 @@ export function SearchableSelect({
   placeholder = 'Select...',
   searchPlaceholder = 'Search...',
   emptyText = 'No results found.',
+  allowCreate = false,
+  createLabel = (q) => `Add "${q}"`,
+  disabled = false,
 }: SearchableSelectProps) {
   const [open, setOpen] = useState(false);
-  const selectedLabel = options.find((o) => o.value === value)?.label;
+  const [query, setQuery] = useState('');
+
+  const selectedLabel =
+    options.find((o) => o.value === value)?.label || (value ? value : undefined);
+
+  const filteredOptions = useMemo(() => {
+    if (!query.trim()) return options;
+    const q = query.toLowerCase();
+    return options.filter((o) => o.label.toLowerCase().includes(q));
+  }, [options, query]);
+
+  const trimmedQuery = query.trim();
+  const canCreate =
+    allowCreate &&
+    trimmedQuery.length > 0 &&
+    !options.some((o) => o.value.toLowerCase() === trimmedQuery.toLowerCase()) &&
+    !options.some((o) => o.label.toLowerCase() === trimmedQuery.toLowerCase());
+
+  const selectValue = (next: string) => {
+    onValueChange(next);
+    setOpen(false);
+    setQuery('');
+  };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (!next) setQuery('');
+      }}
+    >
       <PopoverTrigger asChild>
         <Button
           variant="outline"
           role="combobox"
           aria-expanded={open}
+          disabled={disabled}
           className="w-full justify-between font-normal h-10"
         >
           <span className="truncate">{selectedLabel || placeholder}</span>
@@ -55,19 +91,33 @@ export function SearchableSelect({
         side="bottom"
         collisionPadding={16}
       >
-        <Command className="min-h-0">
-          <CommandInput placeholder={searchPlaceholder} />
+        <Command shouldFilter={false} className="min-h-0">
+          <CommandInput
+            placeholder={searchPlaceholder}
+            value={query}
+            onValueChange={setQuery}
+          />
           <CommandList className="max-h-none min-h-0 flex-1">
-            <CommandEmpty>{emptyText}</CommandEmpty>
+            <CommandEmpty>
+              {canCreate ? 'Press enter or choose Add below.' : emptyText}
+            </CommandEmpty>
+            {canCreate && (
+              <CommandGroup>
+                <CommandItem
+                  value={`__create__${trimmedQuery}`}
+                  onSelect={() => selectValue(trimmedQuery)}
+                >
+                  <Plus className="mr-2 h-4 w-4 text-primary" />
+                  <span className="truncate">{createLabel(trimmedQuery)}</span>
+                </CommandItem>
+              </CommandGroup>
+            )}
             <CommandGroup>
-              {options.map((option) => (
+              {filteredOptions.map((option) => (
                 <CommandItem
                   key={option.value}
                   value={option.label}
-                  onSelect={() => {
-                    onValueChange(option.value);
-                    setOpen(false);
-                  }}
+                  onSelect={() => selectValue(option.value)}
                 >
                   <Check
                     className={cn(

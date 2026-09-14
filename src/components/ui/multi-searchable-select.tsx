@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Check, ChevronsUpDown, X } from "lucide-react";
+import { Check, ChevronsUpDown, Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +14,9 @@ interface MultiSearchableSelectProps {
   searchPlaceholder?: string;
   emptyText?: string;
   disabled?: boolean;
+  /** Allow adding values that are not in the options list. */
+  allowCreate?: boolean;
+  createLabel?: (query: string) => string;
 }
 
 /** Max chips rendered in the trigger before collapsing into a "+N more" pill */
@@ -29,6 +32,8 @@ export function MultiSearchableSelect({
   searchPlaceholder = "Search...",
   emptyText = "No results found.",
   disabled = false,
+  allowCreate = false,
+  createLabel = (q) => `Add "${q}"`,
 }: MultiSearchableSelectProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -47,6 +52,14 @@ export function MultiSearchableSelect({
   );
   const hiddenOptionCount = filteredOptions.length - renderedOptions.length;
 
+  const trimmedQuery = query.trim();
+  const canCreate =
+    allowCreate &&
+    trimmedQuery.length > 0 &&
+    !valueSet.has(trimmedQuery) &&
+    !options.some((o) => o.value.toLowerCase() === trimmedQuery.toLowerCase()) &&
+    !options.some((o) => o.label.toLowerCase() === trimmedQuery.toLowerCase());
+
   const allFilteredSelected = useMemo(
     () => filteredOptions.length > 0 && filteredOptions.every((o) => valueSet.has(o.value)),
     [filteredOptions, valueSet]
@@ -58,6 +71,15 @@ export function MultiSearchableSelect({
     } else {
       onValuesChange([...values, val]);
     }
+  };
+
+  const addCreatedValue = (val: string) => {
+    const next = val.trim();
+    if (!next) return;
+    if (!valueSet.has(next)) {
+      onValuesChange([...values, next]);
+    }
+    setQuery("");
   };
 
   const handleSelectAllToggle = () => {
@@ -87,14 +109,20 @@ export function MultiSearchableSelect({
     () =>
       values.slice(0, MAX_VISIBLE_BADGES).map((v) => ({
         value: v,
-        label: optionLabelMap.get(v) ?? `${v} — Unknown, please update`,
+        label: optionLabelMap.get(v) ?? v,
       })),
     [values, optionLabelMap]
   );
   const overflowCount = values.length - visibleBadges.length;
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (!next) setQuery("");
+      }}
+    >
       <PopoverTrigger asChild>
         <Button
           variant="outline"
@@ -148,18 +176,24 @@ export function MultiSearchableSelect({
       >
         <Command shouldFilter={false} className="min-h-0">
           <CommandInput placeholder={searchPlaceholder} value={query} onValueChange={setQuery} />
-          {filteredOptions.length > 0 && (
+          {(filteredOptions.length > 0 || canCreate) && (
             <div className="flex shrink-0 items-center justify-between gap-2 border-b px-2 py-1.5">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="h-7 px-2 text-xs"
-                onClick={handleSelectAllToggle}
-              >
-                {allFilteredSelected ? "Deselect all" : "Select all"}
-                {query.trim() ? " (filtered)" : ""}
-              </Button>
+              {filteredOptions.length > 0 ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 text-xs"
+                  onClick={handleSelectAllToggle}
+                >
+                  {allFilteredSelected ? "Deselect all" : "Select all"}
+                  {query.trim() ? " (filtered)" : ""}
+                </Button>
+              ) : (
+                <span className="text-xs text-muted-foreground px-1">
+                  {allowCreate ? "Type to add a new value" : ""}
+                </span>
+              )}
               {values.length > 0 && (
                 <Button
                   type="button"
@@ -174,7 +208,20 @@ export function MultiSearchableSelect({
             </div>
           )}
           <CommandList className="max-h-none min-h-0 flex-1">
-            <CommandEmpty>{emptyText}</CommandEmpty>
+            <CommandEmpty>
+              {canCreate ? "Choose Add below to create this value." : emptyText}
+            </CommandEmpty>
+            {canCreate && (
+              <CommandGroup>
+                <CommandItem
+                  value={`__create__${trimmedQuery}`}
+                  onSelect={() => addCreatedValue(trimmedQuery)}
+                >
+                  <Plus className="mr-2 h-4 w-4 text-primary" />
+                  <span className="truncate">{createLabel(trimmedQuery)}</span>
+                </CommandItem>
+              </CommandGroup>
+            )}
             <CommandGroup>
               {renderedOptions.map((option) => (
                 <CommandItem key={option.value} value={option.value} onSelect={() => toggleValue(option.value)}>

@@ -31,6 +31,7 @@ const sectorDisplayNames: Record<string, string> = {
 // Array filter keys that map to URL params (comma-separated)
 const ARRAY_FILTER_KEYS: (keyof FilterState)[] = [
   'businessVerticals', 'sectors', 'statuses', 'pipelineStages', 'businessSegments',
+  'products', 'subproducts',
   'projectLeads', 'assignees', 'clientNames', 'oems',
   'locations', 'channelPartners', 'dealProbabilities',
 ];
@@ -208,6 +209,28 @@ export default function Projects() {
       if (filters.oems.length > 0 && (!project.oem || !filters.oems.includes(project.oem.trim()))) return false;
       if (filters.locations.length > 0 && (!project.location || !filters.locations.includes(project.location.trim()))) return false;
       if (filters.channelPartners.length > 0 && (!project.channelPartner || !filters.channelPartners.includes(project.channelPartner.trim()))) return false;
+
+      // Product / sub-product: match against multi arrays or legacy singular fields
+      if (filters.products.length > 0) {
+        const projectProducts = [
+          ...(project.products ?? []),
+          ...(project.product ? [project.product] : []),
+        ]
+          .map((v) => String(v).trim())
+          .filter(Boolean);
+        const hit = filters.products.some((p) => projectProducts.includes(p));
+        if (!hit) return false;
+      }
+      if (filters.subproducts.length > 0) {
+        const projectSubproducts = [
+          ...(project.subproducts ?? []),
+          ...(project.subProduct ? [project.subProduct] : []),
+        ]
+          .map((v) => String(v).trim())
+          .filter(Boolean);
+        const hit = filters.subproducts.some((s) => projectSubproducts.includes(s));
+        if (!hit) return false;
+      }
       
       // Deal Probability filter
       if (filters.dealProbabilities.length > 0 && (!project.dealProbability || !filters.dealProbabilities.includes(project.dealProbability))) return false;

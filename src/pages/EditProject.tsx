@@ -43,6 +43,7 @@ import { ProjectImageUpload } from "@/components/projects/ProjectImageUpload";
 import { projectsService } from "@/services/projects";
 import { teamService } from "@/services/team";
 import { MultiSearchableSelect } from "@/components/ui/multi-searchable-select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { PRODUCT_OPTIONS, getSubproductOptions } from "@/data/productCatalog";
 
 const dealProbabilities: { value: RiskLevel; label: string; color: string }[] =
@@ -678,24 +679,26 @@ export default function EditProject() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>OEM</Label>
-                <Select
+                <SearchableSelect
                   value={formData.oem || "n/a"}
                   onValueChange={(value) =>
                     setFormData({ ...formData, oem: value })
                   }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select Original Equipment Manufacturer" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="n/a">n/a</SelectItem>
-                    {oemOptions.map((opt) => (
-                      <SelectItem key={opt} value={opt}>
-                        {opt}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  options={[
+                    { value: "n/a", label: "n/a" },
+                    ...oemOptions.map((opt) => ({ value: opt, label: opt })),
+                    ...(formData.oem &&
+                    formData.oem !== "n/a" &&
+                    !oemOptions.includes(formData.oem)
+                      ? [{ value: formData.oem, label: formData.oem }]
+                      : []),
+                  ]}
+                  placeholder="Select or add OEM"
+                  searchPlaceholder="Search or add OEM..."
+                  allowCreate
+                  createLabel={(q) => `Add OEM "${q}"`}
+                  emptyText="No OEMs found. Type to add a new one."
+                />
               </div>
 
               <div className="space-y-2">
@@ -728,7 +731,10 @@ export default function EditProject() {
                     return [...PRODUCT_OPTIONS, ...extraSaved];
                   })()}
                   placeholder="Select products"
-                  searchPlaceholder="Search products..."
+                  searchPlaceholder="Search or add products..."
+                  allowCreate
+                  createLabel={(q) => `Add product "${q}"`}
+                  emptyText="No products found. Type to add a new one."
                 />
               </div>
 
@@ -750,15 +756,16 @@ export default function EditProject() {
                       .map((sp) => ({ value: sp, label: sp }));
                     return [...catalogOptions, ...extraSaved];
                   })()}
-                  disabled={
-                    getSubproductOptions(formData.products).length === 0
-                  }
+                  disabled={formData.products.length === 0}
                   placeholder={
                     formData.products.length === 0
                       ? "Select a product first"
                       : "Select sub products"
                   }
-                  searchPlaceholder="Search sub products..."
+                  searchPlaceholder="Search or add sub products..."
+                  allowCreate
+                  createLabel={(q) => `Add sub product "${q}"`}
+                  emptyText="No sub products found. Type to add a new one."
                 />
               </div>
             </div>

@@ -163,7 +163,44 @@ export function AdvancedFilters({ filters, onFiltersChange, projects = [], teamM
 
   const sectorOptions = industrySectors.map((s) => ({ value: s, label: s }));
 
-  const productOptions = PRODUCT_OPTIONS.map((p) => ({ value: p.value, label: p.label }));
+  // Product options: catalog + any values already on projects
+  const productOptions = useMemo(() => {
+    const set = new Set<string>(PRODUCT_OPTIONS.map((p) => p.value));
+    projects.forEach((p) => {
+      (p.products ?? []).forEach((v) => {
+        if (v?.trim()) set.add(v.trim());
+      });
+      if (p.product?.trim()) set.add(p.product.trim());
+    });
+    return Array.from(set)
+      .sort((a, b) => a.localeCompare(b))
+      .map((v) => ({ value: v, label: v }));
+  }, [projects]);
+
+  const subproductOptions = useMemo(() => {
+    const catalog = getSubproductOptions(filters.products || []);
+    const set = new Set<string>(catalog.map((o) => o.value));
+    projects.forEach((p) => {
+      const projectProducts = [
+        ...(p.products ?? []),
+        ...(p.product ? [p.product] : []),
+      ].map((v) => String(v).trim());
+      const matchesSelected =
+        filters.products.length === 0 ||
+        filters.products.some((fp) => projectProducts.includes(fp));
+      if (!matchesSelected) return;
+      (p.subproducts ?? []).forEach((v) => {
+        if (v?.trim()) set.add(v.trim());
+      });
+      if (p.subProduct?.trim()) set.add(p.subProduct.trim());
+    });
+    (filters.subproducts || []).forEach((v) => {
+      if (v?.trim()) set.add(v.trim());
+    });
+    return Array.from(set)
+      .sort((a, b) => a.localeCompare(b))
+      .map((v) => ({ value: v, label: v }));
+  }, [projects, filters.products, filters.subproducts]);
 
   const statusOptions = ALL_PROJECT_STATUSES.map((s) => ({
     value: s,
@@ -266,10 +303,9 @@ export function AdvancedFilters({ filters, onFiltersChange, projects = [], teamM
                   <MultiSearchableSelect
                     values={filters.subproducts}
                     onValuesChange={(values) => onFiltersChange({ ...filters, subproducts: values })}
-                    options={getSubproductOptions(filters.products || [])}
-                    placeholder={filters.products.length === 0 ? 'Select a product first' : 'All Sub Products'}
+                    options={subproductOptions}
+                    placeholder="All Sub Products"
                     searchPlaceholder="Search sub products..."
-                    disabled={filters.products.length === 0}
                   />
                 </div>
 
@@ -469,6 +505,8 @@ export function AdvancedFilters({ filters, onFiltersChange, projects = [], teamM
             { key: 'businessSegments', prefix: 'Segment', label: (v: string) => v },
             { key: 'businessVerticals', prefix: 'Vertical', label: (v: string) => v },
             { key: 'sectors', prefix: 'Sector', label: (v: string) => v },
+            { key: 'products', prefix: 'Product', label: (v: string) => v },
+            { key: 'subproducts', prefix: 'Sub Product', label: (v: string) => v },
             { key: 'statuses', prefix: 'Status', label: (v: string) => getStatusLabel(v as any) },
             { key: 'projectLeads', prefix: 'Lead', label: (v: string) => projectLeadOptions.find(o => o.value === v)?.label || v },
             { key: 'assignees', prefix: 'Assignee', label: (v: string) => assigneeOptions.find(o => o.value === v)?.label || v },
