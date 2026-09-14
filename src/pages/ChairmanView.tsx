@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Loader2, RefreshCw, ShieldAlert } from 'lucide-react';
 import { projectsService } from '@/services/projects';
 import { teamService } from '@/services/team';
+import { executiveService } from '@/services/executive';
 import { useAuth } from '@/context/AuthContext';
 import { canViewExecutive } from '@/lib/executive/access';
 import { AccountGroup, loadAccountGroups } from '@/lib/executive/accountGroups';
@@ -42,18 +43,32 @@ export default function ChairmanView() {
 
   const allowed = canViewExecutive(user);
 
-  const { data: projects = [], isLoading, isFetching } = useQuery({
+  const {
+    data: serverData,
+    isLoading: serverLoading,
+    isFetching: serverFetching,
+    isError: serverError,
+  } = useQuery({
+    queryKey: ['executive-intelligence', period, accountGroups],
+    queryFn: () => executiveService.getIntelligence(period, accountGroups),
+    staleTime: 60 * 1000,
+    enabled: allowed,
+    retry: 1,
+  });
+
+  // Client-side fallback while the backend endpoint is rolling out / unavailable.
+  const { data: projects = [], isLoading: projectsLoading } = useQuery({
     queryKey: ['projects'],
     queryFn: () => projectsService.getAll(),
     staleTime: 5 * 60 * 1000,
-    enabled: allowed,
+    enabled: allowed && serverError,
   });
 
   const { data: team = [] } = useQuery({
     queryKey: ['team'],
     queryFn: () => teamService.getAll(),
     staleTime: 10 * 60 * 1000,
-    enabled: allowed,
+    enabled: allowed && serverError,
   });
 
   const ownerNameFor = useMemo(() => {
@@ -66,10 +81,15 @@ export default function ChairmanView() {
     };
   }, [team]);
 
-  const data = useMemo(() => {
+  const fallbackData = useMemo(() => {
+    if (!serverError) return null;
     const win = resolveReviewWindow(period);
     return buildExecutiveIntelligence(projects as Project[], win, accountGroups, ownerNameFor);
-  }, [projects, period, accountGroups, ownerNameFor]);
+  }, [serverError, projects, period, accountGroups, ownerNameFor]);
+
+  const data = serverData ?? fallbackData;
+  const isLoading = serverLoading || (serverError && projectsLoading);
+  const isFetching = serverFetching;
 
   if (!allowed) {
     return (
@@ -88,7 +108,7 @@ export default function ChairmanView() {
     );
   }
 
-  if (isLoading) {
+  if (isLoading || !data) {
     return (
       <div className="flex items-center justify-center py-24">
         <Loader2 className="w-6 h-6 animate-spin text-primary" />
@@ -117,6 +137,7 @@ export default function ChairmanView() {
             })}
             {' · '}
             Review period: {data.window.label}
+            {serverError ? ' · offline analytics' : ''}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -135,7 +156,9 @@ export default function ChairmanView() {
           <Button
             variant="outline"
             size="icon"
-            onClick={() => queryClient.invalidateQueries({ queryKey: ['projects'] })}
+            onClick={() =>
+              queryClient.invalidateQueries({ queryKey: ['executive-intelligence'] })
+            }
             aria-label="Refresh"
           >
             <RefreshCw className={isFetching ? 'w-4 h-4 animate-spin' : 'w-4 h-4'} />
