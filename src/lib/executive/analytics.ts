@@ -1,0 +1,1022 @@
+import { Project, PipelineStage } from '@/types';
+import { AccountGroup, matchAccountGroup } from './accountGroups';
+
+/* ------------------------------------------------------------------ *
+ * Definitions agreed with the business
+ * ------------------------------------------------------------------ */
+
+/** Stages treated as commercially secured ("Won"). */
+export const WON_STAGES: PipelineStage[] = ['approval', 'execution', 'closure'];
+/** Stages treated as late-stage pipeline. */
+export const LATE_STAGES: PipelineStage[] = ['proposal', 'negotiation', 'approval'];
+/** Stages shown in the executive funnel, in order. */
+export const FUNNEL_STAGES: PipelineStage[] = [
+  'initiation',
+  'qualification',
+  'proposal',
+  'negotiation',
+  'execution',
+];
+
+export const STAGE_LABELS: Record<string, string> = {
+  cold: 'Cold',
+  initiation: 'Initiation',
+  qualification: 'Qualification',
+  proposal: 'Proposal',
+  negotiation: 'Negotiation',
+  approval: 'Approval / Won',
+  execution: 'Execution',
+  closure: 'Closure',
+  lost: 'Lost',
+};
+
+/** Days without an update before a late-stage opportunity counts as stagnating. */
+export const STAGNATION_DAYS = 45;
+/** Window used for "closing soon". */
+export const CLOSING_SOON_DAYS = 45;
+
+/* ------------------------------------------------------------------ *
+ * Review periods
+ * ------------------------------------------------------------------ */
+
+export type ReviewPeriodKey =
+  | 'snapshot'
+  | 'last7'
+  | 'last14'
+  | 'month'
+  | 'prevMonth'
+  | 'quarter'
+  | 'ytd';
+
+export const REVIEW_PERIODS: { key: ReviewPeriodKey; label: string }[] = [
+  { key: 'snapshot', label: 'Current Snapshot' },
+  { key: 'last7', label: 'Last 7 Days' },
+  { key: 'last14', label: 'Last 14 Days' },
+  { key: 'month', label: 'Current Month' },
+  { key: 'prevMonth', label: 'Previous Month' },
+  { key: 'quarter', label: 'Current Quarter' },
+  { key: 'ytd', label: 'Year to Date' },
+];
+
+export interface ReviewWindow {
+  key: ReviewPeriodKey;
+  label: string;
+  /** Start of the current review window; null for an all-time snapshot. */
+  start: Date | null;
+  end: Date;
+  /** Equivalent preceding window, used for movement comparisons. */
+  prevStart: Date | null;
+  prevEnd: Date | null;
+}
+
+const dayMs = 86_400_000;
+
+export function resolveReviewWindow(
+  key: ReviewPeriodKey,
+  custom?: { from?: Date; to?: Date },
+  now: Date = new Date()
+): ReviewWindow {
+  const label = REVIEW_PERIODS.find((p) => p.key === key)?.label ?? 'Current Snapshot';
+  const end = custom?.to ?? now;
+  const back = (days: number) => new Date(end.getTime() - days * dayMs);
+
+  let start: Date | null = null;
+  switch (key) {
+    case 'last7':
+      start = back(7);
+      break;
+    case 'last14':
+      start = back(14);
+      break;
+    case 'month':
+      start = new Date(now.getFullYear(), now.getMonth(), 1);
+      break;
+    case 'prevMonth':
+      return {
+        key,
+        label,
+        start: new Date(now.getFullYear(), now.getMonth() - 1, 1),
+        end: new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59),
+        prevStart: new Date(now.getFullYear(), now.getMonth() - 2, 1),
+        prevEnd: new Date(now.getFullYear(), now.getMonth() - 1, 0, 23, 59, 59),
+      };
+    case 'quarter':
+      start = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
+      break;
+    case 'ytd':
+      start = new Date(now.getFullYear(), 0, 1);
+      break;
+    default:
+      start = null;
+  }
+
+  if (!start) return { key, label, start: null, end, prevStart: null, prevEnd: null };
+
+  const span = end.getTime() - start.getTime();
+  return {
+    key,
+    label,
+    start,
+    end,
+    prevStart: new Date(start.getTime() - span),
+    prevEnd: start,
+  };
+}
+
+/* ------------------------------------------------------------------ *
+ * Field helpers — currency values are never mixed or converted
+ * ------------------------------------------------------------------ */
+
+export const usdOf = (p: Project) => Number(p.contractValueUSD ?? 0) || 0;
+export const ngnOf = (p: Project) => Number(p.contractValueNGN ?? 0) || 0;
+/** Magnitude used only for ranking, never displayed as a total. */
+const rankWeight = (p: Project) => usdOf(p) + ngnOf(p) / 1_000_000;
+
+const toDate = (value: any): Date | null => {
+  if (!value) return null;
+  const d = new Date(value);
+  return isNaN(d.getTime()) ? null : d;
+};
+
+export const createdAtOf = (p: Project) =>
+  toDate((p as any).createdAt ?? (p as any).created_at ?? p.startDate);
+export const updatedAtOf = (p: Project) =>
+  toDate((p as any).updatedAt ?? (p as any).updated_at) ?? createdAtOf(p);
+
+export const daysSince = (d: Date | null, now = new Date()) =>
+  d ? Math.floor((now.getTime() - d.getTime()) / dayMs) : null;
+
+export type ProbabilityBand = 'high' | 'medium' | 'low';
+
+export function probabilityBand(p: Project): ProbabilityBand {
+  switch (p.dealProbability) {
+    case 'critical':
+    case 'high':
+      return 'high';
+    case 'medium':
+      return 'medium';
+    default:
+      return 'low';
+  }
+}
+
+const PROBABILITY_SCORE: Record<ProbabilityBand, number> = { high: 0.75, medium: 0.45, low: 0.15 };
+
+export const isWon = (p: Project) =>
+  WON_STAGES.includes(p.pipelineStage) || p.status === 'completed';
+export const isLost = (p: Project) => p.pipelineStage === 'lost';
+export const isActivePipeline = (p: Project) => !isLost(p) && p.pipelineStage !== 'cold';
+export const isLateStage = (p: Project) => LATE_STAGES.includes(p.pipelineStage);
+
+const inWindow = (d: Date | null, start: Date | null, end: Date | null) => {
+  if (!d) return false;
+  if (start && d < start) return false;
+  if (end && d > end) return false;
+  return true;
+};
+
+/* ------------------------------------------------------------------ *
+ * Aggregate shapes
+ * ------------------------------------------------------------------ */
+
+export interface ValueBucket {
+  count: number;
+  usd: number;
+  ngn: number;
+}
+
+const emptyBucket = (): ValueBucket => ({ count: 0, usd: 0, ngn: 0 });
+
+const addTo = (bucket: ValueBucket, p: Project, share = 1) => {
+  bucket.count += share === 1 ? 1 : 0;
+  bucket.usd += usdOf(p) * share;
+  bucket.ngn += ngnOf(p) * share;
+};
+
+export interface StageRow {
+  stage: PipelineStage;
+  label: string;
+  count: number;
+  share: number;
+  usd: number;
+  ngn: number;
+  avgProbability: number;
+  newInPeriod: number;
+  interpretation: string;
+}
+
+export interface OpportunityRow {
+  id: string;
+  name: string;
+  client: string;
+  stage: PipelineStage;
+  stageLabel: string;
+  probability: ProbabilityBand;
+  usd: number;
+  ngn: number;
+  expectedCloseDate: string | null;
+  businessVertical: string;
+  sector: string;
+  products: string[];
+  subproducts: string[];
+  owner: string;
+  lastActivity: Date | null;
+  daysIdle: number | null;
+  priorityScore: number;
+}
+
+export interface ExecutiveAlert {
+  id: string;
+  severity: 'high' | 'medium' | 'info';
+  category: string;
+  title: string;
+  detail: string;
+  /** Query string (without "?") for the project list drill-down. */
+  drillTo: string;
+  count: number;
+}
+
+export interface RankedGroup {
+  key: string;
+  label: string;
+  count: number;
+  usd: number;
+  ngn: number;
+  lateStage: number;
+  won: number;
+  wonUsd: number;
+  wonNgn: number;
+  avgProbability: number;
+  weightedUsd: number;
+}
+
+export interface AccountSnapshot extends RankedGroup {
+  groupId: string | null;
+  isConfiguredGroup: boolean;
+  byStage: Record<string, number>;
+  byProbability: Record<ProbabilityBand, number>;
+  byEntity: RankedGroup[];
+  proposal: number;
+  negotiation: number;
+  execution: number;
+  nearConversion: number;
+  requiresAttention: number;
+  newInPeriod: number;
+  topOpportunities: OpportunityRow[];
+  clientNames: string[];
+}
+
+export interface ExecutiveIntelligence {
+  window: ReviewWindow;
+  totals: {
+    all: number;
+    active: number;
+    activeUsd: number;
+    activeNgn: number;
+    won: number;
+    wonUsd: number;
+    wonNgn: number;
+    proposal: number;
+    negotiation: number;
+    execution: number;
+    lost: number;
+    lateStage: number;
+    lateStageUsd: number;
+    lateStageNgn: number;
+    high: number;
+    medium: number;
+    low: number;
+    newInPeriod: number;
+    newPrevPeriod: number;
+    wonInPeriod: number;
+    wonPrevPeriod: number;
+    updatedInPeriod: number;
+    requiresAttention: number;
+    weightedUsd: number;
+    weightedNgn: number;
+  };
+  stages: StageRow[];
+  health: { verdict: string; tone: 'good' | 'watch' | 'risk'; narrative: string };
+  conversion: {
+    wonYear: number;
+    wonQuarter: number;
+    wonMonth: number;
+    wonUsd: number;
+    wonNgn: number;
+    avgWonUsd: number;
+    avgWonNgn: number;
+    inExecution: number;
+    byMonth: { month: string; count: number; usd: number; ngn: number }[];
+    recentWins: OpportunityRow[];
+    byClient: RankedGroup[];
+    bySector: RankedGroup[];
+    byVertical: RankedGroup[];
+    byProduct: RankedGroup[];
+    byPartner: RankedGroup[];
+  };
+  nearConversion: OpportunityRow[];
+  alerts: ExecutiveAlert[];
+  accounts: AccountSnapshot[];
+  partners: RankedGroup[];
+  clients: RankedGroup[];
+  dimensions: {
+    verticals: RankedGroup[];
+    sectors: RankedGroup[];
+    products: RankedGroup[];
+    subproducts: RankedGroup[];
+  };
+  movement: {
+    created: OpportunityRow[];
+    updated: OpportunityRow[];
+    won: OpportunityRow[];
+    overdue: OpportunityRow[];
+  };
+  topOpportunities: {
+    largest: OpportunityRow[];
+    highestProbability: OpportunityRow[];
+    closest: OpportunityRow[];
+    recentlyWon: OpportunityRow[];
+    attention: OpportunityRow[];
+    recentlyUpdated: OpportunityRow[];
+  };
+  risks: { label: string; value: string; detail: string; tone: 'good' | 'watch' | 'risk' }[];
+  summary: string[];
+}
+
+/* ------------------------------------------------------------------ *
+ * Row + ranking builders
+ * ------------------------------------------------------------------ */
+
+function toRow(p: Project, ownerName: string, now: Date): OpportunityRow {
+  const last = updatedAtOf(p);
+  const idle = daysSince(last, now);
+  const close = toDate(p.expectedCloseDate);
+  const daysToClose = close ? Math.floor((close.getTime() - now.getTime()) / dayMs) : null;
+  const band = probabilityBand(p);
+
+  // Executive priority: late stage + probability + magnitude + closeness, less staleness.
+  let score = 0;
+  if (p.pipelineStage === 'negotiation') score += 40;
+  else if (p.pipelineStage === 'proposal') score += 28;
+  else if (p.pipelineStage === 'approval') score += 22;
+  else if (p.pipelineStage === 'qualification') score += 10;
+  score += PROBABILITY_SCORE[band] * 40;
+  score += Math.min(30, Math.log10(1 + rankWeight(p)) * 6);
+  if (daysToClose !== null && daysToClose >= 0 && daysToClose <= CLOSING_SOON_DAYS) score += 15;
+  if (daysToClose !== null && daysToClose < 0) score += 8;
+  if (idle !== null && idle > STAGNATION_DAYS) score -= 10;
+
+  return {
+    id: String(p.id),
+    name: p.name || 'Untitled opportunity',
+    client: p.clientName || 'Unspecified client',
+    stage: p.pipelineStage,
+    stageLabel: STAGE_LABELS[p.pipelineStage] ?? p.pipelineStage,
+    probability: band,
+    usd: usdOf(p),
+    ngn: ngnOf(p),
+    expectedCloseDate: p.expectedCloseDate ?? null,
+    businessVertical: p.businessVertical || '',
+    sector: p.sector || '',
+    products: p.products ?? [],
+    subproducts: p.subproducts ?? [],
+    owner: ownerName,
+    lastActivity: last,
+    daysIdle: idle,
+    priorityScore: Math.round(score),
+  };
+}
+
+function rank(map: Map<string, RankedGroup>): RankedGroup[] {
+  return Array.from(map.values()).sort(
+    (a, b) => b.usd + b.ngn / 1_000_000 - (a.usd + a.ngn / 1_000_000)
+  );
+}
+
+function bump(
+  map: Map<string, RankedGroup>,
+  key: string,
+  label: string,
+  p: Project,
+  share = 1
+): void {
+  const g =
+    map.get(key) ??
+    ({
+      key,
+      label,
+      count: 0,
+      usd: 0,
+      ngn: 0,
+      lateStage: 0,
+      won: 0,
+      wonUsd: 0,
+      wonNgn: 0,
+      avgProbability: 0,
+      weightedUsd: 0,
+    } as RankedGroup);
+  g.count += 1;
+  g.usd += usdOf(p) * share;
+  g.ngn += ngnOf(p) * share;
+  if (isLateStage(p)) g.lateStage += 1;
+  if (isWon(p)) {
+    g.won += 1;
+    g.wonUsd += usdOf(p) * share;
+    g.wonNgn += ngnOf(p) * share;
+  }
+  const score = PROBABILITY_SCORE[probabilityBand(p)];
+  g.avgProbability += score;
+  g.weightedUsd += usdOf(p) * share * score;
+  map.set(key, g);
+}
+
+const finaliseAvg = (groups: RankedGroup[]) =>
+  groups.map((g) => ({ ...g, avgProbability: g.count ? g.avgProbability / g.count : 0 }));
+
+const fmtPct = (v: number) => `${Math.round(v * 100)}%`;
+
+/* ------------------------------------------------------------------ *
+ * Main builder
+ * ------------------------------------------------------------------ */
+
+export function buildExecutiveIntelligence(
+  projects: Project[],
+  window: ReviewWindow,
+  accountGroups: AccountGroup[],
+  ownerNameFor: (p: Project) => string,
+  now: Date = new Date()
+): ExecutiveIntelligence {
+  const rows = new Map<string, OpportunityRow>();
+  projects.forEach((p) => rows.set(String(p.id), toRow(p, ownerNameFor(p), now)));
+  const rowOf = (p: Project) => rows.get(String(p.id))!;
+
+  const active = projects.filter(isActivePipeline);
+  const won = projects.filter(isWon);
+  const lost = projects.filter(isLost);
+
+  const totals = {
+    all: projects.length,
+    active: active.length,
+    activeUsd: 0,
+    activeNgn: 0,
+    won: won.length,
+    wonUsd: 0,
+    wonNgn: 0,
+    proposal: 0,
+    negotiation: 0,
+    execution: 0,
+    lost: lost.length,
+    lateStage: 0,
+    lateStageUsd: 0,
+    lateStageNgn: 0,
+    high: 0,
+    medium: 0,
+    low: 0,
+    newInPeriod: 0,
+    newPrevPeriod: 0,
+    wonInPeriod: 0,
+    wonPrevPeriod: 0,
+    updatedInPeriod: 0,
+    requiresAttention: 0,
+    weightedUsd: 0,
+    weightedNgn: 0,
+  };
+
+  const clientMap = new Map<string, RankedGroup>();
+  const partnerMap = new Map<string, RankedGroup>();
+  const verticalMap = new Map<string, RankedGroup>();
+  const sectorMap = new Map<string, RankedGroup>();
+  const productMap = new Map<string, RankedGroup>();
+  const subproductMap = new Map<string, RankedGroup>();
+  const wonClientMap = new Map<string, RankedGroup>();
+  const wonSectorMap = new Map<string, RankedGroup>();
+  const wonVerticalMap = new Map<string, RankedGroup>();
+  const wonProductMap = new Map<string, RankedGroup>();
+  const wonPartnerMap = new Map<string, RankedGroup>();
+  const wonByMonth = new Map<string, { month: string; count: number; usd: number; ngn: number }>();
+
+  projects.forEach((p) => {
+    const created = createdAtOf(p);
+    const updated = updatedAtOf(p);
+    const band = probabilityBand(p);
+    const score = PROBABILITY_SCORE[band];
+
+    if (isActivePipeline(p)) {
+      totals.activeUsd += usdOf(p);
+      totals.activeNgn += ngnOf(p);
+      totals.weightedUsd += usdOf(p) * score;
+      totals.weightedNgn += ngnOf(p) * score;
+      if (band === 'high') totals.high += 1;
+      else if (band === 'medium') totals.medium += 1;
+      else totals.low += 1;
+    }
+    if (p.pipelineStage === 'proposal') totals.proposal += 1;
+    if (p.pipelineStage === 'negotiation') totals.negotiation += 1;
+    if (p.pipelineStage === 'execution') totals.execution += 1;
+    if (isLateStage(p)) {
+      totals.lateStage += 1;
+      totals.lateStageUsd += usdOf(p);
+      totals.lateStageNgn += ngnOf(p);
+    }
+    if (isWon(p)) {
+      totals.wonUsd += usdOf(p);
+      totals.wonNgn += ngnOf(p);
+    }
+    if (inWindow(created, window.start, window.end)) totals.newInPeriod += 1;
+    if (inWindow(created, window.prevStart, window.prevEnd)) totals.newPrevPeriod += 1;
+    if (updated && inWindow(updated, window.start, window.end)) totals.updatedInPeriod += 1;
+    if (isWon(p) && inWindow(updated, window.start, window.end)) totals.wonInPeriod += 1;
+    if (isWon(p) && inWindow(updated, window.prevStart, window.prevEnd)) totals.wonPrevPeriod += 1;
+
+    // Commercial drivers — value fully attributed for single-valued dimensions.
+    if (!isLost(p)) {
+      bump(clientMap, (p.clientName || 'Unspecified').toLowerCase(), p.clientName || 'Unspecified', p);
+      const partner = (p.channelPartner || '').trim();
+      const oem = (p.oem || '').trim();
+      const partnerLabel = partner || (oem && oem.toLowerCase() !== 'n/a' ? oem : '');
+      if (partnerLabel) bump(partnerMap, partnerLabel.toLowerCase(), partnerLabel, p);
+      if (p.businessVertical) bump(verticalMap, p.businessVertical, p.businessVertical, p);
+      if (p.sector) bump(sectorMap, p.sector, p.sector, p);
+
+      // Many-to-many: value is split evenly so totals are never inflated.
+      const prods = (p.products ?? []).filter(Boolean);
+      if (prods.length) prods.forEach((pr) => bump(productMap, pr, pr, p, 1 / prods.length));
+      const subs = (p.subproducts ?? []).filter(Boolean);
+      if (subs.length) subs.forEach((s) => bump(subproductMap, s, s, p, 1 / subs.length));
+    }
+
+    if (isWon(p)) {
+      bump(wonClientMap, (p.clientName || 'Unspecified').toLowerCase(), p.clientName || 'Unspecified', p);
+      if (p.sector) bump(wonSectorMap, p.sector, p.sector, p);
+      if (p.businessVertical) bump(wonVerticalMap, p.businessVertical, p.businessVertical, p);
+      const prods = (p.products ?? []).filter(Boolean);
+      prods.forEach((pr) => bump(wonProductMap, pr, pr, p, 1 / prods.length));
+      const partnerLabel = (p.channelPartner || '').trim();
+      if (partnerLabel) bump(wonPartnerMap, partnerLabel.toLowerCase(), partnerLabel, p);
+
+      const when = updated ?? created;
+      if (when) {
+        const key = `${when.getFullYear()}-${String(when.getMonth() + 1).padStart(2, '0')}`;
+        const bucket = wonByMonth.get(key) ?? { month: key, count: 0, usd: 0, ngn: 0 };
+        bucket.count += 1;
+        bucket.usd += usdOf(p);
+        bucket.ngn += ngnOf(p);
+        wonByMonth.set(key, bucket);
+      }
+    }
+  });
+
+  /* ---------------- Stage health ---------------- */
+  const activeTotal = active.length || 1;
+  const stages: StageRow[] = FUNNEL_STAGES.map((stage) => {
+    const inStage = projects.filter((p) => p.pipelineStage === stage);
+    const bucket = emptyBucket();
+    let probSum = 0;
+    inStage.forEach((p) => {
+      addTo(bucket, p);
+      bucket.count = inStage.length;
+      probSum += PROBABILITY_SCORE[probabilityBand(p)];
+    });
+    const avgProb = inStage.length ? probSum / inStage.length : 0;
+    const share = inStage.length / activeTotal;
+    const newInPeriod = inStage.filter((p) => inWindow(createdAtOf(p), window.start, window.end)).length;
+    const stale = inStage.filter((p) => (daysSince(updatedAtOf(p), now) ?? 0) > STAGNATION_DAYS);
+
+    let interpretation = 'Within expected range.';
+    if (!inStage.length) interpretation = 'No opportunities recorded at this stage.';
+    else if (stage === 'initiation' && share > 0.45)
+      interpretation = 'Heavy concentration in early stage — qualification effort needed.';
+    else if ((stage === 'proposal' || stage === 'negotiation') && stale.length >= 3)
+      interpretation = `${stale.length} opportunities without an update in over ${STAGNATION_DAYS} days.`;
+    else if (stage === 'negotiation' && inStage.length)
+      interpretation = 'Late-stage value requiring focused conversion activity.';
+    else if (stage === 'execution' && inStage.length)
+      interpretation = 'Secured work in active delivery.';
+    else if (share < 0.05) interpretation = 'Thin stage — limited flow into conversion.';
+
+    return {
+      stage,
+      label: STAGE_LABELS[stage],
+      count: inStage.length,
+      share,
+      usd: bucket.usd,
+      ngn: bucket.ngn,
+      avgProbability: avgProb,
+      newInPeriod,
+      interpretation,
+    };
+  });
+
+  const initiationShare = stages.find((s) => s.stage === 'initiation')?.share ?? 0;
+  const lateShare = totals.lateStage / activeTotal;
+  const staleLate = projects.filter(
+    (p) => isLateStage(p) && (daysSince(updatedAtOf(p), now) ?? 0) > STAGNATION_DAYS
+  );
+
+  let health: ExecutiveIntelligence['health'];
+  if (staleLate.length >= 5 && lateShare > 0.15) {
+    health = {
+      verdict: 'Pipeline Risk: late-stage stagnation',
+      tone: 'risk',
+      narrative: `${staleLate.length} late-stage opportunities have had no recorded update in over ${STAGNATION_DAYS} days. Late-stage opportunities represent ${fmtPct(lateShare)} of the active pipeline and require conversion focus.`,
+    };
+  } else if (initiationShare > 0.45) {
+    health = {
+      verdict: 'Pipeline Watch: early-stage concentration',
+      tone: 'watch',
+      narrative: `${fmtPct(initiationShare)} of active opportunities sit in Initiation. Volume is healthy but conversion depends on moving these into Qualification and Proposal.`,
+    };
+  } else if (lateShare > 0.2) {
+    health = {
+      verdict: 'Pipeline Health: strong late-stage position',
+      tone: 'good',
+      narrative: `${fmtPct(lateShare)} of active opportunities are in Proposal, Negotiation or Approval, with ${totals.execution} already in Execution. Conversion activity should be prioritised on this late-stage value.`,
+    };
+  } else {
+    health = {
+      verdict: 'Pipeline Health: stable',
+      tone: 'good',
+      narrative: `Opportunity distribution across the funnel is balanced, with ${totals.high} high-probability opportunities and ${totals.execution} in Execution.`,
+    };
+  }
+
+  /* ---------------- Near conversion ---------------- */
+  const nearConversion = projects
+    .filter((p) => {
+      if (isWon(p) || isLost(p)) return false;
+      if (p.pipelineStage === 'negotiation') return true;
+      if (p.pipelineStage === 'proposal' && probabilityBand(p) !== 'low') return true;
+      const close = toDate(p.expectedCloseDate);
+      const days = close ? Math.floor((close.getTime() - now.getTime()) / dayMs) : null;
+      return days !== null && days >= 0 && days <= CLOSING_SOON_DAYS && isLateStage(p);
+    })
+    .map(rowOf)
+    .sort((a, b) => b.priorityScore - a.priorityScore);
+
+  /* ---------------- Alerts ---------------- */
+  const alerts: ExecutiveAlert[] = [];
+  const valueThreshold = (() => {
+    const values = active.map(rankWeight).filter((v) => v > 0).sort((a, b) => b - a);
+    if (!values.length) return 0;
+    return values[Math.floor(values.length * 0.25)] ?? values[values.length - 1];
+  })();
+  const isHighValue = (p: Project) => rankWeight(p) >= valueThreshold && valueThreshold > 0;
+
+  const atRisk = active.filter(
+    (p) => isHighValue(p) && probabilityBand(p) === 'low' && !isWon(p)
+  );
+  if (atRisk.length)
+    alerts.push({
+      id: 'high-value-low-probability',
+      severity: 'high',
+      category: 'Opportunities at risk',
+      title: `${atRisk.length} high-value opportunities carry low probability`,
+      detail: 'Significant pipeline value is attached to opportunities rated low probability.',
+      drillTo: `dealProbability=low`,
+      count: atRisk.length,
+    });
+
+  const stagnant = staleLate.filter((p) => !isWon(p));
+  if (stagnant.length)
+    alerts.push({
+      id: 'stagnating-late-stage',
+      severity: 'high',
+      category: 'Stagnation',
+      title: `${stagnant.length} late-stage opportunities have stalled`,
+      detail: `No recorded update in over ${STAGNATION_DAYS} days while in Proposal, Negotiation or Approval.`,
+      drillTo: `pipelineStages=${encodeURIComponent(JSON.stringify(['proposal', 'negotiation', 'approval']))}`,
+      count: stagnant.length,
+    });
+
+  const overdue = active.filter((p) => {
+    const close = toDate(p.expectedCloseDate);
+    return close ? close < now && !isWon(p) : false;
+  });
+  if (overdue.length)
+    alerts.push({
+      id: 'overdue-close-dates',
+      severity: 'medium',
+      category: 'Deadline risk',
+      title: `${overdue.length} opportunities have passed their expected close date`,
+      detail: 'Expected close dates have elapsed without a recorded conversion.',
+      drillTo: `pipelineStages=${encodeURIComponent(JSON.stringify(['proposal', 'negotiation', 'qualification']))}`,
+      count: overdue.length,
+    });
+
+  const closingSoon = active.filter((p) => {
+    const close = toDate(p.expectedCloseDate);
+    if (!close || isWon(p)) return false;
+    const days = Math.floor((close.getTime() - now.getTime()) / dayMs);
+    return days >= 0 && days <= 30;
+  });
+  if (closingSoon.length)
+    alerts.push({
+      id: 'upcoming-decisions',
+      severity: 'medium',
+      category: 'Upcoming decisions',
+      title: `${closingSoon.length} opportunities reach their expected close date within 30 days`,
+      detail: 'Major commercial decisions are expected in the coming month.',
+      drillTo: `pipelineStages=${encodeURIComponent(JSON.stringify(['proposal', 'negotiation']))}`,
+      count: closingSoon.length,
+    });
+
+  const clientsRanked = finaliseAvg(rank(clientMap));
+  const clientTotalUsd = clientsRanked.reduce((s, c) => s + c.usd, 0);
+  const topClient = clientsRanked[0];
+  if (topClient && clientTotalUsd > 0 && topClient.usd / clientTotalUsd >= 0.25)
+    alerts.push({
+      id: 'client-concentration',
+      severity: 'medium',
+      category: 'Concentration risk',
+      title: `${fmtPct(topClient.usd / clientTotalUsd)} of USD pipeline sits with ${topClient.label}`,
+      detail: 'A single client account represents a substantial share of pipeline value.',
+      drillTo: `clientNames=${encodeURIComponent(JSON.stringify([topClient.label]))}`,
+      count: topClient.count,
+    });
+
+  const partnersRanked = finaliseAvg(rank(partnerMap));
+  const partnerTotalUsd = partnersRanked.reduce((s, c) => s + c.usd, 0);
+  const topPartner = partnersRanked[0];
+  if (topPartner && partnerTotalUsd > 0 && topPartner.usd / partnerTotalUsd >= 0.35)
+    alerts.push({
+      id: 'partner-concentration',
+      severity: 'medium',
+      category: 'Concentration risk',
+      title: `${fmtPct(topPartner.usd / partnerTotalUsd)} of partner-linked pipeline depends on ${topPartner.label}`,
+      detail: 'Commercial value is heavily dependent on a single partner or supplier.',
+      drillTo: `channelPartners=${encodeURIComponent(JSON.stringify([topPartner.label]))}`,
+      count: topPartner.count,
+    });
+
+  const mismatch = projects.filter(
+    (p) =>
+      (probabilityBand(p) === 'high' && (p.pipelineStage === 'initiation' || p.pipelineStage === 'cold')) ||
+      (probabilityBand(p) === 'low' && p.pipelineStage === 'execution') ||
+      (p.pipelineStage === 'negotiation' && probabilityBand(p) === 'low')
+  );
+  if (mismatch.length)
+    alerts.push({
+      id: 'stage-probability-mismatch',
+      severity: 'info',
+      category: 'Data exception',
+      title: `${mismatch.length} opportunities show a stage and probability mismatch`,
+      detail: 'Worth confirming — the recorded probability does not align with the recorded stage.',
+      drillTo: `pipelineStages=${encodeURIComponent(JSON.stringify(['initiation', 'negotiation', 'execution']))}`,
+      count: mismatch.length,
+    });
+
+  totals.requiresAttention = new Set(
+    [...atRisk, ...stagnant, ...overdue].map((p) => String(p.id))
+  ).size;
+
+  /* ---------------- Strategic accounts ---------------- */
+  const groupedProjects = new Map<string, Project[]>();
+  const groupMeta = new Map<string, AccountGroup | null>();
+  projects.forEach((p) => {
+    if (isLost(p)) return;
+    const group = matchAccountGroup(p.clientName, accountGroups);
+    const key = group ? `group:${group.id}` : `client:${(p.clientName || 'Unspecified').toLowerCase()}`;
+    groupMeta.set(key, group);
+    groupedProjects.set(key, [...(groupedProjects.get(key) ?? []), p]);
+  });
+
+  const accounts: AccountSnapshot[] = Array.from(groupedProjects.entries())
+    .map(([key, items]) => {
+      const group = groupMeta.get(key) ?? null;
+      const label = group ? group.name : items[0].clientName || 'Unspecified';
+      const byStage: Record<string, number> = {};
+      const byProbability: Record<ProbabilityBand, number> = { high: 0, medium: 0, low: 0 };
+      let usd = 0;
+      let ngn = 0;
+      let wonCount = 0;
+      let wonUsd = 0;
+      let wonNgn = 0;
+      let lateStage = 0;
+      let probSum = 0;
+      let weightedUsd = 0;
+      let newInPeriod = 0;
+
+      items.forEach((p) => {
+        usd += usdOf(p);
+        ngn += ngnOf(p);
+        byStage[p.pipelineStage] = (byStage[p.pipelineStage] ?? 0) + 1;
+        byProbability[probabilityBand(p)] += 1;
+        if (isWon(p)) {
+          wonCount += 1;
+          wonUsd += usdOf(p);
+          wonNgn += ngnOf(p);
+        }
+        if (isLateStage(p)) lateStage += 1;
+        const s = PROBABILITY_SCORE[probabilityBand(p)];
+        probSum += s;
+        weightedUsd += usdOf(p) * s;
+        if (inWindow(createdAtOf(p), window.start, window.end)) newInPeriod += 1;
+      });
+
+      const entityMap = new Map<string, RankedGroup>();
+      if (group) {
+        items.forEach((p) => {
+          const raw = (p.clientName || 'Unspecified').trim();
+          const entity =
+            group.entities?.find((e) => raw.toLowerCase().includes(e.toLowerCase())) ?? raw;
+          bump(entityMap, entity.toLowerCase(), entity, p);
+        });
+      }
+
+      const ids = new Set(items.map((p) => String(p.id)));
+      const attentionCount = [...atRisk, ...stagnant, ...overdue].filter((p) =>
+        ids.has(String(p.id))
+      ).length;
+
+      return {
+        key,
+        groupId: group?.id ?? null,
+        isConfiguredGroup: !!group,
+        label,
+        count: items.length,
+        usd,
+        ngn,
+        lateStage,
+        won: wonCount,
+        wonUsd,
+        wonNgn,
+        avgProbability: items.length ? probSum / items.length : 0,
+        weightedUsd,
+        byStage,
+        byProbability,
+        byEntity: finaliseAvg(rank(entityMap)),
+        proposal: byStage['proposal'] ?? 0,
+        negotiation: byStage['negotiation'] ?? 0,
+        execution: byStage['execution'] ?? 0,
+        nearConversion: nearConversion.filter((r) => ids.has(r.id)).length,
+        requiresAttention: attentionCount,
+        newInPeriod,
+        topOpportunities: items
+          .map(rowOf)
+          .sort((a, b) => b.usd + b.ngn / 1_000_000 - (a.usd + a.ngn / 1_000_000))
+          .slice(0, 8),
+        clientNames: Array.from(new Set(items.map((p) => p.clientName).filter(Boolean))) as string[],
+      };
+    })
+    .sort((a, b) => {
+      if (a.isConfiguredGroup !== b.isConfiguredGroup) return a.isConfiguredGroup ? -1 : 1;
+      return b.usd + b.ngn / 1_000_000 - (a.usd + a.ngn / 1_000_000);
+    });
+
+  /* ---------------- Movement ---------------- */
+  const movement = {
+    created: projects
+      .filter((p) => inWindow(createdAtOf(p), window.start, window.end))
+      .map(rowOf)
+      .sort((a, b) => b.priorityScore - a.priorityScore),
+    updated: projects
+      .filter(
+        (p) =>
+          inWindow(updatedAtOf(p), window.start, window.end) &&
+          !inWindow(createdAtOf(p), window.start, window.end) &&
+          rankWeight(p) > 0
+      )
+      .map(rowOf)
+      .sort((a, b) => b.usd + b.ngn / 1_000_000 - (a.usd + a.ngn / 1_000_000)),
+    won: won
+      .filter((p) => inWindow(updatedAtOf(p), window.start, window.end))
+      .map(rowOf)
+      .sort((a, b) => b.usd + b.ngn / 1_000_000 - (a.usd + a.ngn / 1_000_000)),
+    overdue: overdue.map(rowOf).sort((a, b) => b.priorityScore - a.priorityScore),
+  };
+
+  /* ---------------- Conversion ---------------- */
+  const yearStart = new Date(now.getFullYear(), 0, 1);
+  const quarterStart = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const wonSince = (from: Date) => won.filter((p) => inWindow(updatedAtOf(p), from, now)).length;
+
+  const conversion: ExecutiveIntelligence['conversion'] = {
+    wonYear: wonSince(yearStart),
+    wonQuarter: wonSince(quarterStart),
+    wonMonth: wonSince(monthStart),
+    wonUsd: totals.wonUsd,
+    wonNgn: totals.wonNgn,
+    avgWonUsd: won.length ? totals.wonUsd / won.length : 0,
+    avgWonNgn: won.length ? totals.wonNgn / won.length : 0,
+    inExecution: totals.execution,
+    byMonth: Array.from(wonByMonth.values()).sort((a, b) => a.month.localeCompare(b.month)).slice(-12),
+    recentWins: won
+      .map(rowOf)
+      .sort((a, b) => (b.lastActivity?.getTime() ?? 0) - (a.lastActivity?.getTime() ?? 0))
+      .slice(0, 10),
+    byClient: finaliseAvg(rank(wonClientMap)).slice(0, 10),
+    bySector: finaliseAvg(rank(wonSectorMap)),
+    byVertical: finaliseAvg(rank(wonVerticalMap)),
+    byProduct: finaliseAvg(rank(wonProductMap)),
+    byPartner: finaliseAvg(rank(wonPartnerMap)).slice(0, 10),
+  };
+
+  /* ---------------- Top opportunities ---------------- */
+  const byMagnitude = (a: OpportunityRow, b: OpportunityRow) =>
+    b.usd + b.ngn / 1_000_000 - (a.usd + a.ngn / 1_000_000);
+  const activeRows = active.map(rowOf);
+
+  const attentionIds = new Set([...atRisk, ...stagnant, ...overdue].map((p) => String(p.id)));
+  const topOpportunities = {
+    largest: [...activeRows].sort(byMagnitude).slice(0, 10),
+    highestProbability: activeRows
+      .filter((r) => r.probability === 'high')
+      .sort(byMagnitude)
+      .slice(0, 10),
+    closest: nearConversion.slice(0, 10),
+    recentlyWon: conversion.recentWins.slice(0, 10),
+    attention: activeRows
+      .filter((r) => attentionIds.has(r.id))
+      .sort((a, b) => b.priorityScore - a.priorityScore)
+      .slice(0, 10),
+    recentlyUpdated: [...activeRows]
+      .sort((a, b) => (b.lastActivity?.getTime() ?? 0) - (a.lastActivity?.getTime() ?? 0))
+      .slice(0, 10),
+  };
+
+  /* ---------------- Risk overview ---------------- */
+  const risks: ExecutiveIntelligence['risks'] = [];
+  if (topClient && clientTotalUsd > 0)
+    risks.push({
+      label: 'Client concentration',
+      value: fmtPct(topClient.usd / clientTotalUsd),
+      detail: `Largest client (${topClient.label}) share of USD pipeline`,
+      tone: topClient.usd / clientTotalUsd >= 0.35 ? 'risk' : topClient.usd / clientTotalUsd >= 0.2 ? 'watch' : 'good',
+    });
+  risks.push({
+    label: 'Early-stage concentration',
+    value: fmtPct(initiationShare),
+    detail: 'Share of active opportunities still in Initiation',
+    tone: initiationShare > 0.45 ? 'risk' : initiationShare > 0.3 ? 'watch' : 'good',
+  });
+  risks.push({
+    label: 'Low-probability dependence',
+    value: fmtPct(totals.low / activeTotal),
+    detail: 'Share of active opportunities rated low probability',
+    tone: totals.low / activeTotal > 0.5 ? 'risk' : totals.low / activeTotal > 0.35 ? 'watch' : 'good',
+  });
+  if (topPartner && partnerTotalUsd > 0)
+    risks.push({
+      label: 'Partner concentration',
+      value: fmtPct(topPartner.usd / partnerTotalUsd),
+      detail: `Largest partner (${topPartner.label}) share of partner-linked pipeline`,
+      tone: topPartner.usd / partnerTotalUsd >= 0.5 ? 'risk' : 'watch',
+    });
+  risks.push({
+    label: 'Stagnation risk',
+    value: String(stagnant.length),
+    detail: `Late-stage opportunities idle beyond ${STAGNATION_DAYS} days`,
+    tone: stagnant.length >= 5 ? 'risk' : stagnant.length ? 'watch' : 'good',
+  });
+  risks.push({
+    label: 'Deadline risk',
+    value: String(overdue.length),
+    detail: 'Opportunities past their expected close date',
+    tone: overdue.length >= 5 ? 'risk' : overdue.length ? 'watch' : 'good',
+  });
+
+  /* ---------------- Executive summary (rule-based) ---------------- */
+  const summary: string[] = [];
+  summary.push(
+    `${totals.active} active opportunities are recorded, with ${totals.won} secured or in execution and ${totals.lateStage} in late-stage pipeline.`
+  );
+  if (window.start)
+    summary.push(
+      `${totals.newInPeriod} new opportunities were added during ${window.label.toLowerCase()}${
+        window.prevStart ? ` (${totals.newPrevPeriod} in the preceding period)` : ''
+      }, and ${totals.updatedInPeriod} existing opportunities were updated.`
+    );
+  summary.push(health.narrative);
+  if (nearConversion.length)
+    summary.push(
+      `${nearConversion.length} opportunities are commercially close to conversion, led by ${nearConversion[0].name} (${nearConversion[0].client}).`
+    );
+  if (totals.requiresAttention)
+    summary.push(
+      `${totals.requiresAttention} opportunities require executive attention across risk, stagnation and overdue close dates.`
+    );
+
+  return {
+    window,
+    totals,
+    stages,
+    health,
+    conversion,
+    nearConversion,
+    alerts,
+    accounts,
+    partners: partnersRanked,
+    clients: clientsRanked,
+    dimensions: {
+      verticals: finaliseAvg(rank(verticalMap)),
+      sectors: finaliseAvg(rank(sectorMap)),
+      products: finaliseAvg(rank(productMap)),
+      subproducts: finaliseAvg(rank(subproductMap)),
+    },
+    movement,
+    topOpportunities,
+    risks,
+    summary,
+  };
+}
