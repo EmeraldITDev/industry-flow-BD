@@ -67,6 +67,8 @@ export function SearchableSelect({
 
   return (
     <Popover
+      // false: nested inside Sheet/Dialog; modal=true fights the sheet dismiss layer and drops clicks.
+      modal={false}
       open={open}
       onOpenChange={(next) => {
         setOpen(next);
@@ -86,10 +88,11 @@ export function SearchableSelect({
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        className="w-[--radix-popover-trigger-width] p-0 flex flex-col overflow-hidden max-h-[min(24rem,var(--radix-popover-content-available-height))]"
+        className="z-[100] w-[--radix-popover-trigger-width] p-0 flex flex-col overflow-hidden max-h-[min(24rem,var(--radix-popover-content-available-height))]"
         align="start"
         side="bottom"
         collisionPadding={16}
+        onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <Command shouldFilter={false} className="min-h-0">
           <CommandInput
@@ -105,6 +108,10 @@ export function SearchableSelect({
               <CommandGroup>
                 <CommandItem
                   value={`__create__${trimmedQuery}`}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
                   onSelect={() => selectValue(trimmedQuery)}
                 >
                   <Plus className="mr-2 h-4 w-4 text-primary" />
@@ -117,6 +124,10 @@ export function SearchableSelect({
                 <CommandItem
                   key={option.value}
                   value={option.label}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
                   onSelect={() => selectValue(option.value)}
                 >
                   <Check

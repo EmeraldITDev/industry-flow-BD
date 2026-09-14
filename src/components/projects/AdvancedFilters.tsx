@@ -240,7 +240,41 @@ export function AdvancedFilters({ filters, onFiltersChange, projects = [], teamM
               )}
             </Button>
           </SheetTrigger>
-          <SheetContent className="w-full sm:max-w-md overflow-y-auto">
+          <SheetContent
+            className="w-full sm:max-w-md overflow-y-auto"
+            onInteractOutside={(e) => {
+              // Portaled popovers (product/OEM selects) render outside the sheet DOM.
+              // Without this, option clicks are treated as "outside" and never apply.
+              const target = e.target as HTMLElement | null;
+              if (
+                target?.closest(
+                  '[data-radix-popper-content-wrapper], [data-radix-select-content], [cmdk-root], [role="listbox"]'
+                )
+              ) {
+                e.preventDefault();
+              }
+            }}
+            onPointerDownOutside={(e) => {
+              const target = e.target as HTMLElement | null;
+              if (
+                target?.closest(
+                  '[data-radix-popper-content-wrapper], [data-radix-select-content], [cmdk-root], [role="listbox"]'
+                )
+              ) {
+                e.preventDefault();
+              }
+            }}
+            onFocusOutside={(e) => {
+              const target = e.target as HTMLElement | null;
+              if (
+                target?.closest(
+                  '[data-radix-popper-content-wrapper], [data-radix-select-content], [cmdk-root], [role="listbox"]'
+                )
+              ) {
+                e.preventDefault();
+              }
+            }}
+          >
             <SheetHeader>
               <SheetTitle className="flex items-center justify-between">
                 <span>Filters</span>

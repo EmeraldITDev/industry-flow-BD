@@ -117,6 +117,8 @@ export function MultiSearchableSelect({
 
   return (
     <Popover
+      // false: nested inside Sheet/Dialog; modal=true fights the sheet dismiss layer and drops clicks.
+      modal={false}
       open={open}
       onOpenChange={(next) => {
         setOpen(next);
@@ -169,10 +171,11 @@ export function MultiSearchableSelect({
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        className="w-[--radix-popover-trigger-width] p-0 flex flex-col overflow-hidden max-h-[min(24rem,var(--radix-popover-content-available-height))]"
+        className="z-[100] w-[--radix-popover-trigger-width] p-0 flex flex-col overflow-hidden max-h-[min(24rem,var(--radix-popover-content-available-height))]"
         align="start"
         side="bottom"
         collisionPadding={16}
+        onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <Command shouldFilter={false} className="min-h-0">
           <CommandInput placeholder={searchPlaceholder} value={query} onValueChange={setQuery} />
@@ -184,7 +187,11 @@ export function MultiSearchableSelect({
                   variant="ghost"
                   size="sm"
                   className="h-7 px-2 text-xs"
-                  onClick={handleSelectAllToggle}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleSelectAllToggle();
+                  }}
                 >
                   {allFilteredSelected ? "Deselect all" : "Select all"}
                   {query.trim() ? " (filtered)" : ""}
@@ -200,7 +207,11 @@ export function MultiSearchableSelect({
                   variant="ghost"
                   size="sm"
                   className="h-7 px-2 text-xs text-muted-foreground"
-                  onClick={() => onValuesChange([])}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onValuesChange([]);
+                  }}
                 >
                   Clear
                 </Button>
@@ -215,6 +226,11 @@ export function MultiSearchableSelect({
               <CommandGroup>
                 <CommandItem
                   value={`__create__${trimmedQuery}`}
+                  onMouseDown={(e) => {
+                    // Keep focus; Sheet outside handlers must not win over the click.
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
                   onSelect={() => addCreatedValue(trimmedQuery)}
                 >
                   <Plus className="mr-2 h-4 w-4 text-primary" />
@@ -224,7 +240,15 @@ export function MultiSearchableSelect({
             )}
             <CommandGroup>
               {renderedOptions.map((option) => (
-                <CommandItem key={option.value} value={option.value} onSelect={() => toggleValue(option.value)}>
+                <CommandItem
+                  key={option.value}
+                  value={option.label}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
+                  onSelect={() => toggleValue(option.value)}
+                >
                   <Check className={cn("mr-2 h-4 w-4", valueSet.has(option.value) ? "opacity-100" : "opacity-0")} />
                   <span className="truncate">{option.label}</span>
                 </CommandItem>
