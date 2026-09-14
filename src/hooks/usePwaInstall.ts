@@ -120,14 +120,24 @@ export function usePwaInstall() {
   }, [deferredPrompt]);
 
   const dismiss = useCallback(() => {
-    dismissInstallPrompt();
+    try {
+      dismissInstallPrompt();
+    } catch (error) {
+      console.warn('Failed to persist install-prompt dismissal', error);
+    }
     setBannerDismissed(true);
   }, []);
 
+  // Chromium: show when the native prompt is available.
+  // Other browsers: show instructions banner until dismissed.
   const showAutoBanner =
     !standalone &&
     !bannerDismissed &&
-    (canNativePrompt || platform === 'firefox' || platform === 'safari-mac' || platform === 'safari-ios');
+    (canNativePrompt ||
+      platform === 'firefox' ||
+      platform === 'safari-mac' ||
+      platform === 'safari-ios' ||
+      platform === 'unknown');
 
   return {
     platform,

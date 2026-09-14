@@ -3,7 +3,6 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
 import { Plus, RotateCcw, Trash2 } from 'lucide-react';
 import {
@@ -47,8 +46,8 @@ export function AccountGroupManager({ open, onOpenChange, onSaved }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
-        <DialogHeader>
+      <DialogContent className="max-w-2xl max-h-[85vh] !flex !flex-col gap-0 overflow-hidden p-0">
+        <DialogHeader className="shrink-0 space-y-2 border-b border-border px-6 py-5 pr-12 text-left">
           <DialogTitle>Strategic Account Groups</DialogTitle>
           <p className="text-sm text-muted-foreground">
             Group related client names under one executive account. Client records themselves are never
@@ -56,10 +55,10 @@ export function AccountGroupManager({ open, onOpenChange, onSaved }: Props) {
           </p>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 -mx-2 px-2">
-          <div className="space-y-4 py-1">
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
+          <div className="space-y-4">
             {groups.map((group, index) => (
-              <div key={group.id} className="rounded-lg border border-border p-3 space-y-3">
+              <div key={group.id} className="rounded-lg border border-border p-4 space-y-3">
                 <div className="flex gap-2 items-end">
                   <div className="flex-1 space-y-1.5">
                     <Label className="text-xs">Group name</Label>
@@ -70,6 +69,7 @@ export function AccountGroupManager({ open, onOpenChange, onSaved }: Props) {
                     />
                   </div>
                   <Button
+                    type="button"
                     variant="ghost"
                     size="icon"
                     onClick={() => setGroups((prev) => prev.filter((_, i) => i !== index))}
@@ -96,11 +96,17 @@ export function AccountGroupManager({ open, onOpenChange, onSaved }: Props) {
                 </div>
               </div>
             ))}
+            {groups.length === 0 && (
+              <p className="text-sm text-muted-foreground py-8 text-center">
+                No account groups yet. Add a group to get started.
+              </p>
+            )}
           </div>
-        </ScrollArea>
+        </div>
 
-        <DialogFooter className="flex-col sm:flex-row gap-2">
+        <DialogFooter className="shrink-0 flex-col gap-2 border-t border-border bg-background px-6 py-4 sm:flex-row sm:justify-between">
           <Button
+            type="button"
             variant="outline"
             onClick={() =>
               setGroups((prev) => [
@@ -112,19 +118,24 @@ export function AccountGroupManager({ open, onOpenChange, onSaved }: Props) {
             <Plus className="w-4 h-4 mr-1.5" />
             Add group
           </Button>
-          <Button
-            variant="ghost"
-            onClick={() => {
-              resetAccountGroups();
-              setGroups(DEFAULT_ACCOUNT_GROUPS);
-              onSaved(DEFAULT_ACCOUNT_GROUPS);
-              toast.info('Reset to the default account groups');
-            }}
-          >
-            <RotateCcw className="w-4 h-4 mr-1.5" />
-            Reset to defaults
-          </Button>
-          <Button onClick={handleSave}>Save groups</Button>
+          <div className="flex flex-col-reverse gap-2 sm:flex-row">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                resetAccountGroups();
+                setGroups(DEFAULT_ACCOUNT_GROUPS);
+                onSaved(DEFAULT_ACCOUNT_GROUPS);
+                toast.info('Reset to the default account groups');
+              }}
+            >
+              <RotateCcw className="w-4 h-4 mr-1.5" />
+              Reset to defaults
+            </Button>
+            <Button type="button" onClick={handleSave}>
+              Save groups
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

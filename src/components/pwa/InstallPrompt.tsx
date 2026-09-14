@@ -19,8 +19,15 @@ export function InstallPrompt() {
   } = usePwaInstall();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isInstalling, setIsInstalling] = useState(false);
+  // Local hide so dismiss is immediate even if hook state lags a tick.
+  const [locallyHidden, setLocallyHidden] = useState(false);
 
-  if (!showAutoBanner) return null;
+  const hideBanner = () => {
+    setLocallyHidden(true);
+    dismiss();
+  };
+
+  if ((!showAutoBanner || locallyHidden) && !dialogOpen) return null;
 
   const handleInstallClick = async () => {
     if (canNativePrompt) {
@@ -29,6 +36,9 @@ export function InstallPrompt() {
         const outcome = await install();
         if (outcome === 'unavailable') {
           setDialogOpen(true);
+        } else {
+          // Accepted or dismissed in the browser chrome — hide our banner.
+          hideBanner();
         }
       } finally {
         setIsInstalling(false);
@@ -38,47 +48,53 @@ export function InstallPrompt() {
     setDialogOpen(true);
   };
 
-  const handleDismiss = () => {
-    dismiss();
+  const handleDialogOpenChange = (open: boolean) => {
+    setDialogOpen(open);
+    // Closing the instructions dialog should also dismiss the auto banner.
+    if (!open) {
+      hideBanner();
+    }
   };
 
   return (
     <>
-      <div className="fixed bottom-[4.5rem] left-1/2 z-[100] w-[min(100%,28rem)] -translate-x-1/2 px-3 sm:bottom-4">
-        <div className="flex items-start gap-3 rounded-xl border border-border bg-card/95 p-4 shadow-lg backdrop-blur">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/15">
-            <Download className="h-5 w-5 text-primary" />
-          </div>
-          <div className="min-w-0 flex-1 space-y-2">
-            <p className="text-sm font-semibold text-foreground">Install {PWA_NAME}</p>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              {canNativePrompt
-                ? 'Add to your home screen for quick access and offline viewing of your last-synced data.'
-                : 'Install this app on your device — we will show the steps for your browser.'}
-            </p>
-            <div className="flex flex-wrap gap-2 pt-1">
-              <Button size="sm" onClick={handleInstallClick} disabled={isInstalling}>
-                {isInstalling ? 'Installing…' : 'Install App'}
-              </Button>
-              <Button size="sm" variant="ghost" onClick={handleDismiss}>
-                Not now
-              </Button>
+      {showAutoBanner && !locallyHidden && (
+        <div className="fixed bottom-[4.5rem] left-1/2 z-[100] w-[min(100%,28rem)] -translate-x-1/2 px-3 sm:bottom-4">
+          <div className="flex items-start gap-3 rounded-xl border border-border bg-card/95 p-4 shadow-lg backdrop-blur">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/15">
+              <Download className="h-5 w-5 text-primary" />
             </div>
+            <div className="min-w-0 flex-1 space-y-2">
+              <p className="text-sm font-semibold text-foreground">Install {PWA_NAME}</p>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                {canNativePrompt
+                  ? 'Add to your home screen for quick access and offline viewing of your last-synced data.'
+                  : 'Install this app on your device — we will show the steps for your browser.'}
+              </p>
+              <div className="flex flex-wrap gap-2 pt-1">
+                <Button type="button" size="sm" onClick={handleInstallClick} disabled={isInstalling}>
+                  {isInstalling ? 'Installing…' : 'Install App'}
+                </Button>
+                <Button type="button" size="sm" variant="ghost" onClick={hideBanner}>
+                  Not now
+                </Button>
+              </div>
+            </div>
+            <button
+              type="button"
+              aria-label="Dismiss install prompt"
+              onClick={hideBanner}
+              className="shrink-0 rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </div>
-          <button
-            type="button"
-            aria-label="Dismiss install prompt"
-            onClick={handleDismiss}
-            className="shrink-0 rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-          >
-            <X className="h-4 w-4" />
-          </button>
         </div>
-      </div>
+      )}
 
       <InstallAppDialog
         open={dialogOpen}
-        onOpenChange={setDialogOpen}
+        onOpenChange={handleDialogOpenChange}
         platform={platform}
         instructions={instructions}
         canNativePrompt={canNativePrompt}
