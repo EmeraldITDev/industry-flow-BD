@@ -64,6 +64,7 @@ import {
   type ProjectStatus,
 } from "@/lib/stageStatusRules";
 import { generateSingleProjectReport } from "@/lib/reportGenerator";
+import { ProjectDocumentsSection } from "@/components/projects/ProjectDocumentsSection";
 
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
@@ -737,6 +738,13 @@ export default function ProjectDetail() {
               )}
             </CardContent>
           </Card>
+
+          {id && (
+            <ProjectDocumentsSection
+              projectId={id}
+              canManage={canEditProjects}
+            />
+          )}
 
           <Tabs defaultValue="kanban" className="w-full">
             <div className="flex items-center justify-between mb-4">

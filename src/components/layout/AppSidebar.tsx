@@ -11,7 +11,9 @@ import {
   Plus,
   Building2,
   ListChecks,
-  Landmark
+  Landmark,
+  BookOpen,
+  FileStack,
 } from 'lucide-react';
 import emeraldLogo from '@/assets/emerald-logo.png';
 import { NavLink, useLocation } from 'react-router-dom';
@@ -73,6 +75,8 @@ const mainNavItems = [
   { title: 'All Tasks', url: '/tasks', icon: ListChecks },
   { title: 'Calendar', url: '/calendar', icon: Calendar },
   { title: 'Team', url: '/team', icon: Users },
+  { title: 'Category Reference', url: '/category-reference', icon: BookOpen },
+  { title: 'Document Repository', url: '/document-repository', icon: FileStack },
 ];
 
 const businessVerticalNavItems = [

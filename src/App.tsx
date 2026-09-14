@@ -24,6 +24,8 @@ import CalendarPage from "./pages/CalendarPage";
 import AllTasksPage from "./pages/AllTasksPage";
 import ChairmanViewPage from "./pages/ChairmanViewPage";
 import OperationsPage from "./pages/OperationsPage";
+import CategoryReferencePage from "./pages/CategoryReferencePage";
+import DocumentRepositoryPage from "./pages/DocumentRepositoryPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -62,6 +64,8 @@ const App = () => (
                     <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
                     <Route path="/calendar" element={<ProtectedRoute><CalendarPage /></ProtectedRoute>} />
                     <Route path="/tasks" element={<ProtectedRoute><AllTasksPage /></ProtectedRoute>} />
+                    <Route path="/category-reference" element={<ProtectedRoute><CategoryReferencePage /></ProtectedRoute>} />
+                    <Route path="/document-repository" element={<ProtectedRoute><DocumentRepositoryPage /></ProtectedRoute>} />
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                     <Route path="*" element={<NotFound />} />
                   </Routes>

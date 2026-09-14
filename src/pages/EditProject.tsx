@@ -45,6 +45,7 @@ import { teamService } from "@/services/team";
 import { MultiSearchableSelect } from "@/components/ui/multi-searchable-select";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { PRODUCT_OPTIONS, getSubproductOptions } from "@/data/productCatalog";
+import { ProjectDocumentsSection } from "@/components/projects/ProjectDocumentsSection";
 
 const dealProbabilities: { value: RiskLevel; label: string; color: string }[] =
   [
@@ -991,6 +992,9 @@ export default function EditProject() {
             />
           </CardContent>
         </Card>
+
+        {/* Project Documents */}
+        {id && <ProjectDocumentsSection projectId={id} canManage />}
 
         {/* Support Needed */}
         <Card>
