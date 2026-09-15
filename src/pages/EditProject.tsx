@@ -230,6 +230,11 @@ export default function EditProject() {
 
       projectLeadId: String(data.projectLeadId ?? data.project_lead_id ?? ""),
       assigneeId: String(data.assigneeId ?? data.assignee_id ?? ""),
+      partnerIds: Array.isArray(data.partners)
+        ? data.partners.map((p: any) => String(p.id)).filter(Boolean)
+        : Array.isArray(data.partnerIds ?? data.partner_ids)
+          ? (data.partnerIds ?? data.partner_ids).map((id: any) => String(id))
+          : prev.partnerIds,
 
       contractValueNGN:
         data.contractValueNGN != null
@@ -308,6 +313,7 @@ export default function EditProject() {
         projectLeadId: formData.projectLeadId || undefined,
         assigneeId: formData.assigneeId || null,
         partnerIds: formData.partnerIds,
+        partner_ids: formData.partnerIds,
         // Convert string values to numbers, send undefined if empty
         contractValueNGN: parseNumberInput(formData.contractValueNGN),
         contractValueUSD: parseNumberInput(formData.contractValueUSD),
@@ -332,7 +338,10 @@ export default function EditProject() {
         supportNeeded: formData.supportNeeded || undefined,
         projectImage: formData.projectImage ?? null,
         dealProbability: formData.dealProbability,
-      });
+      } as any);
+
+      await partnersService.syncForProject(id, formData.partnerIds);
+
       toast.success("Project updated successfully!");
       // Invalidate caches so detail/list pages re-fetch fresh data
       queryClient.invalidateQueries({ queryKey: ["project", id] });

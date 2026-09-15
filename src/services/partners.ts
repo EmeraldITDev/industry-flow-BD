@@ -158,4 +158,16 @@ export const partnersService = {
     const response = await api.get(`/api/projects/${projectId}/partners`);
     return normalizeArray(response.data).map(normalizePartner);
   },
+
+  /** Sync linked partners for a project (authoritative partner_ids write). */
+  syncForProject: async (
+    projectId: string,
+    partnerIds: string[]
+  ): Promise<Partner[]> => {
+    const response = await api.post(`/api/projects/${projectId}/partners`, {
+      partner_ids: partnerIds,
+      partnerIds,
+    });
+    return normalizeArray(response.data).map(normalizePartner);
+  },
 };

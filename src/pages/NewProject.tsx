@@ -53,6 +53,7 @@ import { MultiSearchableSelect } from "@/components/ui/multi-searchable-select";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { PartnerMultiSelect } from "@/components/partners/PartnerMultiSelect";
 import { PRODUCT_OPTIONS, getSubproductOptions } from "@/data/productCatalog";
+import { partnersService } from "@/services/partners";
 
 const dealProbabilities: { value: RiskLevel; label: string; color: string }[] =
   [
@@ -210,7 +211,7 @@ export default function NewProject() {
           ? (contractValueUSD * marginPercentUSD) / 100
           : undefined;
 
-      await projectsService.create({
+      const created = await projectsService.create({
         name: formData.name,
         description: formData.description,
         sector: (formData.sector || undefined) as Sector | undefined,
@@ -230,8 +231,8 @@ export default function NewProject() {
         subproducts: formData.subproducts,
         projectLeadId: formData.projectLeadId || undefined,
         assigneeId: formData.assigneeId || undefined,
-        partnerIds:
-          formData.partnerIds.length > 0 ? formData.partnerIds : undefined,
+        partnerIds: formData.partnerIds,
+        partner_ids: formData.partnerIds,
         contractValueNGN,
         contractValueUSD,
         marginPercentNGN,
@@ -247,6 +248,14 @@ export default function NewProject() {
             ? formData.teamMemberIds
             : undefined,
       } as any);
+
+      const newProjectId = String(
+        created?.id ?? (created as any)?.data?.id ?? ""
+      );
+      if (newProjectId) {
+        await partnersService.syncForProject(newProjectId, formData.partnerIds);
+      }
+
       toast.success("Project created successfully!");
       navigate("/projects");
     } catch (error: any) {
