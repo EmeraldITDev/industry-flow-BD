@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Dialog,
@@ -13,6 +13,8 @@ import { partnersService } from '@/services/partners';
 import { KycStatusBadge } from '@/components/partners/RelationshipStageBadge';
 import type { ScmVendorSearchResult } from '@/types/partners';
 import { toast } from 'sonner';
+
+const DEFAULT_LIST_LIMIT = 50;
 
 interface LinkScmVendorModalProps {
   open: boolean;
@@ -38,21 +40,22 @@ export function LinkScmVendorModal({
       setQuery('');
       setDebouncedQuery('');
       setResults([]);
-      return;
-    }
-  }, [open]);
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => setDebouncedQuery(query.trim()), 400);
-    return () => window.clearTimeout(timer);
-  }, [query]);
-
-  useEffect(() => {
-    if (!open || !debouncedQuery) {
-      setResults([]);
       setSearching(false);
       return;
     }
+    // Reset so the empty-q default list loads as soon as the modal opens.
+    setQuery('');
+    setDebouncedQuery('');
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const timer = window.setTimeout(() => setDebouncedQuery(query.trim()), 400);
+    return () => window.clearTimeout(timer);
+  }, [query, open]);
+
+  useEffect(() => {
+    if (!open) return;
 
     let cancelled = false;
     setSearching(true);
@@ -75,6 +78,23 @@ export function LinkScmVendorModal({
       cancelled = true;
     };
   }, [debouncedQuery, open]);
+
+  const isDefaultList = debouncedQuery.length === 0;
+
+  const { displayResults, showingTruncatedDefault } = useMemo(() => {
+    if (!isDefaultList) {
+      return { displayResults: results, showingTruncatedDefault: false };
+    }
+
+    const sorted = [...results].sort((a, b) =>
+      a.vendorName.localeCompare(b.vendorName, undefined, { sensitivity: 'base' })
+    );
+    const truncated = sorted.length > DEFAULT_LIST_LIMIT;
+    return {
+      displayResults: truncated ? sorted.slice(0, DEFAULT_LIST_LIMIT) : sorted,
+      showingTruncatedDefault: truncated,
+    };
+  }, [results, isDefaultList]);
 
   const linkMutation = useMutation({
     mutationFn: (vendorId: string) =>
@@ -114,21 +134,16 @@ export function LinkScmVendorModal({
           {searching && (
             <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
-              Searching…
+              {isDefaultList ? 'Loading vendors…' : 'Searching…'}
             </div>
           )}
-          {!searching && debouncedQuery && results.length === 0 && (
+          {!searching && displayResults.length === 0 && (
             <p className="py-8 text-center text-sm text-muted-foreground">
               No vendors found.
             </p>
           )}
-          {!searching && !debouncedQuery && (
-            <p className="py-8 text-center text-sm text-muted-foreground">
-              Start typing to search SCM vendors.
-            </p>
-          )}
           {!searching &&
-            results.map((vendor) => (
+            displayResults.map((vendor) => (
               <button
                 key={vendor.vendorId}
                 type="button"
@@ -148,6 +163,12 @@ export function LinkScmVendorModal({
               </button>
             ))}
         </div>
+
+        {!searching && showingTruncatedDefault && (
+          <p className="text-xs text-muted-foreground">
+            Showing first 50 vendors — type to search for more
+          </p>
+        )}
       </DialogContent>
     </Dialog>
   );

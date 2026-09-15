@@ -143,9 +143,10 @@ export const partnersService = {
     return normalizePartner(raw);
   },
 
-  searchScmVendors: async (q: string): Promise<ScmVendorSearchResult[]> => {
+  searchScmVendors: async (q: string = ''): Promise<ScmVendorSearchResult[]> => {
     const response = await api.get('/api/partners/scm-search', {
-      params: { q },
+      // Always send q (including '') so the default list endpoint is hit.
+      params: { q: q ?? '' },
     });
     return normalizeArray(response.data).map((raw: any) => ({
       vendorId: String(raw.vendorId ?? raw.vendor_id ?? raw.id ?? ''),
