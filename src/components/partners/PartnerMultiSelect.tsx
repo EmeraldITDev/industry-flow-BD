@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Check, ChevronsUpDown, Plus, X } from 'lucide-react';
+import { Check, ChevronsUpDown, Loader2, Plus, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -20,10 +20,11 @@ import {
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
+  SheetFooter,
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { RelationshipStageBadge } from '@/components/partners/RelationshipStageBadge';
 import {
   PartnerForm,
@@ -34,6 +35,8 @@ import {
 import { partnersService } from '@/services/partners';
 import type { Partner } from '@/types/partners';
 import { toast } from 'sonner';
+
+const ADD_PARTNER_FORM_ID = 'partner-multi-select-add-form';
 
 interface PartnerMultiSelectProps {
   values: string[];
@@ -260,19 +263,43 @@ export function PartnerMultiSelect({
       </Popover>
 
       <Sheet open={addOpen} onOpenChange={setAddOpen}>
-        <SheetContent className="w-full sm:max-w-lg p-0 flex flex-col">
-          <SheetHeader className="px-6 pt-6 text-left">
+        <SheetContent className="flex h-full w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-xl">
+          <SheetHeader className="shrink-0 space-y-1.5 border-b px-8 pb-5 pt-8 pr-14 text-left">
             <SheetTitle>Add Partner</SheetTitle>
+            <SheetDescription>
+              Create a partner and add them to this opportunity without leaving
+              the form.
+            </SheetDescription>
           </SheetHeader>
-          <ScrollArea className="flex-1 px-6 pb-6">
-            <PartnerForm
-              initial={emptyPartnerForm()}
-              submitting={submitting}
-              submitLabel="Create Partner"
-              onCancel={() => setAddOpen(false)}
-              onSubmit={handleCreate}
-            />
-          </ScrollArea>
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <div className="px-8 py-6">
+              <PartnerForm
+                formId={ADD_PARTNER_FORM_ID}
+                initial={emptyPartnerForm()}
+                submitting={submitting}
+                showActions={false}
+                onSubmit={handleCreate}
+              />
+            </div>
+          </div>
+          <SheetFooter className="shrink-0 flex-row justify-end gap-3 border-t px-8 py-4 sm:space-x-0">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setAddOpen(false)}
+              disabled={submitting}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              form={ADD_PARTNER_FORM_ID}
+              disabled={submitting}
+            >
+              {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Create Partner
+            </Button>
+          </SheetFooter>
         </SheetContent>
       </Sheet>
     </>

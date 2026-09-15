@@ -102,16 +102,21 @@ interface PartnerFormProps {
   initial?: PartnerFormValues;
   submitting?: boolean;
   submitLabel?: string;
+  /** When false, omit Cancel/Submit — parent sheet owns the footer. */
+  showActions?: boolean;
   onSubmit: (values: PartnerFormValues) => void | Promise<void>;
   onCancel?: () => void;
+  formId?: string;
 }
 
 export function PartnerForm({
   initial,
   submitting = false,
   submitLabel = 'Save Partner',
+  showActions = true,
   onSubmit,
   onCancel,
+  formId = 'partner-form',
 }: PartnerFormProps) {
   const [values, setValues] = useState<PartnerFormValues>(
     initial ?? emptyPartnerForm()
@@ -144,8 +149,8 @@ export function PartnerForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-2">
+    <form id={formId} onSubmit={handleSubmit} className="space-y-6">
+      <div className="space-y-2.5">
         <Label htmlFor="partner-company">
           Company Name <span className="text-destructive">*</span>
         </Label>
@@ -160,8 +165,8 @@ export function PartnerForm({
         />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
+      <div className="grid gap-5 sm:grid-cols-2">
+        <div className="space-y-2.5">
           <Label htmlFor="partner-contact">Contact Person</Label>
           <Input
             id="partner-contact"
@@ -172,7 +177,7 @@ export function PartnerForm({
             placeholder="Primary contact"
           />
         </div>
-        <div className="space-y-2">
+        <div className="space-y-2.5">
           <Label htmlFor="partner-email">Email</Label>
           <Input
             id="partner-email"
@@ -186,7 +191,7 @@ export function PartnerForm({
         </div>
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-2.5">
         <Label htmlFor="partner-phone">Phone</Label>
         <Input
           id="partner-phone"
@@ -198,7 +203,7 @@ export function PartnerForm({
         />
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-2.5">
         <Label>BD Owners</Label>
         <MultiSearchableSelect
           values={values.bdOwnerIds}
@@ -211,7 +216,7 @@ export function PartnerForm({
           emptyText="No team members found."
         />
         {values.bdOwnerIds.length > 1 && (
-          <Alert className="border-amber-500/40 bg-amber-500/10 py-2">
+          <Alert className="border-amber-500/40 bg-amber-500/10 py-3">
             <Users className="h-4 w-4 text-amber-700 dark:text-amber-400" />
             <AlertDescription className="text-sm text-amber-800 dark:text-amber-300">
               Multiple owners assigned — this partner will be flagged on the list
@@ -221,7 +226,7 @@ export function PartnerForm({
         )}
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-2.5">
         <Label>Relationship Stage</Label>
         <Select
           value={values.relationshipStage}
@@ -242,7 +247,7 @@ export function PartnerForm({
         </Select>
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-2.5">
         <Label>Verticals</Label>
         <MultiSearchableSelect
           values={values.verticals}
@@ -255,7 +260,7 @@ export function PartnerForm({
         />
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-2.5">
         <Label>Product Categories</Label>
         <MultiSearchableSelect
           values={values.productCategories}
@@ -268,7 +273,7 @@ export function PartnerForm({
         />
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-2.5">
         <Label>Last Contact Date</Label>
         <Popover>
           <PopoverTrigger asChild>
@@ -299,7 +304,7 @@ export function PartnerForm({
         </Popover>
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-2.5">
         <Label htmlFor="partner-next-action">Next Action</Label>
         <Textarea
           id="partner-next-action"
@@ -312,7 +317,7 @@ export function PartnerForm({
         />
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-2.5">
         <Label htmlFor="partner-notes">Notes</Label>
         <Textarea
           id="partner-notes"
@@ -325,17 +330,22 @@ export function PartnerForm({
         />
       </div>
 
-      <div className="flex justify-end gap-2 pt-2">
-        {onCancel && (
-          <Button type="button" variant="outline" onClick={onCancel}>
-            Cancel
+      {showActions && (
+        <div className="flex justify-end gap-3 pt-2">
+          {onCancel && (
+            <Button type="button" variant="outline" onClick={onCancel}>
+              Cancel
+            </Button>
+          )}
+          <Button
+            type="submit"
+            disabled={submitting || !values.companyName.trim()}
+          >
+            {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {submitLabel}
           </Button>
-        )}
-        <Button type="submit" disabled={submitting || !values.companyName.trim()}>
-          {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {submitLabel}
-        </Button>
-      </div>
+        </div>
+      )}
     </form>
   );
 }

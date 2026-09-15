@@ -2,10 +2,12 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
+  SheetFooter,
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { Button } from '@/components/ui/button';
 import {
   PartnerForm,
   emptyPartnerForm,
@@ -17,6 +19,7 @@ import { partnersService } from '@/services/partners';
 import type { Partner } from '@/types/partners';
 import { toast } from 'sonner';
 import { useState } from 'react';
+import { Loader2 } from 'lucide-react';
 
 interface PartnerFormSheetProps {
   open: boolean;
@@ -25,6 +28,8 @@ interface PartnerFormSheetProps {
   onCreated?: (partner: Partner) => void;
   onUpdated?: (partner: Partner) => void;
 }
+
+const FORM_ID = 'partner-form-sheet';
 
 export function PartnerFormSheet({
   open,
@@ -78,20 +83,45 @@ export function PartnerFormSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-lg p-0 flex flex-col">
-        <SheetHeader className="px-6 pt-6 text-left">
+      <SheetContent className="flex h-full w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-xl">
+        <SheetHeader className="shrink-0 space-y-1.5 border-b px-8 pb-5 pt-8 pr-14 text-left">
           <SheetTitle>{isEdit ? 'Edit Partner' : 'Add Partner'}</SheetTitle>
+          <SheetDescription>
+            {isEdit
+              ? 'Update relationship details, owners, and engagement notes.'
+              : 'Capture company details, owners, and relationship stage.'}
+          </SheetDescription>
         </SheetHeader>
-        <ScrollArea className="flex-1 px-6 pb-6">
-          <PartnerForm
-            key={partner?.id ?? 'new'}
-            initial={partner ? partnerToFormValues(partner) : emptyPartnerForm()}
-            submitting={submitting}
-            submitLabel={isEdit ? 'Save Changes' : 'Create Partner'}
-            onCancel={() => onOpenChange(false)}
-            onSubmit={handleSubmit}
-          />
-        </ScrollArea>
+
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <div className="px-8 py-6">
+            <PartnerForm
+              key={partner?.id ?? 'new'}
+              formId={FORM_ID}
+              initial={
+                partner ? partnerToFormValues(partner) : emptyPartnerForm()
+              }
+              submitting={submitting}
+              showActions={false}
+              onSubmit={handleSubmit}
+            />
+          </div>
+        </div>
+
+        <SheetFooter className="shrink-0 flex-row justify-end gap-3 border-t px-8 py-4 sm:space-x-0">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={submitting}
+          >
+            Cancel
+          </Button>
+          <Button type="submit" form={FORM_ID} disabled={submitting}>
+            {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isEdit ? 'Save Changes' : 'Create Partner'}
+          </Button>
+        </SheetFooter>
       </SheetContent>
     </Sheet>
   );

@@ -32,8 +32,8 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <div>
-      <p className="text-xs text-muted-foreground mb-1">{label}</p>
+    <div className="space-y-1.5">
+      <p className="text-xs text-muted-foreground">{label}</p>
       <div className="text-sm font-medium">{children || '—'}</div>
     </div>
   );
@@ -57,7 +57,7 @@ export default function PartnerDetail() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center gap-2 py-24 text-muted-foreground">
+      <div className="flex items-center justify-center gap-2 p-4 sm:p-6 lg:p-8 py-24 text-muted-foreground">
         <Loader2 className="h-5 w-5 animate-spin" />
         Loading partner…
       </div>
@@ -66,7 +66,7 @@ export default function PartnerDetail() {
 
   if (isError || !partner) {
     return (
-      <div className="space-y-4 py-10 text-center">
+      <div className="space-y-4 p-4 sm:p-6 lg:p-8 py-10 text-center">
         <p className="text-muted-foreground">Partner not found.</p>
         <Button variant="outline" onClick={() => navigate('/partners')}>
           Back to Partner Tracker
@@ -82,13 +82,13 @@ export default function PartnerDetail() {
   const scmUnavailable = hasScmLink && partner.scmData === null;
 
   return (
-    <div className="space-y-6">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6 overflow-x-hidden">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="space-y-2">
+        <div className="space-y-3 min-w-0">
           <Button
             variant="ghost"
             size="sm"
-            className="-ml-2"
+            className="-ml-2 w-fit"
             asChild
           >
             <Link to="/partners">
@@ -96,8 +96,8 @@ export default function PartnerDetail() {
               Partner Tracker
             </Link>
           </Button>
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-2xl font-semibold tracking-tight">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
               {partner.companyName}
             </h1>
             <RelationshipStageBadge stage={partner.relationshipStage} />
@@ -112,18 +112,18 @@ export default function PartnerDetail() {
             )}
           </div>
         </div>
-        <Button variant="outline" onClick={() => setEditOpen(true)}>
+        <Button variant="outline" onClick={() => setEditOpen(true)} className="shrink-0 self-start">
           <Pencil className="mr-2 h-4 w-4" />
           Edit
         </Button>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid gap-5 lg:grid-cols-3">
         <Card className="lg:col-span-2">
-          <CardHeader>
+          <CardHeader className="p-4 sm:p-6">
             <CardTitle className="text-base">Partner Details</CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-4 sm:grid-cols-2">
+          <CardContent className="grid gap-5 sm:grid-cols-2 p-4 sm:p-6 pt-0">
             <Field label="Contact Person">{partner.contactPerson}</Field>
             <Field label="Email">{partner.email}</Field>
             <Field label="Phone">{partner.phone}</Field>
@@ -192,10 +192,10 @@ export default function PartnerDetail() {
         </Card>
 
         <Card>
-          <CardHeader>
+          <CardHeader className="p-4 sm:p-6">
             <CardTitle className="text-base">SCM Vendor</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 p-4 sm:p-6 pt-0">
             {!hasScmLink && (
               <>
                 <p className="text-sm text-muted-foreground">
