@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
@@ -27,15 +27,21 @@ const ALL = 'all';
 export default function Partners() {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [verticalFilter, setVerticalFilter] = useState(ALL);
   const [stageFilter, setStageFilter] = useState(ALL);
   const [addOpen, setAddOpen] = useState(false);
 
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => window.clearTimeout(timer);
+  }, [search]);
+
   const { data: partners = [], isLoading, isError } = useQuery({
-    queryKey: ['partners', search, verticalFilter, stageFilter],
+    queryKey: ['partners', debouncedSearch, verticalFilter, stageFilter],
     queryFn: () =>
       partnersService.getAll({
-        search: search.trim() || undefined,
+        search: debouncedSearch || undefined,
         vertical: verticalFilter !== ALL ? verticalFilter : undefined,
         relationshipStage: stageFilter !== ALL ? stageFilter : undefined,
       }),
@@ -54,8 +60,8 @@ export default function Partners() {
       ) {
         return false;
       }
-      if (search.trim()) {
-        const q = search.trim().toLowerCase();
+      if (debouncedSearch) {
+        const q = debouncedSearch.toLowerCase();
         const hay = [
           p.companyName,
           p.contactPerson,
@@ -70,7 +76,7 @@ export default function Partners() {
       }
       return true;
     });
-  }, [partners, verticalFilter, stageFilter, search]);
+  }, [partners, verticalFilter, stageFilter, debouncedSearch]);
 
   return (
     <div className="space-y-6">

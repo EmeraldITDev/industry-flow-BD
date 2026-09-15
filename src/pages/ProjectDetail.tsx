@@ -48,6 +48,7 @@ import {
   PlayCircle,
   CheckCircle2,
   FileText,
+  Handshake,
 } from "lucide-react";
 import { format } from "date-fns";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -65,6 +66,8 @@ import {
 } from "@/lib/stageStatusRules";
 import { generateSingleProjectReport } from "@/lib/reportGenerator";
 import { ProjectDocumentsSection } from "@/components/projects/ProjectDocumentsSection";
+import { partnersService } from "@/services/partners";
+import { RelationshipStageBadge } from "@/components/partners/RelationshipStageBadge";
 
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
@@ -92,6 +95,13 @@ export default function ProjectDetail() {
     queryKey: ["team"],
     queryFn: () => teamService.getAll(),
     staleTime: 5 * 60 * 1000,
+  });
+
+  const { data: projectPartners = [] } = useQuery({
+    queryKey: ["project-partners", id],
+    queryFn: () => partnersService.getForProject(id!),
+    enabled: !!id,
+    staleTime: 30 * 1000,
   });
 
   const fetchProject = async () => {
@@ -607,16 +617,6 @@ export default function ProjectDetail() {
                     </div>
                   )
                 )}
-                {project.channelPartner && (
-                  <div>
-                    <p className="text-xs text-muted-foreground">
-                      Channel Partner
-                    </p>
-                    <p className="font-medium text-sm">
-                      {project.channelPartner}
-                    </p>
-                  </div>
-                )}
                 {project.salesLead && (
                   <div>
                     <p className="text-xs text-muted-foreground">Sales Lead</p>
@@ -735,6 +735,49 @@ export default function ProjectDetail() {
                   </p>
                   <p className="text-sm">{project.supportNeeded}</p>
                 </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="p-3 sm:p-6 pb-2">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Handshake className="h-4 w-4 text-primary" />
+                Partners
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-3 sm:p-6 pt-0">
+              {projectPartners.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  No partners linked to this opportunity.
+                </p>
+              ) : (
+                <ul className="space-y-3">
+                  {projectPartners.map((partner) => (
+                    <li
+                      key={partner.id}
+                      className="flex flex-wrap items-center justify-between gap-2 rounded-md border px-3 py-2"
+                    >
+                      <div className="min-w-0 space-y-1">
+                        <Link
+                          to={`/partners/${partner.id}`}
+                          className="font-medium text-sm text-primary hover:underline"
+                        >
+                          {partner.companyName}
+                        </Link>
+                        <div>
+                          <RelationshipStageBadge
+                            stage={partner.relationshipStage}
+                            className="text-[10px] px-1.5 py-0"
+                          />
+                        </div>
+                      </div>
+                      <Button variant="ghost" size="sm" asChild>
+                        <Link to={`/partners/${partner.id}`}>View profile</Link>
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
               )}
             </CardContent>
           </Card>

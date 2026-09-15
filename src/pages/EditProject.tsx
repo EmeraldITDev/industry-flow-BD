@@ -337,6 +337,7 @@ export default function EditProject() {
       // Invalidate caches so detail/list pages re-fetch fresh data
       queryClient.invalidateQueries({ queryKey: ["project", id] });
       queryClient.invalidateQueries({ queryKey: ["projects"] });
+      queryClient.invalidateQueries({ queryKey: ["project-partners", id] });
       navigate(`/projects/${id}`);
     } catch (error: any) {
       console.error("Failed to update project:", error);
