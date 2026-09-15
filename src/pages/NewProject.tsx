@@ -51,6 +51,7 @@ import { teamService } from "@/services/team";
 import { useAuth } from "@/context/AuthContext";
 import { MultiSearchableSelect } from "@/components/ui/multi-searchable-select";
 import { SearchableSelect } from "@/components/ui/searchable-select";
+import { PartnerMultiSelect } from "@/components/partners/PartnerMultiSelect";
 import { PRODUCT_OPTIONS, getSubproductOptions } from "@/data/productCatalog";
 
 const dealProbabilities: { value: RiskLevel; label: string; color: string }[] =
@@ -127,7 +128,7 @@ export default function NewProject() {
     subproducts: [] as string[],
     projectLeadId: "",
     assigneeId: "",
-    channelPartner: "",
+    partnerIds: [] as string[],
     // Financial fields (independent currencies)
     contractValueNGN: "",
     contractValueUSD: "",
@@ -229,7 +230,8 @@ export default function NewProject() {
         subproducts: formData.subproducts,
         projectLeadId: formData.projectLeadId || undefined,
         assigneeId: formData.assigneeId || undefined,
-        channelPartner: formData.channelPartner || undefined,
+        partnerIds:
+          formData.partnerIds.length > 0 ? formData.partnerIds : undefined,
         contractValueNGN,
         contractValueUSD,
         marginPercentNGN,
@@ -565,13 +567,13 @@ export default function NewProject() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Channel Partner</Label>
-                <Input
-                  value={formData.channelPartner}
-                  onChange={(e) =>
-                    setFormData({ ...formData, channelPartner: e.target.value })
+                <Label>Partners</Label>
+                <PartnerMultiSelect
+                  values={formData.partnerIds}
+                  onValuesChange={(partnerIds) =>
+                    setFormData({ ...formData, partnerIds })
                   }
-                  placeholder="Partner company name"
+                  placeholder="Search and select partners"
                 />
               </div>
             </div>

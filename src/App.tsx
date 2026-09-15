@@ -26,6 +26,8 @@ import ChairmanViewPage from "./pages/ChairmanViewPage";
 import OperationsPage from "./pages/OperationsPage";
 import CategoryReferencePage from "./pages/CategoryReferencePage";
 import DocumentRepositoryPage from "./pages/DocumentRepositoryPage";
+import PartnersPage from "./pages/PartnersPage";
+import PartnerDetailPage from "./pages/PartnerDetailPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -66,6 +68,8 @@ const App = () => (
                     <Route path="/tasks" element={<ProtectedRoute><AllTasksPage /></ProtectedRoute>} />
                     <Route path="/category-reference" element={<ProtectedRoute><CategoryReferencePage /></ProtectedRoute>} />
                     <Route path="/document-repository" element={<ProtectedRoute><DocumentRepositoryPage /></ProtectedRoute>} />
+                    <Route path="/partners" element={<ProtectedRoute><PartnersPage /></ProtectedRoute>} />
+                    <Route path="/partners/:id" element={<ProtectedRoute><PartnerDetailPage /></ProtectedRoute>} />
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                     <Route path="*" element={<NotFound />} />
                   </Routes>

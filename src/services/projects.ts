@@ -28,6 +28,7 @@ export interface CreateProjectData {
   assigneeId?: string;
   salesLead?: string;
   channelPartner?: string;
+  partnerIds?: string[];
   contractValueNGN?: number;
   contractValueUSD?: number;
   marginPercentNGN?: number;
@@ -401,6 +402,7 @@ export const projectsService = {
       projectLeadId: 'project_lead_id',
       assigneeId: 'assignee_id',
       channelPartner: 'channel_partner',
+      partnerIds: 'partner_ids',
       projectLeadComments: 'project_lead_comments',
       supportNeeded: 'support_needed',
       dealProbability: 'deal_probability',
@@ -492,6 +494,7 @@ export const projectsService = {
       projectLeadId: 'project_lead_id',
       assigneeId: 'assignee_id',
       channelPartner: 'channel_partner',
+      partnerIds: 'partner_ids',
       projectLeadComments: 'project_lead_comments',
       supportNeeded: 'support_needed',
       dealProbability: 'risk_level',

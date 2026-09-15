@@ -1,0 +1,161 @@
+import api from './api';
+import type {
+  CreatePartnerData,
+  Partner,
+  PartnerFilters,
+  PartnerOwner,
+  ScmVendorData,
+  ScmVendorSearchResult,
+  UpdatePartnerData,
+} from '@/types/partners';
+
+const normalizeArray = (data: unknown): unknown[] => {
+  if (Array.isArray(data)) return data;
+  if (data && typeof data === 'object') {
+    const obj = data as Record<string, unknown>;
+    if (Array.isArray(obj.data)) return obj.data;
+  }
+  return [];
+};
+
+const toOwner = (raw: any): PartnerOwner => ({
+  id: String(raw.id ?? raw.user_id ?? ''),
+  name: String(raw.name ?? raw.full_name ?? 'Unknown'),
+  email: raw.email ? String(raw.email) : undefined,
+});
+
+const toScmData = (raw: any): ScmVendorData | null => {
+  if (raw == null) return null;
+  const vendorIdRaw = raw.vendorId ?? raw.vendor_id ?? raw.id;
+  return {
+    vendorId: vendorIdRaw != null ? String(vendorIdRaw) : undefined,
+    vendorName: raw.vendorName ?? raw.vendor_name ?? raw.name,
+    kycStatus: raw.kycStatus ?? raw.kyc_status,
+    activeStatus: raw.activeStatus ?? raw.active_status ?? raw.is_active ?? raw.active,
+    category: raw.category ?? raw.vendor_category,
+  };
+};
+
+export const normalizePartner = (raw: any): Partner => {
+  const ownersRaw = raw.bdOwners ?? raw.bd_owners ?? raw.owners ?? [];
+  const ownerIdsFromOwners = Array.isArray(ownersRaw)
+    ? ownersRaw.map((o: any) => String(o.id ?? o.user_id ?? o)).filter(Boolean)
+    : [];
+  const bdOwnerIds = (
+    raw.bdOwnerIds ??
+    raw.bd_owner_ids ??
+    raw.owner_ids ??
+    ownerIdsFromOwners
+  ).map((id: any) => String(id));
+
+  const scmVendorId =
+    raw.scmVendorId ?? raw.scm_vendor_id ?? null;
+
+  // scm_data: undefined = not loaded / not linked; null = linked but SCM call failed
+  let scmData: ScmVendorData | null | undefined = undefined;
+  if ('scmData' in raw || 'scm_data' in raw) {
+    scmData = toScmData(raw.scmData ?? raw.scm_data);
+  }
+
+  return {
+    id: String(raw.id),
+    companyName: String(raw.companyName ?? raw.company_name ?? ''),
+    contactPerson: raw.contactPerson ?? raw.contact_person ?? '',
+    email: raw.email ?? '',
+    phone: raw.phone ?? '',
+    bdOwnerIds,
+    bdOwners: Array.isArray(ownersRaw) ? ownersRaw.map(toOwner) : undefined,
+    relationshipStage: raw.relationshipStage ?? raw.relationship_stage ?? 'Prospecting',
+    verticals: Array.isArray(raw.verticals)
+      ? raw.verticals.map(String)
+      : [],
+    productCategories: Array.isArray(raw.productCategories ?? raw.product_categories)
+      ? (raw.productCategories ?? raw.product_categories).map(String)
+      : [],
+    lastContactDate: raw.lastContactDate ?? raw.last_contact_date ?? null,
+    nextAction: raw.nextAction ?? raw.next_action ?? '',
+    notes: raw.notes ?? '',
+    scmVendorId: scmVendorId != null && scmVendorId !== '' ? String(scmVendorId) : null,
+    scmData,
+    createdAt: raw.createdAt ?? raw.created_at,
+    updatedAt: raw.updatedAt ?? raw.updated_at,
+  };
+};
+
+const toPayload = (data: CreatePartnerData | UpdatePartnerData): Record<string, unknown> => {
+  const payload: Record<string, unknown> = {};
+
+  const map: Record<string, string> = {
+    companyName: 'company_name',
+    contactPerson: 'contact_person',
+    email: 'email',
+    phone: 'phone',
+    bdOwnerIds: 'bd_owner_ids',
+    relationshipStage: 'relationship_stage',
+    verticals: 'verticals',
+    productCategories: 'product_categories',
+    lastContactDate: 'last_contact_date',
+    nextAction: 'next_action',
+    notes: 'notes',
+    scmVendorId: 'scm_vendor_id',
+  };
+
+  Object.entries(map).forEach(([camel, snake]) => {
+    if (camel in data) {
+      const value = (data as Record<string, unknown>)[camel];
+      payload[camel] = value;
+      payload[snake] = value;
+    }
+  });
+
+  return payload;
+};
+
+export const partnersService = {
+  getAll: async (filters?: PartnerFilters): Promise<Partner[]> => {
+    const params: Record<string, string> = {};
+    if (filters?.search) params.search = filters.search;
+    if (filters?.vertical) params.vertical = filters.vertical;
+    if (filters?.relationshipStage) {
+      params.relationship_stage = filters.relationshipStage;
+      params.relationshipStage = filters.relationshipStage;
+    }
+
+    const response = await api.get('/api/partners', { params });
+    return normalizeArray(response.data).map(normalizePartner);
+  },
+
+  getById: async (id: string): Promise<Partner> => {
+    const response = await api.get(`/api/partners/${id}`);
+    const raw = response.data?.data ?? response.data;
+    return normalizePartner(raw);
+  },
+
+  create: async (data: CreatePartnerData): Promise<Partner> => {
+    const response = await api.post('/api/partners', toPayload(data));
+    const raw = response.data?.data ?? response.data;
+    return normalizePartner(raw);
+  },
+
+  update: async (id: string, data: UpdatePartnerData): Promise<Partner> => {
+    const response = await api.put(`/api/partners/${id}`, toPayload(data));
+    const raw = response.data?.data ?? response.data;
+    return normalizePartner(raw);
+  },
+
+  searchScmVendors: async (q: string): Promise<ScmVendorSearchResult[]> => {
+    const response = await api.get('/api/partners/scm-search', {
+      params: { q },
+    });
+    return normalizeArray(response.data).map((raw: any) => ({
+      vendorId: String(raw.vendorId ?? raw.vendor_id ?? raw.id ?? ''),
+      vendorName: String(raw.vendorName ?? raw.vendor_name ?? raw.name ?? ''),
+      kycStatus: raw.kycStatus ?? raw.kyc_status,
+    }));
+  },
+
+  getForProject: async (projectId: string): Promise<Partner[]> => {
+    const response = await api.get(`/api/projects/${projectId}/partners`);
+    return normalizeArray(response.data).map(normalizePartner);
+  },
+};

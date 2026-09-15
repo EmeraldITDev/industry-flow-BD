@@ -14,6 +14,7 @@ import {
   Landmark,
   BookOpen,
   FileStack,
+  Handshake,
 } from 'lucide-react';
 import emeraldLogo from '@/assets/emerald-logo.png';
 import { NavLink, useLocation } from 'react-router-dom';
@@ -85,6 +86,10 @@ const businessVerticalNavItems = [
   { title: 'EMR_Special Projects', businessVertical: 'EMR_Special Projects', icon: Building2 },
   { title: 'EMR_Trading', businessVertical: 'EMR_Trading', icon: TrendingUp },
   { title: 'EMR_Manufacturing', businessVertical: 'EMR_Manufacturing', icon: Factory },
+];
+
+const partnersNavItems = [
+  { title: 'Partner Tracker', url: '/partners', icon: Handshake },
 ];
 
 export function AppSidebar() {
@@ -185,6 +190,39 @@ export function AppSidebar() {
                     <SidebarMenuButton asChild isActive={active} tooltip={item.title}>
                       <NavLink
                         to={`/projects?businessVertical=${encodeURIComponent(item.businessVertical)}`}
+                        className={cn(
+                          navLinkClass(collapsed),
+                          active && 'bg-primary/10 text-primary font-medium hover:bg-primary/15 hover:text-primary'
+                        )}
+                      >
+                        <item.icon className="h-5 w-5 shrink-0" />
+                        <span className={navLabelClass(collapsed)}>{item.title}</span>
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup className="group-data-[collapsible=icon]:px-0">
+          <SidebarGroupLabel className={groupLabelClass(collapsed)}>
+            Partners
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {partnersNavItems.map((item) => {
+                const active = isMainNavActive(
+                  item.url,
+                  location.pathname,
+                  currentBusinessVertical
+                );
+                return (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild isActive={active} tooltip={item.title}>
+                      <NavLink
+                        to={item.url}
                         className={cn(
                           navLinkClass(collapsed),
                           active && 'bg-primary/10 text-primary font-medium hover:bg-primary/15 hover:text-primary'

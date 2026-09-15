@@ -44,8 +44,11 @@ import { projectsService } from "@/services/projects";
 import { teamService } from "@/services/team";
 import { MultiSearchableSelect } from "@/components/ui/multi-searchable-select";
 import { SearchableSelect } from "@/components/ui/searchable-select";
+import { PartnerMultiSelect } from "@/components/partners/PartnerMultiSelect";
 import { PRODUCT_OPTIONS, getSubproductOptions } from "@/data/productCatalog";
 import { ProjectDocumentsSection } from "@/components/projects/ProjectDocumentsSection";
+import { partnersService } from "@/services/partners";
+import type { Partner } from "@/types/partners";
 
 const dealProbabilities: { value: RiskLevel; label: string; color: string }[] =
   [
@@ -101,6 +104,13 @@ export default function EditProject() {
     ),
   ).sort();
 
+  const { data: linkedPartners = [] } = useQuery({
+    queryKey: ["project-partners", id],
+    queryFn: () => partnersService.getForProject(id!),
+    enabled: !!id,
+    staleTime: 30 * 1000,
+  });
+
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -122,7 +132,7 @@ export default function EditProject() {
     subproducts: [] as string[],
     projectLeadId: "",
     assigneeId: "",
-    channelPartner: "",
+    partnerIds: [] as string[],
     contractValueNGN: "",
     contractValueUSD: "",
     marginPercentNGN: "",
@@ -160,7 +170,8 @@ export default function EditProject() {
     // Handle both raw project object and wrapped { data: project } responses
     const data = (projectData as any)?.data ?? (projectData as any);
 
-    setFormData({
+    setFormData((prev) => ({
+      ...prev,
       name: data.name ?? "",
       description: data.description ?? "",
       sector: data.sector ?? "",
@@ -219,7 +230,6 @@ export default function EditProject() {
 
       projectLeadId: String(data.projectLeadId ?? data.project_lead_id ?? ""),
       assigneeId: String(data.assigneeId ?? data.assignee_id ?? ""),
-      channelPartner: data.channelPartner ?? data.channel_partner ?? "",
 
       contractValueNGN:
         data.contractValueNGN != null
@@ -250,8 +260,16 @@ export default function EditProject() {
         data.projectLeadComments ?? data.project_lead_comments ?? "",
       supportNeeded: data.supportNeeded ?? data.support_needed ?? "",
       projectImage: data.projectImage ?? data.project_image ?? undefined,
-    });
+    }));
   }, [projectData]);
+
+  useEffect(() => {
+    if (!linkedPartners) return;
+    setFormData((prev) => ({
+      ...prev,
+      partnerIds: linkedPartners.map((p: Partner) => p.id),
+    }));
+  }, [linkedPartners]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -289,7 +307,7 @@ export default function EditProject() {
         subproducts: formData.subproducts,
         projectLeadId: formData.projectLeadId || undefined,
         assigneeId: formData.assigneeId || null,
-        channelPartner: formData.channelPartner || undefined,
+        partnerIds: formData.partnerIds,
         // Convert string values to numbers, send undefined if empty
         contractValueNGN: parseNumberInput(formData.contractValueNGN),
         contractValueUSD: parseNumberInput(formData.contractValueUSD),
@@ -772,14 +790,14 @@ export default function EditProject() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="channelPartner">Channel Partner</Label>
-              <Input
-                id="channelPartner"
-                value={formData.channelPartner}
-                onChange={(e) =>
-                  setFormData({ ...formData, channelPartner: e.target.value })
+              <Label>Partners</Label>
+              <PartnerMultiSelect
+                values={formData.partnerIds}
+                onValuesChange={(partnerIds) =>
+                  setFormData({ ...formData, partnerIds })
                 }
-                placeholder="Channel partner name"
+                selectedPartners={linkedPartners}
+                placeholder="Search and select partners"
               />
             </div>
           </CardContent>
