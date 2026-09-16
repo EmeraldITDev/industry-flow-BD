@@ -91,7 +91,7 @@ export interface Project {
   name: string;
   description: string;
   sector: Sector;
-  status: 'active' | 'on-hold' | 'completed' | 'inactive';
+  status: 'active' | 'on-hold' | 'on_hold' | 'completed' | 'inactive' | 'cancelled';
   progress: number;
   businessVertical?: string;
   startDate: string;

@@ -18,6 +18,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { ProjectFilterSummary } from '@/lib/reportGenerator';
+import { metricLabel, metricsService } from '@/services/metrics';
 
 // Mapping for sector display names
 const sectorDisplayNames: Record<string, string> = {
@@ -106,6 +107,8 @@ export default function Projects() {
 
   // Derive filters from URL — single source of truth
   const filters = useMemo(() => filtersFromParams(searchParams), [searchParams]);
+  const metric = searchParams.get('metric') || '';
+  const isMetricDrill = metric !== '';
 
   const handleFiltersChange = useCallback((newFilters: FilterState) => {
     setSearchParams(filtersToParams(newFilters), { replace: true });
@@ -119,13 +122,27 @@ export default function Projects() {
   
   // Calculate page title based on sector filter
   const sectorParam = filters.businessVerticals.length === 1 ? filters.businessVerticals[0] : null;
-  const pageTitle = sectorParam && sectorDisplayNames[sectorParam] 
-    ? sectorDisplayNames[sectorParam] 
-    : 'Projects';
+  const pageTitle = isMetricDrill
+    ? metricLabel(metric)
+    : sectorParam && sectorDisplayNames[sectorParam]
+      ? sectorDisplayNames[sectorParam]
+      : 'Projects';
   const { canCreateProjects } = usePermissions();
 
+  const {
+    data: metricResult,
+    isLoading: metricLoading,
+    refetch: refetchMetric,
+    isFetching: metricFetching,
+  } = useQuery({
+    queryKey: ['metric-records', metric],
+    enabled: isMetricDrill,
+    queryFn: () => metricsService.getAllRecords(metric),
+    staleTime: 60 * 1000,
+  });
+
   // Fetch projects from backend
-  const { data: backendProjects, isLoading, error, refetch, isFetching } = useQuery({
+  const { data: backendProjects, isLoading: listLoading, refetch: refetchList, isFetching: listFetching } = useQuery({
     queryKey: ['projects'],
     queryFn: async () => {
       try {
@@ -137,6 +154,7 @@ export default function Projects() {
       }
     },
     staleTime: 5 * 60 * 1000,
+    enabled: !isMetricDrill,
   });
 
   // Fetch team members for filter dropdowns
@@ -155,7 +173,9 @@ export default function Projects() {
 
   // Merge task data from the tasks API into projects so ProjectCard can rely on tasks.length (same as ProjectDetail)
   const projects: Project[] = useMemo(() => {
-    const raw = Array.isArray(backendProjects) ? backendProjects : [];
+    const raw = isMetricDrill
+      ? (metricResult?.projects ?? [])
+      : (Array.isArray(backendProjects) ? backendProjects : []);
     if (raw.length === 0) return [];
 
     const tasksByProject = new Map<string, typeof allTasks>();
@@ -180,9 +200,10 @@ export default function Projects() {
         completedTasksCount: Math.max(p.completedTasksCount ?? 0, syncedCompletedTasks),
       };
     });
-  }, [backendProjects, allTasks]);
+  }, [backendProjects, allTasks, isMetricDrill, metricResult]);
 
   const filteredProjects = useMemo(() => {
+    if (isMetricDrill) return projects;
     return projects.filter(project => {
       // Search filter
       if (filters.search) {
@@ -248,7 +269,12 @@ export default function Projects() {
       
       return true;
     });
-  }, [projects, filters]);
+  }, [projects, filters, isMetricDrill]);
+
+  const isLoading = isMetricDrill ? metricLoading : listLoading;
+  const isFetching = isMetricDrill ? metricFetching : listFetching;
+  const refetch = isMetricDrill ? refetchMetric : refetchList;
+  const headerCount = isMetricDrill ? (metricResult?.total ?? filteredProjects.length) : filteredProjects.length;
 
   const reportFilterSummary = useMemo<ProjectFilterSummary>(() => ({
     search: filters.search || undefined,
@@ -342,7 +368,7 @@ export default function Projects() {
         <div>
           <h1 className="text-2xl lg:text-3xl font-bold">{pageTitle}</h1>
           <p className="text-muted-foreground mt-1">
-            {isLoading ? 'Loading...' : `${filteredProjects.length} projects found`}
+            {isLoading ? 'Loading...' : `${headerCount} projects found`}
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -433,7 +459,19 @@ export default function Projects() {
 
       <ProjectImportDialog open={importOpen} onOpenChange={setImportOpen} />
 
-      <AdvancedFilters filters={filters} onFiltersChange={handleFiltersChange} projects={projects} teamMembers={teamMembersList} />
+      {isMetricDrill ? (
+        <div className="flex items-center justify-between gap-3 rounded-lg border border-border px-4 py-3">
+          <p className="text-sm text-muted-foreground">
+            Showing the same query as the dashboard card
+            {metricResult ? ` · ${metricResult.totals.count} records` : ''}.
+          </p>
+          <Button variant="link" onClick={() => setSearchParams(new URLSearchParams(), { replace: true })}>
+            Clear
+          </Button>
+        </div>
+      ) : (
+        <AdvancedFilters filters={filters} onFiltersChange={handleFiltersChange} projects={projects} teamMembers={teamMembersList} />
+      )}
 
       {isLoading ? (
         <div className="flex items-center justify-center py-12">

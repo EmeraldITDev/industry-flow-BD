@@ -9,8 +9,9 @@ export function DriversPanel({ data }: { data: ExecutiveIntelligence }) {
       <CardHeader className="pb-3">
         <CardTitle className="text-base">Commercial Drivers</CardTitle>
         <p className="text-xs text-muted-foreground">
-          Ranked by pipeline value. Where an opportunity carries several products or sub-products, its
-          value is split across them so totals are never inflated.
+          Ranked over active opportunities. Labels are matched case-insensitively so
+          "DANGOTE" and "Dangote" count as one group. Click a row to open the same query
+          the count was computed from.
         </p>
       </CardHeader>
       <CardContent>

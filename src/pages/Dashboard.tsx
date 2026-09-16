@@ -157,7 +157,7 @@ export default function Dashboard() {
     let lostDeals = 0;
     
     projects.forEach((p: Project) => {
-      if (p.status === 'on-hold') {
+      if (p.status === 'on_hold' || p.status === 'on-hold') {
         lostDeals++;
       } else if (p.pipelineStage) {
         pipelineByStage[p.pipelineStage] = (pipelineByStage[p.pipelineStage] || 0) + 1;

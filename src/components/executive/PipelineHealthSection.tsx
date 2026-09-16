@@ -53,9 +53,7 @@ export function PipelineHealthSection({ data }: { data: ExecutiveIntelligence })
               key={stage.stage}
               type="button"
               onClick={() =>
-                navigate(
-                  `/projects?pipelineStages=${encodeURIComponent(JSON.stringify([stage.stage]))}`
-                )
+                navigate(`/projects?metric=${encodeURIComponent(stage.metric ?? `stage:${stage.stage}`)}`)
               }
               className="w-full text-left rounded-lg p-3 hover:bg-muted/50 transition-colors"
             >

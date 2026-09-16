@@ -1,6 +1,5 @@
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { WON_STAGES } from '@/lib/executive/analytics';
 
 interface Item {
   label: string;
@@ -19,7 +18,7 @@ const ITEMS: Item[] = [
   { label: 'What has changed recently?', scrollTo: 'exec-movement' },
   {
     label: 'Show every won or executing opportunity',
-    navigateTo: `/projects?pipelineStages=${encodeURIComponent(JSON.stringify(WON_STAGES))}`,
+    navigateTo: '/projects?metric=won',
   },
 ];
 

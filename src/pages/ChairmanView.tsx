@@ -16,7 +16,6 @@ import {
   resolveReviewWindow,
   ReviewPeriodKey,
   REVIEW_PERIODS,
-  WON_STAGES,
 } from '@/lib/executive/analytics';
 import { fmtDelta, fmtNgn, fmtUsd } from '@/lib/executive/format';
 import { ExecutiveMetric } from '@/components/executive/ExecutiveMetric';
@@ -176,13 +175,13 @@ export default function ChairmanView() {
             movement={data.window.start ? fmtDelta(t.newInPeriod, t.newPrevPeriod) : undefined}
             sub={`${t.all} recorded in total`}
             tone="primary"
-            drillTo="status=active"
+            drillTo="metric=active"
           />
           <ExecutiveMetric
             label="Won / in execution"
             value={String(t.won)}
             sub={`${fmtUsd(t.wonUsd)} · ${fmtNgn(t.wonNgn)}`}
-            drillTo={`pipelineStages=${encodeURIComponent(JSON.stringify(WON_STAGES))}`}
+            drillTo="metric=won"
           />
           <ExecutiveMetric
             label="In negotiation"
@@ -269,11 +268,22 @@ export default function ChairmanView() {
       <section id="exec-near">
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">Close to Winning</CardTitle>
-            <p className="text-xs text-muted-foreground">
-              {data.nearConversion.length} opportunities prioritised by stage, probability, value and
-              expected close date.
-            </p>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <CardTitle className="text-base">Close to Winning</CardTitle>
+                <p className="text-xs text-muted-foreground">
+                  {data.nearConversion.length} opportunities prioritised by stage, probability, value and
+                  expected close date.
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/projects?metric=nearConversion')}
+              >
+                View all {data.nearConversion.length}
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <OpportunityTable

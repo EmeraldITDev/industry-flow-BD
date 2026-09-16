@@ -58,7 +58,7 @@ export interface ProjectFilters {
 
 // Normalize project data from backend
 // API may return camelCase OR snake_case format - handle both
-const normalizeProject = (project: any): Project => {
+export const normalizeProject = (project: any): Project => {
   // Helper to get numeric value from either camelCase or snake_case field.
   // Strips formatting (commas, currency symbols, whitespace) before parsing to handle API strings like "₦1,500,000".
   const getValue = (camelKey: string, snakeKey: string, debugLabel?: string): number => {
@@ -130,8 +130,11 @@ const normalizeProject = (project: any): Project => {
   const pipelineStage = (project.pipelineStage ?? project.pipeline_stage ?? 'initiation') as PipelineStage;
   let status = (project.status ?? 'active') as ProjectStatus;
 
-  // Auto-correct status based on pipeline stage validation rules
-  if (!isValidStageStatus(pipelineStage, status)) {
+  // Only rewrite statuses the frontend enum already understands. Backend
+  // values like `on_hold` and `cancelled` must survive so dashboard counts
+  // (especially the Lost segment) can match the database.
+  const frontendStatuses: ProjectStatus[] = ['active', 'on-hold', 'completed', 'inactive'];
+  if (frontendStatuses.includes(status) && !isValidStageStatus(pipelineStage, status)) {
     const correctedStatus = getDefaultStatusForStage(pipelineStage);
     console.warn(`[Projects Service] Auto-correcting status for project "${project.name}" (id: ${project.id}): "${status}" → "${correctedStatus}" (stage: ${pipelineStage})`);
     status = correctedStatus;
@@ -683,4 +686,6 @@ export const projectsService = {
       }
     }
   },
+
+  normalize: normalizeProject,
 };

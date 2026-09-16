@@ -31,7 +31,7 @@ export function RankedList({
     <div className="space-y-3">
       {visible.map((group) => {
         const magnitude = group.usd + group.ngn / 1_000_000;
-        const clickable = !!filterKey;
+        const clickable = !!group.metric || !!filterKey;
         return (
           <button
             key={group.key}
@@ -41,7 +41,9 @@ export function RankedList({
               clickable
                 ? () =>
                     navigate(
-                      `/projects?${filterKey}=${encodeURIComponent(JSON.stringify([group.label]))}`
+                      group.metric
+                        ? `/projects?metric=${encodeURIComponent(group.metric)}`
+                        : `/projects?${filterKey}=${encodeURIComponent(JSON.stringify([group.label]))}`
                     )
                 : undefined
             }
@@ -57,8 +59,13 @@ export function RankedList({
             <Progress value={(magnitude / max) * 100} className="h-1.5 mt-1.5" />
             <p className="text-xs text-muted-foreground mt-1">
               {Math.round(group.count)} opportunities · {group.lateStage} late-stage
-              {showWon ? ` · ${group.won} won` : ''} · avg probability{' '}
-              {fmtPercent(group.avgProbability)}
+              {showWon ? ` · ${group.won} won` : ''}
+              {group.avgProbability
+                ? ` · avg probability ${fmtPercent(group.avgProbability)}`
+                : ''}
+              {group.value_share_pct != null && group.record_share_pct != null
+                ? ` · ${group.value_share_pct}% of value · ${group.record_share_pct}% of records`
+                : ''}
             </p>
           </button>
         );

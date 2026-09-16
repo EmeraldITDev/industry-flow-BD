@@ -1,12 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ExecutiveIntelligence, WON_STAGES } from '@/lib/executive/analytics';
+import { ExecutiveIntelligence } from '@/lib/executive/analytics';
 import { fmtMonthLabel, fmtNgn, fmtUsd } from '@/lib/executive/format';
 import { ExecutiveMetric } from './ExecutiveMetric';
 import { OpportunityTable } from './OpportunityTable';
 import { RankedList } from './RankedList';
-
-const wonDrill = `pipelineStages=${encodeURIComponent(JSON.stringify(WON_STAGES))}`;
 
 export function ConversionPanel({ data }: { data: ExecutiveIntelligence }) {
   const { conversion } = data;
@@ -28,7 +26,7 @@ export function ConversionPanel({ data }: { data: ExecutiveIntelligence }) {
             value={String(conversion.wonYear)}
             sub={`${conversion.wonQuarter} this quarter · ${conversion.wonMonth} this month`}
             tone="primary"
-            drillTo={wonDrill}
+            drillTo="metric=won"
           />
           <ExecutiveMetric label="Won value (USD)" value={fmtUsd(conversion.wonUsd)} sub="Secured contracts" />
           <ExecutiveMetric label="Won value (NGN)" value={fmtNgn(conversion.wonNgn)} sub="Secured contracts" />
@@ -36,7 +34,7 @@ export function ConversionPanel({ data }: { data: ExecutiveIntelligence }) {
             label="In execution"
             value={String(conversion.inExecution)}
             sub={`Avg won deal ${fmtUsd(conversion.avgWonUsd)} / ${fmtNgn(conversion.avgWonNgn)}`}
-            drillTo={`pipelineStages=${encodeURIComponent(JSON.stringify(['execution']))}`}
+            drillTo="metric=stage:execution"
           />
         </div>
 

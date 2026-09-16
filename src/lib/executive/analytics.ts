@@ -163,10 +163,12 @@ export function probabilityBand(p: Project): ProbabilityBand {
 const PROBABILITY_SCORE: Record<ProbabilityBand, number> = { high: 0.75, medium: 0.45, low: 0.15 };
 
 export const isWon = (p: Project) =>
-  WON_STAGES.includes(p.pipelineStage) || p.status === 'completed';
-export const isLost = (p: Project) => p.pipelineStage === 'lost';
-export const isActivePipeline = (p: Project) => !isLost(p) && p.pipelineStage !== 'cold';
-export const isLateStage = (p: Project) => LATE_STAGES.includes(p.pipelineStage);
+  WON_STAGES.includes((p.pipelineStage || '').toLowerCase().trim() as PipelineStage) ||
+  p.status === 'completed';
+export const isLost = (p: Project) => (p.pipelineStage || '').toLowerCase().trim() === 'lost';
+export const isActivePipeline = (p: Project) => p.status === 'active';
+export const isLateStage = (p: Project) =>
+  LATE_STAGES.includes((p.pipelineStage || '').toLowerCase().trim() as PipelineStage);
 
 const inWindow = (d: Date | null, start: Date | null, end: Date | null) => {
   if (!d) return false;
@@ -203,6 +205,7 @@ export interface StageRow {
   avgProbability: number;
   newInPeriod: number;
   interpretation: string;
+  metric?: string;
 }
 
 export interface OpportunityRow {
@@ -248,6 +251,9 @@ export interface RankedGroup {
   wonNgn: number;
   avgProbability: number;
   weightedUsd: number;
+  metric?: string;
+  value_share_pct?: number | null;
+  record_share_pct?: number | null;
 }
 
 export interface AccountSnapshot extends RankedGroup {
@@ -319,6 +325,18 @@ export interface ExecutiveIntelligence {
   accounts: AccountSnapshot[];
   partners: RankedGroup[];
   clients: RankedGroup[];
+  clientConcentration?: {
+    currency: 'ngn' | 'usd';
+    totalRecords: number;
+    totalValue: number;
+    clients: RankedGroup[];
+    top: RankedGroup | null;
+  };
+  metrics?: {
+    active: string;
+    won: string;
+    nearConversion: string;
+  };
   dimensions: {
     verticals: RankedGroup[];
     sectors: RankedGroup[];
@@ -339,7 +357,15 @@ export interface ExecutiveIntelligence {
     attention: OpportunityRow[];
     recentlyUpdated: OpportunityRow[];
   };
-  risks: { label: string; value: string; detail: string; tone: 'good' | 'watch' | 'risk' }[];
+  risks: {
+    label: string;
+    value: string;
+    detail: string;
+    tone: 'good' | 'watch' | 'risk';
+    metric?: string;
+    valueSharePct?: number;
+    recordSharePct?: number;
+  }[];
   summary: string[];
 }
 
@@ -432,6 +458,17 @@ function bump(
 
 const finaliseAvg = (groups: RankedGroup[]) =>
   groups.map((g) => ({ ...g, avgProbability: g.count ? g.avgProbability / g.count : 0 }));
+
+function attachMetric(groups: RankedGroup[], dimension: string): RankedGroup[] {
+  const totalNgn = groups.reduce((s, g) => s + g.ngn, 0);
+  const totalCount = groups.reduce((s, g) => s + g.count, 0);
+  return groups.map((g) => ({
+    ...g,
+    metric: `${dimension}:${g.key}`,
+    value_share_pct: totalNgn > 0 ? Math.round((g.ngn / totalNgn) * 10000) / 100 : 0,
+    record_share_pct: totalCount > 0 ? Math.round((g.count / totalCount) * 10000) / 100 : 0,
+  }));
+}
 
 const fmtPct = (v: number) => `${Math.round(v * 100)}%`;
 
@@ -528,21 +565,22 @@ export function buildExecutiveIntelligence(
     if (isWon(p) && inWindow(updated, window.start, window.end)) totals.wonInPeriod += 1;
     if (isWon(p) && inWindow(updated, window.prevStart, window.prevEnd)) totals.wonPrevPeriod += 1;
 
-    // Commercial drivers — value fully attributed for single-valued dimensions.
-    if (!isLost(p)) {
-      bump(clientMap, (p.clientName || 'Unspecified').toLowerCase(), p.clientName || 'Unspecified', p);
+    // Commercial drivers — active opportunities only, labels case-folded.
+    if (isActivePipeline(p)) {
+      const clientLabel = (p.clientName || '').trim();
+      if (clientLabel) bump(clientMap, clientLabel.toLowerCase(), clientLabel, p);
       const partner = (p.channelPartner || '').trim();
       const oem = (p.oem || '').trim();
       const partnerLabel = partner || (oem && oem.toLowerCase() !== 'n/a' ? oem : '');
       if (partnerLabel) bump(partnerMap, partnerLabel.toLowerCase(), partnerLabel, p);
-      if (p.businessVertical) bump(verticalMap, p.businessVertical, p.businessVertical, p);
-      if (p.sector) bump(sectorMap, p.sector, p.sector, p);
+      if (p.businessVertical)
+        bump(verticalMap, p.businessVertical.toLowerCase().trim(), p.businessVertical, p);
+      if (p.sector) bump(sectorMap, p.sector.toLowerCase().trim(), p.sector, p);
 
-      // Many-to-many: value is split evenly so totals are never inflated.
-      const prods = (p.products ?? []).filter(Boolean);
-      if (prods.length) prods.forEach((pr) => bump(productMap, pr, pr, p, 1 / prods.length));
-      const subs = (p.subproducts ?? []).filter(Boolean);
-      if (subs.length) subs.forEach((s) => bump(subproductMap, s, s, p, 1 / subs.length));
+      const prods = [...new Set((p.products ?? []).filter(Boolean).map((pr) => String(pr).trim()))];
+      prods.forEach((pr) => bump(productMap, pr.toLowerCase(), pr, p));
+      const subs = [...new Set((p.subproducts ?? []).filter(Boolean).map((s) => String(s).trim()))];
+      subs.forEach((s) => bump(subproductMap, s.toLowerCase(), s, p));
     }
 
     if (isWon(p)) {
@@ -567,9 +605,9 @@ export function buildExecutiveIntelligence(
   });
 
   /* ---------------- Stage health ---------------- */
-  const activeTotal = active.length || 1;
+  const activeTotal = active.length;
   const stages: StageRow[] = FUNNEL_STAGES.map((stage) => {
-    const inStage = projects.filter((p) => p.pipelineStage === stage);
+    const inStage = active.filter((p) => (p.pipelineStage || '').toLowerCase().trim() === stage);
     const bucket = emptyBucket();
     let probSum = 0;
     inStage.forEach((p) => {
@@ -578,7 +616,7 @@ export function buildExecutiveIntelligence(
       probSum += PROBABILITY_SCORE[probabilityBand(p)];
     });
     const avgProb = inStage.length ? probSum / inStage.length : 0;
-    const share = inStage.length / activeTotal;
+    const share = activeTotal > 0 ? inStage.length / activeTotal : 0;
     const newInPeriod = inStage.filter((p) => inWindow(createdAtOf(p), window.start, window.end)).length;
     const stale = inStage.filter((p) => (daysSince(updatedAtOf(p), now) ?? 0) > STAGNATION_DAYS);
 
@@ -604,11 +642,12 @@ export function buildExecutiveIntelligence(
       avgProbability: avgProb,
       newInPeriod,
       interpretation,
+      metric: `stage:${stage}`,
     };
   });
 
   const initiationShare = stages.find((s) => s.stage === 'initiation')?.share ?? 0;
-  const lateShare = totals.lateStage / activeTotal;
+  const lateShare = activeTotal > 0 ? totals.lateStage / activeTotal : 0;
   const staleLate = projects.filter(
     (p) => isLateStage(p) && (daysSince(updatedAtOf(p), now) ?? 0) > STAGNATION_DAYS
   );
@@ -644,11 +683,17 @@ export function buildExecutiveIntelligence(
   const nearConversion = projects
     .filter((p) => {
       if (isWon(p) || isLost(p)) return false;
-      if (p.pipelineStage === 'negotiation') return true;
-      if (p.pipelineStage === 'proposal' && probabilityBand(p) !== 'low') return true;
+      const stage = (p.pipelineStage || '').toLowerCase().trim();
+      if (stage === 'negotiation') return true;
+      if (stage === 'proposal' && probabilityBand(p) !== 'low') return true;
       const close = toDate(p.expectedCloseDate);
       const days = close ? Math.floor((close.getTime() - now.getTime()) / dayMs) : null;
-      return days !== null && days >= 0 && days <= CLOSING_SOON_DAYS && isLateStage(p);
+      return (
+        days !== null &&
+        days >= 0 &&
+        days <= CLOSING_SOON_DAYS &&
+        ['proposal', 'qualification', 'negotiation'].includes(stage)
+      );
     })
     .map(rowOf)
     .sort((a, b) => b.priorityScore - a.priorityScore);
@@ -720,21 +765,20 @@ export function buildExecutiveIntelligence(
       count: closingSoon.length,
     });
 
-  const clientsRanked = finaliseAvg(rank(clientMap));
-  const clientTotalUsd = clientsRanked.reduce((s, c) => s + c.usd, 0);
+  const clientsRanked = attachMetric(finaliseAvg(rank(clientMap)), 'clients');
   const topClient = clientsRanked[0];
-  if (topClient && clientTotalUsd > 0 && topClient.usd / clientTotalUsd >= 0.25)
+  if (topClient && (topClient.value_share_pct ?? 0) >= 20)
     alerts.push({
       id: 'client-concentration',
       severity: 'medium',
       category: 'Concentration risk',
-      title: `${fmtPct(topClient.usd / clientTotalUsd)} of USD pipeline sits with ${topClient.label}`,
-      detail: 'A single client account represents a substantial share of pipeline value.',
-      drillTo: `clientNames=${encodeURIComponent(JSON.stringify([topClient.label]))}`,
+      title: `${topClient.label} holds ${topClient.value_share_pct}% of NGN pipeline value and ${topClient.record_share_pct}% of active opportunities`,
+      detail: 'A single client account represents a substantial share of pipeline value and volume.',
+      drillTo: `metric=${encodeURIComponent(topClient.metric ?? `clients:${topClient.key}`)}`,
       count: topClient.count,
     });
 
-  const partnersRanked = finaliseAvg(rank(partnerMap));
+  const partnersRanked = attachMetric(finaliseAvg(rank(partnerMap)), 'partners');
   const partnerTotalUsd = partnersRanked.reduce((s, c) => s + c.usd, 0);
   const topPartner = partnersRanked[0];
   if (topPartner && partnerTotalUsd > 0 && topPartner.usd / partnerTotalUsd >= 0.35)
@@ -937,12 +981,16 @@ export function buildExecutiveIntelligence(
 
   /* ---------------- Risk overview ---------------- */
   const risks: ExecutiveIntelligence['risks'] = [];
-  if (topClient && clientTotalUsd > 0)
+  if (topClient && (topClient.value_share_pct ?? 0) > 0)
     risks.push({
       label: 'Client concentration',
-      value: fmtPct(topClient.usd / clientTotalUsd),
-      detail: `Largest client (${topClient.label}) share of USD pipeline`,
-      tone: topClient.usd / clientTotalUsd >= 0.35 ? 'risk' : topClient.usd / clientTotalUsd >= 0.2 ? 'watch' : 'good',
+      value: `${topClient.value_share_pct}% of value · ${topClient.record_share_pct}% of records`,
+      detail: `Largest client (${topClient.label}) share of active pipeline`,
+      tone:
+        (topClient.value_share_pct ?? 0) >= 35 ? 'risk' : (topClient.value_share_pct ?? 0) >= 20 ? 'watch' : 'good',
+      metric: topClient.metric,
+      valueSharePct: topClient.value_share_pct ?? undefined,
+      recordSharePct: topClient.record_share_pct ?? undefined,
     });
   risks.push({
     label: 'Early-stage concentration',
@@ -952,9 +1000,9 @@ export function buildExecutiveIntelligence(
   });
   risks.push({
     label: 'Low-probability dependence',
-    value: fmtPct(totals.low / activeTotal),
+    value: fmtPct(activeTotal > 0 ? totals.low / activeTotal : 0),
     detail: 'Share of active opportunities rated low probability',
-    tone: totals.low / activeTotal > 0.5 ? 'risk' : totals.low / activeTotal > 0.35 ? 'watch' : 'good',
+    tone: (activeTotal > 0 ? totals.low / activeTotal : 0) > 0.5 ? 'risk' : (activeTotal > 0 ? totals.low / activeTotal : 0) > 0.35 ? 'watch' : 'good',
   });
   if (topPartner && partnerTotalUsd > 0)
     risks.push({
@@ -1008,11 +1056,19 @@ export function buildExecutiveIntelligence(
     accounts,
     partners: partnersRanked,
     clients: clientsRanked,
+    clientConcentration: {
+      currency: 'ngn' as const,
+      totalRecords: clientsRanked.reduce((s, c) => s + c.count, 0),
+      totalValue: clientsRanked.reduce((s, c) => s + c.ngn, 0),
+      clients: clientsRanked,
+      top: topClient ?? null,
+    },
+    metrics: { active: 'active', won: 'won', nearConversion: 'nearConversion' },
     dimensions: {
-      verticals: finaliseAvg(rank(verticalMap)),
-      sectors: finaliseAvg(rank(sectorMap)),
-      products: finaliseAvg(rank(productMap)),
-      subproducts: finaliseAvg(rank(subproductMap)),
+      verticals: attachMetric(finaliseAvg(rank(verticalMap)), 'verticals'),
+      sectors: attachMetric(finaliseAvg(rank(sectorMap)), 'sectors'),
+      products: attachMetric(finaliseAvg(rank(productMap)), 'products'),
+      subproducts: attachMetric(finaliseAvg(rank(subproductMap)), 'subproducts'),
     },
     movement,
     topOpportunities,
