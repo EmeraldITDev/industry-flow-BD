@@ -118,6 +118,17 @@ export default function ChairmanView() {
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
   const t = data.totals;
+  const periodFrom = data.window.start
+    ? (data.window.start instanceof Date
+        ? data.window.start.toISOString().slice(0, 10)
+        : String(data.window.start).slice(0, 10))
+    : '';
+  const periodTo = data.window.end
+    ? (data.window.end instanceof Date
+        ? data.window.end.toISOString().slice(0, 10)
+        : String(data.window.end).slice(0, 10))
+    : '';
+  const periodQs = periodFrom ? `from=${encodeURIComponent(periodFrom)}&to=${encodeURIComponent(periodTo)}` : '';
 
   return (
     <div className="w-full px-5 py-6 sm:px-8 sm:py-8 lg:px-10 lg:py-10">
@@ -216,11 +227,13 @@ export default function ChairmanView() {
             label="New this period"
             value={String(t.newInPeriod)}
             movement={data.window.prevStart ? fmtDelta(t.newInPeriod, t.newPrevPeriod) : undefined}
+            drillTo={periodQs ? `metric=all&${periodQs}` : undefined}
           />
           <ExecutiveMetric
             label="Won this period"
             value={String(t.wonInPeriod)}
             movement={data.window.prevStart ? fmtDelta(t.wonInPeriod, t.wonPrevPeriod) : undefined}
+            drillTo={periodQs ? `metric=won&${periodQs}` : 'metric=won'}
           />
           <ExecutiveMetric
             label="Closed without conversion"

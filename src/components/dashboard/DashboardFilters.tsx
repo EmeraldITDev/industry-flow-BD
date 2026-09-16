@@ -71,9 +71,10 @@ export function DashboardFilters({ filters, onFiltersChange, projects, teamMembe
   const uniqueMonths = useMemo(() => {
     const months = new Set<string>();
     projects.forEach(p => {
-      if (p.startDate) {
+      const raw = p.startDate || p.pipelineIntakeDate;
+      if (raw) {
         try {
-          const d = new Date(p.startDate);
+          const d = new Date(raw);
           if (!isNaN(d.getTime())) {
             months.add(format(d, 'yyyy-MM'));
           }
@@ -409,9 +410,10 @@ export function applyDashboardFilters(
       if (!filters.businessSegments.includes(seg as BusinessSegment)) return false;
     }
     if (filters.startDates.length > 0) {
-      if (!p.startDate) return false;
+      const raw = p.startDate || p.pipelineIntakeDate;
+      if (!raw) return false;
       try {
-        const month = format(new Date(p.startDate), 'yyyy-MM');
+        const month = format(new Date(raw), 'yyyy-MM');
         if (!filters.startDates.includes(month)) return false;
       } catch {
         return false;

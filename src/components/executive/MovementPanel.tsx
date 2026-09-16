@@ -16,7 +16,7 @@ export function MovementPanel({ data }: { data: ExecutiveIntelligence }) {
           Based on {window.label.toLowerCase()}.{' '}
           {historyAvailable
             ? 'Stage transitions below are taken from recorded commercial events.'
-            : 'Creation and last-update dates are available now; stage-by-stage history will populate as opportunities are updated going forward.'}
+            : 'New and won rows use each opportunity\'s Start Date (Intake Date if Start Date is blank). Last-update dates still drive the Updated tab; stage-by-stage history will populate as opportunities are updated going forward.'}
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -40,7 +40,7 @@ export function MovementPanel({ data }: { data: ExecutiveIntelligence }) {
             <TabsTrigger value="overdue">Overdue ({movement.overdue.length})</TabsTrigger>
           </TabsList>
           <TabsContent value="created" className="mt-3">
-            <OpportunityTable rows={movement.created} emptyMessage="No opportunities were created in this period." />
+            <OpportunityTable rows={movement.created} emptyMessage="No opportunities have a start date in this period." />
           </TabsContent>
           <TabsContent value="won" className="mt-3">
             <OpportunityTable rows={movement.won} emptyMessage="No opportunities were secured in this period." />

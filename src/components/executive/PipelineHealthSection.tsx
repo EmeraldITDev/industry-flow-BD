@@ -43,8 +43,9 @@ export function PipelineHealthSection({ data }: { data: ExecutiveIntelligence })
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Executive Pipeline Health</CardTitle>
           <p className="text-xs text-muted-foreground">
-            Initiation → Qualification → Proposal → Negotiation → Execution. Currency values are kept
-            separate and never aggregated across USD and NGN.
+            Initiation → Qualification → Proposal → Negotiation → Execution. "New this period"
+            uses each opportunity's Start Date (Intake Date if Start Date is blank). Currency
+            values are kept separate and never aggregated across USD and NGN.
           </p>
         </CardHeader>
         <CardContent className="space-y-4">

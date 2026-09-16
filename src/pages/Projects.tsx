@@ -109,10 +109,22 @@ export default function Projects() {
   const filters = useMemo(() => filtersFromParams(searchParams), [searchParams]);
   const metric = searchParams.get('metric') || '';
   const isMetricDrill = metric !== '';
+  const metricFrom = searchParams.get('from') || '';
+  const metricTo = searchParams.get('to') || '';
+  const metricPeriod = searchParams.get('period') || '';
 
   const handleFiltersChange = useCallback((newFilters: FilterState) => {
-    setSearchParams(filtersToParams(newFilters), { replace: true });
-  }, [setSearchParams]);
+    const params = filtersToParams(newFilters);
+    const metricParam = searchParams.get('metric');
+    const from = searchParams.get('from');
+    const to = searchParams.get('to');
+    const period = searchParams.get('period');
+    if (metricParam) params.set('metric', metricParam);
+    if (from) params.set('from', from);
+    if (to) params.set('to', to);
+    if (period) params.set('period', period);
+    setSearchParams(params, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [importOpen, setImportOpen] = useState(false);
@@ -135,9 +147,14 @@ export default function Projects() {
     refetch: refetchMetric,
     isFetching: metricFetching,
   } = useQuery({
-    queryKey: ['metric-records', metric],
+    queryKey: ['metric-records', metric, metricFrom, metricTo, metricPeriod],
     enabled: isMetricDrill,
-    queryFn: () => metricsService.getAllRecords(metric),
+    queryFn: () =>
+      metricsService.getAllRecords(metric, {
+        ...(metricFrom ? { from: metricFrom } : {}),
+        ...(metricTo ? { to: metricTo } : {}),
+        ...(metricPeriod ? { period: metricPeriod } : {}),
+      }),
     staleTime: 60 * 1000,
   });
 
@@ -259,9 +276,10 @@ export default function Projects() {
       // Deal Probability filter
       if (filters.dealProbabilities.length > 0 && (!project.dealProbability || !filters.dealProbabilities.includes(project.dealProbability))) return false;
       
-      // Date filters
-      if (filters.dateFrom && project.startDate && new Date(project.startDate) < filters.dateFrom) return false;
-      if (filters.dateTo && project.startDate && new Date(project.startDate) > filters.dateTo) return false;
+      // Date filters — Start Date, falling back to Intake Date
+      const reportingDate = project.startDate || project.pipelineIntakeDate;
+      if (filters.dateFrom && reportingDate && new Date(reportingDate) < filters.dateFrom) return false;
+      if (filters.dateTo && reportingDate && new Date(reportingDate) > filters.dateTo) return false;
       
       // Value filters
       if (filters.minContractValue && (project.contractValueUSD || 0) < filters.minContractValue) return false;

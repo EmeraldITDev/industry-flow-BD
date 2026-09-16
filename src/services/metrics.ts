@@ -16,14 +16,16 @@ export interface MetricRecordsResult {
 }
 
 /** Query string fragment the Projects page uses to load /api/metrics/records. */
-export function metricSearch(metric: string): string {
-  return `metric=${encodeURIComponent(metric)}`;
+export function metricSearch(metric: string, extra: Record<string, string> = {}): string {
+  const params = new URLSearchParams({ metric, ...extra });
+  return params.toString();
 }
 
 export function metricLabel(metric: string): string {
   if (metric === 'active') return 'Active opportunities';
   if (metric === 'won') return 'Deals won';
   if (metric === 'nearConversion') return 'Close to winning';
+  if (metric === 'all') return 'Opportunities';
   if (metric.startsWith('stage:')) {
     const stage = metric.slice(6);
     return `Pipeline: ${stage.charAt(0).toUpperCase()}${stage.slice(1)}`;
@@ -46,6 +48,11 @@ export function metricLabel(metric: string): string {
 }
 
 export const metricsService = {
+  async summary(extra: Record<string, unknown> = {}) {
+    const response = await api.get('/api/metrics/summary', { params: extra });
+    return response.data;
+  },
+
   async aggregate(metric: string, extra: Record<string, unknown> = {}): Promise<MetricAggregate> {
     const response = await api.get('/api/metrics', { params: { metric, ...extra } });
     return response.data;

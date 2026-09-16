@@ -10,6 +10,10 @@ interface Props {
   filterKey?: string;
   emptyMessage?: string;
   showWon?: boolean;
+  /** Shared from/to (and similar) appended to every drill-down. */
+  extraQuery?: string;
+  /** When set, the list drills this metric plus filterKey instead of group.metric. */
+  metricOverride?: string;
 }
 
 export function RankedList({
@@ -18,6 +22,8 @@ export function RankedList({
   filterKey,
   emptyMessage = 'No data recorded for this breakdown.',
   showWon = true,
+  extraQuery,
+  metricOverride,
 }: Props) {
   const navigate = useNavigate();
   const visible = groups.slice(0, limit);
@@ -27,26 +33,32 @@ export function RankedList({
     return <p className="text-sm text-muted-foreground py-6 text-center">{emptyMessage}</p>;
   }
 
+  const hrefFor = (group: RankedGroup) => {
+    const params = new URLSearchParams();
+    if (metricOverride) {
+      params.set('metric', metricOverride);
+      if (filterKey) params.set(filterKey, JSON.stringify([group.label]));
+    } else if (group.metric) {
+      params.set('metric', group.metric);
+    } else if (filterKey) {
+      params.set(filterKey, JSON.stringify([group.label]));
+    }
+    const base = params.toString();
+    return extraQuery ? `${base}${base ? '&' : ''}${extraQuery}` : base;
+  };
+
   return (
     <div className="space-y-3">
       {visible.map((group) => {
         const magnitude = group.usd + group.ngn / 1_000_000;
-        const clickable = !!group.metric || !!filterKey;
+        const href = hrefFor(group);
+        const clickable = !!href;
         return (
           <button
             key={group.key}
             type="button"
             disabled={!clickable}
-            onClick={
-              clickable
-                ? () =>
-                    navigate(
-                      group.metric
-                        ? `/projects?metric=${encodeURIComponent(group.metric)}`
-                        : `/projects?${filterKey}=${encodeURIComponent(JSON.stringify([group.label]))}`
-                    )
-                : undefined
-            }
+            onClick={clickable ? () => navigate(`/projects?${href}`) : undefined}
             className="w-full text-left rounded-md p-2 hover:bg-muted/50 transition-colors disabled:hover:bg-transparent disabled:cursor-default"
           >
             <div className="flex flex-wrap items-baseline justify-between gap-2">

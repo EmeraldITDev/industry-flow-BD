@@ -461,7 +461,7 @@ function AdvancedFiltersComponent({ filters, onFiltersChange, projects = [], tea
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label>Date From</Label>
+                      <Label>Start Date From</Label>
                       <Popover>
                         <PopoverTrigger asChild>
                           <Button
@@ -486,7 +486,7 @@ function AdvancedFiltersComponent({ filters, onFiltersChange, projects = [], tea
                       </Popover>
                     </div>
                     <div className="space-y-2">
-                      <Label>Date To</Label>
+                      <Label>Start Date To</Label>
                       <Popover>
                         <PopoverTrigger asChild>
                           <Button

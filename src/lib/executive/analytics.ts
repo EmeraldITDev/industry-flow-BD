@@ -143,6 +143,10 @@ export const createdAtOf = (p: Project) =>
 export const updatedAtOf = (p: Project) =>
   toDate((p as any).updatedAt ?? (p as any).updated_at) ?? createdAtOf(p);
 
+/** Canonical reporting date: Start Date, falling back to Intake Date. */
+export const reportingDateOf = (p: Project) =>
+  toDate(p.startDate) ?? toDate(p.pipelineIntakeDate);
+
 export const daysSince = (d: Date | null, now = new Date()) =>
   d ? Math.floor((now.getTime() - d.getTime()) / dayMs) : null;
 
@@ -533,7 +537,7 @@ export function buildExecutiveIntelligence(
   const wonByMonth = new Map<string, { month: string; count: number; usd: number; ngn: number }>();
 
   projects.forEach((p) => {
-    const created = createdAtOf(p);
+    const reporting = reportingDateOf(p);
     const updated = updatedAtOf(p);
     const band = probabilityBand(p);
     const score = PROBABILITY_SCORE[band];
@@ -559,11 +563,11 @@ export function buildExecutiveIntelligence(
       totals.wonUsd += usdOf(p);
       totals.wonNgn += ngnOf(p);
     }
-    if (inWindow(created, window.start, window.end)) totals.newInPeriod += 1;
-    if (inWindow(created, window.prevStart, window.prevEnd)) totals.newPrevPeriod += 1;
+    if (inWindow(reporting, window.start, window.end)) totals.newInPeriod += 1;
+    if (inWindow(reporting, window.prevStart, window.prevEnd)) totals.newPrevPeriod += 1;
     if (updated && inWindow(updated, window.start, window.end)) totals.updatedInPeriod += 1;
-    if (isWon(p) && inWindow(updated, window.start, window.end)) totals.wonInPeriod += 1;
-    if (isWon(p) && inWindow(updated, window.prevStart, window.prevEnd)) totals.wonPrevPeriod += 1;
+    if (isWon(p) && inWindow(reporting, window.start, window.end)) totals.wonInPeriod += 1;
+    if (isWon(p) && inWindow(reporting, window.prevStart, window.prevEnd)) totals.wonPrevPeriod += 1;
 
     // Commercial drivers — active opportunities only, labels case-folded.
     if (isActivePipeline(p)) {
@@ -592,7 +596,7 @@ export function buildExecutiveIntelligence(
       const partnerLabel = (p.channelPartner || '').trim();
       if (partnerLabel) bump(wonPartnerMap, partnerLabel.toLowerCase(), partnerLabel, p);
 
-      const when = updated ?? created;
+      const when = reporting;
       if (when) {
         const key = `${when.getFullYear()}-${String(when.getMonth() + 1).padStart(2, '0')}`;
         const bucket = wonByMonth.get(key) ?? { month: key, count: 0, usd: 0, ngn: 0 };
@@ -617,7 +621,7 @@ export function buildExecutiveIntelligence(
     });
     const avgProb = inStage.length ? probSum / inStage.length : 0;
     const share = activeTotal > 0 ? inStage.length / activeTotal : 0;
-    const newInPeriod = inStage.filter((p) => inWindow(createdAtOf(p), window.start, window.end)).length;
+    const newInPeriod = inStage.filter((p) => inWindow(reportingDateOf(p), window.start, window.end)).length;
     const stale = inStage.filter((p) => (daysSince(updatedAtOf(p), now) ?? 0) > STAGNATION_DAYS);
 
     let interpretation = 'Within expected range.';
@@ -854,7 +858,7 @@ export function buildExecutiveIntelligence(
         const s = PROBABILITY_SCORE[probabilityBand(p)];
         probSum += s;
         weightedUsd += usdOf(p) * s;
-        if (inWindow(createdAtOf(p), window.start, window.end)) newInPeriod += 1;
+        if (inWindow(reportingDateOf(p), window.start, window.end)) newInPeriod += 1;
       });
 
       const entityMap = new Map<string, RankedGroup>();
@@ -910,20 +914,20 @@ export function buildExecutiveIntelligence(
   /* ---------------- Movement ---------------- */
   const movement = {
     created: projects
-      .filter((p) => inWindow(createdAtOf(p), window.start, window.end))
+      .filter((p) => inWindow(reportingDateOf(p), window.start, window.end))
       .map(rowOf)
       .sort((a, b) => b.priorityScore - a.priorityScore),
     updated: projects
       .filter(
         (p) =>
           inWindow(updatedAtOf(p), window.start, window.end) &&
-          !inWindow(createdAtOf(p), window.start, window.end) &&
+          !inWindow(reportingDateOf(p), window.start, window.end) &&
           rankWeight(p) > 0
       )
       .map(rowOf)
       .sort((a, b) => b.usd + b.ngn / 1_000_000 - (a.usd + a.ngn / 1_000_000)),
     won: won
-      .filter((p) => inWindow(updatedAtOf(p), window.start, window.end))
+      .filter((p) => inWindow(reportingDateOf(p), window.start, window.end))
       .map(rowOf)
       .sort((a, b) => b.usd + b.ngn / 1_000_000 - (a.usd + a.ngn / 1_000_000)),
     overdue: overdue.map(rowOf).sort((a, b) => b.priorityScore - a.priorityScore),
@@ -933,7 +937,7 @@ export function buildExecutiveIntelligence(
   const yearStart = new Date(now.getFullYear(), 0, 1);
   const quarterStart = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const wonSince = (from: Date) => won.filter((p) => inWindow(updatedAtOf(p), from, now)).length;
+  const wonSince = (from: Date) => won.filter((p) => inWindow(reportingDateOf(p), from, now)).length;
 
   const conversion: ExecutiveIntelligence['conversion'] = {
     wonYear: wonSince(yearStart),
@@ -945,9 +949,9 @@ export function buildExecutiveIntelligence(
     avgWonNgn: won.length ? totals.wonNgn / won.length : 0,
     inExecution: totals.execution,
     byMonth: Array.from(wonByMonth.values()).sort((a, b) => a.month.localeCompare(b.month)).slice(-12),
-    recentWins: won
+    recentWins: [...won]
+      .sort((a, b) => (reportingDateOf(b)?.getTime() ?? 0) - (reportingDateOf(a)?.getTime() ?? 0))
       .map(rowOf)
-      .sort((a, b) => (b.lastActivity?.getTime() ?? 0) - (a.lastActivity?.getTime() ?? 0))
       .slice(0, 10),
     byClient: finaliseAvg(rank(wonClientMap)).slice(0, 10),
     bySector: finaliseAvg(rank(wonSectorMap)),
