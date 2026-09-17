@@ -9,8 +9,23 @@ const toneText: Record<string, string> = {
   risk: 'text-destructive',
 };
 
-export function RiskPanel({ data }: { data: ExecutiveIntelligence }) {
+export function RiskPanel({
+  data,
+  onOpenMetric,
+}: {
+  data: ExecutiveIntelligence;
+  /** Prefer the shared snapshot sheet when provided (e.g. stagnant). */
+  onOpenMetric?: (metric: string) => void;
+}) {
   const navigate = useNavigate();
+
+  const openRisk = (metric: string) => {
+    if (onOpenMetric) {
+      onOpenMetric(metric);
+      return;
+    }
+    navigate(`/projects?metric=${encodeURIComponent(metric)}`);
+  };
 
   return (
     <Card>
@@ -18,7 +33,7 @@ export function RiskPanel({ data }: { data: ExecutiveIntelligence }) {
         <CardTitle className="text-base">Commercial Risk & Concentration</CardTitle>
         <p className="text-xs text-muted-foreground">
           Concentration and stagnation indicators calculated from recorded pipeline data.
-          Open Stagnation risk to filter by Business Vertical or Product.
+          Open Stagnation risk to preview the list, then open all for the full filtered view.
         </p>
       </CardHeader>
       <CardContent className="grid gap-3 sm:grid-cols-2">
@@ -29,13 +44,13 @@ export function RiskPanel({ data }: { data: ExecutiveIntelligence }) {
               key={risk.label}
               role={clickable ? 'button' : undefined}
               tabIndex={clickable ? 0 : undefined}
-              onClick={clickable ? () => navigate(`/projects?metric=${encodeURIComponent(risk.metric!)}`) : undefined}
+              onClick={clickable ? () => openRisk(risk.metric!) : undefined}
               onKeyDown={
                 clickable
                   ? (event) => {
                       if (event.key === 'Enter' || event.key === ' ') {
                         event.preventDefault();
-                        navigate(`/projects?metric=${encodeURIComponent(risk.metric!)}`);
+                        openRisk(risk.metric!);
                       }
                     }
                   : undefined

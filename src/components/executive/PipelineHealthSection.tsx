@@ -23,19 +23,56 @@ const toneStyles = {
   },
 } as const;
 
-export function PipelineHealthSection({ data }: { data: ExecutiveIntelligence }) {
+export function PipelineHealthSection({
+  data,
+  onOpenStagnant,
+}: {
+  data: ExecutiveIntelligence;
+  /** Opens the shared snapshot sheet for stagnant opportunities. */
+  onOpenStagnant?: () => void;
+}) {
   const navigate = useNavigate();
   const tone = toneStyles[data.health.tone];
   const Icon = tone.icon;
+  const stagnantCount = data.totals.stagnant ?? 0;
+  const isStagnationAlert =
+    stagnantCount > 0 &&
+    (data.health.verdict.toLowerCase().includes('stagnation') ||
+      data.health.narrative.toLowerCase().includes('no pipeline-stage change'));
+  const healthClickable = Boolean(onOpenStagnant) && isStagnationAlert;
 
   return (
     <section className="space-y-4">
-      <Card className={cn(tone.border, tone.bg)}>
+      <Card
+        role={healthClickable ? 'button' : undefined}
+        tabIndex={healthClickable ? 0 : undefined}
+        onClick={healthClickable ? onOpenStagnant : undefined}
+        onKeyDown={
+          healthClickable
+            ? (event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  onOpenStagnant?.();
+                }
+              }
+            : undefined
+        }
+        className={cn(
+          tone.border,
+          tone.bg,
+          healthClickable && 'cursor-pointer transition-colors hover:border-destructive/70'
+        )}
+      >
         <CardContent className="p-5 flex gap-4">
           <Icon className={cn('w-6 h-6 shrink-0 mt-0.5', tone.text)} />
-          <div>
+          <div className="min-w-0 flex-1">
             <h3 className={cn('font-semibold', tone.text)}>{data.health.verdict}</h3>
             <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{data.health.narrative}</p>
+            {healthClickable && (
+              <p className={cn('text-xs font-medium mt-2', tone.text)}>
+                View {stagnantCount} stagnant opportunities →
+              </p>
+            )}
           </div>
         </CardContent>
       </Card>

@@ -15,7 +15,8 @@ export type MetricPanelKey =
   | 'won'
   | 'pipeline'
   | 'lateStage'
-  | 'highProbability';
+  | 'highProbability'
+  | 'stagnant';
 
 export type SnapshotStageMode = 'full' | 'won' | 'late' | 'none';
 
@@ -85,6 +86,8 @@ export function metricPanelQuery(key: MetricPanelKey): { metric: string; extra: 
           dealProbabilities: JSON.stringify(['high']),
         },
       };
+    case 'stagnant':
+      return { metric: 'stagnant', extra: {} };
   }
 }
 
@@ -251,6 +254,32 @@ export function buildMetricSnapshotModel(
         openAllQuery,
         openAllLabel: `Open all ${t.high} opportunities`,
       };
+    case 'stagnant': {
+      const count = t.stagnant ?? panel.count;
+      const days = data.stagnationDays ?? 30;
+      return {
+        title: 'Stagnant opportunities',
+        subtitle: `Active opportunities with no pipeline-stage change in over ${days} days.`,
+        summaryStats: [
+          {
+            label: 'Stagnant opportunities',
+            value: String(count),
+            sub: `${fmtUsd(panel.valueUsd)} · ${fmtNgn(panel.valueNgn)}`,
+            tone: 'warning',
+          },
+        ],
+        byStage: filterStages(panel.byStage, 'full'),
+        stageMode: 'full',
+        byProbability: panel.byProbability,
+        showProbabilityBands: true,
+        byEntity,
+        showEntityBreakdown: true,
+        entityMetricOverride: 'stagnant',
+        topOpportunities: top,
+        openAllQuery,
+        openAllLabel: `Open all ${count} opportunities`,
+      };
+    }
   }
 }
 

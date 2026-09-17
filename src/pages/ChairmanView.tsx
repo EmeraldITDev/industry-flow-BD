@@ -325,7 +325,7 @@ export default function ChairmanView() {
       </section>
 
       {/* 3. Pipeline health */}
-      <PipelineHealthSection data={data} />
+      <PipelineHealthSection data={data} onOpenStagnant={() => openPanel('stagnant')} />
 
       {/* 4. Conversion */}
       <section id="exec-conversion">
@@ -374,7 +374,13 @@ export default function ChairmanView() {
       </section>
 
       {/* 8. Risk */}
-      <RiskPanel data={data} />
+      <RiskPanel
+        data={data}
+        onOpenMetric={(metric) => {
+          if (metric === 'stagnant') openPanel('stagnant');
+          else navigate(`/projects?metric=${encodeURIComponent(metric)}`);
+        }}
+      />
 
       <AccountGroupManager
         open={groupManagerOpen}
