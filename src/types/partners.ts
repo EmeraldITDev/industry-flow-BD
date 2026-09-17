@@ -1,11 +1,17 @@
 export const RELATIONSHIP_STAGES = [
+  'Identified',
   'Prospecting',
-  'First Contact Made',
+  'Discovery Discussions',
   'NDA Signed',
-  'Active Engagement',
-  'Strategic Partner',
+  'Detailed Discussions',
+  'Agreement Drafted | Negotiation',
+  'Due Diligence | Compliance Review | Approval',
+  'Onboarding',
+  'Active Partner',
   'Dormant',
   'Disqualified',
+  'Terminated | Offboarded',
+  'Blacklisted | Delisted',
 ] as const;
 
 export type RelationshipStage = (typeof RELATIONSHIP_STAGES)[number];

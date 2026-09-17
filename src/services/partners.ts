@@ -64,7 +64,7 @@ export const normalizePartner = (raw: any): Partner => {
     phone: raw.phone ?? '',
     relationshipOwnerIds,
     relationshipOwners: Array.isArray(ownersRaw) ? ownersRaw.map(toOwner) : undefined,
-    relationshipStage: raw.relationshipStage ?? raw.relationship_stage ?? 'Prospecting',
+    relationshipStage: raw.relationshipStage ?? raw.relationship_stage ?? 'Identified',
     verticals: Array.isArray(raw.verticals)
       ? raw.verticals.map(String)
       : [],
