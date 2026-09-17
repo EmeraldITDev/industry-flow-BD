@@ -1,16 +1,28 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import {
   ArrowLeft,
   Link2,
   Loader2,
   Pencil,
   AlertTriangle,
+  Trash2,
 } from 'lucide-react';
 import { partnersService } from '@/services/partners';
 import {
@@ -23,7 +35,7 @@ import { safeFormatDate } from '@/lib/dateUtils';
 import { sectorColors } from '@/data/mockData';
 import type { Sector } from '@/types';
 import { cn } from '@/lib/utils';
-
+import { toast } from 'sonner';
 function Field({
   label,
   children,
@@ -42,6 +54,7 @@ function Field({
 export default function PartnerDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [editOpen, setEditOpen] = useState(false);
   const [linkOpen, setLinkOpen] = useState(false);
 
@@ -53,6 +66,16 @@ export default function PartnerDetail() {
     queryKey: ['partner', id],
     queryFn: () => partnersService.getById(id!),
     enabled: !!id,
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: () => partnersService.delete(id!),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['partners'] });
+      toast.success('Partner deleted');
+      navigate('/partners');
+    },
+    onError: () => toast.error('Failed to delete partner'),
   });
 
   if (isLoading) {
@@ -112,10 +135,50 @@ export default function PartnerDetail() {
             )}
           </div>
         </div>
-        <Button variant="outline" onClick={() => setEditOpen(true)} className="shrink-0 self-start">
-          <Pencil className="mr-2 h-4 w-4" />
-          Edit
-        </Button>
+        <div className="flex flex-wrap gap-2 shrink-0 self-start">
+          <Button variant="outline" onClick={() => setEditOpen(true)}>
+            <Pencil className="mr-2 h-4 w-4" />
+            Edit
+          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="outline"
+                className="text-destructive border-destructive/40 hover:bg-destructive/10"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete partner?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will permanently remove{' '}
+                  <span className="font-medium text-foreground">
+                    {partner.companyName}
+                  </span>{' '}
+                  and unlink it from any opportunities. This cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel disabled={deleteMutation.isPending}>
+                  Cancel
+                </AlertDialogCancel>
+                <AlertDialogAction
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  disabled={deleteMutation.isPending}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    deleteMutation.mutate();
+                  }}
+                >
+                  {deleteMutation.isPending ? 'Deleting…' : 'Delete partner'}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
       </div>
 
       <div className="grid gap-5 lg:grid-cols-3">

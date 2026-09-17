@@ -161,6 +161,10 @@ export const partnersService = {
     return normalizePartner(raw);
   },
 
+  delete: async (id: string): Promise<void> => {
+    await api.delete(`/api/partners/${id}`);
+  },
+
   searchScmVendors: async (q: string = ''): Promise<ScmVendorSearchResult[]> => {
     const response = await api.get('/api/partners/scm-search', {
       // Always send q (including '') so the default list endpoint is hit.

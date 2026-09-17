@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Card,
   CardContent,
@@ -18,7 +18,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Handshake, AlertTriangle, Plus, Search, Loader2, Download } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Handshake, AlertTriangle, Plus, Search, Loader2, Download, Trash2 } from 'lucide-react';
 import { partnersService } from '@/services/partners';
 import { teamService } from '@/services/team';
 import { businessVerticals, sectorColors } from '@/data/mockData';
@@ -78,6 +88,7 @@ function exportPartnersCsv(partners: Partner[]) {
 
 export default function Partners() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [verticalFilter, setVerticalFilter] = useState(ALL);
@@ -85,6 +96,7 @@ export default function Partners() {
   const [productFilter, setProductFilter] = useState(ALL);
   const [ownerFilter, setOwnerFilter] = useState(ALL);
   const [addOpen, setAddOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Partner | null>(null);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 300);
@@ -117,6 +129,15 @@ export default function Partners() {
     staleTime: 30 * 1000,
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => partnersService.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['partners'] });
+      toast.success('Partner deleted');
+      setDeleteTarget(null);
+    },
+    onError: () => toast.error('Failed to delete partner'),
+  });
   const filtered = useMemo(() => {
     return partners.filter((p) => {
       if (verticalFilter !== ALL && !p.verticals.includes(verticalFilter)) {
@@ -391,30 +412,45 @@ export default function Partners() {
                         </div>
                       )}
                     </div>
-                    <div className="shrink-0 space-y-1.5 text-sm sm:text-right sm:pl-6">
-                      <p className="text-muted-foreground">
-                        Linked opportunities:{' '}
-                        <span className="text-foreground font-medium tabular-nums">
-                          {partner.linkedOpportunitiesCount ?? 0}
-                        </span>
-                      </p>
-                      <p className="text-muted-foreground">
-                        Volume:{' '}
-                        <span className="text-foreground tabular-nums">
-                          {(partner.totalValueUsd ?? 0) > 0
-                            ? `$${(partner.totalValueUsd ?? 0).toLocaleString()}`
-                            : '—'}
-                          {(partner.totalValueNgn ?? 0) > 0
-                            ? ` · ₦${(partner.totalValueNgn ?? 0).toLocaleString()}`
-                            : ''}
-                        </span>
-                      </p>
-                      <p className="text-muted-foreground max-w-xs sm:ml-auto">
-                        Next:{' '}
-                        <span className="text-foreground">
-                          {partner.nextAction?.trim() || '—'}
-                        </span>
-                      </p>
+                    <div className="shrink-0 flex flex-col gap-3 sm:items-end sm:pl-6">
+                      <div className="space-y-1.5 text-sm sm:text-right">
+                        <p className="text-muted-foreground">
+                          Linked opportunities:{' '}
+                          <span className="text-foreground font-medium tabular-nums">
+                            {partner.linkedOpportunitiesCount ?? 0}
+                          </span>
+                        </p>
+                        <p className="text-muted-foreground">
+                          Volume:{' '}
+                          <span className="text-foreground tabular-nums">
+                            {(partner.totalValueUsd ?? 0) > 0
+                              ? `$${(partner.totalValueUsd ?? 0).toLocaleString()}`
+                              : '—'}
+                            {(partner.totalValueNgn ?? 0) > 0
+                              ? ` · ₦${(partner.totalValueNgn ?? 0).toLocaleString()}`
+                              : ''}
+                          </span>
+                        </p>
+                        <p className="text-muted-foreground max-w-xs sm:ml-auto">
+                          Next:{' '}
+                          <span className="text-foreground">
+                            {partner.nextAction?.trim() || '—'}
+                          </span>
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="text-destructive border-destructive/40 hover:bg-destructive/10"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteTarget(partner);
+                        }}
+                      >
+                        <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                        Delete
+                      </Button>
                     </div>
                   </div>
                 </button>
@@ -424,6 +460,40 @@ export default function Partners() {
       </Card>
 
       <PartnerFormSheet open={addOpen} onOpenChange={setAddOpen} />
+
+      <AlertDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete partner?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove{' '}
+              <span className="font-medium text-foreground">
+                {deleteTarget?.companyName}
+              </span>{' '}
+              from the Partner Tracker and unlink it from any opportunities. This
+              cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteMutation.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteMutation.isPending}
+              onClick={(e) => {
+                e.preventDefault();
+                if (deleteTarget) deleteMutation.mutate(deleteTarget.id);
+              }}
+            >
+              {deleteMutation.isPending ? 'Deleting…' : 'Delete partner'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
