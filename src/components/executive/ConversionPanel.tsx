@@ -12,7 +12,6 @@ import {
 } from '@/lib/executive/reportingPeriod';
 import { metricsService } from '@/services/metrics';
 import { ExecutiveMetric } from './ExecutiveMetric';
-import { OpportunityTable } from './OpportunityTable';
 import { RankedList } from './RankedList';
 import { ReportingRangeFilter } from './ReportingRangeFilter';
 
@@ -35,12 +34,6 @@ export function ConversionPanel({ data }: { data: ExecutiveIntelligence }) {
   });
 
   const conversion = summary?.conversion ?? (isError ? data.conversion : null);
-  const recentWins = (conversion?.recentWins ?? []).map((row: any) => ({
-    ...row,
-    lastActivity: row.lastActivity ? new Date(row.lastActivity) : null,
-    products: row.products ?? [],
-    subproducts: row.subproducts ?? [],
-  }));
   const showCalendarSplit = preset === 'thisYear' || preset === 'ytd';
   const maxMonth = Math.max(...(conversion?.byMonth ?? []).map((m: { count: number }) => m.count), 1);
   const wonLabel =
@@ -133,18 +126,14 @@ export function ConversionPanel({ data }: { data: ExecutiveIntelligence }) {
           </div>
         )}
 
-        <Tabs defaultValue="recent">
+        <Tabs defaultValue="client">
           <TabsList className="flex flex-wrap h-auto">
-            <TabsTrigger value="recent">Recent wins</TabsTrigger>
             <TabsTrigger value="client">By client</TabsTrigger>
             <TabsTrigger value="sector">By sector</TabsTrigger>
             <TabsTrigger value="vertical">By vertical</TabsTrigger>
             <TabsTrigger value="product">By product</TabsTrigger>
             <TabsTrigger value="partner">By partner</TabsTrigger>
           </TabsList>
-          <TabsContent value="recent" className="mt-3">
-            <OpportunityTable rows={recentWins} emptyMessage="No won opportunities recorded." />
-          </TabsContent>
           <TabsContent value="client" className="mt-3">
             <RankedList
               groups={conversion?.byClient ?? []}

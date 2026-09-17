@@ -21,7 +21,6 @@ function reviveIntelligence(data: any): ExecutiveIntelligence {
     nearConversion: mapRows(data.nearConversion),
     conversion: {
       ...data.conversion,
-      recentWins: mapRows(data.conversion?.recentWins),
     },
     accounts: (data.accounts ?? []).map((a: any) => ({
       ...a,
@@ -33,14 +32,6 @@ function reviveIntelligence(data: any): ExecutiveIntelligence {
       updated: mapRows(data.movement?.updated),
       won: mapRows(data.movement?.won),
       overdue: mapRows(data.movement?.overdue),
-    },
-    topOpportunities: {
-      largest: mapRows(data.topOpportunities?.largest),
-      highestProbability: mapRows(data.topOpportunities?.highestProbability),
-      closest: mapRows(data.topOpportunities?.closest),
-      recentlyWon: mapRows(data.topOpportunities?.recentlyWon),
-      attention: mapRows(data.topOpportunities?.attention),
-      recentlyUpdated: mapRows(data.topOpportunities?.recentlyUpdated),
     },
   };
 }

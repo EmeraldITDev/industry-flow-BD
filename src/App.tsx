@@ -24,7 +24,6 @@ import CalendarPage from "./pages/CalendarPage";
 import AllTasksPage from "./pages/AllTasksPage";
 import ChairmanViewPage from "./pages/ChairmanViewPage";
 import OperationsPage from "./pages/OperationsPage";
-import CategoryReferencePage from "./pages/CategoryReferencePage";
 import DocumentRepositoryPage from "./pages/DocumentRepositoryPage";
 import PartnersPage from "./pages/PartnersPage";
 import PartnerDetailPage from "./pages/PartnerDetailPage";
@@ -66,7 +65,6 @@ const App = () => (
                     <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
                     <Route path="/calendar" element={<ProtectedRoute><CalendarPage /></ProtectedRoute>} />
                     <Route path="/tasks" element={<ProtectedRoute><AllTasksPage /></ProtectedRoute>} />
-                    <Route path="/category-reference" element={<ProtectedRoute><CategoryReferencePage /></ProtectedRoute>} />
                     <Route path="/document-repository" element={<ProtectedRoute><DocumentRepositoryPage /></ProtectedRoute>} />
                     <Route path="/partners" element={<ProtectedRoute><PartnersPage /></ProtectedRoute>} />
                     <Route path="/partners/:id" element={<ProtectedRoute><PartnerDetailPage /></ProtectedRoute>} />

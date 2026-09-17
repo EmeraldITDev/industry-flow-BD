@@ -11,10 +11,8 @@ const ITEMS: Item[] = [
   { label: 'Where are we commercially right now?', scrollTo: 'exec-overview' },
   { label: 'How many deals have we won this year?', scrollTo: 'exec-conversion' },
   { label: 'Which deals are closest to winning?', scrollTo: 'exec-near' },
-  { label: 'What are our largest opportunities?', scrollTo: 'exec-top' },
   { label: 'Where are we on Dangote and other key accounts?', scrollTo: 'exec-accounts' },
   { label: 'Which clients and partners drive the pipeline?', scrollTo: 'exec-drivers' },
-  { label: 'What requires management attention?', scrollTo: 'exec-alerts' },
   { label: 'What has changed recently?', scrollTo: 'exec-movement' },
   {
     label: 'Show every won or executing opportunity',

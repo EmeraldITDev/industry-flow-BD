@@ -221,6 +221,31 @@ export const normalizeProject = (project: any): Project => {
 };
 
 export const projectsService = {
+  async list(params: Record<string, unknown> = {}): Promise<{
+    projects: Project[];
+    total: number;
+    page: number;
+    lastPage: number;
+  }> {
+    const response = await api.get('/api/projects', {
+      params: { per_page: 50, lean: 1, ...params },
+    });
+    const data = response.data;
+    const rows = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
+    const meta = data?.meta ?? {};
+    return {
+      projects: rows.map((row: unknown) => normalizeProject(row)),
+      total: Number(meta.total ?? rows.length),
+      page: Number(meta.current_page ?? params.page ?? 1),
+      lastPage: Number(meta.last_page ?? 1),
+    };
+  },
+
+  async getFacets(): Promise<Record<string, string[]>> {
+    const response = await api.get('/api/projects/facets');
+    return response.data ?? {};
+  },
+
   // Get all projects (handles both paginated and non-paginated API responses)
   getAll: async (filters?: ProjectFilters): Promise<Project[]> => {
     try {
@@ -230,7 +255,7 @@ export const projectsService = {
 
       while (hasMorePages) {
         const response = await api.get('/api/projects', {
-          params: { ...filters, page: currentPage, per_page: 500 },
+          params: { ...filters, page: currentPage, per_page: 100, lean: 1 },
         });
         const data = response.data;
 
@@ -241,9 +266,13 @@ export const projectsService = {
           hasMorePages = false; // Non-paginated response
         } else if (Array.isArray(data?.data)) {
           projects = data.data;
-          // Check for Laravel-style pagination metadata
-          if (data.last_page != null || data.next_page_url != null) {
-            hasMorePages = currentPage < (data.last_page ?? 1);
+          const lastPage = data.meta?.last_page ?? data.last_page;
+          const next = data.links?.next ?? data.next_page_url;
+          if (lastPage != null) {
+            hasMorePages = currentPage < lastPage;
+            currentPage++;
+          } else if (next) {
+            hasMorePages = true;
             currentPage++;
           } else {
             hasMorePages = false;
@@ -276,6 +305,7 @@ export const projectsService = {
 
         // Safety: if we got 0 results, stop
         if (projects.length === 0) hasMorePages = false;
+        if (currentPage > 50) hasMorePages = false;
       }
 
       const projects = allProjects;

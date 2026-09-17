@@ -50,6 +50,7 @@ interface AdvancedFiltersProps {
   onFiltersChange: (filters: FilterState) => void;
   projects?: Project[];
   teamMembers?: TeamMember[];
+  facets?: Record<string, string[]>;
 }
 
 const MAX_ACTIVE_TAGS = 5;
@@ -72,7 +73,7 @@ export const defaultFilters: FilterState = {
   dealProbabilities: [],
 };
 
-function AdvancedFiltersComponent({ filters, onFiltersChange, projects = [], teamMembers = [] }: AdvancedFiltersProps) {
+function AdvancedFiltersComponent({ filters, onFiltersChange, projects = [], teamMembers = [], facets = {} }: AdvancedFiltersProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
 
@@ -105,72 +106,51 @@ function AdvancedFiltersComponent({ filters, onFiltersChange, projects = [], tea
     onFiltersChange(defaultFilters);
   };
 
-  // Build team member options from real data
-  const teamNameMap = useMemo(() => {
-    const map = new Map<string, string>();
-    teamMembers.forEach((m) => map.set(String(m.id), m.name));
-    return map;
-  }, [teamMembers]);
+  const projectLeadOptions = useMemo(
+    () =>
+      teamMembers
+        .map((m) => ({ value: String(m.id), label: m.name }))
+        .sort((a, b) => a.label.localeCompare(b.label)),
+    [teamMembers]
+  );
 
-  // Extract unique project leads from projects using team data
-  const projectLeadOptions = useMemo(() => {
-    const leadIds = new Set<string>();
-    projects.forEach((p) => {
-      const id = p.projectLeadId;
-      if (id) leadIds.add(String(id));
-    });
-    return Array.from(leadIds)
-      .map((id) => ({ value: id, label: teamNameMap.get(id) || `Lead #${id}` }))
-      .sort((a, b) => a.label.localeCompare(b.label));
-  }, [projects, teamNameMap]);
-
-  // Extract unique assignees from projects using team data
-  const assigneeOptions = useMemo(() => {
-    const assigneeIds = new Set<string>();
-    projects.forEach((p) => {
-      const id = p.assigneeId;
-      if (id) assigneeIds.add(String(id));
-    });
-    return Array.from(assigneeIds)
-      .map((id) => ({ value: id, label: teamNameMap.get(id) || `Assignee #${id}` }))
-      .sort((a, b) => a.label.localeCompare(b.label));
-  }, [projects, teamNameMap]);
+  const assigneeOptions = projectLeadOptions;
 
   // Extract unique clients
   const clientOptions = useMemo(() => {
-    const clients = new Set<string>();
+    const clients = new Set<string>(facets.clientNames ?? []);
     projects.forEach((p) => {
       if (p.clientName?.trim()) clients.add(p.clientName.trim());
     });
     return Array.from(clients).sort().map((c) => ({ value: c, label: c }));
-  }, [projects]);
+  }, [projects, facets]);
 
   // Extract unique OEMs
   const oemOptions = useMemo(() => {
-    const oems = new Set<string>();
+    const oems = new Set<string>(facets.oems ?? []);
     projects.forEach((p) => {
       if (p.oem?.trim()) oems.add(p.oem.trim());
     });
     return Array.from(oems).sort().map((o) => ({ value: o, label: o }));
-  }, [projects]);
+  }, [projects, facets]);
 
   // Extract unique locations
   const locationOptions = useMemo(() => {
-    const locations = new Set<string>();
+    const locations = new Set<string>(facets.locations ?? []);
     projects.forEach((p) => {
       if (p.location?.trim()) locations.add(p.location.trim());
     });
     return Array.from(locations).sort().map((l) => ({ value: l, label: l }));
-  }, [projects]);
+  }, [projects, facets]);
 
   // Extract unique channel partners
   const channelPartnerOptions = useMemo(() => {
-    const partners = new Set<string>();
+    const partners = new Set<string>(facets.channelPartners ?? []);
     projects.forEach((p) => {
       if (p.channelPartner?.trim()) partners.add(p.channelPartner.trim());
     });
     return Array.from(partners).sort().map((cp) => ({ value: cp, label: cp }));
-  }, [projects]);
+  }, [projects, facets]);
 
   const pipelineStageOptions = PIPELINE_STAGES.map((stage) => ({
     value: stage.value,
@@ -183,7 +163,10 @@ function AdvancedFiltersComponent({ filters, onFiltersChange, projects = [], tea
 
   // Product options: catalog + any values already on projects
   const productOptions = useMemo(() => {
-    const set = new Set<string>(PRODUCT_OPTIONS.map((p) => p.value));
+    const set = new Set<string>([
+      ...PRODUCT_OPTIONS.map((p) => p.value),
+      ...(facets.products ?? []),
+    ]);
     projects.forEach((p) => {
       (p.products ?? []).forEach((v) => {
         if (v?.trim()) set.add(v.trim());
@@ -193,11 +176,14 @@ function AdvancedFiltersComponent({ filters, onFiltersChange, projects = [], tea
     return Array.from(set)
       .sort((a, b) => a.localeCompare(b))
       .map((v) => ({ value: v, label: v }));
-  }, [projects]);
+  }, [projects, facets]);
 
   const subproductOptions = useMemo(() => {
     const catalog = getSubproductOptions(filters.products || []);
-    const set = new Set<string>(catalog.map((o) => o.value));
+    const set = new Set<string>([
+      ...catalog.map((o) => o.value),
+      ...(facets.subproducts ?? []),
+    ]);
     projects.forEach((p) => {
       const projectProducts = [
         ...(p.products ?? []),
@@ -218,7 +204,7 @@ function AdvancedFiltersComponent({ filters, onFiltersChange, projects = [], tea
     return Array.from(set)
       .sort((a, b) => a.localeCompare(b))
       .map((v) => ({ value: v, label: v }));
-  }, [projects, filters.products, filters.subproducts]);
+  }, [projects, filters.products, filters.subproducts, facets]);
 
   const statusOptions = ALL_PROJECT_STATUSES.map((s) => ({
     value: s,

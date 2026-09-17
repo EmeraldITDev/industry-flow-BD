@@ -12,7 +12,6 @@ import {
   Building2,
   ListChecks,
   Landmark,
-  BookOpen,
   FileStack,
   Handshake,
 } from 'lucide-react';
@@ -76,7 +75,6 @@ const mainNavItems = [
   { title: 'All Tasks', url: '/tasks', icon: ListChecks },
   { title: 'Calendar', url: '/calendar', icon: Calendar },
   { title: 'Team', url: '/team', icon: Users },
-  { title: 'Category Reference', url: '/category-reference', icon: BookOpen },
   { title: 'Document Repository', url: '/document-repository', icon: FileStack },
 ];
 

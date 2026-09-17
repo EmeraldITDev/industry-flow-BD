@@ -62,11 +62,6 @@ export function StrategicAccounts({ data, onManageGroups }: Props) {
                   {account.usd > 0 && <span className="font-semibold">{fmtUsd(account.usd)}</span>}
                   {account.ngn > 0 && <span className="text-muted-foreground">{fmtNgn(account.ngn)}</span>}
                 </div>
-                {account.requiresAttention > 0 && (
-                  <Badge variant="outline" className="mt-2 text-[10px] border-amber-500/40 text-amber-600 dark:text-amber-400">
-                    {account.requiresAttention} require attention
-                  </Badge>
-                )}
               </button>
             ))}
             {!configured.length && (
@@ -130,11 +125,6 @@ export function StrategicAccounts({ data, onManageGroups }: Props) {
                     label="Close to winning"
                     value={String(selected.nearConversion)}
                     tone="primary"
-                  />
-                  <ExecutiveMetric
-                    label="Require attention"
-                    value={String(selected.requiresAttention)}
-                    tone={selected.requiresAttention ? 'warning' : 'default'}
                   />
                 </div>
 

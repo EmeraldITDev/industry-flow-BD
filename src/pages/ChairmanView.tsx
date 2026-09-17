@@ -24,11 +24,9 @@ import { StrategicAccounts } from '@/components/executive/StrategicAccounts';
 import { AccountGroupManager } from '@/components/executive/AccountGroupManager';
 import { PipelineHealthSection } from '@/components/executive/PipelineHealthSection';
 import { ConversionPanel } from '@/components/executive/ConversionPanel';
-import { AlertsPanel } from '@/components/executive/AlertsPanel';
 import { DriversPanel } from '@/components/executive/DriversPanel';
 import { MovementPanel } from '@/components/executive/MovementPanel';
 import { RiskPanel } from '@/components/executive/RiskPanel';
-import { TopOpportunitiesPanel } from '@/components/executive/TopOpportunitiesPanel';
 import { OpportunityTable } from '@/components/executive/OpportunityTable';
 import { Project } from '@/types';
 
@@ -218,12 +216,6 @@ export default function ChairmanView() {
             drillTo="dealProbability=high"
           />
           <ExecutiveMetric
-            label="Requires attention"
-            value={String(t.requiresAttention)}
-            tone={t.requiresAttention ? 'warning' : 'default'}
-            sub="Risk, stagnation or overdue"
-          />
-          <ExecutiveMetric
             label="New this period"
             value={String(t.newInPeriod)}
             movement={data.window.prevStart ? fmtDelta(t.newInPeriod, t.newPrevPeriod) : undefined}
@@ -264,20 +256,15 @@ export default function ChairmanView() {
 
       <QuickQuestions />
 
-      {/* 3. Attention */}
-      <section id="exec-alerts">
-        <AlertsPanel data={data} />
-      </section>
-
-      {/* 4. Pipeline health */}
+      {/* 3. Pipeline health */}
       <PipelineHealthSection data={data} />
 
-      {/* 5. Conversion */}
+      {/* 4. Conversion */}
       <section id="exec-conversion">
         <ConversionPanel data={data} />
       </section>
 
-      {/* 6. Near conversion */}
+      {/* 5. Near conversion */}
       <section id="exec-near">
         <Card>
           <CardHeader className="pb-3">
@@ -285,8 +272,8 @@ export default function ChairmanView() {
               <div>
                 <CardTitle className="text-base">Close to Winning</CardTitle>
                 <p className="text-xs text-muted-foreground">
-                  {data.nearConversion.length} opportunities prioritised by stage, probability, value and
-                  expected close date.
+                  {data.totals.nearConversion ?? data.nearConversion.length} opportunities
+                  prioritised by stage, probability, value and expected close date.
                 </p>
               </div>
               <Button
@@ -294,7 +281,7 @@ export default function ChairmanView() {
                 size="sm"
                 onClick={() => navigate('/projects?metric=nearConversion')}
               >
-                View all {data.nearConversion.length}
+                View all {data.totals.nearConversion ?? data.nearConversion.length}
               </Button>
             </div>
           </CardHeader>
@@ -308,22 +295,17 @@ export default function ChairmanView() {
         </Card>
       </section>
 
-      {/* 7. Deal monitor */}
-      <section id="exec-top">
-        <TopOpportunitiesPanel data={data} />
-      </section>
-
-      {/* 8. Drivers */}
+      {/* 6. Drivers */}
       <section id="exec-drivers">
         <DriversPanel data={data} />
       </section>
 
-      {/* 9. Movement */}
+      {/* 7. Movement */}
       <section id="exec-movement">
         <MovementPanel data={data} />
       </section>
 
-      {/* 10. Risk */}
+      {/* 8. Risk */}
       <RiskPanel data={data} />
 
       <AccountGroupManager

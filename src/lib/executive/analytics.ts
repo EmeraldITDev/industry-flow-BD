@@ -232,17 +232,6 @@ export interface OpportunityRow {
   priorityScore: number;
 }
 
-export interface ExecutiveAlert {
-  id: string;
-  severity: 'high' | 'medium' | 'info';
-  category: string;
-  title: string;
-  detail: string;
-  /** Query string (without "?") for the project list drill-down. */
-  drillTo: string;
-  count: number;
-}
-
 export interface RankedGroup {
   key: string;
   label: string;
@@ -270,7 +259,6 @@ export interface AccountSnapshot extends RankedGroup {
   negotiation: number;
   execution: number;
   nearConversion: number;
-  requiresAttention: number;
   newInPeriod: number;
   topOpportunities: OpportunityRow[];
   clientNames: string[];
@@ -301,7 +289,7 @@ export interface ExecutiveIntelligence {
     wonInPeriod: number;
     wonPrevPeriod: number;
     updatedInPeriod: number;
-    requiresAttention: number;
+    nearConversion: number;
     weightedUsd: number;
     weightedNgn: number;
   };
@@ -317,7 +305,6 @@ export interface ExecutiveIntelligence {
     avgWonNgn: number;
     inExecution: number;
     byMonth: { month: string; count: number; usd: number; ngn: number }[];
-    recentWins: OpportunityRow[];
     byClient: RankedGroup[];
     bySector: RankedGroup[];
     byVertical: RankedGroup[];
@@ -325,7 +312,6 @@ export interface ExecutiveIntelligence {
     byPartner: RankedGroup[];
   };
   nearConversion: OpportunityRow[];
-  alerts: ExecutiveAlert[];
   accounts: AccountSnapshot[];
   partners: RankedGroup[];
   clients: RankedGroup[];
@@ -352,14 +338,6 @@ export interface ExecutiveIntelligence {
     updated: OpportunityRow[];
     won: OpportunityRow[];
     overdue: OpportunityRow[];
-  };
-  topOpportunities: {
-    largest: OpportunityRow[];
-    highestProbability: OpportunityRow[];
-    closest: OpportunityRow[];
-    recentlyWon: OpportunityRow[];
-    attention: OpportunityRow[];
-    recentlyUpdated: OpportunityRow[];
   };
   risks: {
     label: string;
@@ -518,7 +496,7 @@ export function buildExecutiveIntelligence(
     wonInPeriod: 0,
     wonPrevPeriod: 0,
     updatedInPeriod: 0,
-    requiresAttention: 0,
+    nearConversion: 0,
     weightedUsd: 0,
     weightedNgn: 0,
   };
@@ -701,6 +679,7 @@ export function buildExecutiveIntelligence(
     })
     .map(rowOf)
     .sort((a, b) => b.priorityScore - a.priorityScore);
+  totals.nearConversion = nearConversion.length;
 
   /* ---------------- Alerts ---------------- */
   const alerts: ExecutiveAlert[] = [];

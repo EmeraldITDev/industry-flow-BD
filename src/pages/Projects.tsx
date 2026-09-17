@@ -1,12 +1,11 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ProjectCard } from '@/components/projects/ProjectCard';
 import { AdvancedFilters, FilterState, defaultFilters } from '@/components/projects/AdvancedFilters';
 import { projectsService } from '@/services/projects';
 import { teamService } from '@/services/team';
-import { tasksService } from '@/services/tasks';
 import { Button } from '@/components/ui/button';
 import { Plus, Grid3X3, List, Loader2, Upload, Trash2, X, RefreshCw } from 'lucide-react';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -101,6 +100,27 @@ function filtersToParams(filters: FilterState): URLSearchParams {
   return params;
 }
 
+function toDateParam(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function filterStateToApiParams(filters: FilterState): Record<string, string | number> {
+  const params: Record<string, string | number> = { lean: 1, per_page: 50 };
+  if (filters.search) params.search = filters.search;
+  for (const key of ARRAY_FILTER_KEYS) {
+    const arr = filters[key];
+    if (Array.isArray(arr) && arr.length > 0) params[key] = JSON.stringify(arr);
+  }
+  if (filters.dateFrom) params.from = toDateParam(filters.dateFrom);
+  if (filters.dateTo) params.to = toDateParam(filters.dateTo);
+  if (filters.minContractValue != null) params.minContractValue = filters.minContractValue;
+  if (filters.maxContractValue != null) params.maxContractValue = filters.maxContractValue;
+  return params;
+}
+
 export default function Projects() {
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
@@ -158,18 +178,28 @@ export default function Projects() {
     staleTime: 60 * 1000,
   });
 
-  // Fetch projects from backend
-  const { data: backendProjects, isLoading: listLoading, refetch: refetchList, isFetching: listFetching } = useQuery({
-    queryKey: ['projects'],
-    queryFn: async () => {
-      try {
-        const projects = await projectsService.getAll();
-        return projects;
-      } catch (err) {
-        console.error('[Projects Page] Error fetching projects:', err);
-        return [];
-      }
-    },
+  const apiParams = useMemo(() => filterStateToApiParams(filters), [filters]);
+
+  const {
+    data: listPages,
+    isLoading: listLoading,
+    refetch: refetchList,
+    isFetching: listFetching,
+    isFetchingNextPage,
+    fetchNextPage,
+    hasNextPage,
+  } = useInfiniteQuery({
+    queryKey: ['projects-list', apiParams],
+    queryFn: ({ pageParam }) => projectsService.list({ ...apiParams, page: pageParam }),
+    initialPageParam: 1,
+    getNextPageParam: (last) => (last.page < last.lastPage ? last.page + 1 : undefined),
+    staleTime: 60 * 1000,
+    enabled: !isMetricDrill,
+  });
+
+  const { data: facets = {} } = useQuery({
+    queryKey: ['project-facets'],
+    queryFn: () => projectsService.getFacets(),
     staleTime: 5 * 60 * 1000,
     enabled: !isMetricDrill,
   });
@@ -181,118 +211,19 @@ export default function Projects() {
     staleTime: 5 * 60 * 1000,
   });
 
-  // Fetch all tasks to get accurate counts per project (same source as ProjectDetail page)
-  const { data: allTasks = [] } = useQuery({
-    queryKey: ['all-tasks'],
-    queryFn: () => tasksService.getAll(),
-    staleTime: 5 * 60 * 1000,
-  });
-
-  // Merge task data from the tasks API into projects so ProjectCard can rely on tasks.length (same as ProjectDetail)
   const projects: Project[] = useMemo(() => {
-    const raw = isMetricDrill
-      ? (metricResult?.projects ?? [])
-      : (Array.isArray(backendProjects) ? backendProjects : []);
-    if (raw.length === 0) return [];
+    if (isMetricDrill) return metricResult?.projects ?? [];
+    return listPages?.pages.flatMap((page) => page.projects) ?? [];
+  }, [isMetricDrill, metricResult, listPages]);
 
-    const tasksByProject = new Map<string, typeof allTasks>();
-
-    for (const task of allTasks) {
-      if (!task?.projectId) continue;
-      const projectKey = String(task.projectId);
-      const existing = tasksByProject.get(projectKey) ?? [];
-      existing.push(task);
-      tasksByProject.set(projectKey, existing);
-    }
-
-    return raw.map((p) => {
-      const existingTasks = Array.isArray(p.tasks) ? p.tasks : [];
-      const syncedTasks = tasksByProject.get(String(p.id)) ?? existingTasks;
-      const syncedCompletedTasks = syncedTasks.filter((t) => t.status === 'completed').length;
-
-      return {
-        ...p,
-        tasks: syncedTasks,
-        tasksCount: Math.max(p.tasksCount ?? 0, syncedTasks.length),
-        completedTasksCount: Math.max(p.completedTasksCount ?? 0, syncedCompletedTasks),
-      };
-    });
-  }, [backendProjects, allTasks, isMetricDrill, metricResult]);
-
-  const filteredProjects = useMemo(() => {
-    if (isMetricDrill) return projects;
-    return projects.filter(project => {
-      // Search filter
-      if (filters.search) {
-        const search = filters.search.toLowerCase();
-        const matchesSearch = 
-          project.name.toLowerCase().includes(search) ||
-          project.clientName?.toLowerCase().includes(search) ||
-          project.oem?.toLowerCase().includes(search) ||
-          project.location?.toLowerCase().includes(search) ||
-          project.channelPartner?.toLowerCase().includes(search);
-        if (!matchesSearch) return false;
-      }
-      
-      // Multi-select filters (empty array = no filter / show all)
-      if (filters.businessVerticals.length > 0 && !filters.businessVerticals.includes(project.businessVertical || '')) return false;
-      if (filters.sectors.length > 0 && !filters.sectors.includes(project.sector)) return false;
-      if (filters.statuses.length > 0 && !filters.statuses.includes(project.status)) return false;
-      if (filters.pipelineStages.length > 0 && !filters.pipelineStages.includes(project.pipelineStage)) return false;
-      if (filters.businessSegments.length > 0 && !filters.businessSegments.includes(project.businessSegment)) return false;
-      
-      // Team filters (compare as strings since backend may return numeric IDs)
-      if (filters.projectLeads.length > 0 && (!project.projectLeadId || !filters.projectLeads.includes(String(project.projectLeadId)))) return false;
-      if (filters.assignees.length > 0 && (!project.assigneeId || !filters.assignees.includes(String(project.assigneeId)))) return false;
-      
-      // Multi-select text filters
-      if (filters.clientNames.length > 0 && (!project.clientName || !filters.clientNames.includes(project.clientName.trim()))) return false;
-      if (filters.oems.length > 0 && (!project.oem || !filters.oems.includes(project.oem.trim()))) return false;
-      if (filters.locations.length > 0 && (!project.location || !filters.locations.includes(project.location.trim()))) return false;
-      if (filters.channelPartners.length > 0 && (!project.channelPartner || !filters.channelPartners.includes(project.channelPartner.trim()))) return false;
-
-      // Product / sub-product: match against multi arrays or legacy singular fields
-      if (filters.products.length > 0) {
-        const projectProducts = [
-          ...(project.products ?? []),
-          ...(project.product ? [project.product] : []),
-        ]
-          .map((v) => String(v).trim())
-          .filter(Boolean);
-        const hit = filters.products.some((p) => projectProducts.includes(p));
-        if (!hit) return false;
-      }
-      if (filters.subproducts.length > 0) {
-        const projectSubproducts = [
-          ...(project.subproducts ?? []),
-          ...(project.subProduct ? [project.subProduct] : []),
-        ]
-          .map((v) => String(v).trim())
-          .filter(Boolean);
-        const hit = filters.subproducts.some((s) => projectSubproducts.includes(s));
-        if (!hit) return false;
-      }
-      
-      // Deal Probability filter
-      if (filters.dealProbabilities.length > 0 && (!project.dealProbability || !filters.dealProbabilities.includes(project.dealProbability))) return false;
-      
-      // Date filters — Start Date, falling back to Intake Date
-      const reportingDate = project.startDate || project.pipelineIntakeDate;
-      if (filters.dateFrom && reportingDate && new Date(reportingDate) < filters.dateFrom) return false;
-      if (filters.dateTo && reportingDate && new Date(reportingDate) > filters.dateTo) return false;
-      
-      // Value filters
-      if (filters.minContractValue && (project.contractValueUSD || 0) < filters.minContractValue) return false;
-      if (filters.maxContractValue && (project.contractValueUSD || 0) > filters.maxContractValue) return false;
-      
-      return true;
-    });
-  }, [projects, filters, isMetricDrill]);
+  const filteredProjects = projects;
 
   const isLoading = isMetricDrill ? metricLoading : listLoading;
-  const isFetching = isMetricDrill ? metricFetching : listFetching;
+  const isFetching = isMetricDrill ? metricFetching : (listFetching && !isFetchingNextPage);
   const refetch = isMetricDrill ? refetchMetric : refetchList;
-  const headerCount = isMetricDrill ? (metricResult?.total ?? filteredProjects.length) : filteredProjects.length;
+  const headerCount = isMetricDrill
+    ? (metricResult?.total ?? filteredProjects.length)
+    : (listPages?.pages[0]?.total ?? filteredProjects.length);
 
   const reportFilterSummary = useMemo<ProjectFilterSummary>(() => ({
     search: filters.search || undefined,
@@ -304,14 +235,14 @@ export default function Projects() {
     projectLeads: filters.projectLeads,
   }), [filters]);
 
-  // Render the list incrementally — mounting all cards at once makes every
-  // click wait on hundreds of card renders.
+  // Render the list incrementally for metric drill-downs (full record sets).
+  // The regular list pages from the API, so scroll loads the next server page.
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
-  }, [filteredProjects]);
+  }, [metric, metricFrom, metricTo, metricPeriod]);
 
   useEffect(() => {
     const node = sentinelRef.current;
@@ -319,8 +250,13 @@ export default function Projects() {
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0]?.isIntersecting) {
+        if (!entries[0]?.isIntersecting) return;
+        if (isMetricDrill) {
           setVisibleCount((current) => Math.min(current + PAGE_SIZE, filteredProjects.length));
+          return;
+        }
+        if (hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
         }
       },
       { rootMargin: '800px' }
@@ -328,11 +264,11 @@ export default function Projects() {
 
     observer.observe(node);
     return () => observer.disconnect();
-  }, [filteredProjects.length, visibleCount]);
+  }, [isMetricDrill, filteredProjects.length, visibleCount, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const visibleProjects = useMemo(
-    () => filteredProjects.slice(0, visibleCount),
-    [filteredProjects, visibleCount]
+    () => (isMetricDrill ? filteredProjects.slice(0, visibleCount) : filteredProjects),
+    [filteredProjects, visibleCount, isMetricDrill]
   );
 
   // Selection helpers
@@ -369,6 +305,8 @@ export default function Projects() {
     }
 
     queryClient.invalidateQueries({ queryKey: ['projects'] });
+    queryClient.invalidateQueries({ queryKey: ['projects-list'] });
+    queryClient.invalidateQueries({ queryKey: ['project-facets'] });
     queryClient.invalidateQueries({ queryKey: ['projectStats'] });
     setIsDeleting(false);
     exitSelectMode();
@@ -488,7 +426,7 @@ export default function Projects() {
           </Button>
         </div>
       ) : (
-        <AdvancedFilters filters={filters} onFiltersChange={handleFiltersChange} projects={projects} teamMembers={teamMembersList} />
+        <AdvancedFilters filters={filters} onFiltersChange={handleFiltersChange} projects={projects} teamMembers={teamMembersList} facets={facets} />
       )}
 
       {isLoading ? (
@@ -512,7 +450,7 @@ export default function Projects() {
               </div>
             ))}
           </div>
-          {visibleCount < filteredProjects.length && (
+          {(isMetricDrill ? visibleCount < filteredProjects.length : hasNextPage) && (
             <div ref={sentinelRef} className="flex items-center justify-center py-6">
               <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
             </div>

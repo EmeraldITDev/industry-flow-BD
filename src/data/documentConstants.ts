@@ -1,26 +1,3 @@
-export type CategoryMappingRow = {
-  legacyLabel: string;
-  businessVertical: string;
-  productCategory: string;
-};
-
-/** Read-only reference standard for vertical / product category assignments */
-export const CATEGORY_MAPPING_ROWS: CategoryMappingRow[] = [
-  { legacyLabel: 'EMR_OGP', businessVertical: 'EMR_Aftermarket Services', productCategory: 'Capital Parts' },
-  { legacyLabel: 'EMR_OGP', businessVertical: 'EMR_Aftermarket Services', productCategory: 'Consumables' },
-  { legacyLabel: 'EMR_OGP', businessVertical: 'EMR_Aftermarket Services', productCategory: 'Repairs / Upgrades / Services' },
-  { legacyLabel: 'EMR_OGP', businessVertical: 'EMR_Special Projects', productCategory: 'NPD / NMI' },
-  { legacyLabel: 'EMR_OGP', businessVertical: 'EMR_O&M', productCategory: 'Repairs / Upgrades / Services' },
-  { legacyLabel: 'EMR_MFG', businessVertical: 'EMR_Manufacturing', productCategory: 'Capital Parts' },
-  { legacyLabel: 'EMR_MFG', businessVertical: 'EMR_Manufacturing', productCategory: 'Repairs / Upgrades / Services' },
-  { legacyLabel: 'EMR_Services', businessVertical: 'EMR_Aftermarket Services', productCategory: 'Repairs / Upgrades / Services' },
-  { legacyLabel: 'BEDS_Services', businessVertical: 'EMR_Aftermarket Services', productCategory: 'Repairs / Upgrades / Services' },
-  { legacyLabel: 'EMR_Healthcare', businessVertical: 'EMR_Aftermarket Services', productCategory: 'Capital Parts' },
-  { legacyLabel: 'EMR_Renewables', businessVertical: 'EMR_Special Projects', productCategory: 'NPD / NMI' },
-  { legacyLabel: 'EMR_Trading', businessVertical: 'EMR_Trading', productCategory: 'N/A - Trading Commodity' },
-  { legacyLabel: 'Internal / Non-commercial', businessVertical: 'N/A', productCategory: 'N/A - Internal / Non-commercial' },
-];
-
 export const REPOSITORY_DOCUMENT_TYPES = [
   'Capability Deck',
   'Proposal Template',
