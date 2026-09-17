@@ -27,6 +27,7 @@ import { ConversionPanel } from '@/components/executive/ConversionPanel';
 import { DriversPanel } from '@/components/executive/DriversPanel';
 import { MovementPanel } from '@/components/executive/MovementPanel';
 import { RiskPanel } from '@/components/executive/RiskPanel';
+import { RequiresAttentionPanel } from '@/components/executive/RequiresAttentionPanel';
 import { OpportunityTable } from '@/components/executive/OpportunityTable';
 import { Project } from '@/types';
 
@@ -255,6 +256,11 @@ export default function ChairmanView() {
       </section>
 
       <QuickQuestions />
+
+      {/* Requires executive attention — chairman-flagged open tasks only */}
+      <section id="exec-attention">
+        <RequiresAttentionPanel data={data} />
+      </section>
 
       {/* 3. Pipeline health */}
       <PipelineHealthSection data={data} />

@@ -102,6 +102,7 @@ export function LinkScmVendorModal({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['partners'] });
       queryClient.invalidateQueries({ queryKey: ['partner', partnerId] });
+      queryClient.invalidateQueries({ queryKey: ['project-partners'] });
       toast.success('SCM vendor linked');
       onOpenChange(false);
     },

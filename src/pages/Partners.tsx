@@ -20,7 +20,9 @@ import {
 } from '@/components/ui/select';
 import { Handshake, AlertTriangle, Plus, Search, Loader2 } from 'lucide-react';
 import { partnersService } from '@/services/partners';
+import { teamService } from '@/services/team';
 import { businessVerticals, sectorColors } from '@/data/mockData';
+import { PRODUCT_OPTIONS } from '@/data/productCatalog';
 import { RELATIONSHIP_STAGES } from '@/types/partners';
 import type { Sector } from '@/types';
 import { RelationshipStageBadge } from '@/components/partners/RelationshipStageBadge';
@@ -36,6 +38,8 @@ export default function Partners() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [verticalFilter, setVerticalFilter] = useState(ALL);
   const [stageFilter, setStageFilter] = useState(ALL);
+  const [productFilter, setProductFilter] = useState(ALL);
+  const [ownerFilter, setOwnerFilter] = useState(ALL);
   const [addOpen, setAddOpen] = useState(false);
 
   useEffect(() => {
@@ -43,13 +47,28 @@ export default function Partners() {
     return () => window.clearTimeout(timer);
   }, [search]);
 
+  const { data: teamMembers = [] } = useQuery({
+    queryKey: ['team'],
+    queryFn: () => teamService.getAll(),
+    staleTime: 5 * 60 * 1000,
+  });
+
   const { data: partners = [], isLoading, isError } = useQuery({
-    queryKey: ['partners', debouncedSearch, verticalFilter, stageFilter],
+    queryKey: [
+      'partners',
+      debouncedSearch,
+      verticalFilter,
+      stageFilter,
+      productFilter,
+      ownerFilter,
+    ],
     queryFn: () =>
       partnersService.getAll({
         search: debouncedSearch || undefined,
         vertical: verticalFilter !== ALL ? verticalFilter : undefined,
         relationshipStage: stageFilter !== ALL ? stageFilter : undefined,
+        product: productFilter !== ALL ? productFilter : undefined,
+        relationshipOwnerId: ownerFilter !== ALL ? ownerFilter : undefined,
       }),
     staleTime: 30 * 1000,
   });
@@ -62,14 +81,30 @@ export default function Partners() {
       if (stageFilter !== ALL && p.relationshipStage !== stageFilter) {
         return false;
       }
+      if (
+        productFilter !== ALL &&
+        !p.productCategories.includes(productFilter)
+      ) {
+        return false;
+      }
+      if (
+        ownerFilter !== ALL &&
+        !p.relationshipOwnerIds.includes(ownerFilter)
+      ) {
+        return false;
+      }
       if (debouncedSearch) {
         const q = debouncedSearch.toLowerCase();
+        const ownerNames =
+          p.relationshipOwners?.map((o) => o.name).filter(Boolean) ?? [];
         const hay = [
           p.companyName,
           p.contactPerson,
           p.email,
           p.nextAction,
           ...p.verticals,
+          ...p.productCategories,
+          ...ownerNames,
         ]
           .filter(Boolean)
           .join(' ')
@@ -78,7 +113,25 @@ export default function Partners() {
       }
       return true;
     });
-  }, [partners, verticalFilter, stageFilter, debouncedSearch]);
+  }, [
+    partners,
+    verticalFilter,
+    stageFilter,
+    productFilter,
+    ownerFilter,
+    debouncedSearch,
+  ]);
+
+  const ownerOptions = useMemo(
+    () =>
+      [...teamMembers]
+        .map((m: any) => ({
+          id: String(m.id),
+          name: String(m.name || m.email || m.id),
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    [teamMembers]
+  );
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6 overflow-x-hidden">
@@ -107,11 +160,11 @@ export default function Partners() {
           <div>
             <CardTitle className="text-base sm:text-lg">Partners</CardTitle>
             <CardDescription>
-              Search and filter by vertical or relationship stage
+              Filter by relationship owner, stage, vertical, or product
             </CardDescription>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1fr_14rem_14rem] gap-3">
-            <div className="relative sm:col-span-2 lg:col-span-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-[1fr_repeat(4,minmax(11rem,14rem))] gap-3">
+            <div className="relative sm:col-span-2 xl:col-span-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={search}
@@ -120,15 +173,15 @@ export default function Partners() {
                 className="pl-9"
               />
             </div>
-            <Select value={verticalFilter} onValueChange={setVerticalFilter}>
+            <Select value={ownerFilter} onValueChange={setOwnerFilter}>
               <SelectTrigger>
-                <SelectValue placeholder="All verticals" />
+                <SelectValue placeholder="All relationship owners" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={ALL}>All verticals</SelectItem>
-                {businessVerticals.map((v) => (
-                  <SelectItem key={v} value={v}>
-                    {v}
+                <SelectItem value={ALL}>All relationship owners</SelectItem>
+                {ownerOptions.map((owner) => (
+                  <SelectItem key={owner.id} value={owner.id}>
+                    {owner.name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -142,6 +195,32 @@ export default function Partners() {
                 {RELATIONSHIP_STAGES.map((stage) => (
                   <SelectItem key={stage} value={stage}>
                     {stage}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={verticalFilter} onValueChange={setVerticalFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="All verticals" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL}>All verticals</SelectItem>
+                {businessVerticals.map((v) => (
+                  <SelectItem key={v} value={v}>
+                    {v}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={productFilter} onValueChange={setProductFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="All products" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL}>All products</SelectItem>
+                {PRODUCT_OPTIONS.map((p) => (
+                  <SelectItem key={p.value} value={p.value}>
+                    {p.label}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -172,7 +251,18 @@ export default function Partners() {
           {!isLoading &&
             !isError &&
             filtered.map((partner) => {
-              const multiOwner = partner.bdOwnerIds.length > 1;
+              const multiOwner = partner.relationshipOwnerIds.length > 1;
+              const ownerLabel =
+                partner.relationshipOwners
+                  ?.map((o) => o.name)
+                  .filter(Boolean)
+                  .join(', ') ||
+                (partner.relationshipOwnerIds.length
+                  ? `${partner.relationshipOwnerIds.length} owner${
+                      partner.relationshipOwnerIds.length === 1 ? '' : 's'
+                    }`
+                  : null);
+
               return (
                 <button
                   key={partner.id}
@@ -189,11 +279,24 @@ export default function Partners() {
                         <RelationshipStageBadge
                           stage={partner.relationshipStage}
                         />
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            'text-xs',
+                            partner.isScmLinked || partner.scmVendorId
+                              ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300'
+                              : 'border-muted-foreground/30 text-muted-foreground'
+                          )}
+                        >
+                          {partner.isScmLinked || partner.scmVendorId
+                            ? 'Linked to SCM Vendor'
+                            : 'Not Linked'}
+                        </Badge>
                         {multiOwner && (
                           <Badge
                             variant="outline"
                             className="gap-1 border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-300"
-                            title="Multiple BD owners assigned"
+                            title="Multiple relationship owners assigned"
                           >
                             <AlertTriangle className="h-3 w-3" />
                             Multiple owners
@@ -204,12 +307,14 @@ export default function Partners() {
                         {partner.contactPerson
                           ? `Contact: ${partner.contactPerson}`
                           : 'No contact person'}
+                        {ownerLabel ? ` · Owners: ${ownerLabel}` : ''}
                       </p>
-                      {partner.verticals.length > 0 && (
+                      {(partner.verticals.length > 0 ||
+                        partner.productCategories.length > 0) && (
                         <div className="flex flex-wrap gap-1.5">
                           {partner.verticals.map((v) => (
                             <Badge
-                              key={v}
+                              key={`v-${v}`}
                               variant="outline"
                               className={cn(
                                 'text-xs',
@@ -218,6 +323,15 @@ export default function Partners() {
                               )}
                             >
                               {v}
+                            </Badge>
+                          ))}
+                          {partner.productCategories.map((p) => (
+                            <Badge
+                              key={`p-${p}`}
+                              variant="secondary"
+                              className="text-xs font-normal"
+                            >
+                              {p}
                             </Badge>
                           ))}
                         </div>

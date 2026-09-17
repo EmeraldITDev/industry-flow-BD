@@ -64,6 +64,8 @@ export interface Task {
   priority: TaskPriority;
   assigneeId?: string;
   assignee?: string;
+  requiresChairmanIntervention?: boolean;
+  assignedToChairman?: boolean;
   dueDate?: string;
   projectId: string;
   createdAt: string;
@@ -110,6 +112,8 @@ export interface Project {
   pipelineStage: PipelineStage;
   stageHistory?: StageHistory[];
   lastStageUpdate?: string;
+  winDate?: string;
+  wonAt?: string;
   
   // Extended project fields
   pipelineIntakeDate?: string;

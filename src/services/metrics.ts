@@ -25,6 +25,7 @@ export function metricLabel(metric: string): string {
   if (metric === 'active') return 'Active opportunities';
   if (metric === 'won') return 'Deals won';
   if (metric === 'nearConversion') return 'Close to winning';
+  if (metric === 'stagnant') return 'Stagnant opportunities';
   if (metric === 'all') return 'Opportunities';
   if (metric.startsWith('stage:')) {
     const stage = metric.slice(6);

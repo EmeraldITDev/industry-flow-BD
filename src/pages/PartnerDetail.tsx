@@ -75,9 +75,9 @@ export default function PartnerDetail() {
     );
   }
 
-  const multiOwner = partner.bdOwnerIds.length > 1;
+  const multiOwner = partner.relationshipOwnerIds.length > 1;
   const ownerNames =
-    partner.bdOwners?.map((o) => o.name).filter(Boolean) ?? [];
+    partner.relationshipOwners?.map((o) => o.name).filter(Boolean) ?? [];
   const hasScmLink = !!partner.scmVendorId;
   const scmUnavailable = hasScmLink && partner.scmData === null;
 
@@ -130,11 +130,11 @@ export default function PartnerDetail() {
             <Field label="Last Contact Date">
               {safeFormatDate(partner.lastContactDate, 'MMM d, yyyy', '—')}
             </Field>
-            <Field label="BD Owners">
+            <Field label="Relationship Owners">
               {ownerNames.length > 0
                 ? ownerNames.join(', ')
-                : partner.bdOwnerIds.length > 0
-                  ? `${partner.bdOwnerIds.length} assigned`
+                : partner.relationshipOwnerIds.length > 0
+                  ? `${partner.relationshipOwnerIds.length} assigned`
                   : '—'}
             </Field>
             <Field label="Relationship Stage">

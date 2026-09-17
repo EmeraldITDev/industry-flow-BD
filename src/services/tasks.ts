@@ -8,6 +8,8 @@ export interface CreateTaskData {
   status?: TaskStatus;
   priority?: TaskPriority;
   assigneeId?: string;
+  requiresChairmanIntervention?: boolean;
+  assignedToChairman?: boolean;
   dueDate?: string;
   projectId: string;
   notes?: string;
@@ -23,6 +25,8 @@ export interface TaskFilters {
   status?: TaskStatus;
   priority?: TaskPriority;
   assigneeId?: string;
+  requiresChairmanIntervention?: boolean;
+  assignedToChairman?: boolean;
 }
 
 // Helper to normalize array responses from backend
@@ -76,6 +80,12 @@ const normalizeTask = (task: any): Task => {
     status: statusToFrontend(task.status),
     projectId: String(task.project_id || task.projectId),
     assigneeId: task.assignee_id || task.assigneeId,
+    requiresChairmanIntervention: Boolean(
+      task.requiresChairmanIntervention ?? task.requires_chairman_intervention
+    ),
+    assignedToChairman: Boolean(
+      task.assignedToChairman ?? task.assigned_to_chairman
+    ),
     dueDate: task.due_date || task.dueDate,
     createdAt: task.created_at || task.createdAt,
     stageTriggered: task.stage_triggered || task.stageTriggered,
@@ -91,7 +101,20 @@ const normalizeTasks = (tasks: any[]): Task[] => {
 export const tasksService = {
   // Get all tasks (optionally filtered by project)
   getAll: async (filters?: TaskFilters): Promise<Task[]> => {
-    const response = await api.get('/api/tasks', { params: filters });
+    const params: Record<string, unknown> = {};
+    if (filters?.projectId) params.project_id = filters.projectId;
+    if (filters?.status) params.status = statusToBackend(filters.status);
+    if (filters?.priority) params.priority = filters.priority;
+    if (filters?.assigneeId) params.assignee_id = filters.assigneeId;
+    if (filters?.requiresChairmanIntervention) {
+      params.requires_chairman_intervention = 1;
+    }
+    if (filters?.assignedToChairman) {
+      params.assigned_to_chairman = 1;
+    }
+    const response = await api.get('/api/tasks', {
+      params: { ...params, all: 1 },
+    });
     const tasks = normalizeArray(response.data);
     return normalizeTasks(tasks);
   },

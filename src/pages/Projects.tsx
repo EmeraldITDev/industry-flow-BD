@@ -201,7 +201,7 @@ export default function Projects() {
     queryKey: ['project-facets'],
     queryFn: () => projectsService.getFacets(),
     staleTime: 5 * 60 * 1000,
-    enabled: !isMetricDrill,
+    enabled: !isMetricDrill || metric === 'stagnant',
   });
 
   // Fetch team members for filter dropdowns
@@ -212,9 +212,28 @@ export default function Projects() {
   });
 
   const projects: Project[] = useMemo(() => {
-    if (isMetricDrill) return metricResult?.projects ?? [];
+    if (isMetricDrill) {
+      let rows = metricResult?.projects ?? [];
+      if (metric === 'stagnant') {
+        if (filters.businessVerticals.length > 0) {
+          rows = rows.filter((p) =>
+            filters.businessVerticals.includes(p.businessVertical || '')
+          );
+        }
+        if (filters.products.length > 0) {
+          rows = rows.filter((p) => {
+            const labels = [
+              ...(p.products ?? []),
+              ...(p.product ? [p.product] : []),
+            ].map((v) => String(v).trim());
+            return filters.products.some((prod) => labels.includes(prod));
+          });
+        }
+      }
+      return rows;
+    }
     return listPages?.pages.flatMap((page) => page.projects) ?? [];
-  }, [isMetricDrill, metricResult, listPages]);
+  }, [isMetricDrill, metricResult, listPages, metric, filters.businessVerticals, filters.products]);
 
   const filteredProjects = projects;
 
@@ -416,14 +435,28 @@ export default function Projects() {
       <ProjectImportDialog open={importOpen} onOpenChange={setImportOpen} />
 
       {isMetricDrill ? (
-        <div className="flex items-center justify-between gap-3 rounded-lg border border-border px-4 py-3">
-          <p className="text-sm text-muted-foreground">
-            Showing the same query as the dashboard card
-            {metricResult ? ` · ${metricResult.totals.count} records` : ''}.
-          </p>
-          <Button variant="link" onClick={() => setSearchParams(new URLSearchParams(), { replace: true })}>
-            Clear
-          </Button>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-border px-4 py-3">
+            <p className="text-sm text-muted-foreground">
+              Showing the same query as the dashboard card
+              {metricResult ? ` · ${metricResult.totals.count} records` : ''}.
+              {metric === 'stagnant'
+                ? ' Use Business Vertical / Product filters below to see which areas are most affected.'
+                : ''}
+            </p>
+            <Button variant="link" onClick={() => setSearchParams(new URLSearchParams(), { replace: true })}>
+              Clear
+            </Button>
+          </div>
+          {metric === 'stagnant' && (
+            <AdvancedFilters
+              filters={filters}
+              onFiltersChange={handleFiltersChange}
+              projects={projects}
+              teamMembers={teamMembersList}
+              facets={facets}
+            />
+          )}
         </div>
       ) : (
         <AdvancedFilters filters={filters} onFiltersChange={handleFiltersChange} projects={projects} teamMembers={teamMembersList} facets={facets} />

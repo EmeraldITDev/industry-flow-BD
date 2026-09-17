@@ -31,7 +31,7 @@ export const STAGE_LABELS: Record<string, string> = {
 };
 
 /** Days without an update before a late-stage opportunity counts as stagnating. */
-export const STAGNATION_DAYS = 45;
+export const STAGNATION_DAYS = 30;
 /** Window used for "closing soon". */
 export const CLOSING_SOON_DAYS = 45;
 
@@ -290,6 +290,8 @@ export interface ExecutiveIntelligence {
     wonPrevPeriod: number;
     updatedInPeriod: number;
     nearConversion: number;
+    requiresAttention?: number;
+    stagnant?: number;
     weightedUsd: number;
     weightedNgn: number;
   };
@@ -312,6 +314,20 @@ export interface ExecutiveIntelligence {
     byPartner: RankedGroup[];
   };
   nearConversion: OpportunityRow[];
+  requiresAttention?: {
+    id: string;
+    title: string;
+    status: string;
+    priority?: string;
+    dueDate?: string | null;
+    projectId?: string;
+    projectName?: string;
+    client?: string;
+    businessVertical?: string;
+    assignee?: string;
+    requiresChairmanIntervention?: boolean;
+    assignedToChairman?: boolean;
+  }[];
   accounts: AccountSnapshot[];
   partners: RankedGroup[];
   clients: RankedGroup[];
@@ -326,7 +342,9 @@ export interface ExecutiveIntelligence {
     active: string;
     won: string;
     nearConversion: string;
+    stagnant?: string;
   };
+  stagnationDays?: number;
   dimensions: {
     verticals: RankedGroup[];
     sectors: RankedGroup[];
@@ -497,6 +515,8 @@ export function buildExecutiveIntelligence(
     wonPrevPeriod: 0,
     updatedInPeriod: 0,
     nearConversion: 0,
+    requiresAttention: 0,
+    stagnant: 0,
     weightedUsd: 0,
     weightedNgn: 0,
   };
@@ -630,16 +650,19 @@ export function buildExecutiveIntelligence(
 
   const initiationShare = stages.find((s) => s.stage === 'initiation')?.share ?? 0;
   const lateShare = activeTotal > 0 ? totals.lateStage / activeTotal : 0;
-  const staleLate = projects.filter(
-    (p) => isLateStage(p) && (daysSince(updatedAtOf(p), now) ?? 0) > STAGNATION_DAYS
+  const stageAgeOf = (p: Project) =>
+    toDate(p.lastStageUpdate) || updatedAtOf(p) || toDate(p.createdAt);
+  const stagnantProjects = active.filter(
+    (p) => (daysSince(stageAgeOf(p), now) ?? 0) > STAGNATION_DAYS
   );
+  const stagnant = stagnantProjects;
 
   let health: ExecutiveIntelligence['health'];
-  if (staleLate.length >= 5 && lateShare > 0.15) {
+  if (stagnant.length >= 5 && lateShare > 0.15) {
     health = {
-      verdict: 'Pipeline Risk: late-stage stagnation',
+      verdict: 'Pipeline Risk: stage stagnation',
       tone: 'risk',
-      narrative: `${staleLate.length} late-stage opportunities have had no recorded update in over ${STAGNATION_DAYS} days. Late-stage opportunities represent ${fmtPct(lateShare)} of the active pipeline and require conversion focus.`,
+      narrative: `${stagnant.length} active opportunities have had no pipeline-stage change in over ${STAGNATION_DAYS} days. Late-stage opportunities represent ${fmtPct(lateShare)} of the active pipeline and require conversion focus.`,
     };
   } else if (initiationShare > 0.45) {
     health = {
@@ -680,8 +703,9 @@ export function buildExecutiveIntelligence(
     .map(rowOf)
     .sort((a, b) => b.priorityScore - a.priorityScore);
   totals.nearConversion = nearConversion.length;
+  totals.requiresAttention = 0;
+  totals.stagnant = stagnant.length;
 
-  const stagnant = staleLate.filter((p) => !isWon(p));
   const overdue = active.filter((p) => {
     const close = toDate(p.expectedCloseDate);
     return close ? close < now && !isWon(p) : false;
@@ -863,8 +887,9 @@ export function buildExecutiveIntelligence(
   risks.push({
     label: 'Stagnation risk',
     value: String(stagnant.length),
-    detail: `Late-stage opportunities idle beyond ${STAGNATION_DAYS} days`,
+    detail: `Active opportunities with no stage change in over ${STAGNATION_DAYS} days`,
     tone: stagnant.length >= 5 ? 'risk' : stagnant.length ? 'watch' : 'good',
+    metric: 'stagnant',
   });
 
   /* ---------------- Executive summary (rule-based) ---------------- */
@@ -891,6 +916,7 @@ export function buildExecutiveIntelligence(
     health,
     conversion,
     nearConversion,
+    requiresAttention: [],
     accounts,
     partners: partnersRanked,
     clients: clientsRanked,
@@ -901,7 +927,8 @@ export function buildExecutiveIntelligence(
       clients: clientsRanked,
       top: topClient ?? null,
     },
-    metrics: { active: 'active', won: 'won', nearConversion: 'nearConversion' },
+    metrics: { active: 'active', won: 'won', nearConversion: 'nearConversion', stagnant: 'stagnant' },
+    stagnationDays: STAGNATION_DAYS,
     dimensions: {
       verticals: attachMetric(finaliseAvg(rank(verticalMap)), 'verticals'),
       sectors: attachMetric(finaliseAvg(rank(sectorMap)), 'sectors'),

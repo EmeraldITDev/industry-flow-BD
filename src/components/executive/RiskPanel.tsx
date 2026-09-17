@@ -18,6 +18,7 @@ export function RiskPanel({ data }: { data: ExecutiveIntelligence }) {
         <CardTitle className="text-base">Commercial Risk & Concentration</CardTitle>
         <p className="text-xs text-muted-foreground">
           Concentration and stagnation indicators calculated from recorded pipeline data.
+          Open Stagnation risk to filter by Business Vertical or Product.
         </p>
       </CardHeader>
       <CardContent className="grid gap-3 sm:grid-cols-2">

@@ -68,6 +68,7 @@ import { generateSingleProjectReport } from "@/lib/reportGenerator";
 import { ProjectDocumentsSection } from "@/components/projects/ProjectDocumentsSection";
 import { partnersService } from "@/services/partners";
 import { RelationshipStageBadge } from "@/components/partners/RelationshipStageBadge";
+import { LinkScmVendorModal } from "@/components/partners/LinkScmVendorModal";
 
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
@@ -80,6 +81,8 @@ export default function ProjectDetail() {
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [scmLinkPartnerId, setScmLinkPartnerId] = useState<string | null>(null);
+  const [scmLinkOpen, setScmLinkOpen] = useState(false);
   const { canEditProjects, canAssignTasks } = usePermissions();
 
   // Fetch tasks separately for refresh capability
@@ -765,16 +768,40 @@ export default function ProjectDetail() {
                         >
                           {partner.companyName}
                         </Link>
-                        <div>
+                        <div className="flex flex-wrap items-center gap-1.5">
                           <RelationshipStageBadge
                             stage={partner.relationshipStage}
                             className="text-[10px] px-1.5 py-0"
                           />
+                          <Badge
+                            variant="outline"
+                            className={
+                              partner.scmVendorId || partner.isScmLinked
+                                ? 'text-[10px] border-emerald-500/40 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300'
+                                : 'text-[10px] text-muted-foreground'
+                            }
+                          >
+                            {partner.scmVendorId || partner.isScmLinked
+                              ? 'Linked to SCM Vendor'
+                              : 'Not Linked'}
+                          </Badge>
                         </div>
                       </div>
-                      <Button variant="ghost" size="sm" asChild>
-                        <Link to={`/partners/${partner.id}`}>View profile</Link>
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setScmLinkPartnerId(partner.id);
+                            setScmLinkOpen(true);
+                          }}
+                        >
+                          {partner.scmVendorId ? 'Edit SCM' : 'Link SCM'}
+                        </Button>
+                        <Button variant="ghost" size="sm" asChild>
+                          <Link to={`/partners/${partner.id}`}>View profile</Link>
+                        </Button>
+                      </div>
                     </li>
                   ))}
                 </ul>
@@ -836,6 +863,20 @@ export default function ProjectDetail() {
             task={editingTask}
             onTaskUpdated={handleTaskCreated}
           />
+
+          {scmLinkPartnerId && (
+            <LinkScmVendorModal
+              open={scmLinkOpen}
+              onOpenChange={(open) => {
+                setScmLinkOpen(open);
+                if (!open) setScmLinkPartnerId(null);
+              }}
+              partnerId={scmLinkPartnerId}
+              partnerName={
+                projectPartners.find((p) => p.id === scmLinkPartnerId)?.companyName
+              }
+            />
+          )}
         </div>
 
         <div className="space-y-6">

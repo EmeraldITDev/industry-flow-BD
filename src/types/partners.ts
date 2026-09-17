@@ -30,8 +30,8 @@ export interface Partner {
   contactPerson?: string;
   email?: string;
   phone?: string;
-  bdOwnerIds: string[];
-  bdOwners?: PartnerOwner[];
+  relationshipOwnerIds: string[];
+  relationshipOwners?: PartnerOwner[];
   relationshipStage: RelationshipStage | string;
   verticals: string[];
   productCategories: string[];
@@ -39,6 +39,7 @@ export interface Partner {
   nextAction?: string;
   notes?: string;
   scmVendorId?: string | null;
+  isScmLinked?: boolean;
   /** Present when linked; null means the SCM lookup failed. */
   scmData?: ScmVendorData | null;
   createdAt?: string;
@@ -56,7 +57,7 @@ export interface CreatePartnerData {
   contactPerson?: string;
   email?: string;
   phone?: string;
-  bdOwnerIds?: string[];
+  relationshipOwnerIds?: string[];
   relationshipStage?: RelationshipStage | string;
   verticals?: string[];
   productCategories?: string[];
@@ -71,5 +72,7 @@ export type UpdatePartnerData = Partial<CreatePartnerData>;
 export interface PartnerFilters {
   search?: string;
   vertical?: string;
+  product?: string;
   relationshipStage?: string;
+  relationshipOwnerId?: string;
 }

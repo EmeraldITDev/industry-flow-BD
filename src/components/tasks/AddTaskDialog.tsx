@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Checkbox } from '@/components/ui/checkbox';
 import { CalendarIcon, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -32,6 +33,7 @@ export function AddTaskDialog({ open, onOpenChange, projectId, onTaskCreated }: 
     priority: 'medium' as TaskPriority,
     status: 'todo' as TaskStatus,
     assigneeId: '',
+    requiresChairmanIntervention: false,
     dueDate: undefined as Date | undefined,
     notes: '',
   });
@@ -51,6 +53,7 @@ export function AddTaskDialog({ open, onOpenChange, projectId, onTaskCreated }: 
       priority: 'medium',
       status: 'todo',
       assigneeId: '',
+      requiresChairmanIntervention: false,
       dueDate: undefined,
       notes: '',
     });
@@ -79,6 +82,7 @@ export function AddTaskDialog({ open, onOpenChange, projectId, onTaskCreated }: 
         priority: formData.priority,
         status: formData.status,
         assigneeId: formData.assigneeId || undefined,
+        requiresChairmanIntervention: formData.requiresChairmanIntervention,
         dueDate: formData.dueDate?.toISOString(),
         projectId: projectId,
         notes: formData.notes || undefined,
@@ -214,6 +218,22 @@ export function AddTaskDialog({ open, onOpenChange, projectId, onTaskCreated }: 
                 </PopoverContent>
               </Popover>
             </div>
+          </div>
+
+          <div className="flex items-center gap-2 rounded-md border px-3 py-2">
+            <Checkbox
+              id="requires-chairman"
+              checked={formData.requiresChairmanIntervention}
+              onCheckedChange={(checked) =>
+                setFormData({
+                  ...formData,
+                  requiresChairmanIntervention: checked === true,
+                })
+              }
+            />
+            <Label htmlFor="requires-chairman" className="text-sm font-normal cursor-pointer">
+              Requires chairman intervention
+            </Label>
           </div>
 
           <div className="space-y-2">

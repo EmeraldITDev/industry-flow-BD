@@ -37,14 +37,13 @@ const toScmData = (raw: any): ScmVendorData | null => {
 };
 
 export const normalizePartner = (raw: any): Partner => {
-  const ownersRaw = raw.bdOwners ?? raw.bd_owners ?? raw.owners ?? [];
+  const ownersRaw = raw.relationshipOwners ?? raw.relationship_owners ?? [];
   const ownerIdsFromOwners = Array.isArray(ownersRaw)
     ? ownersRaw.map((o: any) => String(o.id ?? o.user_id ?? o)).filter(Boolean)
     : [];
-  const bdOwnerIds = (
-    raw.bdOwnerIds ??
-    raw.bd_owner_ids ??
-    raw.owner_ids ??
+  const relationshipOwnerIds = (
+    raw.relationshipOwnerIds ??
+    raw.relationship_owner_ids ??
     ownerIdsFromOwners
   ).map((id: any) => String(id));
 
@@ -63,8 +62,8 @@ export const normalizePartner = (raw: any): Partner => {
     contactPerson: raw.contactPerson ?? raw.contact_person ?? '',
     email: raw.email ?? '',
     phone: raw.phone ?? '',
-    bdOwnerIds,
-    bdOwners: Array.isArray(ownersRaw) ? ownersRaw.map(toOwner) : undefined,
+    relationshipOwnerIds,
+    relationshipOwners: Array.isArray(ownersRaw) ? ownersRaw.map(toOwner) : undefined,
     relationshipStage: raw.relationshipStage ?? raw.relationship_stage ?? 'Prospecting',
     verticals: Array.isArray(raw.verticals)
       ? raw.verticals.map(String)
@@ -76,6 +75,9 @@ export const normalizePartner = (raw: any): Partner => {
     nextAction: raw.nextAction ?? raw.next_action ?? '',
     notes: raw.notes ?? '',
     scmVendorId: scmVendorId != null && scmVendorId !== '' ? String(scmVendorId) : null,
+    isScmLinked: Boolean(
+      raw.isScmLinked ?? raw.is_scm_linked ?? (scmVendorId != null && scmVendorId !== '')
+    ),
     scmData,
     createdAt: raw.createdAt ?? raw.created_at,
     updatedAt: raw.updatedAt ?? raw.updated_at,
@@ -90,7 +92,7 @@ const toPayload = (data: CreatePartnerData | UpdatePartnerData): Record<string, 
     contactPerson: 'contact_person',
     email: 'email',
     phone: 'phone',
-    bdOwnerIds: 'bd_owner_ids',
+    relationshipOwnerIds: 'relationship_owner_ids',
     relationshipStage: 'relationship_stage',
     verticals: 'verticals',
     productCategories: 'product_categories',
@@ -102,7 +104,10 @@ const toPayload = (data: CreatePartnerData | UpdatePartnerData): Record<string, 
 
   Object.entries(map).forEach(([camel, snake]) => {
     if (camel in data) {
-      const value = (data as Record<string, unknown>)[camel];
+      let value = (data as Record<string, unknown>)[camel];
+      if (camel === 'relationshipOwnerIds' && Array.isArray(value)) {
+        value = value.map((id) => Number(id)).filter((id) => Number.isFinite(id) && id > 0);
+      }
       payload[camel] = value;
       payload[snake] = value;
     }
@@ -116,9 +121,17 @@ export const partnersService = {
     const params: Record<string, string> = {};
     if (filters?.search) params.search = filters.search;
     if (filters?.vertical) params.vertical = filters.vertical;
+    if (filters?.product) {
+      params.product = filters.product;
+      params.product_category = filters.product;
+    }
     if (filters?.relationshipStage) {
       params.relationship_stage = filters.relationshipStage;
-      params.relationshipStage = filters.relationshipStage;
+      params.stage = filters.relationshipStage;
+    }
+    if (filters?.relationshipOwnerId) {
+      params.relationship_owner_id = filters.relationshipOwnerId;
+      params.relationshipOwnerId = filters.relationshipOwnerId;
     }
 
     const response = await api.get('/api/partners', { params });

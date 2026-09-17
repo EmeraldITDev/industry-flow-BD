@@ -37,7 +37,7 @@ export type PartnerFormValues = {
   contactPerson: string;
   email: string;
   phone: string;
-  bdOwnerIds: string[];
+  relationshipOwnerIds: string[];
   relationshipStage: RelationshipStage | string;
   verticals: string[];
   productCategories: string[];
@@ -52,7 +52,7 @@ export function emptyPartnerForm(): PartnerFormValues {
     contactPerson: '',
     email: '',
     phone: '',
-    bdOwnerIds: [],
+    relationshipOwnerIds: [],
     relationshipStage: 'Prospecting',
     verticals: [],
     productCategories: [],
@@ -68,7 +68,7 @@ export function partnerToFormValues(partner: Partner): PartnerFormValues {
     contactPerson: partner.contactPerson ?? '',
     email: partner.email ?? '',
     phone: partner.phone ?? '',
-    bdOwnerIds: partner.bdOwnerIds ?? [],
+    relationshipOwnerIds: partner.relationshipOwnerIds ?? [],
     relationshipStage: partner.relationshipStage || 'Prospecting',
     verticals: partner.verticals ?? [],
     productCategories: partner.productCategories ?? [],
@@ -86,7 +86,7 @@ export function formValuesToPayload(values: PartnerFormValues): CreatePartnerDat
     contactPerson: values.contactPerson.trim() || undefined,
     email: values.email.trim() || undefined,
     phone: values.phone.trim() || undefined,
-    bdOwnerIds: values.bdOwnerIds,
+    relationshipOwnerIds: values.relationshipOwnerIds,
     relationshipStage: values.relationshipStage,
     verticals: values.verticals,
     productCategories: values.productCategories,
@@ -204,18 +204,18 @@ export function PartnerForm({
       </div>
 
       <div className="space-y-2.5">
-        <Label>BD Owners</Label>
+        <Label>Relationship Owners</Label>
         <MultiSearchableSelect
-          values={values.bdOwnerIds}
-          onValuesChange={(bdOwnerIds) =>
-            setValues((prev) => ({ ...prev, bdOwnerIds }))
+          values={values.relationshipOwnerIds}
+          onValuesChange={(relationshipOwnerIds) =>
+            setValues((prev) => ({ ...prev, relationshipOwnerIds }))
           }
           options={ownerOptions}
-          placeholder="Select BD owners"
+          placeholder="Select relationship owners"
           searchPlaceholder="Search team..."
           emptyText="No team members found."
         />
-        {values.bdOwnerIds.length > 1 && (
+        {values.relationshipOwnerIds.length > 1 && (
           <Alert className="border-amber-500/40 bg-amber-500/10 py-3">
             <Users className="h-4 w-4 text-amber-700 dark:text-amber-400" />
             <AlertDescription className="text-sm text-amber-800 dark:text-amber-300">

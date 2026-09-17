@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { tasksService } from '@/services/tasks';
 import { projectsService } from '@/services/projects';
 import { teamService } from '@/services/team';
@@ -47,6 +47,10 @@ const priorityConfig: Record<TaskPriority, { label: string; className: string }>
 
 export default function AllTasks() {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const chairmanOnly =
+    searchParams.get('requiresChairmanIntervention') === '1' ||
+    searchParams.get('assignedToChairman') === '1';
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
@@ -54,8 +58,11 @@ export default function AllTasks() {
   const [assigneeFilter, setAssigneeFilter] = useState<string>('all');
 
   const { data: allTasks = [], isLoading, refetch, isFetching } = useQuery({
-    queryKey: ['all-tasks'],
-    queryFn: () => tasksService.getAll(),
+    queryKey: ['all-tasks', chairmanOnly],
+    queryFn: () =>
+      tasksService.getAll(
+        chairmanOnly ? { requiresChairmanIntervention: true } : undefined
+      ),
     staleTime: 60 * 1000,
   });
 
@@ -163,9 +170,15 @@ export default function AllTasks() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl lg:text-3xl font-bold">All Tasks</h1>
+          <h1 className="text-2xl lg:text-3xl font-bold">
+            {chairmanOnly ? 'Chairman Attention Tasks' : 'All Tasks'}
+          </h1>
           <p className="text-muted-foreground mt-1">
-            {isLoading ? 'Loading...' : `${filteredTasks.length} of ${tasks.length} tasks`}
+            {isLoading
+              ? 'Loading...'
+              : chairmanOnly
+                ? `${filteredTasks.length} open tasks requiring chairman intervention`
+                : `${filteredTasks.length} of ${tasks.length} tasks`}
           </p>
         </div>
         <div className="flex items-center gap-2">
