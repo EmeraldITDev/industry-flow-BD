@@ -974,7 +974,14 @@ export function buildExecutiveIntelligence(
     attentionOpportunities: [],
     chairmanTasks: [],
     strategicAccountUpdates: [],
-    recentWindowDays: 7,
+    recentWindowDays: window.start
+      ? Math.max(
+          1,
+          Math.round(
+            (window.end.getTime() - window.start.getTime()) / (24 * 60 * 60 * 1000)
+          )
+        )
+      : 7,
   };
 
   return {

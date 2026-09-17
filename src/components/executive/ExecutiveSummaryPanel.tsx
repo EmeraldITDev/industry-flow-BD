@@ -49,9 +49,9 @@ export function ExecutiveSummaryPanel({
       <CardHeader className="pb-3">
         <CardTitle className="text-base">Executive Summary</CardTitle>
         <p className="text-xs text-muted-foreground">
-          Live signals for {periodLabel.toLowerCase()} — period movements,
-          chairman attention, and strategic account activity. Not a restatement
-          of the cards above.
+          Live signals for {periodLabel.toLowerCase()} — movements and strategic
+          account activity share this review window. Chairman attention is
+          current open tasks, not a restatement of the cards above.
         </p>
       </CardHeader>
       <CardContent className="space-y-6">
