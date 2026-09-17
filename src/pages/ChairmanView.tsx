@@ -196,7 +196,6 @@ export default function ChairmanView() {
             })}
             {' · '}
             Review period: {data.window.label}
-            {serverError ? ' · offline analytics' : ''}
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
@@ -224,6 +223,20 @@ export default function ChairmanView() {
           </Button>
         </div>
       </div>
+
+      {serverError && (
+        <div
+          role="status"
+          className="rounded-lg border border-amber-500/50 bg-amber-500/10 px-4 py-3 text-sm text-amber-950 dark:text-amber-100"
+        >
+          <p className="font-semibold">Offline / estimated figures</p>
+          <p className="mt-1 text-amber-900/80 dark:text-amber-100/80">
+            Live executive intelligence is unavailable. Numbers below are estimated
+            from a local project snapshot and may not match drill-down or metrics
+            totals. Retry when the connection is healthy.
+          </p>
+        </div>
+      )}
 
       {/* 1. Commercial position */}
       <section id="exec-overview" className="space-y-6">

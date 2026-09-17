@@ -515,24 +515,25 @@ export default function Projects() {
             <p className="text-sm text-muted-foreground">
               {metricParity?.status === 'matched' && (
                 <>
-                  Showing the same query as the dashboard card
-                  {` · ${metricParity.listCount} records`}.
+                  Metric list matches the shared metrics query
+                  {` · ${metricParity.listCount} records`}
+                  {metric ? ` · metric=${metric}` : ''}.
                 </>
               )}
               {metricParity?.status === 'mismatch' && (
                 <>
-                  Metric query count ({metricParity.cardCount}) does not match this
-                  list ({metricParity.listCount}). Not claiming dashboard parity.
+                  Metrics aggregate ({metricParity.cardCount}) does not match this
+                  list ({metricParity.listCount}). Not claiming query parity.
                 </>
               )}
               {metricParity?.status === 'unverified' && (
                 <>
-                  Unable to verify dashboard parity
+                  Unable to verify metrics list/aggregate parity
                   {metricResult ? ` · ${metricResult.totals.count} records loaded` : ''}.
                 </>
               )}
               {metricParity?.status === 'pending' && (
-                <>Verifying metric query parity…</>
+                <>Verifying metrics list/aggregate parity…</>
               )}
               {metric === 'stagnant'
                 ? ' Use Business Vertical / Product filters below to see which areas are most affected.'
