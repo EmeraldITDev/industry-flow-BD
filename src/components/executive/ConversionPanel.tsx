@@ -99,7 +99,7 @@ export function ConversionPanel({ data }: { data: ExecutiveIntelligence }) {
             label="In execution"
             value={String(conversion?.inExecution ?? 0)}
             sub={`Avg won deal ${fmtUsd(conversion?.avgWonUsd ?? 0)} / ${fmtNgn(conversion?.avgWonNgn ?? 0)}`}
-            drillTo={`metric=stage:execution&${rangeQs}`}
+            drillTo="metric=stage:execution"
           />
         </div>
 

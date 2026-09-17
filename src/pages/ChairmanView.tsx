@@ -28,6 +28,7 @@ import { DriversPanel } from '@/components/executive/DriversPanel';
 import { MovementPanel } from '@/components/executive/MovementPanel';
 import { RiskPanel } from '@/components/executive/RiskPanel';
 import { RequiresAttentionPanel } from '@/components/executive/RequiresAttentionPanel';
+import { ExecutiveSummaryPanel } from '@/components/executive/ExecutiveSummaryPanel';
 import { OpportunityTable } from '@/components/executive/OpportunityTable';
 import { Project } from '@/types';
 
@@ -182,7 +183,6 @@ export default function ChairmanView() {
           <ExecutiveMetric
             label="Active opportunities"
             value={String(t.active)}
-            movement={data.window.start ? fmtDelta(t.newInPeriod, t.newPrevPeriod) : undefined}
             sub={`${t.all} recorded in total`}
             tone="primary"
             drillTo="metric=active"
@@ -196,31 +196,42 @@ export default function ChairmanView() {
           <ExecutiveMetric
             label="In negotiation"
             value={String(t.negotiation)}
-            drillTo={`pipelineStages=${encodeURIComponent(JSON.stringify(['negotiation']))}`}
+            drillTo="metric=stage:negotiation"
           />
           <ExecutiveMetric
             label="In proposal"
             value={String(t.proposal)}
-            drillTo={`pipelineStages=${encodeURIComponent(JSON.stringify(['proposal']))}`}
+            drillTo="metric=stage:proposal"
           />
-          <ExecutiveMetric label="Pipeline (USD)" value={fmtUsd(t.activeUsd)} sub="Active opportunities" />
-          <ExecutiveMetric label="Pipeline (NGN)" value={fmtNgn(t.activeNgn)} sub="Active opportunities" />
+          <ExecutiveMetric
+            label="Pipeline (USD)"
+            value={fmtUsd(t.activeUsd)}
+            sub="Active opportunities"
+            drillTo="metric=active"
+          />
+          <ExecutiveMetric
+            label="Pipeline (NGN)"
+            value={fmtNgn(t.activeNgn)}
+            sub="Active opportunities"
+            drillTo="metric=active"
+          />
           <ExecutiveMetric
             label="Late-stage value"
             value={fmtUsd(t.lateStageUsd)}
             sub={`${fmtNgn(t.lateStageNgn)} · ${t.lateStage} opportunities`}
+            drillTo={`metric=active&pipelineStages=${encodeURIComponent(JSON.stringify(['proposal', 'negotiation', 'approval']))}`}
           />
           <ExecutiveMetric
             label="High probability"
             value={String(t.high)}
             sub={`${t.medium} medium · ${t.low} low`}
-            drillTo="dealProbability=high"
+            drillTo={`metric=active&dealProbabilities=${encodeURIComponent(JSON.stringify(['high']))}`}
           />
           <ExecutiveMetric
             label="New this period"
             value={String(t.newInPeriod)}
             movement={data.window.prevStart ? fmtDelta(t.newInPeriod, t.newPrevPeriod) : undefined}
-            drillTo={periodQs ? `metric=all&${periodQs}` : undefined}
+            drillTo={periodQs ? `metric=all&${periodQs}` : 'metric=all'}
           />
           <ExecutiveMetric
             label="Won this period"
@@ -233,21 +244,11 @@ export default function ChairmanView() {
             value={String(t.lost)}
             sub="Recorded as lost"
             tone="muted"
+            drillTo={`metric=all&pipelineStages=${encodeURIComponent(JSON.stringify(['lost']))}`}
           />
         </div>
 
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Executive Summary</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 max-w-4xl">
-            {data.summary.map((line, i) => (
-              <p key={i} className="text-sm text-muted-foreground leading-relaxed">
-                {line}
-              </p>
-            ))}
-          </CardContent>
-        </Card>
+        <ExecutiveSummaryPanel data={data} />
       </section>
 
       {/* 2. Strategic accounts */}

@@ -1,19 +1,15 @@
 export const REPOSITORY_DOCUMENT_TYPES = [
   'Capability Deck',
-  'Proposal Template',
-  'Partnership Rationale',
-  'NDA',
-  'GT Equipment Database',
-  'Partner List',
   'Other',
 ] as const;
 
 export const OPPORTUNITY_DOCUMENT_TYPES = [
   'RFQ',
-  'Quote',
+  'Supplier Quote/Proposal',
   'Deal Recap',
-  'EMR Proposal',
+  'Emerald Proposal',
   'Purchase Order',
+  'Equipment Data',
   'Other',
 ] as const;
 

@@ -46,10 +46,10 @@ export function DriversPanel({ data }: { data: ExecutiveIntelligence }) {
             <RankedList groups={data.dimensions.sectors} filterKey="sectors" />
           </TabsContent>
           <TabsContent value="products" className="mt-4">
-            <RankedList groups={data.dimensions.products} limit={10} />
+            <RankedList groups={data.dimensions.products} filterKey="products" limit={10} />
           </TabsContent>
           <TabsContent value="subproducts" className="mt-4">
-            <RankedList groups={data.dimensions.subproducts} limit={12} />
+            <RankedList groups={data.dimensions.subproducts} filterKey="subproducts" limit={12} />
           </TabsContent>
         </Tabs>
       </CardContent>

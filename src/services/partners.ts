@@ -78,6 +78,11 @@ export const normalizePartner = (raw: any): Partner => {
     isScmLinked: Boolean(
       raw.isScmLinked ?? raw.is_scm_linked ?? (scmVendorId != null && scmVendorId !== '')
     ),
+    linkedOpportunitiesCount: Number(
+      raw.linkedOpportunitiesCount ?? raw.linked_opportunities_count ?? 0
+    ),
+    totalValueNgn: Number(raw.totalValueNgn ?? raw.total_value_ngn ?? 0),
+    totalValueUsd: Number(raw.totalValueUsd ?? raw.total_value_usd ?? 0),
     scmData,
     createdAt: raw.createdAt ?? raw.created_at,
     updatedAt: raw.updatedAt ?? raw.updated_at,

@@ -4,6 +4,7 @@ import {
   OpportunityRow,
   ReviewPeriodKey,
 } from '@/lib/executive/analytics';
+import { normalizeExecutiveSummary } from '@/lib/executive/summary';
 import { AccountGroup } from '@/lib/executive/accountGroups';
 
 function reviveRow(row: any): OpportunityRow {
@@ -15,6 +16,7 @@ function reviveRow(row: any): OpportunityRow {
 
 function reviveIntelligence(data: any): ExecutiveIntelligence {
   const mapRows = (rows: any[] | undefined) => (rows ?? []).map(reviveRow);
+  const requiresAttention = Array.isArray(data.requiresAttention) ? data.requiresAttention : [];
 
   return {
     ...data,
@@ -22,6 +24,8 @@ function reviveIntelligence(data: any): ExecutiveIntelligence {
     conversion: {
       ...data.conversion,
     },
+    requiresAttention,
+    summary: normalizeExecutiveSummary(data.summary, requiresAttention),
     accounts: (data.accounts ?? []).map((a: any) => ({
       ...a,
       topOpportunities: mapRows(a.topOpportunities),

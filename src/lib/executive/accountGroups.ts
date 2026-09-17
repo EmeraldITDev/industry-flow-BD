@@ -12,7 +12,7 @@ export interface AccountGroup {
   entities?: string[];
 }
 
-export const EXEC_ACCOUNT_GROUPS_KEY = 'executiveAccountGroups';
+export const EXEC_ACCOUNT_GROUPS_KEY = 'executiveAccountGroups.v2';
 
 export const DEFAULT_ACCOUNT_GROUPS: AccountGroup[] = [
   {
@@ -21,10 +21,24 @@ export const DEFAULT_ACCOUNT_GROUPS: AccountGroup[] = [
     aliases: ['dangote', 'dprp', 'dfl', 'dcp'],
     entities: ['DPRP', 'DFL', 'DCP'],
   },
-  { id: 'transafam', name: 'TransAfam', aliases: ['transafam', 'trans afam', 'afam'] },
-  { id: 'chevron', name: 'Chevron', aliases: ['chevron', 'cnl'] },
-  { id: 'nnpc', name: 'NNPC', aliases: ['nnpc', 'nuprc'] },
-  { id: 'shell', name: 'Shell', aliases: ['shell', 'snepco', 'spdc'] },
+  {
+    id: 'power',
+    name: 'Power Group',
+    aliases: ['transafam', 'trans afam', 'afam', 'fipl', 'ndphc'],
+    entities: ['TransAfam', 'FIPL', 'NDPHC'],
+  },
+  {
+    id: 'ioc',
+    name: 'IOC Group',
+    aliases: ['chevron', 'cnl', 'shell', 'snepco', 'spdc', 'total', 'exxon', 'exxonmobil', 'mobil'],
+    entities: ['Chevron', 'Shell', 'Total', 'Exxon'],
+  },
+  {
+    id: 'noc',
+    name: 'NOC Group',
+    aliases: ['heritage', 'renaissance'],
+    entities: ['Heritage', 'Renaissance'],
+  },
 ];
 
 export function loadAccountGroups(): AccountGroup[] {

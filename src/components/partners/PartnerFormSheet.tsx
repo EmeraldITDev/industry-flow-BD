@@ -83,7 +83,7 @@ export function PartnerFormSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="flex h-full w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-xl">
+      <SheetContent className="flex h-[100dvh] max-h-[100dvh] w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-xl">
         <SheetHeader className="shrink-0 space-y-1.5 border-b px-8 pb-5 pt-8 pr-14 text-left">
           <SheetTitle>{isEdit ? 'Edit Partner' : 'Add Partner'}</SheetTitle>
           <SheetDescription>
@@ -93,7 +93,7 @@ export function PartnerFormSheet({
           </SheetDescription>
         </SheetHeader>
 
-        <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="min-h-0 flex-1 overflow-y-auto max-h-[80vh]">
           <div className="px-8 py-6">
             <PartnerForm
               key={partner?.id ?? 'new'}

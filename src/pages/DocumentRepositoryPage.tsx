@@ -252,7 +252,8 @@ export default function DocumentRepositoryPage() {
         <Alert className="border-primary/20 bg-primary/5">
           <Users className="h-4 w-4 text-primary" />
           <AlertDescription className="text-sm">
-            All documents in this repository are shared and visible to all BD team members.
+            Library documents (Capability Deck / Other) are shared across the BD team.
+            Project-specific uploads live on each opportunity page and are not listed here.
           </AlertDescription>
         </Alert>
 
@@ -260,7 +261,9 @@ export default function DocumentRepositoryPage() {
           <CardHeader className="space-y-4">
             <div>
               <CardTitle className="text-base sm:text-lg">Library</CardTitle>
-              <CardDescription>Filter by vertical, type, or client</CardDescription>
+              <CardDescription>
+                Search across title, client, vertical, and document type
+              </CardDescription>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               <div className="relative">

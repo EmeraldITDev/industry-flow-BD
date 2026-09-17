@@ -132,17 +132,63 @@ export default function Projects() {
   const metricFrom = searchParams.get('from') || '';
   const metricTo = searchParams.get('to') || '';
   const metricPeriod = searchParams.get('period') || '';
+  const metricClientNames = searchParams.get('clientNames') || '';
+  const metricPipelineStages = searchParams.get('pipelineStages') || '';
+  const metricDealProbabilities = searchParams.get('dealProbabilities') || '';
+  const metricBusinessVerticals = searchParams.get('businessVerticals') || '';
+  const metricSectors = searchParams.get('sectors') || '';
+  const metricChannelPartners = searchParams.get('channelPartners') || '';
+  const metricProducts = searchParams.get('products') || '';
+  const metricSubproducts = searchParams.get('subproducts') || '';
+
+  const metricExtra = useMemo(() => {
+    const extra: Record<string, string> = {};
+    if (metricFrom) extra.from = metricFrom;
+    if (metricTo) extra.to = metricTo;
+    if (metricPeriod) extra.period = metricPeriod;
+    if (metricClientNames) extra.clientNames = metricClientNames;
+    if (metricPipelineStages) extra.pipelineStages = metricPipelineStages;
+    if (metricDealProbabilities) extra.dealProbabilities = metricDealProbabilities;
+    if (metricBusinessVerticals) extra.businessVerticals = metricBusinessVerticals;
+    if (metricSectors) extra.sectors = metricSectors;
+    if (metricChannelPartners) extra.channelPartners = metricChannelPartners;
+    if (metricProducts) extra.products = metricProducts;
+    if (metricSubproducts) extra.subproducts = metricSubproducts;
+    return extra;
+  }, [
+    metricFrom,
+    metricTo,
+    metricPeriod,
+    metricClientNames,
+    metricPipelineStages,
+    metricDealProbabilities,
+    metricBusinessVerticals,
+    metricSectors,
+    metricChannelPartners,
+    metricProducts,
+    metricSubproducts,
+  ]);
 
   const handleFiltersChange = useCallback((newFilters: FilterState) => {
     const params = filtersToParams(newFilters);
-    const metricParam = searchParams.get('metric');
-    const from = searchParams.get('from');
-    const to = searchParams.get('to');
-    const period = searchParams.get('period');
-    if (metricParam) params.set('metric', metricParam);
-    if (from) params.set('from', from);
-    if (to) params.set('to', to);
-    if (period) params.set('period', period);
+    const preserveKeys = [
+      'metric',
+      'from',
+      'to',
+      'period',
+      'clientNames',
+      'pipelineStages',
+      'dealProbabilities',
+      'businessVerticals',
+      'sectors',
+      'channelPartners',
+      'products',
+      'subproducts',
+    ];
+    for (const key of preserveKeys) {
+      const value = searchParams.get(key);
+      if (value) params.set(key, value);
+    }
     setSearchParams(params, { replace: true });
   }, [searchParams, setSearchParams]);
 
@@ -166,17 +212,46 @@ export default function Projects() {
     isLoading: metricLoading,
     refetch: refetchMetric,
     isFetching: metricFetching,
+    isError: metricRecordsError,
   } = useQuery({
-    queryKey: ['metric-records', metric, metricFrom, metricTo, metricPeriod],
+    queryKey: ['metric-records', metric, metricExtra],
     enabled: isMetricDrill,
-    queryFn: () =>
-      metricsService.getAllRecords(metric, {
-        ...(metricFrom ? { from: metricFrom } : {}),
-        ...(metricTo ? { to: metricTo } : {}),
-        ...(metricPeriod ? { period: metricPeriod } : {}),
-      }),
+    queryFn: () => metricsService.getAllRecords(metric, metricExtra),
     staleTime: 60 * 1000,
   });
+
+  const {
+    data: metricAggregate,
+    isError: metricAggregateError,
+  } = useQuery({
+    queryKey: ['metric-aggregate', metric, metricExtra],
+    enabled: isMetricDrill,
+    queryFn: () => metricsService.aggregate(metric, metricExtra),
+    staleTime: 60 * 1000,
+  });
+
+  const metricParity = useMemo(() => {
+    if (!isMetricDrill) return null;
+    if (metricRecordsError || metricAggregateError) {
+      return { status: 'unverified' as const, listCount: null, cardCount: null };
+    }
+    if (!metricResult || !metricAggregate) {
+      return { status: 'pending' as const, listCount: null, cardCount: null };
+    }
+    const listCount = metricResult.totals.count;
+    const cardCount = metricAggregate.count;
+    return {
+      status: listCount === cardCount ? ('matched' as const) : ('mismatch' as const),
+      listCount,
+      cardCount,
+    };
+  }, [
+    isMetricDrill,
+    metricResult,
+    metricAggregate,
+    metricRecordsError,
+    metricAggregateError,
+  ]);
 
   const apiParams = useMemo(() => filterStateToApiParams(filters), [filters]);
 
@@ -438,8 +513,27 @@ export default function Projects() {
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-3 rounded-lg border border-border px-4 py-3">
             <p className="text-sm text-muted-foreground">
-              Showing the same query as the dashboard card
-              {metricResult ? ` · ${metricResult.totals.count} records` : ''}.
+              {metricParity?.status === 'matched' && (
+                <>
+                  Showing the same query as the dashboard card
+                  {` · ${metricParity.listCount} records`}.
+                </>
+              )}
+              {metricParity?.status === 'mismatch' && (
+                <>
+                  Metric query count ({metricParity.cardCount}) does not match this
+                  list ({metricParity.listCount}). Not claiming dashboard parity.
+                </>
+              )}
+              {metricParity?.status === 'unverified' && (
+                <>
+                  Unable to verify dashboard parity
+                  {metricResult ? ` · ${metricResult.totals.count} records loaded` : ''}.
+                </>
+              )}
+              {metricParity?.status === 'pending' && (
+                <>Verifying metric query parity…</>
+              )}
               {metric === 'stagnant'
                 ? ' Use Business Vertical / Product filters below to see which areas are most affected.'
                 : ''}

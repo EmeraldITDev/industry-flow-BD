@@ -18,19 +18,63 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Handshake, AlertTriangle, Plus, Search, Loader2 } from 'lucide-react';
+import { Handshake, AlertTriangle, Plus, Search, Loader2, Download } from 'lucide-react';
 import { partnersService } from '@/services/partners';
 import { teamService } from '@/services/team';
 import { businessVerticals, sectorColors } from '@/data/mockData';
 import { PRODUCT_OPTIONS } from '@/data/productCatalog';
 import { RELATIONSHIP_STAGES } from '@/types/partners';
+import type { Partner } from '@/types/partners';
 import type { Sector } from '@/types';
 import { RelationshipStageBadge } from '@/components/partners/RelationshipStageBadge';
 import { PartnerFormSheet } from '@/components/partners/PartnerFormSheet';
-import { safeFormatDate } from '@/lib/dateUtils';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 const ALL = 'all';
+
+function exportPartnersCsv(partners: Partner[]) {
+  const headers = [
+    'Company',
+    'Contact',
+    'Email',
+    'Stage',
+    'Verticals',
+    'Products',
+    'SCM Linked',
+    'Linked Opportunities',
+    'Total Value NGN',
+    'Total Value USD',
+    'Next Action',
+  ];
+  const escape = (v: string) => `"${String(v).replace(/"/g, '""')}"`;
+  const rows = partners.map((p) =>
+    [
+      p.companyName,
+      p.contactPerson ?? '',
+      p.email ?? '',
+      p.relationshipStage,
+      (p.verticals ?? []).join('; '),
+      (p.productCategories ?? []).join('; '),
+      p.isScmLinked || p.scmVendorId ? 'Yes' : 'No',
+      String(p.linkedOpportunitiesCount ?? 0),
+      String(p.totalValueNgn ?? 0),
+      String(p.totalValueUsd ?? 0),
+      p.nextAction ?? '',
+    ]
+      .map(escape)
+      .join(',')
+  );
+  const csv = [headers.join(','), ...rows].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `partners-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast.success('Partner report downloaded');
+}
 
 export default function Partners() {
   const navigate = useNavigate();
@@ -149,10 +193,20 @@ export default function Partners() {
             </p>
           </div>
         </div>
-        <Button onClick={() => setAddOpen(true)} className="shrink-0 self-start sm:self-auto">
-          <Plus className="mr-2 h-4 w-4" />
-          Add Partner
-        </Button>
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
+          <Button
+            variant="outline"
+            onClick={() => exportPartnersCsv(filtered)}
+            disabled={filtered.length === 0}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Export report
+          </Button>
+          <Button onClick={() => setAddOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Partner
+          </Button>
+        </div>
       </div>
 
       <Card>
@@ -339,13 +393,20 @@ export default function Partners() {
                     </div>
                     <div className="shrink-0 space-y-1.5 text-sm sm:text-right sm:pl-6">
                       <p className="text-muted-foreground">
-                        Last contact:{' '}
-                        <span className="text-foreground">
-                          {safeFormatDate(
-                            partner.lastContactDate,
-                            'MMM d, yyyy',
-                            '—'
-                          )}
+                        Linked opportunities:{' '}
+                        <span className="text-foreground font-medium tabular-nums">
+                          {partner.linkedOpportunitiesCount ?? 0}
+                        </span>
+                      </p>
+                      <p className="text-muted-foreground">
+                        Volume:{' '}
+                        <span className="text-foreground tabular-nums">
+                          {(partner.totalValueUsd ?? 0) > 0
+                            ? `$${(partner.totalValueUsd ?? 0).toLocaleString()}`
+                            : '—'}
+                          {(partner.totalValueNgn ?? 0) > 0
+                            ? ` · ₦${(partner.totalValueNgn ?? 0).toLocaleString()}`
+                            : ''}
                         </span>
                       </p>
                       <p className="text-muted-foreground max-w-xs sm:ml-auto">

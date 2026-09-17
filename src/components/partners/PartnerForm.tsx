@@ -13,14 +13,7 @@ import {
 } from '@/components/ui/select';
 import { MultiSearchableSelect } from '@/components/ui/multi-searchable-select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Calendar } from '@/components/ui/calendar';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import { CalendarIcon, Loader2, Users } from 'lucide-react';
-import { format } from 'date-fns';
+import { Loader2, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { businessVerticals } from '@/data/mockData';
 import { PRODUCT_OPTIONS } from '@/data/productCatalog';
@@ -41,7 +34,6 @@ export type PartnerFormValues = {
   relationshipStage: RelationshipStage | string;
   verticals: string[];
   productCategories: string[];
-  lastContactDate: Date | undefined;
   nextAction: string;
   notes: string;
 };
@@ -56,7 +48,6 @@ export function emptyPartnerForm(): PartnerFormValues {
     relationshipStage: 'Prospecting',
     verticals: [],
     productCategories: [],
-    lastContactDate: undefined,
     nextAction: '',
     notes: '',
   };
@@ -72,9 +63,6 @@ export function partnerToFormValues(partner: Partner): PartnerFormValues {
     relationshipStage: partner.relationshipStage || 'Prospecting',
     verticals: partner.verticals ?? [],
     productCategories: partner.productCategories ?? [],
-    lastContactDate: partner.lastContactDate
-      ? new Date(partner.lastContactDate)
-      : undefined,
     nextAction: partner.nextAction ?? '',
     notes: partner.notes ?? '',
   };
@@ -90,9 +78,6 @@ export function formValuesToPayload(values: PartnerFormValues): CreatePartnerDat
     relationshipStage: values.relationshipStage,
     verticals: values.verticals,
     productCategories: values.productCategories,
-    lastContactDate: values.lastContactDate
-      ? format(values.lastContactDate, 'yyyy-MM-dd')
-      : null,
     nextAction: values.nextAction.trim() || undefined,
     notes: values.notes.trim() || undefined,
   };
@@ -271,37 +256,6 @@ export function PartnerForm({
           placeholder="Select product categories"
           searchPlaceholder="Search products..."
         />
-      </div>
-
-      <div className="space-y-2.5">
-        <Label>Last Contact Date</Label>
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              type="button"
-              variant="outline"
-              className={cn(
-                'w-full justify-start text-left font-normal',
-                !values.lastContactDate && 'text-muted-foreground'
-              )}
-            >
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {values.lastContactDate
-                ? format(values.lastContactDate, 'PPP')
-                : 'Pick a date'}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              mode="single"
-              selected={values.lastContactDate}
-              onSelect={(lastContactDate) =>
-                setValues((prev) => ({ ...prev, lastContactDate }))
-              }
-              initialFocus
-            />
-          </PopoverContent>
-        </Popover>
       </div>
 
       <div className="space-y-2.5">

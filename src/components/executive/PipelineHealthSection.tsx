@@ -5,6 +5,7 @@ import { ExecutiveIntelligence } from '@/lib/executive/analytics';
 import { fmtNgn, fmtPercent, fmtUsd } from '@/lib/executive/format';
 import { cn } from '@/lib/utils';
 import { Activity, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { PipelineHealthExportButton } from './PipelineHealthExport';
 
 const toneStyles = {
   good: { border: 'border-primary/40', bg: 'bg-primary/5', icon: CheckCircle2, text: 'text-primary' },
@@ -40,13 +41,16 @@ export function PipelineHealthSection({ data }: { data: ExecutiveIntelligence })
       </Card>
 
       <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Executive Pipeline Health</CardTitle>
-          <p className="text-xs text-muted-foreground">
-            Initiation → Qualification → Proposal → Negotiation → Execution. "New this period"
-            uses each opportunity's Start Date (Intake Date if Start Date is blank). Currency
-            values are kept separate and never aggregated across USD and NGN.
-          </p>
+        <CardHeader className="pb-3 flex flex-row items-start justify-between gap-3 space-y-0">
+          <div>
+            <CardTitle className="text-base">Executive Pipeline Health</CardTitle>
+            <p className="text-xs text-muted-foreground">
+              Initiation → Qualification → Proposal → Negotiation → Execution. "New this period"
+              uses each opportunity's Start Date (Intake Date if Start Date is blank). Currency
+              values are kept separate and never aggregated across USD and NGN.
+            </p>
+          </div>
+          <PipelineHealthExportButton data={data} />
         </CardHeader>
         <CardContent className="space-y-4">
           {data.stages.map((stage) => (

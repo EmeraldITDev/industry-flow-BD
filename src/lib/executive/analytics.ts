@@ -366,7 +366,55 @@ export interface ExecutiveIntelligence {
     valueSharePct?: number;
     recordSharePct?: number;
   }[];
-  summary: string[];
+  summary: ExecutiveSummary | string[];
+}
+
+export interface ExecutiveSummary {
+  kpiMovements: {
+    key: string;
+    label: string;
+    current: number;
+    previous: number;
+    delta: number;
+    direction: 'up' | 'down' | 'flat';
+    unit?: 'count' | 'ngn' | 'usd' | string;
+    higherIsWorse?: boolean;
+  }[];
+  attentionOpportunities: {
+    projectId: string;
+    projectName: string;
+    client?: string | null;
+    businessVertical?: string | null;
+    openTaskCount: number;
+    earliestDueDate?: string | null;
+    topTaskTitle?: string | null;
+    topTaskPriority?: string | null;
+  }[];
+  chairmanTasks: {
+    id: string;
+    title: string;
+    status: string;
+    priority?: string;
+    dueDate?: string | null;
+    projectId?: string;
+    projectName?: string;
+    client?: string;
+    businessVertical?: string;
+    assignee?: string;
+  }[];
+  strategicAccountUpdates: {
+    id: string;
+    kind: string;
+    label: string;
+    occurredAt?: string | null;
+    accountGroupId: string;
+    accountGroupName: string;
+    projectId: string;
+    projectName: string;
+    client?: string | null;
+    detail?: string | null;
+  }[];
+  recentWindowDays: number;
 }
 
 /* ------------------------------------------------------------------ *
@@ -548,14 +596,14 @@ export function buildExecutiveIntelligence(
       if (band === 'high') totals.high += 1;
       else if (band === 'medium') totals.medium += 1;
       else totals.low += 1;
-    }
-    if (p.pipelineStage === 'proposal') totals.proposal += 1;
-    if (p.pipelineStage === 'negotiation') totals.negotiation += 1;
-    if (p.pipelineStage === 'execution') totals.execution += 1;
-    if (isLateStage(p)) {
-      totals.lateStage += 1;
-      totals.lateStageUsd += usdOf(p);
-      totals.lateStageNgn += ngnOf(p);
+      if (p.pipelineStage === 'proposal') totals.proposal += 1;
+      if (p.pipelineStage === 'negotiation') totals.negotiation += 1;
+      if (p.pipelineStage === 'execution') totals.execution += 1;
+      if (isLateStage(p)) {
+        totals.lateStage += 1;
+        totals.lateStageUsd += usdOf(p);
+        totals.lateStageNgn += ngnOf(p);
+      }
     }
     if (isWon(p)) {
       totals.wonUsd += usdOf(p);
@@ -651,7 +699,9 @@ export function buildExecutiveIntelligence(
   const initiationShare = stages.find((s) => s.stage === 'initiation')?.share ?? 0;
   const lateShare = activeTotal > 0 ? totals.lateStage / activeTotal : 0;
   const stageAgeOf = (p: Project) =>
-    toDate(p.lastStageUpdate) || updatedAtOf(p) || toDate(p.createdAt);
+    toDate((p as any).lastStageUpdate) ||
+    updatedAtOf(p) ||
+    toDate((p as any).createdAt ?? (p as any).created_at);
   const stagnantProjects = active.filter(
     (p) => (daysSince(stageAgeOf(p), now) ?? 0) > STAGNATION_DAYS
   );
@@ -892,22 +942,40 @@ export function buildExecutiveIntelligence(
     metric: 'stagnant',
   });
 
-  /* ---------------- Executive summary (rule-based) ---------------- */
-  const summary: string[] = [];
-  summary.push(
-    `${totals.active} active opportunities are recorded, with ${totals.won} secured or in execution and ${totals.lateStage} in late-stage pipeline.`
-  );
-  if (window.start)
-    summary.push(
-      `${totals.newInPeriod} new opportunities were added during ${window.label.toLowerCase()}${
-        window.prevStart ? ` (${totals.newPrevPeriod} in the preceding period)` : ''
-      }, and ${totals.updatedInPeriod} existing opportunities were updated.`
-    );
-  summary.push(health.narrative);
-  if (nearConversion.length)
-    summary.push(
-      `${nearConversion.length} opportunities are commercially close to conversion, led by ${nearConversion[0].name} (${nearConversion[0].client}).`
-    );
+  /* ---------------- Executive summary (structured signals) ---------------- */
+  const kpiDir = (cur: number, prev: number): 'up' | 'down' | 'flat' =>
+    cur === prev ? 'flat' : cur > prev ? 'up' : 'down';
+  const summary: ExecutiveSummary = {
+    kpiMovements: window.start
+      ? (
+          [
+            {
+              key: 'new',
+              label: 'New opportunities',
+              current: totals.newInPeriod,
+              previous: totals.newPrevPeriod,
+              delta: totals.newInPeriod - totals.newPrevPeriod,
+              direction: kpiDir(totals.newInPeriod, totals.newPrevPeriod),
+              unit: 'count' as const,
+            },
+            {
+              key: 'won',
+              label: 'Won / secured',
+              current: totals.wonInPeriod,
+              previous: totals.wonPrevPeriod,
+              delta: totals.wonInPeriod - totals.wonPrevPeriod,
+              direction: kpiDir(totals.wonInPeriod, totals.wonPrevPeriod),
+              unit: 'count' as const,
+            },
+          ] as ExecutiveSummary['kpiMovements']
+        ).filter((k) => !(k.current === 0 && k.previous === 0))
+      : [],
+    // Client fallback has no task API — Phase 3.3 lists stay empty until server payload.
+    attentionOpportunities: [],
+    chairmanTasks: [],
+    strategicAccountUpdates: [],
+    recentWindowDays: 7,
+  };
 
   return {
     window,

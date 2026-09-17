@@ -40,6 +40,9 @@ export interface Partner {
   notes?: string;
   scmVendorId?: string | null;
   isScmLinked?: boolean;
+  linkedOpportunitiesCount?: number;
+  totalValueNgn?: number;
+  totalValueUsd?: number;
   /** Present when linked; null means the SCM lookup failed. */
   scmData?: ScmVendorData | null;
   createdAt?: string;

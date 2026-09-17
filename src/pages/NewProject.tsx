@@ -189,8 +189,8 @@ export default function NewProject() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.name || !formData.description || !formData.businessVertical) {
-      toast.error("Please fill in all required fields");
+    if (!formData.name || !formData.description || !formData.businessVertical || !formData.startDate) {
+      toast.error("Please fill in all required fields (including Start Date)");
       return;
     }
 
@@ -402,7 +402,7 @@ export default function NewProject() {
                 </Popover>
               </div>
               <div className="space-y-2">
-                <Label>Start Date</Label>
+                <Label>Start Date *</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
@@ -424,6 +424,35 @@ export default function NewProject() {
                       selected={formData.startDate}
                       onSelect={(date) =>
                         setFormData({ ...formData, startDate: date })
+                      }
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="space-y-2">
+                <Label>End Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !formData.endDate && "text-muted-foreground",
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {formData.endDate
+                        ? format(formData.endDate, "PPP")
+                        : "Pick a date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={formData.endDate}
+                      onSelect={(date) =>
+                        setFormData({ ...formData, endDate: date })
                       }
                       initialFocus
                     />

@@ -151,7 +151,8 @@ export function ProjectDocumentsSection({ projectId, canManage = true }: Props) 
               Project Documents
             </CardTitle>
             <CardDescription>
-              Files attached to this opportunity · {ACCEPTED_DOCUMENT_MIME_HINT}
+              Opportunity-only files (not shown in the central Document Repository) ·{' '}
+              {ACCEPTED_DOCUMENT_MIME_HINT}
             </CardDescription>
           </div>
           {canManage && (

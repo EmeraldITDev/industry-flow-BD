@@ -104,7 +104,7 @@ export function AppSidebar() {
   const navItems = showExecutive
     ? [
         { title: "Chairman's View", url: '/executive', icon: Landmark },
-        { title: 'Operations', url: '/operations', icon: LayoutDashboard },
+        { title: 'Dashboard', url: '/operations', icon: LayoutDashboard },
         ...mainNavItems.filter((item) => item.url !== '/'),
       ]
     : mainNavItems;
