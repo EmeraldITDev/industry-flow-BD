@@ -231,17 +231,17 @@ export function buildMetricSnapshotModel(
     case 'highProbability':
       return {
         title: 'High probability',
+        subtitle: 'Only opportunities rated high probability. Medium and low are excluded from this view.',
         summaryStats: [
           {
             label: 'High probability',
             value: String(t.high),
-            sub: `${t.medium} medium · ${t.low} low`,
+            sub: 'Active opportunities in this band',
             tone: 'primary',
           },
         ],
         byStage: filterStages(panel.byStage, 'full'),
         stageMode: 'full',
-        probabilityContext: `${t.medium} medium · ${t.low} low (context only)`,
         showProbabilityBands: false,
         byEntity,
         showEntityBreakdown: true,

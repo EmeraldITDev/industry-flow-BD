@@ -285,7 +285,7 @@ export default function ChairmanView() {
           <ExecutiveMetric
             label="High probability"
             value={String(t.high)}
-            sub={`${t.medium} medium · ${t.low} low`}
+            sub={`${t.high} of ${t.active} active opportunities`}
             onActivate={() => openPanel('highProbability')}
           />
           <ExecutiveMetric
