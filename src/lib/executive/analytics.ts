@@ -681,120 +681,17 @@ export function buildExecutiveIntelligence(
     .sort((a, b) => b.priorityScore - a.priorityScore);
   totals.nearConversion = nearConversion.length;
 
-  /* ---------------- Alerts ---------------- */
-  const alerts: ExecutiveAlert[] = [];
-  const valueThreshold = (() => {
-    const values = active.map(rankWeight).filter((v) => v > 0).sort((a, b) => b - a);
-    if (!values.length) return 0;
-    return values[Math.floor(values.length * 0.25)] ?? values[values.length - 1];
-  })();
-  const isHighValue = (p: Project) => rankWeight(p) >= valueThreshold && valueThreshold > 0;
-
-  const atRisk = active.filter(
-    (p) => isHighValue(p) && probabilityBand(p) === 'low' && !isWon(p)
-  );
-  if (atRisk.length)
-    alerts.push({
-      id: 'high-value-low-probability',
-      severity: 'high',
-      category: 'Opportunities at risk',
-      title: `${atRisk.length} high-value opportunities carry low probability`,
-      detail: 'Significant pipeline value is attached to opportunities rated low probability.',
-      drillTo: `dealProbability=low`,
-      count: atRisk.length,
-    });
-
   const stagnant = staleLate.filter((p) => !isWon(p));
-  if (stagnant.length)
-    alerts.push({
-      id: 'stagnating-late-stage',
-      severity: 'high',
-      category: 'Stagnation',
-      title: `${stagnant.length} late-stage opportunities have stalled`,
-      detail: `No recorded update in over ${STAGNATION_DAYS} days while in Proposal, Negotiation or Approval.`,
-      drillTo: `pipelineStages=${encodeURIComponent(JSON.stringify(['proposal', 'negotiation', 'approval']))}`,
-      count: stagnant.length,
-    });
-
   const overdue = active.filter((p) => {
     const close = toDate(p.expectedCloseDate);
     return close ? close < now && !isWon(p) : false;
   });
-  if (overdue.length)
-    alerts.push({
-      id: 'overdue-close-dates',
-      severity: 'medium',
-      category: 'Deadline risk',
-      title: `${overdue.length} opportunities have passed their expected close date`,
-      detail: 'Expected close dates have elapsed without a recorded conversion.',
-      drillTo: `pipelineStages=${encodeURIComponent(JSON.stringify(['proposal', 'negotiation', 'qualification']))}`,
-      count: overdue.length,
-    });
-
-  const closingSoon = active.filter((p) => {
-    const close = toDate(p.expectedCloseDate);
-    if (!close || isWon(p)) return false;
-    const days = Math.floor((close.getTime() - now.getTime()) / dayMs);
-    return days >= 0 && days <= 30;
-  });
-  if (closingSoon.length)
-    alerts.push({
-      id: 'upcoming-decisions',
-      severity: 'medium',
-      category: 'Upcoming decisions',
-      title: `${closingSoon.length} opportunities reach their expected close date within 30 days`,
-      detail: 'Major commercial decisions are expected in the coming month.',
-      drillTo: `pipelineStages=${encodeURIComponent(JSON.stringify(['proposal', 'negotiation']))}`,
-      count: closingSoon.length,
-    });
 
   const clientsRanked = attachMetric(finaliseAvg(rank(clientMap)), 'clients');
   const topClient = clientsRanked[0];
-  if (topClient && (topClient.value_share_pct ?? 0) >= 20)
-    alerts.push({
-      id: 'client-concentration',
-      severity: 'medium',
-      category: 'Concentration risk',
-      title: `${topClient.label} holds ${topClient.value_share_pct}% of NGN pipeline value and ${topClient.record_share_pct}% of active opportunities`,
-      detail: 'A single client account represents a substantial share of pipeline value and volume.',
-      drillTo: `metric=${encodeURIComponent(topClient.metric ?? `clients:${topClient.key}`)}`,
-      count: topClient.count,
-    });
-
   const partnersRanked = attachMetric(finaliseAvg(rank(partnerMap)), 'partners');
   const partnerTotalUsd = partnersRanked.reduce((s, c) => s + c.usd, 0);
   const topPartner = partnersRanked[0];
-  if (topPartner && partnerTotalUsd > 0 && topPartner.usd / partnerTotalUsd >= 0.35)
-    alerts.push({
-      id: 'partner-concentration',
-      severity: 'medium',
-      category: 'Concentration risk',
-      title: `${fmtPct(topPartner.usd / partnerTotalUsd)} of partner-linked pipeline depends on ${topPartner.label}`,
-      detail: 'Commercial value is heavily dependent on a single partner or supplier.',
-      drillTo: `channelPartners=${encodeURIComponent(JSON.stringify([topPartner.label]))}`,
-      count: topPartner.count,
-    });
-
-  const mismatch = projects.filter(
-    (p) =>
-      (probabilityBand(p) === 'high' && (p.pipelineStage === 'initiation' || p.pipelineStage === 'cold')) ||
-      (probabilityBand(p) === 'low' && p.pipelineStage === 'execution') ||
-      (p.pipelineStage === 'negotiation' && probabilityBand(p) === 'low')
-  );
-  if (mismatch.length)
-    alerts.push({
-      id: 'stage-probability-mismatch',
-      severity: 'info',
-      category: 'Data exception',
-      title: `${mismatch.length} opportunities show a stage and probability mismatch`,
-      detail: 'Worth confirming — the recorded probability does not align with the recorded stage.',
-      drillTo: `pipelineStages=${encodeURIComponent(JSON.stringify(['initiation', 'negotiation', 'execution']))}`,
-      count: mismatch.length,
-    });
-
-  totals.requiresAttention = new Set(
-    [...atRisk, ...stagnant, ...overdue].map((p) => String(p.id))
-  ).size;
 
   /* ---------------- Strategic accounts ---------------- */
   const groupedProjects = new Map<string, Project[]>();
@@ -851,9 +748,6 @@ export function buildExecutiveIntelligence(
       }
 
       const ids = new Set(items.map((p) => String(p.id)));
-      const attentionCount = [...atRisk, ...stagnant, ...overdue].filter((p) =>
-        ids.has(String(p.id))
-      ).length;
 
       return {
         key,
@@ -876,7 +770,6 @@ export function buildExecutiveIntelligence(
         negotiation: byStage['negotiation'] ?? 0,
         execution: byStage['execution'] ?? 0,
         nearConversion: nearConversion.filter((r) => ids.has(r.id)).length,
-        requiresAttention: attentionCount,
         newInPeriod,
         topOpportunities: items
           .map(rowOf)
@@ -928,38 +821,11 @@ export function buildExecutiveIntelligence(
     avgWonNgn: won.length ? totals.wonNgn / won.length : 0,
     inExecution: totals.execution,
     byMonth: Array.from(wonByMonth.values()).sort((a, b) => a.month.localeCompare(b.month)).slice(-12),
-    recentWins: [...won]
-      .sort((a, b) => (reportingDateOf(b)?.getTime() ?? 0) - (reportingDateOf(a)?.getTime() ?? 0))
-      .map(rowOf)
-      .slice(0, 10),
     byClient: finaliseAvg(rank(wonClientMap)).slice(0, 10),
     bySector: finaliseAvg(rank(wonSectorMap)),
     byVertical: finaliseAvg(rank(wonVerticalMap)),
     byProduct: finaliseAvg(rank(wonProductMap)),
     byPartner: finaliseAvg(rank(wonPartnerMap)).slice(0, 10),
-  };
-
-  /* ---------------- Top opportunities ---------------- */
-  const byMagnitude = (a: OpportunityRow, b: OpportunityRow) =>
-    b.usd + b.ngn / 1_000_000 - (a.usd + a.ngn / 1_000_000);
-  const activeRows = active.map(rowOf);
-
-  const attentionIds = new Set([...atRisk, ...stagnant, ...overdue].map((p) => String(p.id)));
-  const topOpportunities = {
-    largest: [...activeRows].sort(byMagnitude).slice(0, 10),
-    highestProbability: activeRows
-      .filter((r) => r.probability === 'high')
-      .sort(byMagnitude)
-      .slice(0, 10),
-    closest: nearConversion.slice(0, 10),
-    recentlyWon: conversion.recentWins.slice(0, 10),
-    attention: activeRows
-      .filter((r) => attentionIds.has(r.id))
-      .sort((a, b) => b.priorityScore - a.priorityScore)
-      .slice(0, 10),
-    recentlyUpdated: [...activeRows]
-      .sort((a, b) => (b.lastActivity?.getTime() ?? 0) - (a.lastActivity?.getTime() ?? 0))
-      .slice(0, 10),
   };
 
   /* ---------------- Risk overview ---------------- */
@@ -1000,12 +866,6 @@ export function buildExecutiveIntelligence(
     detail: `Late-stage opportunities idle beyond ${STAGNATION_DAYS} days`,
     tone: stagnant.length >= 5 ? 'risk' : stagnant.length ? 'watch' : 'good',
   });
-  risks.push({
-    label: 'Deadline risk',
-    value: String(overdue.length),
-    detail: 'Opportunities past their expected close date',
-    tone: overdue.length >= 5 ? 'risk' : overdue.length ? 'watch' : 'good',
-  });
 
   /* ---------------- Executive summary (rule-based) ---------------- */
   const summary: string[] = [];
@@ -1023,10 +883,6 @@ export function buildExecutiveIntelligence(
     summary.push(
       `${nearConversion.length} opportunities are commercially close to conversion, led by ${nearConversion[0].name} (${nearConversion[0].client}).`
     );
-  if (totals.requiresAttention)
-    summary.push(
-      `${totals.requiresAttention} opportunities require executive attention across risk, stagnation and overdue close dates.`
-    );
 
   return {
     window,
@@ -1035,7 +891,6 @@ export function buildExecutiveIntelligence(
     health,
     conversion,
     nearConversion,
-    alerts,
     accounts,
     partners: partnersRanked,
     clients: clientsRanked,
@@ -1054,7 +909,6 @@ export function buildExecutiveIntelligence(
       subproducts: attachMetric(finaliseAvg(rank(subproductMap)), 'subproducts'),
     },
     movement,
-    topOpportunities,
     risks,
     summary,
   };
