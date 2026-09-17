@@ -8,6 +8,7 @@ import { Loader2, RefreshCw, ShieldAlert } from 'lucide-react';
 import { projectsService } from '@/services/projects';
 import { teamService } from '@/services/team';
 import { executiveService } from '@/services/executive';
+import { metricsService } from '@/services/metrics';
 import { useAuth } from '@/context/AuthContext';
 import { canViewExecutive } from '@/lib/executive/access';
 import { AccountGroup, loadAccountGroups } from '@/lib/executive/accountGroups';
@@ -18,7 +19,13 @@ import {
   REVIEW_PERIODS,
 } from '@/lib/executive/analytics';
 import { fmtDelta, fmtNgn, fmtUsd } from '@/lib/executive/format';
+import {
+  buildMetricSnapshotModel,
+  MetricPanelKey,
+  metricPanelQuery,
+} from '@/lib/executive/metricPanel';
 import { ExecutiveMetric } from '@/components/executive/ExecutiveMetric';
+import { ExecutiveSnapshotSheet } from '@/components/executive/ExecutiveSnapshotSheet';
 import { QuickQuestions } from '@/components/executive/QuickQuestions';
 import { StrategicAccounts } from '@/components/executive/StrategicAccounts';
 import { AccountGroupManager } from '@/components/executive/AccountGroupManager';
@@ -39,6 +46,8 @@ export default function ChairmanView() {
   const [period, setPeriod] = useState<ReviewPeriodKey>('last14');
   const [groupManagerOpen, setGroupManagerOpen] = useState(false);
   const [accountGroups, setAccountGroups] = useState<AccountGroup[]>(() => loadAccountGroups());
+  const [panelKey, setPanelKey] = useState<MetricPanelKey | null>(null);
+  const [pipelineCurrency, setPipelineCurrency] = useState<'USD' | 'NGN'>('USD');
 
   const allowed = canViewExecutive(user);
 
@@ -86,9 +95,48 @@ export default function ChairmanView() {
     return buildExecutiveIntelligence(projects as Project[], win, accountGroups, ownerNameFor);
   }, [serverError, projects, period, accountGroups, ownerNameFor]);
 
+  // Prefer live intelligence for panel summary figures (Issue 1 source).
+  const liveData = serverData ?? null;
   const data = serverData ?? fallbackData;
   const isLoading = serverLoading || (serverError && projectsLoading);
   const isFetching = serverFetching;
+
+  const panelSpec = panelKey ? metricPanelQuery(panelKey) : null;
+  const {
+    data: panelPayload,
+    isLoading: panelLoading,
+    isError: panelError,
+  } = useQuery({
+    queryKey: ['metric-panel', panelSpec?.metric, panelSpec?.extra],
+    enabled: !!panelSpec && !!liveData,
+    queryFn: () => metricsService.panel(panelSpec!.metric, panelSpec!.extra),
+    staleTime: 60 * 1000,
+  });
+
+  const panelModel = useMemo(() => {
+    if (!panelKey || !liveData || !panelPayload) return null;
+    const revived = {
+      ...panelPayload,
+      topOpportunities: (panelPayload.topOpportunities ?? []).map((row: any) => ({
+        ...row,
+        lastActivity: row?.lastActivity ? new Date(row.lastActivity) : null,
+      })),
+    };
+    return buildMetricSnapshotModel(panelKey, liveData, revived, {
+      pipelineCurrency: panelKey === 'pipeline' ? pipelineCurrency : undefined,
+    });
+  }, [panelKey, liveData, panelPayload, pipelineCurrency]);
+
+  const openPanel = (key: MetricPanelKey, currency?: 'USD' | 'NGN') => {
+    if (!liveData) {
+      const q = metricPanelQuery(key);
+      const params = new URLSearchParams({ metric: q.metric, ...q.extra });
+      navigate(`/projects?${params.toString()}`);
+      return;
+    }
+    if (key === 'pipeline' && currency) setPipelineCurrency(currency);
+    setPanelKey(key);
+  };
 
   if (!allowed) {
     return (
@@ -185,13 +233,13 @@ export default function ChairmanView() {
             value={String(t.active)}
             sub={`${t.all} recorded in total`}
             tone="primary"
-            drillTo="metric=active"
+            onActivate={() => openPanel('active')}
           />
           <ExecutiveMetric
             label="Won / in execution"
             value={String(t.won)}
             sub={`${fmtUsd(t.wonUsd)} · ${fmtNgn(t.wonNgn)}`}
-            drillTo="metric=won"
+            onActivate={() => openPanel('won')}
           />
           <ExecutiveMetric
             label="In negotiation"
@@ -207,25 +255,25 @@ export default function ChairmanView() {
             label="Pipeline (USD)"
             value={fmtUsd(t.activeUsd)}
             sub="Active opportunities"
-            drillTo="metric=active"
+            onActivate={() => openPanel('pipeline', 'USD')}
           />
           <ExecutiveMetric
             label="Pipeline (NGN)"
             value={fmtNgn(t.activeNgn)}
             sub="Active opportunities"
-            drillTo="metric=active"
+            onActivate={() => openPanel('pipeline', 'NGN')}
           />
           <ExecutiveMetric
             label="Late-stage value"
             value={fmtUsd(t.lateStageUsd)}
             sub={`${fmtNgn(t.lateStageNgn)} · ${t.lateStage} opportunities`}
-            drillTo={`metric=active&pipelineStages=${encodeURIComponent(JSON.stringify(['proposal', 'negotiation', 'approval']))}`}
+            onActivate={() => openPanel('lateStage')}
           />
           <ExecutiveMetric
             label="High probability"
             value={String(t.high)}
             sub={`${t.medium} medium · ${t.low} low`}
-            drillTo={`metric=active&dealProbabilities=${encodeURIComponent(JSON.stringify(['high']))}`}
+            onActivate={() => openPanel('highProbability')}
           />
           <ExecutiveMetric
             label="New this period"
@@ -319,6 +367,19 @@ export default function ChairmanView() {
         open={groupManagerOpen}
         onOpenChange={setGroupManagerOpen}
         onSaved={setAccountGroups}
+      />
+
+      <ExecutiveSnapshotSheet
+        open={panelKey !== null}
+        onOpenChange={(open) => {
+          if (!open) setPanelKey(null);
+        }}
+        model={panelModel}
+        loading={panelKey !== null && panelLoading}
+        error={panelKey !== null && panelError}
+        onCurrencyChange={
+          panelKey === 'pipeline' ? (c) => setPipelineCurrency(c) : undefined
+        }
       />
       </div>
     </div>

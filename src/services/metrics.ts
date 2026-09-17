@@ -59,6 +59,13 @@ export const metricsService = {
     return response.data;
   },
 
+  async panel(metric: string, extra: Record<string, unknown> = {}) {
+    const response = await api.get('/api/metrics/panel', {
+      params: { metric, top: 10, ...extra },
+    });
+    return response.data;
+  },
+
   async getAllRecords(metric: string, extra: Record<string, unknown> = {}): Promise<MetricRecordsResult> {
     const { projectsService } = await import('./projects');
     const all: Project[] = [];

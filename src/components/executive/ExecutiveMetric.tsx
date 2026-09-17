@@ -8,7 +8,10 @@ interface Props {
   sub?: string;
   movement?: string;
   tone?: 'default' | 'primary' | 'warning' | 'muted';
+  /** Direct navigation to /projects?... — ignored when onActivate is set. */
   drillTo?: string;
+  /** Prefer this for snapshot panels; takes precedence over drillTo. */
+  onActivate?: () => void;
   className?: string;
 }
 
@@ -26,14 +29,22 @@ export function ExecutiveMetric({
   movement,
   tone = 'default',
   drillTo,
+  onActivate,
   className,
 }: Props) {
   const navigate = useNavigate();
-  const clickable = !!drillTo;
+  const clickable = !!onActivate || !!drillTo;
 
   return (
     <Card
-      onClick={clickable ? () => navigate(`/projects?${drillTo}`) : undefined}
+      onClick={
+        clickable
+          ? () => {
+              if (onActivate) onActivate();
+              else if (drillTo) navigate(`/projects?${drillTo}`);
+            }
+          : undefined
+      }
       className={cn(
         'flex h-full min-h-[7.5rem] flex-col justify-between gap-3 p-5 sm:p-6 transition-colors',
         toneClass[tone],
