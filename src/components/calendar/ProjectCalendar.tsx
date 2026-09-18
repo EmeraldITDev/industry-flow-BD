@@ -11,7 +11,7 @@ import { projectsService } from '@/services/projects';
 import { tasksService } from '@/services/tasks';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import { usePermissions } from '@/hooks/usePermissions';
+import { isRestrictedExecutiveUser } from '@/lib/executive/access';
 import { isProjectOwnedByUser, isTaskOwnedByUser } from '@/lib/taskOwnership';
 
 interface DeadlineItem {
@@ -29,7 +29,7 @@ interface DeadlineItem {
 export function ProjectCalendar() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const { user } = useAuth();
-  const { isChairman } = usePermissions();
+  const scopeToSelf = isRestrictedExecutiveUser(user);
 
   // Fetch projects from API
   const { data: projects = [], isLoading: isLoadingProjects } = useQuery({
@@ -38,24 +38,24 @@ export function ProjectCalendar() {
     staleTime: 5 * 60 * 1000,
   });
 
-  // Fetch tasks — Chairman only loads their own assignees from the API
+  // Fetch tasks — restricted executive only loads their own assignees from the API
   const { data: tasks = [], isLoading: isLoadingTasks } = useQuery({
-    queryKey: isChairman ? ['all-tasks', 'assignee', user?.id] : ['all-tasks'],
+    queryKey: scopeToSelf ? ['all-tasks', 'assignee', user?.id] : ['all-tasks'],
     queryFn: () =>
       tasksService.getAll(
-        isChairman && user?.id ? { assigneeId: user.id } : undefined
+        scopeToSelf && user?.id ? { assigneeId: user.id } : undefined
       ),
     staleTime: 5 * 60 * 1000,
-    enabled: !isChairman || !!user?.id,
+    enabled: !scopeToSelf || !!user?.id,
   });
 
-  // Combine project and task deadlines (Chairman: own tasks/projects only)
+  // Combine project and task deadlines (restricted executive: own tasks/projects only)
   const allDeadlines: DeadlineItem[] = useMemo(() => {
-    const scopedProjects = isChairman
+    const scopedProjects = scopeToSelf
       ? projects.filter((p: any) => isProjectOwnedByUser(p, user))
       : projects;
 
-    const scopedTasks = isChairman
+    const scopedTasks = scopeToSelf
       ? tasks.filter((t: any) => isTaskOwnedByUser(t, user))
       : tasks;
 
@@ -96,7 +96,7 @@ export function ProjectCalendar() {
       });
 
     return [...projectDeadlines, ...taskDeadlines];
-  }, [projects, tasks, isChairman, user]);
+  }, [projects, tasks, scopeToSelf, user]);
 
   // Get items due on selected date
   const itemsOnSelectedDate = selectedDate

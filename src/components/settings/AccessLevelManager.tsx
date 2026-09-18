@@ -65,7 +65,6 @@ const SYSTEM_ROLES: { value: SystemRole; label: string; description: string }[] 
   { value: 'admin', label: 'Admin', description: 'Full system access' },
   { value: 'editor', label: 'Editor', description: 'Edit projects and tasks' },
   { value: 'viewer', label: 'Viewer', description: 'Read-only access' },
-  { value: 'chairman', label: 'Chairman', description: 'Executive view with restricted operational sidebar' },
 ];
 
 // Generate a random password
@@ -84,7 +83,6 @@ const getTeamRoleFromSystemRole = (systemRole: SystemRole): TeamRole => {
     case 'admin': return 'admin';
     case 'editor': return 'editor';
     case 'viewer': return 'viewer';
-    case 'chairman': return 'viewer';
     default: return 'viewer';
   }
 };
@@ -141,7 +139,7 @@ export function AccessLevelManager() {
 
   const displayMembers = teamMembers.map((member: ExtendedTeamMember) => ({
     ...member,
-    systemRole: member.systemRole || (member.role === 'admin' ? 'admin' as SystemRole : member.role === 'editor' ? 'editor' as SystemRole : member.role === 'chairman' ? 'chairman' as SystemRole : 'viewer' as SystemRole),
+    systemRole: member.systemRole || (member.role === 'admin' ? 'admin' as SystemRole : member.role === 'editor' ? 'editor' as SystemRole : 'viewer' as SystemRole),
     accessLevel: normalizeAccessLevel(member.accessLevel, member.role),
   }));
 

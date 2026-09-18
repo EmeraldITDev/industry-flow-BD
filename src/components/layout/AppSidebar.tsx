@@ -19,7 +19,7 @@ import emeraldLogo from '@/assets/emerald-logo.png';
 import { NavLink, useLocation } from 'react-router-dom';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/context/AuthContext';
-import { canViewExecutive, homePathForUser } from '@/lib/executive/access';
+import { isRestrictedExecutiveUser, homePathForUser } from '@/lib/executive/access';
 import { cn } from '@/lib/utils';
 import {
   Sidebar,
@@ -91,7 +91,8 @@ const partnersNavItems = [
   { title: 'Partner Tracker', url: '/partners', icon: Handshake },
 ];
 
-const chairmanNavItems = [
+/** Restricted main nav for lazarus.angbazo@emeraldcfze.com — no All Tasks. */
+const restrictedExecutiveNavItems = [
   { title: "Chairman's View", url: '/executive', icon: Landmark },
   { title: 'Dashboard', url: '/operations', icon: LayoutDashboard },
   { title: 'All Projects', url: '/projects', icon: FolderKanban },
@@ -105,22 +106,13 @@ export function AppSidebar() {
   const searchParams = new URLSearchParams(location.search);
   const currentBusinessVertical = searchParams.get('businessVertical');
   const { user } = useAuth();
-  const { canCreateProjects, canManageSettings, isChairman } = usePermissions();
+  const { canCreateProjects, canManageSettings } = usePermissions();
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
-  const showExecutive = canViewExecutive(user);
+  const isRestrictedExecutive = isRestrictedExecutiveUser(user);
   const homeUrl = homePathForUser(user);
 
-  // Chairman system role gets a fixed, reduced nav — All Tasks and Settings are excluded.
-  const navItems = isChairman
-    ? chairmanNavItems
-    : showExecutive
-      ? [
-          { title: "Chairman's View", url: '/executive', icon: Landmark },
-          { title: 'Dashboard', url: '/operations', icon: LayoutDashboard },
-          ...mainNavItems.filter((item) => item.url !== '/'),
-        ]
-      : mainNavItems;
+  const navItems = isRestrictedExecutive ? restrictedExecutiveNavItems : mainNavItems;
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
@@ -253,7 +245,7 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      {canManageSettings && !isChairman && (
+      {canManageSettings && !isRestrictedExecutive && (
         <SidebarFooter className="p-4 border-t border-sidebar-border group-data-[collapsible=icon]:p-2">
           <SidebarMenu>
             <SidebarMenuItem>

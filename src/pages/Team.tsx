@@ -61,7 +61,6 @@ const SYSTEM_ROLES: { value: SystemRole; label: string; description: string }[] 
   { value: 'admin', label: 'Admin', description: 'Full system access' },
   { value: 'editor', label: 'Editor', description: 'Edit projects and tasks' },
   { value: 'viewer', label: 'Viewer', description: 'Read-only access' },
-  { value: 'chairman', label: 'Chairman', description: 'Executive view with restricted operational sidebar' },
 ];
 
 const roleColors: Record<TeamRole, string> = {
@@ -152,7 +151,6 @@ export default function Team() {
       case 'admin': return 'admin';
       case 'editor': return 'editor';
       case 'viewer': return 'viewer';
-      case 'chairman': return 'viewer';
       default: return 'viewer';
     }
   };

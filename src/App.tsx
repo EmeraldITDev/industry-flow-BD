@@ -9,7 +9,7 @@ import { ColorThemeProvider } from "@/context/ColorThemeContext";
 import { CurrencyProvider } from "@/context/CurrencyContext";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
-import { ChairmanTasksGuard } from "@/components/auth/ChairmanTasksGuard";
+import { RestrictedExecutiveTasksGuard } from "@/components/auth/RestrictedExecutiveTasksGuard";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { UpdateAvailableBanner } from "@/components/UpdateAvailableBanner";
 import { InstallPrompt } from "@/components/pwa/InstallPrompt";
@@ -65,7 +65,7 @@ const App = () => (
                     <Route path="/team" element={<ProtectedRoute><TeamPage /></ProtectedRoute>} />
                     <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
                     <Route path="/calendar" element={<ProtectedRoute><CalendarPage /></ProtectedRoute>} />
-                    <Route path="/tasks" element={<ProtectedRoute><ChairmanTasksGuard><AllTasksPage /></ChairmanTasksGuard></ProtectedRoute>} />
+                    <Route path="/tasks" element={<ProtectedRoute><RestrictedExecutiveTasksGuard><AllTasksPage /></RestrictedExecutiveTasksGuard></ProtectedRoute>} />
                     <Route path="/document-repository" element={<ProtectedRoute><DocumentRepositoryPage /></ProtectedRoute>} />
                     <Route path="/partners" element={<ProtectedRoute><PartnersPage /></ProtectedRoute>} />
                     <Route path="/partners/:id" element={<ProtectedRoute><PartnerDetailPage /></ProtectedRoute>} />

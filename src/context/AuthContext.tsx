@@ -42,8 +42,6 @@ const mapRoleToSystemRole = (role: string): SystemRole => {
   switch (role?.toLowerCase()) {
     case 'admin':
       return 'admin';
-    case 'chairman':
-      return 'chairman';
     case 'pm':
     case 'project_manager':
     case 'editor':
@@ -59,7 +57,7 @@ const resolveSystemRole = (backendUser: any): SystemRole => {
   const raw = String(backendUser?.systemRole ?? backendUser?.system_role ?? '')
     .trim()
     .toLowerCase();
-  if (raw === 'admin' || raw === 'editor' || raw === 'viewer' || raw === 'chairman') {
+  if (raw === 'admin' || raw === 'editor' || raw === 'viewer') {
     return raw;
   }
   return mapRoleToSystemRole(backendUser?.role);

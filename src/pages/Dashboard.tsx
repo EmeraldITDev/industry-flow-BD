@@ -29,10 +29,12 @@ import { cn } from '@/lib/utils';
 import { Project } from '@/types';
 import { Progress } from '@/components/ui/progress';
 import { getStageProgress } from '@/lib/stageProgress';
-import { usePermissions } from '@/hooks/usePermissions';
+import { useAuth } from '@/context/AuthContext';
+import { isRestrictedExecutiveUser } from '@/lib/executive/access';
 export default function Dashboard() {
   const { formatCurrencyFor } = useDashboardCurrencyFormat();
-  const { isChairman } = usePermissions();
+  const { user } = useAuth();
+  const isRestrictedExecutive = isRestrictedExecutiveUser(user);
   const [dashboardFilters, setDashboardFilters] = useState<DashboardFilterState>(defaultDashboardFilters);
   const queryClient = useQueryClient();
   
@@ -465,15 +467,15 @@ export default function Dashboard() {
 
       <RevenueAnalytics />
 
-      {/* Bottom Section — Chairman does not see task/deadline widgets */}
+      {/* Bottom Section — restricted executive email does not see task/deadline widgets */}
       <div className="grid grid-cols-1 gap-3 sm:gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-3 sm:space-y-6">
           <RecentProjects recentProjects={computedStats.recent} />
-          {!isChairman && <TasksSummary />}
+          {!isRestrictedExecutive && <TasksSummary />}
         </div>
         <div className="space-y-3 sm:space-y-6">
-          {!isChairman && <DeadlineTracker projects={filteredProjects} />}
-          {!isChairman && <ProjectCalendar />}
+          {!isRestrictedExecutive && <DeadlineTracker projects={filteredProjects} />}
+          {!isRestrictedExecutive && <ProjectCalendar />}
           <SectorOverview />
         </div>
       </div>
