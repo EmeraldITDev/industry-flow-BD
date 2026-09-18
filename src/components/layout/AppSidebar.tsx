@@ -36,9 +36,10 @@ import {
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 
-// In icon-only mode the rail is 3rem wide and the menu button is forced to
-// size-8, so every ancestor must drop its horizontal padding for the 32px
-// button (and therefore its icon) to land dead-centre in the 48px rail.
+// Icon rail is 3rem (48px). SidebarMenuButton becomes size-8 (32px) with
+// group-data-[collapsible=icon]:!size-8. SidebarGroup's default p-2 supplies
+// the 8px side gutters (8+32+8=48) that center each button in the rail —
+// do not zero group padding in icon mode or buttons hug the left edge.
 const navLinkClass = (collapsed: boolean) =>
   cn(
     'flex w-full items-center gap-3 rounded-md px-3 py-2',
@@ -138,8 +139,10 @@ export function AppSidebar() {
         )}
       </SidebarHeader>
 
+      {/* Drop content padding in icon mode so only SidebarGroup's p-2 remains
+          and centers the 32px buttons in the 48px rail. */}
       <SidebarContent className="px-2 group-data-[collapsible=icon]:px-0">
-        <SidebarGroup className="group-data-[collapsible=icon]:px-0">
+        <SidebarGroup>
           <SidebarGroupLabel className={groupLabelClass(collapsed)}>
             Main
           </SidebarGroupLabel>
@@ -173,7 +176,7 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup className="group-data-[collapsible=icon]:px-0">
+        <SidebarGroup>
           <SidebarGroupLabel className={groupLabelClass(collapsed)}>
             Business Verticals
           </SidebarGroupLabel>
@@ -204,7 +207,7 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup className="group-data-[collapsible=icon]:px-0">
+        <SidebarGroup>
           <SidebarGroupLabel className={groupLabelClass(collapsed)}>
             Partners
           </SidebarGroupLabel>
