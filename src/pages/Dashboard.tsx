@@ -29,8 +29,10 @@ import { cn } from '@/lib/utils';
 import { Project } from '@/types';
 import { Progress } from '@/components/ui/progress';
 import { getStageProgress } from '@/lib/stageProgress';
+import { usePermissions } from '@/hooks/usePermissions';
 export default function Dashboard() {
   const { formatCurrencyFor } = useDashboardCurrencyFormat();
+  const { isChairman } = usePermissions();
   const [dashboardFilters, setDashboardFilters] = useState<DashboardFilterState>(defaultDashboardFilters);
   const queryClient = useQueryClient();
   
@@ -168,7 +170,7 @@ export default function Dashboard() {
     
     const bySector: Record<string, number> = {};
     projects.forEach((p: Project) => {
-      const sector = p.sector || 'Unknown';
+      const sector = p.sector || 'Other';
       bySector[sector] = (bySector[sector] || 0) + 1;
     });
     
@@ -463,15 +465,15 @@ export default function Dashboard() {
 
       <RevenueAnalytics />
 
-      {/* Bottom Section */}
+      {/* Bottom Section — Chairman does not see task/deadline widgets */}
       <div className="grid grid-cols-1 gap-3 sm:gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-3 sm:space-y-6">
           <RecentProjects recentProjects={computedStats.recent} />
-          <TasksSummary />
+          {!isChairman && <TasksSummary />}
         </div>
         <div className="space-y-3 sm:space-y-6">
-          <DeadlineTracker projects={filteredProjects} />
-          <ProjectCalendar />
+          {!isChairman && <DeadlineTracker projects={filteredProjects} />}
+          {!isChairman && <ProjectCalendar />}
           <SectorOverview />
         </div>
       </div>

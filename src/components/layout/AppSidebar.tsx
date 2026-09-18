@@ -91,24 +91,36 @@ const partnersNavItems = [
   { title: 'Partner Tracker', url: '/partners', icon: Handshake },
 ];
 
+const chairmanNavItems = [
+  { title: "Chairman's View", url: '/executive', icon: Landmark },
+  { title: 'Dashboard', url: '/operations', icon: LayoutDashboard },
+  { title: 'All Projects', url: '/projects', icon: FolderKanban },
+  { title: 'Calendar', url: '/calendar', icon: Calendar },
+  { title: 'Team', url: '/team', icon: Users },
+  { title: 'Document Repository', url: '/document-repository', icon: FileStack },
+];
+
 export function AppSidebar() {
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
   const currentBusinessVertical = searchParams.get('businessVertical');
   const { user } = useAuth();
-  const { canCreateProjects, canManageSettings } = usePermissions();
+  const { canCreateProjects, canManageSettings, isChairman } = usePermissions();
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
   const showExecutive = canViewExecutive(user);
   const homeUrl = homePathForUser(user);
 
-  const navItems = showExecutive
-    ? [
-        { title: "Chairman's View", url: '/executive', icon: Landmark },
-        { title: 'Dashboard', url: '/operations', icon: LayoutDashboard },
-        ...mainNavItems.filter((item) => item.url !== '/'),
-      ]
-    : mainNavItems;
+  // Chairman system role gets a fixed, reduced nav — All Tasks and Settings are excluded.
+  const navItems = isChairman
+    ? chairmanNavItems
+    : showExecutive
+      ? [
+          { title: "Chairman's View", url: '/executive', icon: Landmark },
+          { title: 'Dashboard', url: '/operations', icon: LayoutDashboard },
+          ...mainNavItems.filter((item) => item.url !== '/'),
+        ]
+      : mainNavItems;
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
@@ -241,7 +253,7 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      {canManageSettings && (
+      {canManageSettings && !isChairman && (
         <SidebarFooter className="p-4 border-t border-sidebar-border group-data-[collapsible=icon]:p-2">
           <SidebarMenu>
             <SidebarMenuItem>

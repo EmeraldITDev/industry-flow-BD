@@ -37,11 +37,13 @@ const mapRoleToAccessLevel = (role: string): AccessLevel => {
   }
 };
 
-// Map backend role to SystemRole
+// Map backend role to SystemRole (fallback when system_role is unset)
 const mapRoleToSystemRole = (role: string): SystemRole => {
   switch (role?.toLowerCase()) {
     case 'admin':
       return 'admin';
+    case 'chairman':
+      return 'chairman';
     case 'pm':
     case 'project_manager':
     case 'editor':
@@ -53,14 +55,24 @@ const mapRoleToSystemRole = (role: string): SystemRole => {
   }
 };
 
+const resolveSystemRole = (backendUser: any): SystemRole => {
+  const raw = String(backendUser?.systemRole ?? backendUser?.system_role ?? '')
+    .trim()
+    .toLowerCase();
+  if (raw === 'admin' || raw === 'editor' || raw === 'viewer' || raw === 'chairman') {
+    return raw;
+  }
+  return mapRoleToSystemRole(backendUser?.role);
+};
+
 // Convert backend user to frontend User type
 const convertToUser = (backendUser: any): User => ({
   id: String(backendUser.id),
   email: backendUser.email || '',
   name: backendUser.name || backendUser.email?.split('@')[0] || 'User',
-  accessLevel: mapRoleToAccessLevel(backendUser.role),
-  systemRole: mapRoleToSystemRole(backendUser.role),
-  avatarUrl: backendUser.avatarUrl,
+  accessLevel: mapRoleToAccessLevel(backendUser.accessLevel ?? backendUser.access_level ?? backendUser.role),
+  systemRole: resolveSystemRole(backendUser),
+  avatarUrl: backendUser.avatarUrl ?? backendUser.avatar,
   createdAt: new Date(backendUser.createdAt || Date.now()),
   isActive: true,
 });

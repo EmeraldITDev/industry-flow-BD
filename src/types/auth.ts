@@ -1,6 +1,6 @@
 export type AccessLevel = 'admin' | 'bd_director' | 'employee' | 'project_manager';
 
-export type SystemRole = 'admin' | 'editor' | 'viewer';
+export type SystemRole = 'admin' | 'editor' | 'viewer' | 'chairman';
 
 export interface User {
   id: string;
@@ -62,6 +62,21 @@ export const SYSTEM_ROLE_CONFIG: Record<SystemRole, {
   viewer: {
     label: 'Viewer',
     description: 'Read-only access',
+    permissions: {
+      canCreateProjects: false,
+      canEditProjects: false,
+      canDeleteProjects: false,
+      canManageTeam: false,
+      canViewReports: true,
+      canManageSettings: false,
+      canAssignTasks: false,
+      canEditTasks: false,
+      canViewTasks: true,
+    },
+  },
+  chairman: {
+    label: 'Chairman',
+    description: 'Executive commercial view with a restricted operational sidebar',
     permissions: {
       canCreateProjects: false,
       canEditProjects: false,

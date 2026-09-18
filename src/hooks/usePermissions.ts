@@ -5,10 +5,12 @@ export function usePermissions() {
   const { user } = useAuth();
   
   const systemRole: SystemRole = user?.systemRole || 'viewer';
-  const config = SYSTEM_ROLE_CONFIG[systemRole];
+  const config = SYSTEM_ROLE_CONFIG[systemRole] ?? SYSTEM_ROLE_CONFIG.viewer;
+  const isChairman = systemRole === 'chairman';
   
   return {
     systemRole,
+    isChairman,
     ...config.permissions,
     // Helper function to check any permission
     hasPermission: (permission: keyof typeof config.permissions) => {

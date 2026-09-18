@@ -10,6 +10,9 @@ import { CalendarDays, Clock, CheckSquare, FolderKanban } from 'lucide-react';
 import { projectsService } from '@/services/projects';
 import { tasksService } from '@/services/tasks';
 import { Link } from 'react-router-dom';
+import { useAuth } from '@/context/AuthContext';
+import { usePermissions } from '@/hooks/usePermissions';
+import { isProjectOwnedByUser, isTaskOwnedByUser } from '@/lib/taskOwnership';
 
 interface DeadlineItem {
   id: string;
@@ -25,6 +28,8 @@ interface DeadlineItem {
 
 export function ProjectCalendar() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const { user } = useAuth();
+  const { isChairman } = usePermissions();
 
   // Fetch projects from API
   const { data: projects = [], isLoading: isLoadingProjects } = useQuery({
@@ -33,16 +38,28 @@ export function ProjectCalendar() {
     staleTime: 5 * 60 * 1000,
   });
 
-  // Fetch all tasks from API
+  // Fetch tasks — Chairman only loads their own assignees from the API
   const { data: tasks = [], isLoading: isLoadingTasks } = useQuery({
-    queryKey: ['all-tasks'],
-    queryFn: () => tasksService.getAll(),
+    queryKey: isChairman ? ['all-tasks', 'assignee', user?.id] : ['all-tasks'],
+    queryFn: () =>
+      tasksService.getAll(
+        isChairman && user?.id ? { assigneeId: user.id } : undefined
+      ),
     staleTime: 5 * 60 * 1000,
+    enabled: !isChairman || !!user?.id,
   });
 
-  // Combine project and task deadlines
+  // Combine project and task deadlines (Chairman: own tasks/projects only)
   const allDeadlines: DeadlineItem[] = useMemo(() => {
-    const projectDeadlines: DeadlineItem[] = projects
+    const scopedProjects = isChairman
+      ? projects.filter((p: any) => isProjectOwnedByUser(p, user))
+      : projects;
+
+    const scopedTasks = isChairman
+      ? tasks.filter((t: any) => isTaskOwnedByUser(t, user))
+      : tasks;
+
+    const projectDeadlines: DeadlineItem[] = scopedProjects
       .filter((p: any) => {
         const dateStr = p.expected_close_date || p.expectedCloseDate || p.end_date || p.endDate;
         return dateStr && isValid(parseISO(dateStr));
@@ -54,11 +71,11 @@ export function ProjectCalendar() {
           name: p.name,
           dueDate: parseISO(dateStr),
           type: 'project' as const,
-      sector: p.sector,
+          sector: p.sector,
         };
       });
 
-    const taskDeadlines: DeadlineItem[] = tasks
+    const taskDeadlines: DeadlineItem[] = scopedTasks
       .filter((t: any) => {
         const dateStr = t.due_date || t.dueDate;
         return dateStr && isValid(parseISO(dateStr)) && t.status !== 'completed';
@@ -79,7 +96,7 @@ export function ProjectCalendar() {
       });
 
     return [...projectDeadlines, ...taskDeadlines];
-  }, [projects, tasks]);
+  }, [projects, tasks, isChairman, user]);
 
   // Get items due on selected date
   const itemsOnSelectedDate = selectedDate
