@@ -8,6 +8,7 @@ export interface CreateTaskData {
   status?: TaskStatus;
   priority?: TaskPriority;
   assigneeId?: string;
+  assigneeIds?: string[];
   requiresChairmanIntervention?: boolean;
   assignedToChairman?: boolean;
   dueDate?: string;
@@ -74,12 +75,43 @@ const normalizeDocuments = (raw: unknown): ProjectDocument[] => {
 
 // Normalize a single task from backend format to frontend format
 const normalizeTask = (task: any): Task => {
+  const assigneesRaw = task.assignees ?? task.assigneeUsers ?? [];
+  const assigneeIdsFromList = Array.isArray(assigneesRaw)
+    ? assigneesRaw.map((a: any) => String(a.id ?? a.user_id ?? a)).filter(Boolean)
+    : [];
+  const assigneeIdsRaw = task.assigneeIds ?? task.assignee_ids ?? assigneeIdsFromList;
+  const assigneeIds = (Array.isArray(assigneeIdsRaw) ? assigneeIdsRaw : [])
+    .map((id: any) => String(id))
+    .filter(Boolean);
+  const primaryAssigneeId = task.assignee_id || task.assigneeId || assigneeIds[0];
+  if (primaryAssigneeId && !assigneeIds.includes(String(primaryAssigneeId))) {
+    assigneeIds.unshift(String(primaryAssigneeId));
+  }
+
+  const nestedAssignee = task.assignee;
+  const assigneeLabel =
+    typeof nestedAssignee === 'string'
+      ? nestedAssignee
+      : nestedAssignee?.name ||
+        (Array.isArray(assigneesRaw)
+          ? assigneesRaw.map((a: any) => a.name).filter(Boolean).join(', ')
+          : undefined);
+
   return {
     ...task,
     id: String(task.id),
     status: statusToFrontend(task.status),
     projectId: String(task.project_id || task.projectId),
-    assigneeId: task.assignee_id || task.assigneeId,
+    assigneeId: primaryAssigneeId != null && primaryAssigneeId !== '' ? String(primaryAssigneeId) : undefined,
+    assigneeIds,
+    assignee: assigneeLabel,
+    assignees: Array.isArray(assigneesRaw)
+      ? assigneesRaw.map((a: any) => ({
+          id: String(a.id ?? a.user_id ?? ''),
+          name: a.name,
+          email: a.email,
+        }))
+      : undefined,
     requiresChairmanIntervention: Boolean(
       task.requiresChairmanIntervention ?? task.requires_chairman_intervention
     ),
@@ -134,10 +166,16 @@ export const tasksService = {
 
   // Create new task
   create: async (data: CreateTaskData): Promise<Task> => {
-    // Convert status to backend format before sending
+    const ids = (data.assigneeIds ?? (data.assigneeId ? [data.assigneeId] : []))
+      .map(String)
+      .filter(Boolean);
     const backendData = {
       ...data,
       status: data.status ? statusToBackend(data.status) : undefined,
+      assigneeIds: ids,
+      assignee_ids: ids.map((id) => Number(id)).filter((n) => Number.isFinite(n) && n > 0),
+      assigneeId: ids[0],
+      assignee_id: ids[0] ? Number(ids[0]) : null,
     };
     const response = await api.post('/api/tasks', backendData);
     const createdTask = normalizeTask(response.data);
@@ -161,11 +199,24 @@ export const tasksService = {
 
   // Update task
   update: async (id: string, data: UpdateTaskData, originalTask?: Task): Promise<Task> => {
-    // Convert status to backend format before sending
-    const backendData = {
+    const hasAssigneeIds = Array.isArray(data.assigneeIds);
+    const ids = hasAssigneeIds
+      ? data.assigneeIds!.map(String).filter(Boolean)
+      : data.assigneeId
+        ? [String(data.assigneeId)]
+        : undefined;
+
+    const backendData: Record<string, unknown> = {
       ...data,
       status: data.status ? statusToBackend(data.status) : undefined,
     };
+    if (ids) {
+      backendData.assigneeIds = ids;
+      backendData.assignee_ids = ids.map((i) => Number(i)).filter((n) => Number.isFinite(n) && n > 0);
+      backendData.assigneeId = ids[0] ?? null;
+      backendData.assignee_id = ids[0] ? Number(ids[0]) : null;
+    }
+
     const response = await api.put(`/api/tasks/${id}`, backendData);
     const updatedTask = normalizeTask(response.data);
     

@@ -12,12 +12,11 @@ export const PRODUCT_CATALOG: { product: string; subproducts: string[] }[] = [
     product: 'Repairs / Upgrades / Services',
     subproducts: ['Repairs', 'Overhauls', 'Rewinding', 'Commissioning', 'Inspections', 'Training', 'Field Service'],
   },
-  {
-    product: 'NPD / NMI',
-    subproducts: ['CNG', 'Inventory Automation', 'Metering', 'Solar', 'Other New-Market Pilots'],
-  },
-  { product: 'N/A - Internal / Non-commercial', subproducts: [] },
-  { product: 'N/A - Trading Commodity', subproducts: [] },
+  { product: 'Customables', subproducts: [] },
+  { product: 'Electricals', subproducts: [] },
+  { product: 'Automation & Controls', subproducts: [] },
+  { product: 'Other rotating equipment', subproducts: [] },
+  { product: 'Other services', subproducts: [] },
 ];
 
 export const PRODUCT_OPTIONS = PRODUCT_CATALOG.map((p) => ({ value: p.product, label: p.product }));

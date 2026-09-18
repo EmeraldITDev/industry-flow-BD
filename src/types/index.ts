@@ -62,8 +62,14 @@ export interface Task {
   description?: string;
   status: TaskStatus;
   priority: TaskPriority;
+  /** Primary assignee (first of assigneeIds); kept for backward compatibility. */
   assigneeId?: string;
+  /** All assignee user ids. */
+  assigneeIds?: string[];
+  /** Primary assignee display name (legacy). */
   assignee?: string;
+  /** All assignee display names / objects from API. */
+  assignees?: Array<string | { id?: string; name?: string; email?: string }>;
   requiresChairmanIntervention?: boolean;
   assignedToChairman?: boolean;
   dueDate?: string;

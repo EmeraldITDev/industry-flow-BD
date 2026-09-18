@@ -12,6 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { CalendarIcon, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { MultiSearchableSelect } from '@/components/ui/multi-searchable-select';
 import { tasksService } from '@/services/tasks';
 import { teamService } from '@/services/team';
 import { Task, TaskPriority, TaskStatus, ProjectDocument } from '@/types';
@@ -42,7 +43,7 @@ export function EditTaskDialog({ open, onOpenChange, task, onTaskUpdated }: Edit
     description: '',
     priority: 'medium' as TaskPriority,
     status: 'todo' as TaskStatus,
-    assigneeId: '',
+    assigneeIds: [] as string[],
     requiresChairmanIntervention: false,
     dueDate: undefined as Date | undefined,
     notes: '',
@@ -58,14 +59,25 @@ export function EditTaskDialog({ open, onOpenChange, task, onTaskUpdated }: Edit
     staleTime: 5 * 60 * 1000,
   });
 
+  const assigneeOptions = teamMembers.map((member: any) => ({
+    value: String(member.id),
+    label: member.name || member.email || String(member.id),
+  }));
+
   useEffect(() => {
     if (task && open) {
+      const ids =
+        task.assigneeIds?.length
+          ? task.assigneeIds.map(String)
+          : task.assigneeId
+            ? [String(task.assigneeId)]
+            : [];
       setFormData({
         title: task.title || '',
         description: task.description || '',
         priority: task.priority || 'medium',
         status: task.status || 'todo',
-        assigneeId: task.assigneeId || '',
+        assigneeIds: ids,
         requiresChairmanIntervention: Boolean(task.requiresChairmanIntervention),
         dueDate: task.dueDate ? new Date(task.dueDate) : undefined,
         notes: task.notes || '',
@@ -108,7 +120,8 @@ export function EditTaskDialog({ open, onOpenChange, task, onTaskUpdated }: Edit
         description: formData.description || undefined,
         priority: formData.priority,
         status: formData.status,
-        assigneeId: formData.assigneeId || undefined,
+        assigneeIds: formData.assigneeIds,
+        assigneeId: formData.assigneeIds[0],
         requiresChairmanIntervention: formData.requiresChairmanIntervention,
         dueDate: formData.dueDate?.toISOString(),
         notes: formData.notes || undefined,
@@ -196,52 +209,44 @@ export function EditTaskDialog({ open, onOpenChange, task, onTaskUpdated }: Edit
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Assignee</Label>
-              <Select
-                value={formData.assigneeId}
-                onValueChange={(value) => setFormData({ ...formData, assigneeId: value === '__none__' ? '' : value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select assignee" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">— No Assignee —</SelectItem>
-                  {teamMembers.map((member: any) => (
-                    <SelectItem key={member.id} value={String(member.id)}>
-                      {member.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="space-y-2">
+            <Label>Assignees</Label>
+            <MultiSearchableSelect
+              values={formData.assigneeIds}
+              onValuesChange={(assigneeIds) =>
+                setFormData({ ...formData, assigneeIds })
+              }
+              options={assigneeOptions}
+              placeholder="Select assignees"
+              searchPlaceholder="Search team..."
+              emptyText="No team members found."
+            />
+          </div>
 
-            <div className="space-y-2">
-              <Label>Due Date</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      'w-full justify-start text-left font-normal',
-                      !formData.dueDate && 'text-muted-foreground'
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {formData.dueDate ? format(formData.dueDate, 'PPP') : 'Pick date'}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={formData.dueDate}
-                    onSelect={(date) => setFormData({ ...formData, dueDate: date })}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
+          <div className="space-y-2">
+            <Label>Due Date</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    'w-full justify-start text-left font-normal',
+                    !formData.dueDate && 'text-muted-foreground'
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {formData.dueDate ? format(formData.dueDate, 'PPP') : 'Pick date'}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0">
+                <Calendar
+                  mode="single"
+                  selected={formData.dueDate}
+                  onSelect={(date) => setFormData({ ...formData, dueDate: date })}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div className="flex items-center gap-2 rounded-md border px-3 py-2">
