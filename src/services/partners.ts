@@ -62,6 +62,13 @@ export const normalizePartner = (raw: any): Partner => {
     contactPerson: raw.contactPerson ?? raw.contact_person ?? '',
     email: raw.email ?? '',
     phone: raw.phone ?? '',
+    isProfileComplete: (() => {
+      if (typeof raw.isProfileComplete === 'boolean') return raw.isProfileComplete;
+      if (typeof raw.is_profile_complete === 'boolean') return raw.is_profile_complete;
+      const contact = String(raw.contactPerson ?? raw.contact_person ?? '').trim();
+      const email = String(raw.email ?? '').trim();
+      return Boolean(contact && email);
+    })(),
     relationshipOwnerIds,
     relationshipOwners: Array.isArray(ownersRaw) ? ownersRaw.map(toOwner) : undefined,
     relationshipStage: raw.relationshipStage ?? raw.relationship_stage ?? 'Identified',

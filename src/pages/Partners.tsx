@@ -33,7 +33,7 @@ import { partnersService } from '@/services/partners';
 import { teamService } from '@/services/team';
 import { businessVerticals, sectorColors } from '@/data/mockData';
 import { PRODUCT_OPTIONS } from '@/data/productCatalog';
-import { RELATIONSHIP_STAGES } from '@/types/partners';
+import { RELATIONSHIP_STAGES, isPartnerProfileComplete } from '@/types/partners';
 import type { Partner } from '@/types/partners';
 import type { Sector } from '@/types';
 import { RelationshipStageBadge } from '@/components/partners/RelationshipStageBadge';
@@ -327,6 +327,7 @@ export default function Partners() {
             !isError &&
             filtered.map((partner) => {
               const multiOwner = partner.relationshipOwnerIds.length > 1;
+              const profileIncomplete = !isPartnerProfileComplete(partner);
               const ownerLabel =
                 partner.relationshipOwners
                   ?.map((o) => o.name)
@@ -351,6 +352,16 @@ export default function Partners() {
                         <h2 className="text-base font-semibold truncate">
                           {partner.companyName}
                         </h2>
+                        {profileIncomplete && (
+                          <Badge
+                            variant="outline"
+                            className="gap-1 border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-300"
+                            title="Contact person or email is missing"
+                          >
+                            <AlertTriangle className="h-3 w-3" />
+                            Incomplete Information
+                          </Badge>
+                        )}
                         <RelationshipStageBadge
                           stage={partner.relationshipStage}
                         />

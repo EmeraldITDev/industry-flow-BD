@@ -36,6 +36,8 @@ export interface Partner {
   contactPerson?: string;
   email?: string;
   phone?: string;
+  /** False when contact person or email is missing (e.g. migrated name-only partners). */
+  isProfileComplete?: boolean;
   relationshipOwnerIds: string[];
   relationshipOwners?: PartnerOwner[];
   relationshipStage: RelationshipStage | string;
@@ -53,6 +55,14 @@ export interface Partner {
   scmData?: ScmVendorData | null;
   createdAt?: string;
   updatedAt?: string;
+}
+
+/** Prefer API flag; fall back to local contact/email presence. */
+export function isPartnerProfileComplete(partner: Pick<Partner, 'isProfileComplete' | 'contactPerson' | 'email'>): boolean {
+  if (typeof partner.isProfileComplete === 'boolean') {
+    return partner.isProfileComplete;
+  }
+  return Boolean(partner.contactPerson?.trim() && partner.email?.trim());
 }
 
 export interface ScmVendorSearchResult {
