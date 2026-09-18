@@ -19,7 +19,7 @@ import emeraldLogo from '@/assets/emerald-logo.png';
 import { NavLink, useLocation } from 'react-router-dom';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/context/AuthContext';
-import { isRestrictedExecutiveUser, homePathForUser } from '@/lib/executive/access';
+import { canViewExecutive, isRestrictedExecutiveUser, homePathForUser } from '@/lib/executive/access';
 import { cn } from '@/lib/utils';
 import {
   Sidebar,
@@ -110,9 +110,17 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
   const isRestrictedExecutive = isRestrictedExecutiveUser(user);
+  const showExecutiveNav = canViewExecutive(user);
   const homeUrl = homePathForUser(user);
 
-  const navItems = isRestrictedExecutive ? restrictedExecutiveNavItems : mainNavItems;
+  const navItems = isRestrictedExecutive
+    ? restrictedExecutiveNavItems
+    : showExecutiveNav
+      ? [
+          { title: "Chairman's View", url: '/executive', icon: Landmark },
+          ...mainNavItems,
+        ]
+      : mainNavItems;
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">

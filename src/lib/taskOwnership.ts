@@ -29,6 +29,7 @@ export function isTaskOwnedByUser(task: Task | null | undefined, user: User | nu
 
   const idCandidates = [
     task.assigneeId,
+    ...(task.assigneeIds ?? []),
     raw.assignee_id,
     raw.assigned_to,
     raw.created_by,
@@ -53,12 +54,23 @@ export function isTaskOwnedByUser(task: Task | null | undefined, user: User | nu
 
   if (userEmail && emailCandidates.some((c) => c === userEmail)) return true;
 
-  // Nested assignee object from API
+  // Nested assignee object / multi-assignee list from API
   const nested = (task as any).assignee;
   if (nested && typeof nested === 'object') {
     if (userId && normalizeComparable(nested.id) === userId) return true;
     if (userEmail && normalizeComparable(nested.email) === userEmail) return true;
     if (userName && normalizeComparable(nested.name) === userName) return true;
+  }
+
+  const assignees = task.assignees ?? [];
+  for (const a of assignees) {
+    if (typeof a === 'string') {
+      if (userName && normalizeComparable(a) === userName) return true;
+      continue;
+    }
+    if (userId && normalizeComparable(a.id) === userId) return true;
+    if (userEmail && normalizeComparable(a.email) === userEmail) return true;
+    if (userName && normalizeComparable(a.name) === userName) return true;
   }
 
   return false;

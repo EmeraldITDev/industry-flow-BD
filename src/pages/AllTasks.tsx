@@ -87,12 +87,13 @@ export default function AllTasks() {
       return allTasks;
     }
     // Project Manager and Employee: only tasks assigned to them or created/assigned by them
-    const userId = String(user.id);
     return allTasks.filter(task => {
-      const assigneeId = task.assigneeId ? String(task.assigneeId) : null;
-      // Task is assigned to this user
-      if (assigneeId === userId) return true;
-      // Task assignee matches user name (fallback for string-based assignees)
+      const userId = String(user.id);
+      const ids = [
+        ...(task.assigneeIds ?? []),
+        ...(task.assigneeId ? [task.assigneeId] : []),
+      ].map(String);
+      if (ids.includes(userId)) return true;
       if (typeof task.assignee === 'string' && task.assignee === user.name) return true;
       return false;
     });
@@ -125,8 +126,11 @@ export default function AllTasks() {
       if (priorityFilter !== 'all' && task.priority !== priorityFilter) return false;
       if (projectFilter !== 'all' && task.projectId !== projectFilter) return false;
       if (assigneeFilter !== 'all') {
-        const taskAssigneeId = task.assigneeId ? String(task.assigneeId) : null;
-        if (taskAssigneeId !== assigneeFilter) return false;
+        const ids = [
+          ...(task.assigneeIds ?? []),
+          ...(task.assigneeId ? [String(task.assigneeId)] : []),
+        ].map(String);
+        if (!ids.includes(assigneeFilter)) return false;
       }
       return true;
     });
@@ -154,13 +158,19 @@ export default function AllTasks() {
   const assigneeOptions = useMemo(() => {
     const seen = new Map<string, string>();
     tasks.forEach(task => {
-      if (task.assigneeId) {
-        const id = String(task.assigneeId);
-        if (!seen.has(id)) {
-          const name = teamMap[id] || (typeof task.assignee === 'string' ? task.assignee : 'Unknown');
-          seen.set(id, name);
-        }
-      }
+      const ids = [
+        ...(task.assigneeIds ?? []),
+        ...(task.assigneeId ? [String(task.assigneeId)] : []),
+      ];
+      ids.forEach((id) => {
+        if (!id || seen.has(id)) return;
+        seen.set(id, teamMap[id] || (typeof task.assignee === 'string' ? task.assignee : 'Unknown'));
+      });
+      (task.assignees ?? []).forEach((a) => {
+        if (typeof a === 'string' || !a.id) return;
+        const id = String(a.id);
+        if (!seen.has(id)) seen.set(id, a.name || teamMap[id] || 'Unknown');
+      });
     });
     return Array.from(seen.entries()).map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
   }, [tasks, teamMap]);
@@ -323,7 +333,15 @@ export default function AllTasks() {
                   const project = projectMap[task.projectId];
                   const sc = statusConfig[task.status] || statusConfig['todo'];
                   const pc = priorityConfig[task.priority] || priorityConfig['low'];
-                  const assigneeName = task.assigneeId ? (teamMap[task.assigneeId] || (typeof task.assignee === 'string' ? task.assignee : 'Unassigned')) : 'Unassigned';
+                  const assigneeIds = [
+                    ...(task.assigneeIds ?? []),
+                    ...(task.assigneeId ? [String(task.assigneeId)] : []),
+                  ].filter((id, i, arr) => id && arr.indexOf(id) === i);
+                  const assigneeName =
+                    assigneeIds.length > 0
+                      ? assigneeIds.map((id) => teamMap[id]).filter(Boolean).join(', ') ||
+                        (typeof task.assignee === 'string' ? task.assignee : 'Assigned')
+                      : 'Unassigned';
 
                   return (
                     <TableRow key={task.id} className="group">

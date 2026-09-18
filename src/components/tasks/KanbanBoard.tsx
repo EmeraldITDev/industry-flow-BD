@@ -50,6 +50,15 @@ export function KanbanBoard({ tasks: initialTasks, onTaskMove, onTaskDelete, onT
     return null;
   };
 
+  const getTaskAssigneeLabels = (task: Task): string[] => {
+    const fromList = (task.assignees ?? [])
+      .map((a) => (typeof a === 'string' ? a : a.name))
+      .filter((n): n is string => Boolean(n));
+    if (fromList.length > 0) return fromList;
+    const single = getAssigneeName(task.assignee);
+    return single ? [single] : [];
+  };
+
   const getInitials = (name?: string | null) => {
     if (!name) return 'U';
     if (typeof name !== 'string') return 'U';
@@ -136,13 +145,28 @@ export function KanbanBoard({ tasks: initialTasks, onTaskMove, onTaskDelete, onT
                               </Badge>
                               </div>
                               <div className="flex items-center gap-1">
-                            {getAssigneeName(task.assignee) && (
-                              <Avatar className="w-6 h-6">
-                                <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
-                                  {getInitials(getAssigneeName(task.assignee))}
-                                </AvatarFallback>
-                              </Avatar>
-                            )}
+                            {(() => {
+                              const labels = getTaskAssigneeLabels(task);
+                              if (labels.length === 0) return null;
+                              return (
+                              <div className="flex -space-x-1.5" title={labels.join(', ')}>
+                                {labels.slice(0, 3).map((name) => (
+                                  <Avatar key={name} className="w-6 h-6 border border-background">
+                                    <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
+                                      {getInitials(name)}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                ))}
+                                {labels.length > 3 && (
+                                  <Avatar className="w-6 h-6 border border-background">
+                                    <AvatarFallback className="text-[10px] bg-muted text-muted-foreground">
+                                      +{labels.length - 3}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                )}
+                              </div>
+                              );
+                            })()}
                                 {onTaskEdit && (
                                   <Button
                                     variant="ghost"

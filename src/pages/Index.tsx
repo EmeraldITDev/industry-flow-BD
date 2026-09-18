@@ -1,17 +1,17 @@
 import { Navigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useAuth } from '@/context/AuthContext';
-import { canViewExecutive } from '@/lib/executive/access';
+import { isRestrictedExecutiveUser } from '@/lib/executive/access';
 import Dashboard from './Dashboard';
 
 /**
  * Operational dashboard at `/`.
- * Authorised executives are sent to the Chairman's View as their home screen.
+ * The restricted chairman email is sent to the Chairman's View as their home screen.
  */
 const Index = () => {
   const { user } = useAuth();
 
-  if (canViewExecutive(user)) {
+  if (isRestrictedExecutiveUser(user)) {
     return <Navigate to="/executive" replace />;
   }
 
