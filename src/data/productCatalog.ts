@@ -12,7 +12,6 @@ export const PRODUCT_CATALOG: { product: string; subproducts: string[] }[] = [
     product: 'Repairs / Upgrades / Services',
     subproducts: ['Repairs', 'Overhauls', 'Rewinding', 'Commissioning', 'Inspections', 'Training', 'Field Service'],
   },
-  { product: 'Customables', subproducts: [] },
   { product: 'Electricals', subproducts: [] },
   { product: 'Automation & Controls', subproducts: [] },
   { product: 'Other rotating equipment', subproducts: [] },
