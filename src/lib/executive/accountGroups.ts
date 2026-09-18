@@ -12,7 +12,7 @@ export interface AccountGroup {
   entities?: string[];
 }
 
-export const EXEC_ACCOUNT_GROUPS_KEY = 'executiveAccountGroups.v2';
+export const EXEC_ACCOUNT_GROUPS_KEY = 'executiveAccountGroups.v3';
 
 export const DEFAULT_ACCOUNT_GROUPS: AccountGroup[] = [
   {
@@ -36,8 +36,8 @@ export const DEFAULT_ACCOUNT_GROUPS: AccountGroup[] = [
   {
     id: 'noc',
     name: 'NOC Group',
-    aliases: ['heritage', 'renaissance'],
-    entities: ['Heritage', 'Renaissance'],
+    aliases: ['heritage', 'renaissance', 'heosl'],
+    entities: ['Heritage', 'Renaissance', 'HEOSL'],
   },
 ];
 
