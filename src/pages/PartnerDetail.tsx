@@ -209,6 +209,24 @@ export default function PartnerDetail() {
               )}
             </Field>
             <Field label="Location">{partner.location}</Field>
+            <Field label="Linked Opportunities">
+              <Link
+                to={`/projects?partner_id=${partner.id}`}
+                className="text-primary hover:underline tabular-nums"
+              >
+                {partner.linkedOpportunitiesCount ?? 0}
+              </Link>
+            </Field>
+            <Field label="Volume">
+              <span className="tabular-nums">
+                {(partner.totalValueUsd ?? 0) > 0
+                  ? `$${(partner.totalValueUsd ?? 0).toLocaleString()}`
+                  : '—'}
+                {(partner.totalValueNgn ?? 0) > 0
+                  ? ` · ₦${(partner.totalValueNgn ?? 0).toLocaleString()}`
+                  : ''}
+              </span>
+            </Field>
             <Field label="Last Contact Date">
               {safeFormatDate(partner.lastContactDate, 'MMM d, yyyy', '—')}
             </Field>

@@ -1,13 +1,14 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ProjectCard } from '@/components/projects/ProjectCard';
 import { AdvancedFilters, FilterState, defaultFilters } from '@/components/projects/AdvancedFilters';
 import { projectsService } from '@/services/projects';
+import { partnersService } from '@/services/partners';
 import { teamService } from '@/services/team';
 import { Button } from '@/components/ui/button';
-import { Plus, Grid3X3, List, Loader2, Upload, Trash2, X, RefreshCw } from 'lucide-react';
+import { Plus, Grid3X3, List, Loader2, Upload, Trash2, X, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Project, Sector } from '@/types';
 import { ProjectImportDialog } from '@/components/projects/ProjectImportDialog';
@@ -140,6 +141,9 @@ export default function Projects() {
   const metricChannelPartners = searchParams.get('channelPartners') || '';
   const metricProducts = searchParams.get('products') || '';
   const metricSubproducts = searchParams.get('subproducts') || '';
+  const partnerIdParam =
+    searchParams.get('partner_id') || searchParams.get('partnerId') || '';
+  const pageParam = Math.max(1, Number(searchParams.get('page') || '1') || 1);
 
   const metricExtra = useMemo(() => {
     const extra: Record<string, string> = {};
@@ -184,11 +188,33 @@ export default function Projects() {
       'channelPartners',
       'products',
       'subproducts',
+      'partner_id',
+      'partnerId',
     ];
     for (const key of preserveKeys) {
       const value = searchParams.get(key);
       if (value) params.set(key, value);
     }
+    params.delete('page');
+    setSearchParams(params, { replace: true });
+  }, [searchParams, setSearchParams]);
+
+  const setPage = useCallback(
+    (nextPage: number) => {
+      const params = new URLSearchParams(searchParams);
+      if (nextPage <= 1) params.delete('page');
+      else params.set('page', String(nextPage));
+      setSearchParams(params, { replace: true });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    },
+    [searchParams, setSearchParams]
+  );
+
+  const clearPartnerFilter = useCallback(() => {
+    const params = new URLSearchParams(searchParams);
+    params.delete('partner_id');
+    params.delete('partnerId');
+    params.delete('page');
     setSearchParams(params, { replace: true });
   }, [searchParams, setSearchParams]);
 
@@ -253,23 +279,31 @@ export default function Projects() {
     metricAggregateError,
   ]);
 
-  const apiParams = useMemo(() => filterStateToApiParams(filters), [filters]);
+  const apiParams = useMemo(() => {
+    const params = filterStateToApiParams(filters);
+    if (partnerIdParam) params.partner_id = partnerIdParam;
+    params.page = pageParam;
+    return params;
+  }, [filters, partnerIdParam, pageParam]);
 
   const {
-    data: listPages,
+    data: listData,
     isLoading: listLoading,
     refetch: refetchList,
     isFetching: listFetching,
-    isFetchingNextPage,
-    fetchNextPage,
-    hasNextPage,
-  } = useInfiniteQuery({
+  } = useQuery({
     queryKey: ['projects-list', apiParams],
-    queryFn: ({ pageParam }) => projectsService.list({ ...apiParams, page: pageParam }),
-    initialPageParam: 1,
-    getNextPageParam: (last) => (last.page < last.lastPage ? last.page + 1 : undefined),
+    queryFn: () => projectsService.list(apiParams),
     staleTime: 60 * 1000,
     enabled: !isMetricDrill,
+    placeholderData: (prev) => prev,
+  });
+
+  const { data: filterPartner } = useQuery({
+    queryKey: ['partner', partnerIdParam],
+    queryFn: () => partnersService.getById(partnerIdParam),
+    enabled: !!partnerIdParam && !isMetricDrill,
+    staleTime: 5 * 60 * 1000,
   });
 
   const { data: facets = {} } = useQuery({
@@ -285,6 +319,13 @@ export default function Projects() {
     queryFn: () => teamService.getAll(),
     staleTime: 5 * 60 * 1000,
   });
+
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [metric, metricFrom, metricTo, metricPeriod]);
 
   const projects: Project[] = useMemo(() => {
     if (isMetricDrill) {
@@ -307,17 +348,30 @@ export default function Projects() {
       }
       return rows;
     }
-    return listPages?.pages.flatMap((page) => page.projects) ?? [];
-  }, [isMetricDrill, metricResult, listPages, metric, filters.businessVerticals, filters.products]);
+    return listData?.projects ?? [];
+  }, [isMetricDrill, metricResult, listData, metric, filters.businessVerticals, filters.products]);
 
   const filteredProjects = projects;
 
   const isLoading = isMetricDrill ? metricLoading : listLoading;
-  const isFetching = isMetricDrill ? metricFetching : (listFetching && !isFetchingNextPage);
+  const isFetching = isMetricDrill ? metricFetching : listFetching;
   const refetch = isMetricDrill ? refetchMetric : refetchList;
   const headerCount = isMetricDrill
     ? (metricResult?.total ?? filteredProjects.length)
-    : (listPages?.pages[0]?.total ?? filteredProjects.length);
+    : (listData?.total ?? filteredProjects.length);
+
+  const lastPage = Math.max(1, listData?.lastPage ?? 1);
+  const currentPage = listData?.page ?? pageParam;
+
+  const pageNumbers = useMemo(() => {
+    const pages: number[] = [];
+    const windowSize = 5;
+    let start = Math.max(1, currentPage - Math.floor(windowSize / 2));
+    let end = Math.min(lastPage, start + windowSize - 1);
+    start = Math.max(1, end - windowSize + 1);
+    for (let p = start; p <= end; p++) pages.push(p);
+    return pages;
+  }, [currentPage, lastPage]);
 
   const reportFilterSummary = useMemo<ProjectFilterSummary>(() => ({
     search: filters.search || undefined,
@@ -329,36 +383,23 @@ export default function Projects() {
     projectLeads: filters.projectLeads,
   }), [filters]);
 
-  // Render the list incrementally for metric drill-downs (full record sets).
-  // The regular list pages from the API, so scroll loads the next server page.
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
-  const sentinelRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    setVisibleCount(PAGE_SIZE);
-  }, [metric, metricFrom, metricTo, metricPeriod]);
-
   useEffect(() => {
     const node = sentinelRef.current;
-    if (!node) return;
+    if (!node || !isMetricDrill) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
         if (!entries[0]?.isIntersecting) return;
-        if (isMetricDrill) {
-          setVisibleCount((current) => Math.min(current + PAGE_SIZE, filteredProjects.length));
-          return;
-        }
-        if (hasNextPage && !isFetchingNextPage) {
-          fetchNextPage();
-        }
+        setVisibleCount((current) =>
+          Math.min(current + PAGE_SIZE, filteredProjects.length)
+        );
       },
       { rootMargin: '800px' }
     );
 
     observer.observe(node);
     return () => observer.disconnect();
-  }, [isMetricDrill, filteredProjects.length, visibleCount, hasNextPage, isFetchingNextPage, fetchNextPage]);
+  }, [isMetricDrill, filteredProjects.length, visibleCount]);
 
   const visibleProjects = useMemo(
     () => (isMetricDrill ? filteredProjects.slice(0, visibleCount) : filteredProjects),
@@ -418,7 +459,13 @@ export default function Projects() {
         <div>
           <h1 className="text-2xl lg:text-3xl font-bold">{pageTitle}</h1>
           <p className="text-muted-foreground mt-1">
-            {isLoading ? 'Loading...' : `${headerCount} projects found`}
+            {isLoading
+              ? 'Loading...'
+              : `${headerCount} projects found${
+                  !isMetricDrill && lastPage > 1
+                    ? ` · Page ${currentPage} of ${lastPage}`
+                    : ''
+                }`}
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -509,6 +556,34 @@ export default function Projects() {
 
       <ProjectImportDialog open={importOpen} onOpenChange={setImportOpen} />
 
+      {partnerIdParam && !isMetricDrill && (
+        <div className="flex items-center justify-between gap-3 rounded-lg border border-border px-4 py-3">
+          <p className="text-sm text-muted-foreground">
+            Showing opportunities linked to{' '}
+            <span className="font-medium text-foreground">
+              {filterPartner?.companyName || `partner #${partnerIdParam}`}
+            </span>
+            {typeof filterPartner?.linkedOpportunitiesCount === 'number' && (
+              <>
+                {' '}
+                · partner card count:{' '}
+                <span className="tabular-nums text-foreground">
+                  {filterPartner.linkedOpportunitiesCount}
+                </span>
+                {' · list total: '}
+                <span className="tabular-nums text-foreground">{headerCount}</span>
+                {filterPartner.linkedOpportunitiesCount === headerCount
+                  ? ' · matched'
+                  : ' · mismatch'}
+              </>
+            )}
+          </p>
+          <Button variant="link" onClick={clearPartnerFilter}>
+            Clear partner filter
+          </Button>
+        </div>
+      )}
+
       {isMetricDrill ? (
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-3 rounded-lg border border-border px-4 py-3">
@@ -578,9 +653,87 @@ export default function Projects() {
               </div>
             ))}
           </div>
-          {(isMetricDrill ? visibleCount < filteredProjects.length : hasNextPage) && (
+          {(isMetricDrill ? visibleCount < filteredProjects.length : false) && (
             <div ref={sentinelRef} className="flex items-center justify-center py-6">
               <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+            </div>
+          )}
+          {!isMetricDrill && lastPage > 1 && (
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
+              <p className="text-sm text-muted-foreground">
+                Page {currentPage} of {lastPage}
+                {headerCount > 0
+                  ? ` · showing ${filteredProjects.length} of ${headerCount}`
+                  : ''}
+                {isFetching ? ' · updating…' : ''}
+              </p>
+              <div className="flex flex-wrap items-center gap-1">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage <= 1 || isFetching}
+                  onClick={() => setPage(currentPage - 1)}
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  Previous
+                </Button>
+                {pageNumbers[0] > 1 && (
+                  <>
+                    <Button
+                      type="button"
+                      variant={currentPage === 1 ? 'default' : 'outline'}
+                      size="sm"
+                      className="min-w-9"
+                      onClick={() => setPage(1)}
+                    >
+                      1
+                    </Button>
+                    {pageNumbers[0] > 2 && (
+                      <span className="px-1 text-muted-foreground">…</span>
+                    )}
+                  </>
+                )}
+                {pageNumbers.map((p) => (
+                  <Button
+                    key={p}
+                    type="button"
+                    variant={p === currentPage ? 'default' : 'outline'}
+                    size="sm"
+                    className="min-w-9"
+                    disabled={isFetching}
+                    onClick={() => setPage(p)}
+                  >
+                    {p}
+                  </Button>
+                ))}
+                {pageNumbers[pageNumbers.length - 1] < lastPage && (
+                  <>
+                    {pageNumbers[pageNumbers.length - 1] < lastPage - 1 && (
+                      <span className="px-1 text-muted-foreground">…</span>
+                    )}
+                    <Button
+                      type="button"
+                      variant={currentPage === lastPage ? 'default' : 'outline'}
+                      size="sm"
+                      className="min-w-9"
+                      onClick={() => setPage(lastPage)}
+                    >
+                      {lastPage}
+                    </Button>
+                  </>
+                )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage >= lastPage || isFetching}
+                  onClick={() => setPage(currentPage + 1)}
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
             </div>
           )}
         </>

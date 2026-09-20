@@ -554,9 +554,16 @@ export default function Partners() {
                       <div className="space-y-1.5 text-sm sm:text-right">
                         <p className="text-muted-foreground">
                           Linked opportunities:{' '}
-                          <span className="text-foreground font-medium tabular-nums">
+                          <button
+                            type="button"
+                            className="text-foreground font-medium tabular-nums text-primary hover:underline"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/projects?partner_id=${partner.id}`);
+                            }}
+                          >
                             {partner.linkedOpportunitiesCount ?? 0}
-                          </span>
+                          </button>
                         </p>
                         <p className="text-muted-foreground">
                           Volume:{' '}
