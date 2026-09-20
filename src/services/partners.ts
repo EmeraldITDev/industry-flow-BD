@@ -62,6 +62,17 @@ export const normalizePartner = (raw: any): Partner => {
     contactPerson: raw.contactPerson ?? raw.contact_person ?? '',
     email: raw.email ?? '',
     phone: raw.phone ?? '',
+    type: Array.isArray(raw.type)
+      ? raw.type.map(String)
+      : typeof raw.type === 'string' && raw.type.trim()
+        ? raw.type.split(/[;,|]/).map((s: string) => s.trim()).filter(Boolean)
+        : [],
+    agreementType: raw.agreementType ?? raw.agreement_type ?? null,
+    specialization: raw.specialization ?? '',
+    website: raw.website ?? '',
+    location: raw.location ?? '',
+    strategicValue: raw.strategicValue ?? raw.strategic_value ?? null,
+    engagementStatus: raw.engagementStatus ?? raw.engagement_status ?? null,
     isProfileComplete: (() => {
       if (typeof raw.isProfileComplete === 'boolean') return raw.isProfileComplete;
       if (typeof raw.is_profile_complete === 'boolean') return raw.is_profile_complete;
@@ -77,6 +88,9 @@ export const normalizePartner = (raw: any): Partner => {
       : [],
     productCategories: Array.isArray(raw.productCategories ?? raw.product_categories)
       ? (raw.productCategories ?? raw.product_categories).map(String)
+      : [],
+    subProductCategories: Array.isArray(raw.subProductCategories ?? raw.sub_product_categories)
+      ? (raw.subProductCategories ?? raw.sub_product_categories).map(String)
       : [],
     lastContactDate: raw.lastContactDate ?? raw.last_contact_date ?? null,
     nextAction: raw.nextAction ?? raw.next_action ?? '',
@@ -104,10 +118,18 @@ const toPayload = (data: CreatePartnerData | UpdatePartnerData): Record<string, 
     contactPerson: 'contact_person',
     email: 'email',
     phone: 'phone',
+    type: 'type',
+    agreementType: 'agreement_type',
+    specialization: 'specialization',
+    website: 'website',
+    location: 'location',
+    strategicValue: 'strategic_value',
+    engagementStatus: 'engagement_status',
     relationshipOwnerIds: 'relationship_owner_ids',
     relationshipStage: 'relationship_stage',
     verticals: 'verticals',
     productCategories: 'product_categories',
+    subProductCategories: 'sub_product_categories',
     lastContactDate: 'last_contact_date',
     nextAction: 'next_action',
     notes: 'notes',

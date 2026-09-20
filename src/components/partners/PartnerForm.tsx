@@ -14,12 +14,15 @@ import {
 import { MultiSearchableSelect } from '@/components/ui/multi-searchable-select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Users } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { businessVerticals } from '@/data/mockData';
-import { PRODUCT_OPTIONS } from '@/data/productCatalog';
+import { PRODUCT_OPTIONS, getSubproductOptions } from '@/data/productCatalog';
 import { teamService } from '@/services/team';
 import {
+  AGREEMENT_TYPES,
+  ENGAGEMENT_STATUSES,
+  PARTNER_TYPES,
   RELATIONSHIP_STAGES,
+  STRATEGIC_VALUES,
   type CreatePartnerData,
   type Partner,
   type RelationshipStage,
@@ -30,13 +33,23 @@ export type PartnerFormValues = {
   contactPerson: string;
   email: string;
   phone: string;
+  type: string[];
+  agreementType: string;
+  specialization: string;
+  website: string;
+  location: string;
+  strategicValue: string;
+  engagementStatus: string;
   relationshipOwnerIds: string[];
   relationshipStage: RelationshipStage | string;
   verticals: string[];
   productCategories: string[];
+  subProductCategories: string[];
   nextAction: string;
   notes: string;
 };
+
+const NONE = '__none__';
 
 export function emptyPartnerForm(): PartnerFormValues {
   return {
@@ -44,10 +57,18 @@ export function emptyPartnerForm(): PartnerFormValues {
     contactPerson: '',
     email: '',
     phone: '',
+    type: [],
+    agreementType: '',
+    specialization: '',
+    website: '',
+    location: '',
+    strategicValue: '',
+    engagementStatus: '',
     relationshipOwnerIds: [],
     relationshipStage: 'Identified',
     verticals: [],
     productCategories: [],
+    subProductCategories: [],
     nextAction: '',
     notes: '',
   };
@@ -59,10 +80,18 @@ export function partnerToFormValues(partner: Partner): PartnerFormValues {
     contactPerson: partner.contactPerson ?? '',
     email: partner.email ?? '',
     phone: partner.phone ?? '',
+    type: partner.type ?? [],
+    agreementType: partner.agreementType ?? '',
+    specialization: partner.specialization ?? '',
+    website: partner.website ?? '',
+    location: partner.location ?? '',
+    strategicValue: partner.strategicValue ?? '',
+    engagementStatus: partner.engagementStatus ?? '',
     relationshipOwnerIds: partner.relationshipOwnerIds ?? [],
     relationshipStage: partner.relationshipStage || 'Identified',
     verticals: partner.verticals ?? [],
     productCategories: partner.productCategories ?? [],
+    subProductCategories: partner.subProductCategories ?? [],
     nextAction: partner.nextAction ?? '',
     notes: partner.notes ?? '',
   };
@@ -74,10 +103,18 @@ export function formValuesToPayload(values: PartnerFormValues): CreatePartnerDat
     contactPerson: values.contactPerson.trim() || undefined,
     email: values.email.trim() || undefined,
     phone: values.phone.trim() || undefined,
+    type: values.type,
+    agreementType: values.agreementType.trim() || null,
+    specialization: values.specialization.trim() || undefined,
+    website: values.website.trim() || undefined,
+    location: values.location.trim() || undefined,
+    strategicValue: values.strategicValue.trim() || null,
+    engagementStatus: values.engagementStatus.trim() || null,
     relationshipOwnerIds: values.relationshipOwnerIds,
     relationshipStage: values.relationshipStage,
     verticals: values.verticals,
     productCategories: values.productCategories,
+    subProductCategories: values.subProductCategories,
     nextAction: values.nextAction.trim() || undefined,
     notes: values.notes.trim() || undefined,
   };
@@ -87,7 +124,6 @@ interface PartnerFormProps {
   initial?: PartnerFormValues;
   submitting?: boolean;
   submitLabel?: string;
-  /** When false, omit Cancel/Submit — parent sheet owns the footer. */
   showActions?: boolean;
   onSubmit: (values: PartnerFormValues) => void | Promise<void>;
   onCancel?: () => void;
@@ -126,6 +162,21 @@ export function PartnerForm({
     value: v,
     label: v,
   }));
+
+  const typeOptions = PARTNER_TYPES.map((t) => ({ value: t, label: t }));
+
+  const handleProductsChange = (productCategories: string[]) => {
+    const allowed = new Set(
+      getSubproductOptions(productCategories).map((o) => o.value)
+    );
+    setValues((prev) => ({
+      ...prev,
+      productCategories,
+      subProductCategories: prev.subProductCategories.filter((sp) =>
+        allowed.has(sp)
+      ),
+    }));
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -176,15 +227,162 @@ export function PartnerForm({
         </div>
       </div>
 
+      <div className="grid gap-5 sm:grid-cols-2">
+        <div className="space-y-2.5">
+          <Label htmlFor="partner-phone">Phone</Label>
+          <Input
+            id="partner-phone"
+            value={values.phone}
+            onChange={(e) =>
+              setValues((prev) => ({ ...prev, phone: e.target.value }))
+            }
+            placeholder="+234 ..."
+          />
+        </div>
+        <div className="space-y-2.5">
+          <Label htmlFor="partner-website">Website</Label>
+          <Input
+            id="partner-website"
+            value={values.website}
+            onChange={(e) =>
+              setValues((prev) => ({ ...prev, website: e.target.value }))
+            }
+            placeholder="https://example.com"
+          />
+        </div>
+      </div>
+
       <div className="space-y-2.5">
-        <Label htmlFor="partner-phone">Phone</Label>
+        <Label htmlFor="partner-location">Location</Label>
         <Input
-          id="partner-phone"
-          value={values.phone}
+          id="partner-location"
+          value={values.location}
           onChange={(e) =>
-            setValues((prev) => ({ ...prev, phone: e.target.value }))
+            setValues((prev) => ({ ...prev, location: e.target.value }))
           }
-          placeholder="+234 ..."
+          placeholder="City, Country"
+        />
+      </div>
+
+      <div className="space-y-2.5">
+        <Label>Type</Label>
+        <MultiSearchableSelect
+          values={values.type}
+          onValuesChange={(type) => setValues((prev) => ({ ...prev, type }))}
+          options={typeOptions}
+          placeholder="Select partner types"
+          searchPlaceholder="Search types..."
+        />
+      </div>
+
+      <div className="grid gap-5 sm:grid-cols-2">
+        <div className="space-y-2.5">
+          <Label>Agreement Type</Label>
+          <Select
+            value={values.agreementType || NONE}
+            onValueChange={(v) =>
+              setValues((prev) => ({
+                ...prev,
+                agreementType: v === NONE ? '' : v,
+              }))
+            }
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select agreement type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={NONE}>None</SelectItem>
+              {AGREEMENT_TYPES.map((t) => (
+                <SelectItem key={t} value={t}>
+                  {t}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2.5">
+          <Label>Strategic Value</Label>
+          <Select
+            value={values.strategicValue || NONE}
+            onValueChange={(v) =>
+              setValues((prev) => ({
+                ...prev,
+                strategicValue: v === NONE ? '' : v,
+              }))
+            }
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select strategic value" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={NONE}>None</SelectItem>
+              {STRATEGIC_VALUES.map((t) => (
+                <SelectItem key={t} value={t}>
+                  {t}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="grid gap-5 sm:grid-cols-2">
+        <div className="space-y-2.5">
+          <Label>Engagement Status</Label>
+          <Select
+            value={values.engagementStatus || NONE}
+            onValueChange={(v) =>
+              setValues((prev) => ({
+                ...prev,
+                engagementStatus: v === NONE ? '' : v,
+              }))
+            }
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select engagement status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={NONE}>None</SelectItem>
+              {ENGAGEMENT_STATUSES.map((t) => (
+                <SelectItem key={t} value={t}>
+                  {t}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2.5">
+          <Label>Relationship Stage</Label>
+          <Select
+            value={values.relationshipStage}
+            onValueChange={(relationshipStage) =>
+              setValues((prev) => ({ ...prev, relationshipStage }))
+            }
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select stage" />
+            </SelectTrigger>
+            <SelectContent>
+              {RELATIONSHIP_STAGES.map((stage) => (
+                <SelectItem key={stage} value={stage}>
+                  {stage}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="space-y-2.5">
+        <Label htmlFor="partner-specialization">Specialization</Label>
+        <Textarea
+          id="partner-specialization"
+          value={values.specialization}
+          onChange={(e) =>
+            setValues((prev) => ({ ...prev, specialization: e.target.value }))
+          }
+          placeholder="Capabilities, focus areas, OEMs supported…"
+          rows={2}
         />
       </div>
 
@@ -212,27 +410,6 @@ export function PartnerForm({
       </div>
 
       <div className="space-y-2.5">
-        <Label>Relationship Stage</Label>
-        <Select
-          value={values.relationshipStage}
-          onValueChange={(relationshipStage) =>
-            setValues((prev) => ({ ...prev, relationshipStage }))
-          }
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select stage" />
-          </SelectTrigger>
-          <SelectContent>
-            {RELATIONSHIP_STAGES.map((stage) => (
-              <SelectItem key={stage} value={stage}>
-                {stage}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-2.5">
         <Label>Verticals</Label>
         <MultiSearchableSelect
           values={values.verticals}
@@ -249,12 +426,37 @@ export function PartnerForm({
         <Label>Product Categories</Label>
         <MultiSearchableSelect
           values={values.productCategories}
-          onValuesChange={(productCategories) =>
-            setValues((prev) => ({ ...prev, productCategories }))
-          }
+          onValuesChange={handleProductsChange}
           options={PRODUCT_OPTIONS}
           placeholder="Select product categories"
           searchPlaceholder="Search products..."
+        />
+      </div>
+
+      <div className="space-y-2.5">
+        <Label>Sub Product Categories</Label>
+        <MultiSearchableSelect
+          values={values.subProductCategories}
+          onValuesChange={(subProductCategories) =>
+            setValues((prev) => ({ ...prev, subProductCategories }))
+          }
+          options={(() => {
+            const catalogOptions = getSubproductOptions(values.productCategories);
+            const extraSaved = values.subProductCategories
+              .filter((sp) => !catalogOptions.some((o) => o.value === sp))
+              .map((sp) => ({ value: sp, label: sp }));
+            return [...catalogOptions, ...extraSaved];
+          })()}
+          disabled={values.productCategories.length === 0}
+          placeholder={
+            values.productCategories.length === 0
+              ? 'Select a product first'
+              : 'Select sub products'
+          }
+          searchPlaceholder="Search or add sub products..."
+          allowCreate
+          createLabel={(q) => `Add sub product "${q}"`}
+          emptyText="No sub products found. Type to add a new one."
         />
       </div>
 

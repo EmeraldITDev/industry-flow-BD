@@ -1,0 +1,875 @@
+{
+  "total_data_rows": 119,
+  "unique_clauses": [
+    {
+      "raw_clause": "Positive Displacement Pumps Manufacturer",
+      "mapped_product": "Capital Parts",
+      "mapped_subproducts": [
+        "Pumps"
+      ],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Automation",
+      "mapped_product": "Automation & Controls",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Valves Manufacturer (API 6A,6D,17D and 6DSS for onshore/offshore applications up to 20.000 psi)",
+      "mapped_product": "Capital Parts",
+      "mapped_subproducts": [
+        "Valves"
+      ],
+      "flag": "specialization_from_paren",
+      "parsed_inner": "API 6A,6D,17D and 6DSS for onshore/offshore applications up to 20.000 psi",
+      "specialization": "API 6A,6D,17D and 6DSS for onshore/offshore applications up to 20.000 psi"
+    },
+    {
+      "raw_clause": "Pumps & Valves Systems",
+      "mapped_product": "Capital Parts",
+      "mapped_subproducts": [
+        "Valves"
+      ],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "NDT Solutions",
+      "mapped_product": "Other Products",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Alternative Repair & Machining",
+      "mapped_product": "Repairs / Upgrades / Services",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Sensing & Measurement, Control & Processing",
+      "mapped_product": "Automation & Controls",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Quality Gas Turbine Parts For GE, WH & Siemens",
+      "mapped_product": "Capital Parts",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Power Transmission/Gearboxes",
+      "mapped_product": "Capital Parts",
+      "mapped_subproducts": [
+        "Gearboxes"
+      ],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Turbo Machinery Systems, PVS",
+      "mapped_product": "Capital Parts",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "design, engineering, construction, testing, commissioning and servicing of a wide range of products and service",
+      "mapped_product": "Repairs / Upgrades / Services",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Building modular power plants for modular reactors.",
+      "mapped_product": "Other Products",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Compressors & Valves",
+      "mapped_product": "Capital Parts",
+      "mapped_subproducts": [
+        "Valves"
+      ],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Actuators and Valves Equipments",
+      "mapped_product": "Capital Parts",
+      "mapped_subproducts": [
+        "Valves"
+      ],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Butterfly, ball, knife gate and check valves",
+      "mapped_product": "Capital Parts",
+      "mapped_subproducts": [
+        "Valves"
+      ],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "actuators and controls",
+      "mapped_product": "Capital Parts",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Valves Manufacturer",
+      "mapped_product": "Capital Parts",
+      "mapped_subproducts": [
+        "Valves"
+      ],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "EPC and Logistics Partner",
+      "mapped_product": "Other Products",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "HV/LV Switchgears, Renewable products",
+      "mapped_product": "Electricals",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Maintenance, repairs, overhauls, site management, consultancy, training, field services",
+      "mapped_product": "Repairs / Upgrades / Services",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "O&M, Power Gen & Process Solutions",
+      "mapped_product": "O&M services",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Subsea offshore equipment, service turbomachinery",
+      "mapped_product": "Capital Parts",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "GE industrial Gas Turbine capital parts & consumables for Novo Pignone Gas turbines. Siemens V94.2 gas turbine non-OEM capital and consumable part Westinghouse/Fiat turbine non-OEM capital parts and consumables. Consumables for Aero-derivative gas turbines",
+      "mapped_product": "Consumables",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "On-grid and Off-grid meters (SKD)",
+      "mapped_product": "Meters",
+      "mapped_subproducts": [
+        "SKD"
+      ],
+      "flag": null,
+      "parsed_inner": "SKD",
+      "specialization": null
+    },
+    {
+      "raw_clause": "Saudi Aramco Approved Manufacturer for Forged Valves",
+      "mapped_product": "Capital Parts",
+      "mapped_subproducts": [
+        "Valves"
+      ],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "LV/MV Components",
+      "mapped_product": "Electricals",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Industrial Equipment Marketplace",
+      "mapped_product": "Other Products",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Solar Panels, Battery Storage etc",
+      "mapped_product": "Other Products",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Outages, inspections, repairs, overhauls, rotor life extension, field services",
+      "mapped_product": "Repairs / Upgrades / Services",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Maintenance, installation, commissioning, start-up, overhauls",
+      "mapped_product": "Repairs / Upgrades / Services",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Maintenance, support, upgrades, commissioning",
+      "mapped_product": "Repairs / Upgrades / Services",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Instrumentation & Control Systems",
+      "mapped_product": "Automation & Controls",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Instrumentation & Control Equipments",
+      "mapped_product": "Automation & Controls",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Custom Engineered Compressor Systems",
+      "mapped_product": "Capital Parts",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "GE Combustion components",
+      "mapped_product": "Capital Parts",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Capital Spares in Mechanical",
+      "mapped_product": "Capital Parts",
+      "mapped_subproducts": [
+        "Spares"
+      ],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Industrial process Solutions",
+      "mapped_product": "Other Products",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Pumps",
+      "mapped_product": "Capital Parts",
+      "mapped_subproducts": [
+        "Pumps"
+      ],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Compressors & Turbines Equipments",
+      "mapped_product": "Capital Parts",
+      "mapped_subproducts": [
+        "Compressors"
+      ],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Gas & Steam Turbines (GE, Siemens, Solar etc)",
+      "mapped_product": "Capital Parts",
+      "mapped_subproducts": [
+        "GE, Siemens, Solar etc"
+      ],
+      "flag": null,
+      "parsed_inner": "GE, Siemens, Solar etc",
+      "specialization": null
+    },
+    {
+      "raw_clause": "GE Medical equipment",
+      "mapped_product": "Other Products",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "GE Turbomachinery Equipment",
+      "mapped_product": "Capital Parts",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Power Gen,Transimssion, Chemicals",
+      "mapped_product": "Other Products",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Siemens Parts - Agent",
+      "mapped_product": "Capital Parts",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Lufkin/BH Field services",
+      "mapped_product": "Repairs / Upgrades / Services",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Control & Automation Systems, Equipments and Services",
+      "mapped_product": "Automation & Controls",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Electrical Works",
+      "mapped_product": "Electricals",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Power equipment, Digital, Automation etc.",
+      "mapped_product": "Automation & Controls",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Industrial Technology & Automation",
+      "mapped_product": "Automation & Controls",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Pumps & Fluid Handling Systems",
+      "mapped_product": "Capital Parts",
+      "mapped_subproducts": [
+        "Pumps"
+      ],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "specializes in oil & gas engineering services, including underwater/marine engineering, pipeline installation, welding & fabrication, NDT inspection, civil engineering works, and the supply of oilfield tools and materials.",
+      "mapped_product": "Repairs / Upgrades / Services",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Pumps & Valves",
+      "mapped_product": "Capital Parts",
+      "mapped_subproducts": [
+        "Valves"
+      ],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Consumables",
+      "mapped_product": "Consumables",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Pumps Manufacturer",
+      "mapped_product": "Capital Parts",
+      "mapped_subproducts": [
+        "Pumps"
+      ],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Capital Spares for Frame 5,6 etc.",
+      "mapped_product": "Capital Parts",
+      "mapped_subproducts": [
+        "Spares"
+      ],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "O&G Upstream project development & funding",
+      "mapped_product": "Other Products",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Electrical Spare, Mechanical",
+      "mapped_product": "Electricals",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Support and maintenance, repairs, overhauls-Parts and modules (turbines, compressors, brush seals)",
+      "mapped_product": "Repairs / Upgrades / Services",
+      "mapped_subproducts": [],
+      "flag": "specialization_from_paren",
+      "parsed_inner": "turbines, compressors, brush seals",
+      "specialization": "turbines, compressors, brush seals"
+    },
+    {
+      "raw_clause": "electric motors, generators, drives, automation, transformers, and power generation equipment (including wind and steam turbines), offering complete solutions for electrification, automation, and energy efficiency across industrial, oil & gas, and power sectors.",
+      "mapped_product": "Automation & Controls",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "specialized engineering and supply(capabilities in GT component manufacturing, refurbishment, deep vetted technical expertise with GE frame class turbines)",
+      "mapped_product": "Repairs / Upgrades / Services",
+      "mapped_subproducts": [],
+      "flag": "specialization_from_paren",
+      "parsed_inner": "capabilities in GT component manufacturing, refurbishment, deep vetted technical expertise with GE frame class turbines",
+      "specialization": "capabilities in GT component manufacturing, refurbishment, deep vetted technical expertise with GE frame class turbines"
+    },
+    {
+      "raw_clause": "Gate, Globe and Non-Return Valves",
+      "mapped_product": "Capital Parts",
+      "mapped_subproducts": [
+        "Valves"
+      ],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Ball Valves",
+      "mapped_product": "Capital Parts",
+      "mapped_subproducts": [
+        "Valves"
+      ],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Butterfly Valves",
+      "mapped_product": "Capital Parts",
+      "mapped_subproducts": [
+        "Valves"
+      ],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Strainers",
+      "mapped_product": "Capital Parts",
+      "mapped_subproducts": [
+        "Valves"
+      ],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Needle Valves and more",
+      "mapped_product": "Capital Parts",
+      "mapped_subproducts": [
+        "Valves"
+      ],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Rotating Equipment Parts & consumables",
+      "mapped_product": "Consumables",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Measuring & Testing Equipments",
+      "mapped_product": "Other Products",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Power Transformers",
+      "mapped_product": "Electricals",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "SHS Systems",
+      "mapped_product": "Other Products",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Rotating Equipment services, Parts & consumables",
+      "mapped_product": "Consumables",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "PLC, SCADA Based Solutions",
+      "mapped_product": "Automation & Controls",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Fabrication",
+      "mapped_product": "Other Products",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "electrical contractor specialising rotating machinery design and maintenance and coil design for a range of global industries.",
+      "mapped_product": "Repairs / Upgrades / Services",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Safety",
+      "mapped_product": "Other Products",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Maintenance, repairs, revamps, field services",
+      "mapped_product": "Repairs / Upgrades / Services",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Spare parts via re-engineering, consumables",
+      "mapped_product": "Consumables",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "maintenance, shutdown, fabrication, and testing of rotary equipment and static equipment across sectors",
+      "mapped_product": "Repairs / Upgrades / Services",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Manufacturer of Pumps",
+      "mapped_product": "Capital Parts",
+      "mapped_subproducts": [
+        "Pumps"
+      ],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "High Pressure Air & Gas Compressors",
+      "mapped_product": "Capital Parts",
+      "mapped_subproducts": [
+        "Compressors"
+      ],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Electircal components - PLCs, Switchgears, etc.",
+      "mapped_product": "Electricals",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Valves, pumps and industrial equipment",
+      "mapped_product": "Capital Parts",
+      "mapped_subproducts": [
+        "Valves"
+      ],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Supply, repair, overhaul of gas turbines and support equipment, maintenance, independent counseling",
+      "mapped_product": "Repairs / Upgrades / Services",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Instrumentation",
+      "mapped_product": "Automation & Controls",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Solar Systems",
+      "mapped_product": "Other Products",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "On-grid and Off-grid meters",
+      "mapped_product": "Meters",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "AMI Software Platform",
+      "mapped_product": "Meters",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Sulzer provides cutting-edge parts as well as maintenance and repair solutions for pumps, turbines, compressors, motors and generators.",
+      "mapped_product": "Repairs / Upgrades / Services",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Supply, repair, overhaul of gas turbines and support equipment, maintenance services",
+      "mapped_product": "Repairs / Upgrades / Services",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "specializes in gas and steam turbines, offering supply of capital spares, parts, and support services for turbomachinery, including diagnostics, refurbishment, field services, and engineering solutions for power generation and oil & gas industries.",
+      "mapped_product": "Repairs / Upgrades / Services",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Pumps and Valves Manufacturer",
+      "mapped_product": "Capital Parts",
+      "mapped_subproducts": [
+        "Valves"
+      ],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Control & Automation Systems",
+      "mapped_product": "Automation & Controls",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "After-sale services, maintenance, repairs, overhauls, upgrades",
+      "mapped_product": "Repairs / Upgrades / Services",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Capital spares, consumables for hot gas path and combustion systems",
+      "mapped_product": "Consumables",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Machining",
+      "mapped_product": "Repairs / Upgrades / Services",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "primary services focus on producing the highest quality replacement parts for electricity generating Power Plants such as utility companies",
+      "mapped_product": "Capital Parts",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Parts, Operation & maintenance, repairs, overhauls, field services, hot section exchanges - TM2500",
+      "mapped_product": "O&M services",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "specializes in GE LM aero-derivative gas turbines (LM2500, LM6000, TM2500, etc.), offering independent supply of capital spares, technical support, field services, maintenance, and performance optimization solutions.",
+      "mapped_product": "Repairs / Upgrades / Services",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "specializes in electric motors, generators, drives, automation, transformers, and power generation equipment (including wind and steam turbines), offering complete solutions for electrification, automation, and energy efficiency across industrial, oil & gas, and power sectors.",
+      "mapped_product": "Automation & Controls",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Electric motors, ESS, etc.",
+      "mapped_product": "Electricals",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "EV Tricycles Manufacturing",
+      "mapped_product": "Other Products",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "EPC-India",
+      "mapped_product": "Other Products",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    },
+    {
+      "raw_clause": "Automation, control & safety, Electrical & instrumentation \u2014 LV/MV power systems, motor control centres, VFDs, calibration",
+      "mapped_product": "Automation & Controls",
+      "mapped_subproducts": [],
+      "flag": null,
+      "parsed_inner": null,
+      "specialization": null
+    }
+  ]
+}

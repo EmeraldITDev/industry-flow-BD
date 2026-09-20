@@ -16,6 +16,30 @@ export const RELATIONSHIP_STAGES = [
 
 export type RelationshipStage = (typeof RELATIONSHIP_STAGES)[number];
 
+export const PARTNER_TYPES = ['OEM', 'OCM', 'ISP', 'Aggregator'] as const;
+export type PartnerType = (typeof PARTNER_TYPES)[number];
+
+export const AGREEMENT_TYPES = [
+  'Transactional',
+  'CPA',
+  'MOU',
+  'NCNDA',
+  'MSA',
+] as const;
+export type AgreementType = (typeof AGREEMENT_TYPES)[number];
+
+export const STRATEGIC_VALUES = [
+  'High',
+  'Medium',
+  'Low',
+  'Uncertain',
+] as const;
+export type StrategicValue = (typeof STRATEGIC_VALUES)[number];
+
+/** Extensible list — seed with Active; add more statuses over time. */
+export const ENGAGEMENT_STATUSES = ['Active'] as const;
+export type EngagementStatus = (typeof ENGAGEMENT_STATUSES)[number];
+
 export interface PartnerOwner {
   id: string;
   name: string;
@@ -36,6 +60,13 @@ export interface Partner {
   contactPerson?: string;
   email?: string;
   phone?: string;
+  type: string[];
+  agreementType?: string | null;
+  specialization?: string;
+  website?: string;
+  location?: string;
+  strategicValue?: string | null;
+  engagementStatus?: string | null;
   /** False when contact person or email is missing (e.g. migrated name-only partners). */
   isProfileComplete?: boolean;
   relationshipOwnerIds: string[];
@@ -43,6 +74,7 @@ export interface Partner {
   relationshipStage: RelationshipStage | string;
   verticals: string[];
   productCategories: string[];
+  subProductCategories: string[];
   lastContactDate?: string | null;
   nextAction?: string;
   notes?: string;
@@ -76,10 +108,18 @@ export interface CreatePartnerData {
   contactPerson?: string;
   email?: string;
   phone?: string;
+  type?: string[];
+  agreementType?: string | null;
+  specialization?: string;
+  website?: string;
+  location?: string;
+  strategicValue?: string | null;
+  engagementStatus?: string | null;
   relationshipOwnerIds?: string[];
   relationshipStage?: RelationshipStage | string;
   verticals?: string[];
   productCategories?: string[];
+  subProductCategories?: string[];
   lastContactDate?: string | null;
   nextAction?: string;
   notes?: string;

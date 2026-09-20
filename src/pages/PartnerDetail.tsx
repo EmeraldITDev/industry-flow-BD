@@ -190,9 +190,44 @@ export default function PartnerDetail() {
             <Field label="Contact Person">{partner.contactPerson}</Field>
             <Field label="Email">{partner.email}</Field>
             <Field label="Phone">{partner.phone}</Field>
+            <Field label="Website">
+              {partner.website ? (
+                <a
+                  href={
+                    /^https?:\/\//i.test(partner.website)
+                      ? partner.website
+                      : `https://${partner.website}`
+                  }
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-primary hover:underline break-all"
+                >
+                  {partner.website}
+                </a>
+              ) : (
+                '—'
+              )}
+            </Field>
+            <Field label="Location">{partner.location}</Field>
             <Field label="Last Contact Date">
               {safeFormatDate(partner.lastContactDate, 'MMM d, yyyy', '—')}
             </Field>
+            <Field label="Type">
+              {(partner.type ?? []).length === 0 ? (
+                '—'
+              ) : (
+                <div className="flex flex-wrap gap-1.5">
+                  {partner.type.map((t) => (
+                    <Badge key={t} variant="secondary" className="text-xs font-normal">
+                      {t}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </Field>
+            <Field label="Agreement Type">{partner.agreementType}</Field>
+            <Field label="Strategic Value">{partner.strategicValue}</Field>
+            <Field label="Engagement Status">{partner.engagementStatus}</Field>
             <Field label="Relationship Owners">
               {ownerNames.length > 0
                 ? ownerNames.join(', ')
@@ -203,6 +238,13 @@ export default function PartnerDetail() {
             <Field label="Relationship Stage">
               <RelationshipStageBadge stage={partner.relationshipStage} />
             </Field>
+            <div className="sm:col-span-2">
+              <Field label="Specialization">
+                <p className="whitespace-pre-wrap font-normal text-muted-foreground">
+                  {partner.specialization?.trim() || '—'}
+                </p>
+              </Field>
+            </div>
             <div className="sm:col-span-2">
               <Field label="Verticals">
                 {partner.verticals.length === 0 ? (
@@ -234,6 +276,21 @@ export default function PartnerDetail() {
                   <div className="flex flex-wrap gap-1.5">
                     {partner.productCategories.map((c) => (
                       <Badge key={c} variant="secondary" className="text-xs font-normal">
+                        {c}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </Field>
+            </div>
+            <div className="sm:col-span-2">
+              <Field label="Sub Product Categories">
+                {(partner.subProductCategories ?? []).length === 0 ? (
+                  '—'
+                ) : (
+                  <div className="flex flex-wrap gap-1.5">
+                    {partner.subProductCategories.map((c) => (
+                      <Badge key={c} variant="outline" className="text-xs font-normal">
                         {c}
                       </Badge>
                     ))}
