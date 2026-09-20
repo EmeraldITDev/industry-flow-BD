@@ -15,7 +15,11 @@ export const PRODUCT_CATALOG: { product: string; subproducts: string[] }[] = [
   { product: 'Electricals', subproducts: [] },
   { product: 'Automation & Controls', subproducts: [] },
   { product: 'Other rotating equipment', subproducts: [] },
-  { product: 'Other services', subproducts: [] },
+  { product: 'O&M services', subproducts: [] },
+  { product: 'Petroleum Products', subproducts: [] },
+  { product: 'Urea', subproducts: [] },
+  { product: 'Meters', subproducts: [] },
+  { product: 'Other Products', subproducts: [] },
 ];
 
 export const PRODUCT_OPTIONS = PRODUCT_CATALOG.map((p) => ({ value: p.product, label: p.product }));
