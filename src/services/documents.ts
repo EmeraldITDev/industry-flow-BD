@@ -115,7 +115,7 @@ function unwrapOne(data: any): any {
 
 export const repositoryDocumentsService = {
   getAll: async (filters: RepositoryFilters = {}): Promise<RepositoryDocument[]> => {
-    const params: Record<string, string> = {};
+    const params: Record<string, string | number> = { all: 1 };
     if (filters.vertical) params.vertical = filters.vertical;
     if (filters.documentType) params.document_type = filters.documentType;
     if (filters.client) params.client = filters.client;
@@ -123,6 +123,35 @@ export const repositoryDocumentsService = {
 
     const response = await api.get('/api/repository-documents', { params });
     return unwrapList(response.data).map(normalizeRepoDoc);
+  },
+
+  list: async (
+    filters: RepositoryFilters & { page?: number; per_page?: number } = {}
+  ): Promise<{
+    documents: RepositoryDocument[];
+    total: number;
+    page: number;
+    lastPage: number;
+  }> => {
+    const params: Record<string, string | number> = {
+      page: filters.page ?? 1,
+      per_page: filters.per_page ?? 50,
+    };
+    if (filters.vertical) params.vertical = filters.vertical;
+    if (filters.documentType) params.document_type = filters.documentType;
+    if (filters.client) params.client = filters.client;
+    if (filters.search) params.search = filters.search;
+
+    const response = await api.get('/api/repository-documents', { params });
+    const body = response.data ?? {};
+    const documents = unwrapList(body).map(normalizeRepoDoc);
+    const meta = body.meta ?? {};
+    return {
+      documents,
+      total: Number(meta.total ?? documents.length),
+      page: Number(meta.current_page ?? params.page),
+      lastPage: Number(meta.last_page ?? 1),
+    };
   },
 
   getById: async (id: string): Promise<RepositoryDocument> => {

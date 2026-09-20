@@ -101,6 +101,7 @@ export function LinkScmVendorModal({
       partnersService.update(partnerId, { scmVendorId: vendorId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['partners'] });
+      queryClient.invalidateQueries({ queryKey: ['partners-list'] });
       queryClient.invalidateQueries({ queryKey: ['partner', partnerId] });
       queryClient.invalidateQueries({ queryKey: ['project-partners'] });
       toast.success('SCM vendor linked');

@@ -151,8 +151,9 @@ const toPayload = (data: CreatePartnerData | UpdatePartnerData): Record<string, 
 };
 
 export const partnersService = {
+  /** Full list (escape hatch). Prefer `list` for the Partner Tracker page. */
   getAll: async (filters?: PartnerFilters): Promise<Partner[]> => {
-    const params: Record<string, string> = {};
+    const params: Record<string, string | number | boolean> = { all: 1 };
     if (filters?.search) params.search = filters.search;
     if (filters?.vertical) params.vertical = filters.vertical;
     if (filters?.product) {
@@ -170,6 +171,41 @@ export const partnersService = {
 
     const response = await api.get('/api/partners', { params });
     return normalizeArray(response.data).map(normalizePartner);
+  },
+
+  /** Server-paginated list for Partner Tracker. */
+  list: async (
+    filters?: PartnerFilters & { page?: number; per_page?: number }
+  ): Promise<{ partners: Partner[]; total: number; page: number; lastPage: number }> => {
+    const params: Record<string, string | number> = {
+      page: filters?.page ?? 1,
+      per_page: filters?.per_page ?? 50,
+    };
+    if (filters?.search) params.search = filters.search;
+    if (filters?.vertical) params.vertical = filters.vertical;
+    if (filters?.product) {
+      params.product = filters.product;
+      params.product_category = filters.product;
+    }
+    if (filters?.relationshipStage) {
+      params.relationship_stage = filters.relationshipStage;
+      params.stage = filters.relationshipStage;
+    }
+    if (filters?.relationshipOwnerId) {
+      params.relationship_owner_id = filters.relationshipOwnerId;
+      params.relationshipOwnerId = filters.relationshipOwnerId;
+    }
+
+    const response = await api.get('/api/partners', { params });
+    const body = response.data ?? {};
+    const partners = normalizeArray(body).map(normalizePartner);
+    const meta = body.meta ?? {};
+    return {
+      partners,
+      total: Number(meta.total ?? partners.length),
+      page: Number(meta.current_page ?? params.page),
+      lastPage: Number(meta.last_page ?? 1),
+    };
   },
 
   getById: async (id: string): Promise<Partner> => {

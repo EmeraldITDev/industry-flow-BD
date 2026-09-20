@@ -47,6 +47,7 @@ export function PartnerFormSheet({
       partnersService.create(payload),
     onSuccess: (created) => {
       queryClient.invalidateQueries({ queryKey: ['partners'] });
+      queryClient.invalidateQueries({ queryKey: ['partners-list'] });
       toast.success('Partner created');
       onCreated?.(created);
       onOpenChange(false);
@@ -59,6 +60,7 @@ export function PartnerFormSheet({
       partnersService.update(partner!.id, payload),
     onSuccess: (updated) => {
       queryClient.invalidateQueries({ queryKey: ['partners'] });
+      queryClient.invalidateQueries({ queryKey: ['partners-list'] });
       queryClient.invalidateQueries({ queryKey: ['partner', partner!.id] });
       toast.success('Partner updated');
       onUpdated?.(updated);

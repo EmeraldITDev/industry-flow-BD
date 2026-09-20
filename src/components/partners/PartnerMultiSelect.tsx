@@ -26,12 +26,23 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { RelationshipStageBadge } from '@/components/partners/RelationshipStageBadge';
+import { LinkScmVendorModal } from '@/components/partners/LinkScmVendorModal';
 import {
   PartnerForm,
   emptyPartnerForm,
   formValuesToPayload,
   type PartnerFormValues,
 } from '@/components/partners/PartnerForm';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { partnersService } from '@/services/partners';
 import type { Partner } from '@/types/partners';
 import { toast } from 'sonner';
@@ -62,6 +73,8 @@ export function PartnerMultiSelect({
   const [searching, setSearching] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [scmPromptPartner, setScmPromptPartner] = useState<Partner | null>(null);
+  const [scmLinkPartner, setScmLinkPartner] = useState<Partner | null>(null);
 
   const valueSet = useMemo(() => new Set(values), [values]);
 
@@ -102,10 +115,13 @@ export function PartnerMultiSelect({
       partnersService.create(payload),
     onSuccess: (partner) => {
       queryClient.invalidateQueries({ queryKey: ['partners'] });
+      queryClient.invalidateQueries({ queryKey: ['partners-list'] });
       onValuesChange([...values, partner.id]);
       setOptions((prev) => [partner, ...prev.filter((p) => p.id !== partner.id)]);
       toast.success('Partner created and selected');
       setAddOpen(false);
+      // Optional SCM link — non-blocking; project form stays open underneath.
+      setScmPromptPartner(partner);
     },
     onError: () => toast.error('Failed to create partner'),
   });
@@ -302,6 +318,44 @@ export function PartnerMultiSelect({
           </SheetFooter>
         </SheetContent>
       </Sheet>
+
+      <AlertDialog
+        open={!!scmPromptPartner}
+        onOpenChange={(open) => {
+          if (!open) setScmPromptPartner(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Link to SCM vendor?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {scmPromptPartner
+                ? `${scmPromptPartner.companyName} was created and selected. Optionally link it to an SCM vendor now — you can also do this later from the partner profile.`
+                : 'Optionally link this partner to an SCM vendor now.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Not now</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (scmPromptPartner) setScmLinkPartner(scmPromptPartner);
+                setScmPromptPartner(null);
+              }}
+            >
+              Link SCM vendor
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <LinkScmVendorModal
+        open={!!scmLinkPartner}
+        onOpenChange={(open) => {
+          if (!open) setScmLinkPartner(null);
+        }}
+        partnerId={scmLinkPartner?.id ?? ''}
+        partnerName={scmLinkPartner?.companyName}
+      />
     </>
   );
 }

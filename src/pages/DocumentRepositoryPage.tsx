@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -60,6 +60,8 @@ import {
 } from 'lucide-react';
 import { safeFormatDate } from '@/lib/dateUtils';
 
+const PER_PAGE = 50;
+
 type UploadForm = {
   title: string;
   documentType: string;
@@ -81,6 +83,8 @@ const emptyUpload: UploadForm = {
 export default function DocumentRepositoryPage() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [debouncedClient, setDebouncedClient] = useState('');
   const [verticalFilter, setVerticalFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [clientFilter, setClientFilter] = useState('');
@@ -100,22 +104,67 @@ export default function DocumentRepositoryPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => window.clearTimeout(timer);
+  }, [search]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedClient(clientFilter.trim()), 300);
+    return () => window.clearTimeout(timer);
+  }, [clientFilter]);
 
   const filters = useMemo(
     () => ({
       vertical: verticalFilter === 'all' ? undefined : verticalFilter,
       documentType: typeFilter === 'all' ? undefined : typeFilter,
-      client: clientFilter.trim() || undefined,
-      search: search.trim() || undefined,
+      client: debouncedClient || undefined,
+      search: debouncedSearch || undefined,
+      per_page: PER_PAGE,
     }),
-    [verticalFilter, typeFilter, clientFilter, search]
+    [verticalFilter, typeFilter, debouncedClient, debouncedSearch]
   );
 
-  const { data: documents = [], isLoading, isError, refetch } = useQuery({
+  const {
+    data: listPages,
+    isLoading,
+    isError,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+    refetch,
+  } = useInfiniteQuery({
     queryKey: ['repository-documents', filters],
-    queryFn: () => repositoryDocumentsService.getAll(filters),
+    queryFn: ({ pageParam = 1 }) =>
+      repositoryDocumentsService.list({ ...filters, page: pageParam as number }),
+    initialPageParam: 1,
+    getNextPageParam: (last) =>
+      last.page < last.lastPage ? last.page + 1 : undefined,
     staleTime: 30 * 1000,
   });
+
+  const documents = useMemo(
+    () => listPages?.pages.flatMap((p) => p.documents) ?? [],
+    [listPages]
+  );
+  const totalCount = listPages?.pages[0]?.total ?? documents.length;
+
+  useEffect(() => {
+    const el = loadMoreRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      { rootMargin: '200px' }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const resetUpload = () => {
     setUploadForm(emptyUpload);
@@ -240,6 +289,9 @@ export default function DocumentRepositoryPage() {
               <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Document Repository</h1>
               <p className="text-xs sm:text-sm text-muted-foreground">
                 Shared BD team library — not tied to a specific project
+              </p>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+                {isLoading ? 'Loading…' : `${totalCount} documents found`}
               </p>
             </div>
           </div>
@@ -379,6 +431,13 @@ export default function DocumentRepositoryPage() {
                     </div>
                   </div>
                 ))}
+                <div ref={loadMoreRef} className="h-4" />
+                {isFetchingNextPage && (
+                  <div className="flex items-center justify-center gap-2 py-4 text-muted-foreground text-sm">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Loading more…
+                  </div>
+                )}
               </div>
             )}
           </CardContent>

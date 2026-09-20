@@ -1,6 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import {
   Card,
   CardContent,
@@ -11,6 +16,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
   SelectContent,
@@ -27,8 +33,18 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { Handshake, AlertTriangle, Plus, Search, Loader2, Download, Trash2 } from 'lucide-react';
+import {
+  Handshake,
+  AlertTriangle,
+  Plus,
+  Search,
+  Loader2,
+  Download,
+  Trash2,
+  X,
+} from 'lucide-react';
 import { partnersService } from '@/services/partners';
 import { teamService } from '@/services/team';
 import { businessVerticals, sectorColors } from '@/data/mockData';
@@ -42,6 +58,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
 const ALL = 'all';
+const PER_PAGE = 50;
 
 function exportPartnersCsv(partners: Partner[]) {
   const headers = [
@@ -97,11 +114,27 @@ export default function Partners() {
   const [ownerFilter, setOwnerFilter] = useState(ALL);
   const [addOpen, setAddOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Partner | null>(null);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isDeleting, setIsDeleting] = useState(false);
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 300);
     return () => window.clearTimeout(timer);
   }, [search]);
+
+  const listFilters = useMemo(
+    () => ({
+      search: debouncedSearch || undefined,
+      vertical: verticalFilter !== ALL ? verticalFilter : undefined,
+      relationshipStage: stageFilter !== ALL ? stageFilter : undefined,
+      product: productFilter !== ALL ? productFilter : undefined,
+      relationshipOwnerId: ownerFilter !== ALL ? ownerFilter : undefined,
+      per_page: PER_PAGE,
+    }),
+    [debouncedSearch, verticalFilter, stageFilter, productFilter, ownerFilter]
+  );
 
   const { data: teamMembers = [] } = useQuery({
     queryKey: ['team'],
@@ -109,83 +142,54 @@ export default function Partners() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const { data: partners = [], isLoading, isError } = useQuery({
-    queryKey: [
-      'partners',
-      debouncedSearch,
-      verticalFilter,
-      stageFilter,
-      productFilter,
-      ownerFilter,
-    ],
-    queryFn: () =>
-      partnersService.getAll({
-        search: debouncedSearch || undefined,
-        vertical: verticalFilter !== ALL ? verticalFilter : undefined,
-        relationshipStage: stageFilter !== ALL ? stageFilter : undefined,
-        product: productFilter !== ALL ? productFilter : undefined,
-        relationshipOwnerId: ownerFilter !== ALL ? ownerFilter : undefined,
-      }),
+  const {
+    data: listPages,
+    isLoading,
+    isError,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+  } = useInfiniteQuery({
+    queryKey: ['partners-list', listFilters],
+    queryFn: ({ pageParam = 1 }) =>
+      partnersService.list({ ...listFilters, page: pageParam as number }),
+    initialPageParam: 1,
+    getNextPageParam: (last) =>
+      last.page < last.lastPage ? last.page + 1 : undefined,
     staleTime: 30 * 1000,
   });
+
+  const partners = useMemo(
+    () => listPages?.pages.flatMap((p) => p.partners) ?? [],
+    [listPages]
+  );
+  const totalCount = listPages?.pages[0]?.total ?? partners.length;
+
+  useEffect(() => {
+    const el = loadMoreRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      { rootMargin: '200px' }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => partnersService.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['partners'] });
+      queryClient.invalidateQueries({ queryKey: ['partners-list'] });
       toast.success('Partner deleted');
       setDeleteTarget(null);
     },
     onError: () => toast.error('Failed to delete partner'),
   });
-  const filtered = useMemo(() => {
-    return partners.filter((p) => {
-      if (verticalFilter !== ALL && !p.verticals.includes(verticalFilter)) {
-        return false;
-      }
-      if (stageFilter !== ALL && p.relationshipStage !== stageFilter) {
-        return false;
-      }
-      if (
-        productFilter !== ALL &&
-        !p.productCategories.includes(productFilter)
-      ) {
-        return false;
-      }
-      if (
-        ownerFilter !== ALL &&
-        !p.relationshipOwnerIds.includes(ownerFilter)
-      ) {
-        return false;
-      }
-      if (debouncedSearch) {
-        const q = debouncedSearch.toLowerCase();
-        const ownerNames =
-          p.relationshipOwners?.map((o) => o.name).filter(Boolean) ?? [];
-        const hay = [
-          p.companyName,
-          p.contactPerson,
-          p.email,
-          p.nextAction,
-          ...p.verticals,
-          ...p.productCategories,
-          ...ownerNames,
-        ]
-          .filter(Boolean)
-          .join(' ')
-          .toLowerCase();
-        if (!hay.includes(q)) return false;
-      }
-      return true;
-    });
-  }, [
-    partners,
-    verticalFilter,
-    stageFilter,
-    productFilter,
-    ownerFilter,
-    debouncedSearch,
-  ]);
 
   const ownerOptions = useMemo(
     () =>
@@ -197,6 +201,54 @@ export default function Partners() {
         .sort((a, b) => a.name.localeCompare(b.name)),
     [teamMembers]
   );
+
+  const toggleSelect = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const toggleSelectAll = useCallback(() => {
+    setSelectedIds((prev) =>
+      prev.size === partners.length
+        ? new Set()
+        : new Set(partners.map((p) => p.id))
+    );
+  }, [partners]);
+
+  const exitSelectMode = useCallback(() => {
+    setSelectMode(false);
+    setSelectedIds(new Set());
+  }, []);
+
+  const handleBulkDelete = async () => {
+    const ids = Array.from(selectedIds);
+    setIsDeleting(true);
+    let success = 0;
+    let failed = 0;
+    const BATCH = 10;
+    for (let i = 0; i < ids.length; i += BATCH) {
+      const batch = ids.slice(i, i + BATCH);
+      const results = await Promise.allSettled(
+        batch.map((id) => partnersService.delete(id))
+      );
+      results.forEach((r) =>
+        r.status === 'fulfilled' ? success++ : failed++
+      );
+    }
+    queryClient.invalidateQueries({ queryKey: ['partners'] });
+    queryClient.invalidateQueries({ queryKey: ['partners-list'] });
+    setIsDeleting(false);
+    exitSelectMode();
+    if (failed === 0) {
+      toast.success(`${success} partner(s) deleted successfully`);
+    } else {
+      toast.warning(`${success} deleted, ${failed} failed`);
+    }
+  };
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6 overflow-x-hidden">
@@ -210,25 +262,93 @@ export default function Partners() {
               Partner Tracker
             </h1>
             <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-              Manage partner relationships, owners, and SCM vendor links.
+              {isLoading
+                ? 'Loading…'
+                : `${totalCount} partner${totalCount === 1 ? '' : 's'} found`}
             </p>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2 shrink-0">
           <Button
             variant="outline"
-            onClick={() => exportPartnersCsv(filtered)}
-            disabled={filtered.length === 0}
+            onClick={() => exportPartnersCsv(partners)}
+            disabled={partners.length === 0}
           >
             <Download className="mr-2 h-4 w-4" />
             Export report
           </Button>
+          {!selectMode ? (
+            <Button variant="outline" onClick={() => setSelectMode(true)}>
+              <Trash2 className="mr-2 h-4 w-4" />
+              Select
+            </Button>
+          ) : (
+            <Button variant="outline" onClick={exitSelectMode}>
+              <X className="mr-2 h-4 w-4" />
+              Cancel
+            </Button>
+          )}
           <Button onClick={() => setAddOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Add Partner
           </Button>
         </div>
       </div>
+
+      {selectMode && (
+        <div className="flex items-center gap-3 p-3 rounded-lg bg-muted border border-border">
+          <Checkbox
+            checked={
+              partners.length > 0 && selectedIds.size === partners.length
+            }
+            onCheckedChange={toggleSelectAll}
+          />
+          <span className="text-sm text-muted-foreground">
+            {selectedIds.size} of {partners.length} selected
+            {totalCount > partners.length
+              ? ` (loaded; ${totalCount} total)`
+              : ''}
+          </span>
+          <div className="flex-1" />
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="destructive"
+                size="sm"
+                disabled={selectedIds.size === 0 || isDeleting}
+              >
+                {isDeleting ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Trash2 className="w-4 h-4 mr-2" />
+                )}
+                Delete {selectedIds.size > 0 ? `(${selectedIds.size})` : ''}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>
+                  Delete {selectedIds.size} partner
+                  {selectedIds.size === 1 ? '' : 's'}?
+                </AlertDialogTitle>
+                <AlertDialogDescription>
+                  This cannot be undone. Selected partners will be permanently
+                  removed and unlinked from any opportunities.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleBulkDelete}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+      )}
 
       <Card>
         <CardHeader className="space-y-4 p-4 sm:p-6">
@@ -317,7 +437,7 @@ export default function Partners() {
             </div>
           )}
 
-          {!isLoading && !isError && filtered.length === 0 && (
+          {!isLoading && !isError && partners.length === 0 && (
             <div className="rounded-lg border border-dashed py-12 text-center text-sm text-muted-foreground">
               No partners match your filters.
             </div>
@@ -325,7 +445,7 @@ export default function Partners() {
 
           {!isLoading &&
             !isError &&
-            filtered.map((partner) => {
+            partners.map((partner) => {
               const multiOwner = partner.relationshipOwnerIds.length > 1;
               const profileIncomplete = !isPartnerProfileComplete(partner);
               const ownerLabel =
@@ -338,90 +458,112 @@ export default function Partners() {
                       partner.relationshipOwnerIds.length === 1 ? '' : 's'
                     }`
                   : null);
+              const selected = selectedIds.has(partner.id);
 
               return (
-                <button
+                <div
                   key={partner.id}
-                  type="button"
-                  onClick={() => navigate(`/partners/${partner.id}`)}
-                  className="w-full rounded-xl border bg-card text-left transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className={cn(
+                    'w-full rounded-xl border bg-card text-left transition-colors hover:bg-muted/40',
+                    selectMode && selected && 'ring-2 ring-primary/40'
+                  )}
                 >
                   <div className="flex flex-col gap-4 p-4 sm:p-5 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="min-w-0 space-y-2.5">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h2 className="text-base font-semibold truncate">
-                          {partner.companyName}
-                        </h2>
-                        {profileIncomplete && (
-                          <Badge
-                            variant="outline"
-                            className="gap-1 border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-300"
-                            title="Contact person or email is missing"
-                          >
-                            <AlertTriangle className="h-3 w-3" />
-                            Incomplete Information
-                          </Badge>
-                        )}
-                        <RelationshipStageBadge
-                          stage={partner.relationshipStage}
+                    <div className="flex min-w-0 gap-3 flex-1">
+                      {selectMode && (
+                        <Checkbox
+                          checked={selected}
+                          onCheckedChange={() => toggleSelect(partner.id)}
+                          onClick={(e) => e.stopPropagation()}
+                          className="mt-1 shrink-0"
                         />
-                        <Badge
-                          variant="outline"
-                          className={cn(
-                            'text-xs',
-                            partner.isScmLinked || partner.scmVendorId
-                              ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300'
-                              : 'border-muted-foreground/30 text-muted-foreground'
+                      )}
+                      <button
+                        type="button"
+                        className="min-w-0 flex-1 space-y-2.5 text-left focus-visible:outline-none"
+                        onClick={() => {
+                          if (selectMode) {
+                            toggleSelect(partner.id);
+                            return;
+                          }
+                          navigate(`/partners/${partner.id}`);
+                        }}
+                      >
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h2 className="text-base font-semibold truncate">
+                            {partner.companyName}
+                          </h2>
+                          {profileIncomplete && (
+                            <Badge
+                              variant="outline"
+                              className="gap-1 border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-300"
+                              title="Contact person or email is missing"
+                            >
+                              <AlertTriangle className="h-3 w-3" />
+                              Incomplete Information
+                            </Badge>
                           )}
-                        >
-                          {partner.isScmLinked || partner.scmVendorId
-                            ? 'Linked to SCM Vendor'
-                            : 'Not Linked'}
-                        </Badge>
-                        {multiOwner && (
+                          <RelationshipStageBadge
+                            stage={partner.relationshipStage}
+                          />
                           <Badge
                             variant="outline"
-                            className="gap-1 border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-300"
-                            title="Multiple relationship owners assigned"
+                            className={cn(
+                              'text-xs',
+                              partner.isScmLinked || partner.scmVendorId
+                                ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300'
+                                : 'border-muted-foreground/30 text-muted-foreground'
+                            )}
                           >
-                            <AlertTriangle className="h-3 w-3" />
-                            Multiple owners
+                            {partner.isScmLinked || partner.scmVendorId
+                              ? 'Linked to SCM Vendor'
+                              : 'Not Linked'}
                           </Badge>
-                        )}
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        {partner.contactPerson
-                          ? `Contact: ${partner.contactPerson}`
-                          : 'No contact person'}
-                        {ownerLabel ? ` · Owners: ${ownerLabel}` : ''}
-                      </p>
-                      {(partner.verticals.length > 0 ||
-                        partner.productCategories.length > 0) && (
-                        <div className="flex flex-wrap gap-1.5">
-                          {partner.verticals.map((v) => (
+                          {multiOwner && (
                             <Badge
-                              key={`v-${v}`}
                               variant="outline"
-                              className={cn(
-                                'text-xs',
-                                sectorColors[v as Sector] ??
-                                  'bg-muted text-muted-foreground'
-                              )}
+                              className="gap-1 border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-300"
+                              title="Multiple relationship owners assigned"
                             >
-                              {v}
+                              <AlertTriangle className="h-3 w-3" />
+                              Multiple owners
                             </Badge>
-                          ))}
-                          {partner.productCategories.map((p) => (
-                            <Badge
-                              key={`p-${p}`}
-                              variant="secondary"
-                              className="text-xs font-normal"
-                            >
-                              {p}
-                            </Badge>
-                          ))}
+                          )}
                         </div>
-                      )}
+                        <p className="text-sm text-muted-foreground">
+                          {partner.contactPerson
+                            ? `Contact: ${partner.contactPerson}`
+                            : 'No contact person'}
+                          {ownerLabel ? ` · Owners: ${ownerLabel}` : ''}
+                        </p>
+                        {(partner.verticals.length > 0 ||
+                          partner.productCategories.length > 0) && (
+                          <div className="flex flex-wrap gap-1.5">
+                            {partner.verticals.map((v) => (
+                              <Badge
+                                key={`v-${v}`}
+                                variant="outline"
+                                className={cn(
+                                  'text-xs',
+                                  sectorColors[v as Sector] ??
+                                    'bg-muted text-muted-foreground'
+                                )}
+                              >
+                                {v}
+                              </Badge>
+                            ))}
+                            {partner.productCategories.map((p) => (
+                              <Badge
+                                key={`p-${p}`}
+                                variant="secondary"
+                                className="text-xs font-normal"
+                              >
+                                {p}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                      </button>
                     </div>
                     <div className="shrink-0 flex flex-col gap-3 sm:items-end sm:pl-6">
                       <div className="space-y-1.5 text-sm sm:text-right">
@@ -449,24 +591,34 @@ export default function Partners() {
                           </span>
                         </p>
                       </div>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="text-destructive border-destructive/40 hover:bg-destructive/10"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setDeleteTarget(partner);
-                        }}
-                      >
-                        <Trash2 className="mr-1.5 h-3.5 w-3.5" />
-                        Delete
-                      </Button>
+                      {!selectMode && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="text-destructive border-destructive/40 hover:bg-destructive/10"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteTarget(partner);
+                          }}
+                        >
+                          <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                          Delete
+                        </Button>
+                      )}
                     </div>
                   </div>
-                </button>
+                </div>
               );
             })}
+
+          <div ref={loadMoreRef} className="h-4" />
+          {isFetchingNextPage && (
+            <div className="flex items-center justify-center gap-2 py-4 text-muted-foreground text-sm">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Loading more…
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -491,7 +643,9 @@ export default function Partners() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleteMutation.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleteMutation.isPending}>
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               disabled={deleteMutation.isPending}

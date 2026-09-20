@@ -131,7 +131,7 @@ const normalizeTasks = (tasks: any[]): Task[] => {
 };
 
 export const tasksService = {
-  // Get all tasks (optionally filtered by project)
+  // Get all tasks (optionally filtered by project) — full dump escape hatch
   getAll: async (filters?: TaskFilters): Promise<Task[]> => {
     const params: Record<string, unknown> = {};
     if (filters?.projectId) params.project_id = filters.projectId;
@@ -149,6 +149,37 @@ export const tasksService = {
     });
     const tasks = normalizeArray(response.data);
     return normalizeTasks(tasks);
+  },
+
+  /** Server-paginated task list for All Tasks. */
+  list: async (
+    filters?: TaskFilters & { page?: number; per_page?: number; search?: string }
+  ): Promise<{ tasks: Task[]; total: number; page: number; lastPage: number }> => {
+    const params: Record<string, unknown> = {
+      page: filters?.page ?? 1,
+      per_page: filters?.per_page ?? 50,
+    };
+    if (filters?.projectId) params.project_id = filters.projectId;
+    if (filters?.status) params.status = statusToBackend(filters.status);
+    if (filters?.priority) params.priority = filters.priority;
+    if (filters?.assigneeId) params.assignee_id = filters.assigneeId;
+    if (filters?.search) params.search = filters.search;
+    if (filters?.requiresChairmanIntervention) {
+      params.requires_chairman_intervention = 1;
+    }
+    if (filters?.assignedToChairman) {
+      params.assigned_to_chairman = 1;
+    }
+    const response = await api.get('/api/tasks', { params });
+    const body = response.data ?? {};
+    const tasks = normalizeTasks(normalizeArray(body));
+    const meta = body.meta ?? {};
+    return {
+      tasks,
+      total: Number(meta.total ?? tasks.length),
+      page: Number(meta.current_page ?? params.page),
+      lastPage: Number(meta.last_page ?? 1),
+    };
   },
 
   // Get tasks for a specific project
