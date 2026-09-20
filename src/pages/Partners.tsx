@@ -1,11 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  useInfiniteQuery,
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Card,
   CardContent,
@@ -44,6 +39,8 @@ import {
   Download,
   Trash2,
   X,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { partnersService } from '@/services/partners';
 import { teamService } from '@/services/team';
@@ -117,12 +114,18 @@ export default function Partners() {
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isDeleting, setIsDeleting] = useState(false);
-  const loadMoreRef = useRef<HTMLDivElement | null>(null);
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 300);
     return () => window.clearTimeout(timer);
   }, [search]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setPage(1);
+    setSelectedIds(new Set());
+  }, [debouncedSearch, verticalFilter, stageFilter, productFilter, ownerFilter]);
 
   const listFilters = useMemo(
     () => ({
@@ -132,8 +135,9 @@ export default function Partners() {
       product: productFilter !== ALL ? productFilter : undefined,
       relationshipOwnerId: ownerFilter !== ALL ? ownerFilter : undefined,
       per_page: PER_PAGE,
+      page,
     }),
-    [debouncedSearch, verticalFilter, stageFilter, productFilter, ownerFilter]
+    [debouncedSearch, verticalFilter, stageFilter, productFilter, ownerFilter, page]
   );
 
   const { data: teamMembers = [] } = useQuery({
@@ -142,43 +146,17 @@ export default function Partners() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const {
-    data: listPages,
-    isLoading,
-    isError,
-    isFetchingNextPage,
-    hasNextPage,
-    fetchNextPage,
-  } = useInfiniteQuery({
+  const { data: listData, isLoading, isError, isFetching } = useQuery({
     queryKey: ['partners-list', listFilters],
-    queryFn: ({ pageParam = 1 }) =>
-      partnersService.list({ ...listFilters, page: pageParam as number }),
-    initialPageParam: 1,
-    getNextPageParam: (last) =>
-      last.page < last.lastPage ? last.page + 1 : undefined,
+    queryFn: () => partnersService.list(listFilters),
     staleTime: 30 * 1000,
+    placeholderData: (prev) => prev,
   });
 
-  const partners = useMemo(
-    () => listPages?.pages.flatMap((p) => p.partners) ?? [],
-    [listPages]
-  );
-  const totalCount = listPages?.pages[0]?.total ?? partners.length;
-
-  useEffect(() => {
-    const el = loadMoreRef.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting && hasNextPage && !isFetchingNextPage) {
-          fetchNextPage();
-        }
-      },
-      { rootMargin: '200px' }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+  const partners = listData?.partners ?? [];
+  const totalCount = listData?.total ?? 0;
+  const lastPage = Math.max(1, listData?.lastPage ?? 1);
+  const currentPage = listData?.page ?? page;
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => partnersService.delete(id),
@@ -201,6 +179,16 @@ export default function Partners() {
         .sort((a, b) => a.name.localeCompare(b.name)),
     [teamMembers]
   );
+
+  const pageNumbers = useMemo(() => {
+    const pages: number[] = [];
+    const window = 5;
+    let start = Math.max(1, currentPage - Math.floor(window / 2));
+    let end = Math.min(lastPage, start + window - 1);
+    start = Math.max(1, end - window + 1);
+    for (let p = start; p <= end; p++) pages.push(p);
+    return pages;
+  }, [currentPage, lastPage]);
 
   const toggleSelect = useCallback((id: string) => {
     setSelectedIds((prev) => {
@@ -304,10 +292,7 @@ export default function Partners() {
             onCheckedChange={toggleSelectAll}
           />
           <span className="text-sm text-muted-foreground">
-            {selectedIds.size} of {partners.length} selected
-            {totalCount > partners.length
-              ? ` (loaded; ${totalCount} total)`
-              : ''}
+            {selectedIds.size} of {partners.length} selected on this page
           </span>
           <div className="flex-1" />
           <AlertDialog>
@@ -612,11 +597,82 @@ export default function Partners() {
               );
             })}
 
-          <div ref={loadMoreRef} className="h-4" />
-          {isFetchingNextPage && (
-            <div className="flex items-center justify-center gap-2 py-4 text-muted-foreground text-sm">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Loading more…
+          {lastPage > 1 && (
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-4 border-t">
+              <p className="text-sm text-muted-foreground">
+                Page {currentPage} of {lastPage}
+                {totalCount > 0
+                  ? ` · showing ${partners.length} of ${totalCount}`
+                  : ''}
+                {isFetching ? ' · updating…' : ''}
+              </p>
+              <div className="flex flex-wrap items-center gap-1">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage <= 1 || isFetching}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  Previous
+                </Button>
+                {pageNumbers[0] > 1 && (
+                  <>
+                    <Button
+                      type="button"
+                      variant={currentPage === 1 ? 'default' : 'outline'}
+                      size="sm"
+                      className="min-w-9"
+                      onClick={() => setPage(1)}
+                    >
+                      1
+                    </Button>
+                    {pageNumbers[0] > 2 && (
+                      <span className="px-1 text-muted-foreground">…</span>
+                    )}
+                  </>
+                )}
+                {pageNumbers.map((p) => (
+                  <Button
+                    key={p}
+                    type="button"
+                    variant={p === currentPage ? 'default' : 'outline'}
+                    size="sm"
+                    className="min-w-9"
+                    disabled={isFetching}
+                    onClick={() => setPage(p)}
+                  >
+                    {p}
+                  </Button>
+                ))}
+                {pageNumbers[pageNumbers.length - 1] < lastPage && (
+                  <>
+                    {pageNumbers[pageNumbers.length - 1] < lastPage - 1 && (
+                      <span className="px-1 text-muted-foreground">…</span>
+                    )}
+                    <Button
+                      type="button"
+                      variant={currentPage === lastPage ? 'default' : 'outline'}
+                      size="sm"
+                      className="min-w-9"
+                      onClick={() => setPage(lastPage)}
+                    >
+                      {lastPage}
+                    </Button>
+                  </>
+                )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage >= lastPage || isFetching}
+                  onClick={() => setPage((p) => Math.min(lastPage, p + 1))}
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
             </div>
           )}
         </CardContent>
