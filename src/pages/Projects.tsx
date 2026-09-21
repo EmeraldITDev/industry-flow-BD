@@ -175,22 +175,10 @@ export default function Projects() {
 
   const handleFiltersChange = useCallback((newFilters: FilterState) => {
     const params = filtersToParams(newFilters);
-    const preserveKeys = [
-      'metric',
-      'from',
-      'to',
-      'period',
-      'clientNames',
-      'pipelineStages',
-      'dealProbabilities',
-      'businessVerticals',
-      'sectors',
-      'channelPartners',
-      'products',
-      'subproducts',
-      'partner_id',
-      'partnerId',
-    ];
+    // Only preserve drill-down / partner-scope keys that AdvancedFilters does not own.
+    // Re-applying FilterState keys (products, stages, …) from the old URL overwrote
+    // multi-select updates — blocking second selections and chip removal.
+    const preserveKeys = ['metric', 'from', 'to', 'period', 'partner_id', 'partnerId'];
     for (const key of preserveKeys) {
       const value = searchParams.get(key);
       if (value) params.set(key, value);

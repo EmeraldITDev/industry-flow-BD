@@ -144,15 +144,18 @@ export function MultiSearchableSelect({
                     <span
                       role="button"
                       tabIndex={-1}
-                      className="w-3 h-3 cursor-pointer inline-flex items-center justify-center shrink-0"
+                      aria-label={`Remove ${opt.label}`}
+                      className="w-3 h-3 cursor-pointer inline-flex items-center justify-center shrink-0 rounded-sm hover:bg-muted"
                       onPointerDown={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
                         removeValue(opt.value, e);
                       }}
                       onClick={(e) => {
+                        // PopoverTrigger is a <button>; stop the click from toggling open.
                         e.preventDefault();
                         e.stopPropagation();
+                        removeValue(opt.value, e);
                       }}
                     >
                       <X className="w-3 h-3" />

@@ -31,7 +31,6 @@ import {
 } from '@/components/partners/RelationshipStageBadge';
 import { PartnerFormSheet } from '@/components/partners/PartnerFormSheet';
 import { LinkScmVendorModal } from '@/components/partners/LinkScmVendorModal';
-import { safeFormatDate } from '@/lib/dateUtils';
 import { sectorColors } from '@/data/mockData';
 import type { Sector } from '@/types';
 import { cn } from '@/lib/utils';
@@ -227,9 +226,6 @@ export default function PartnerDetail() {
                   : ''}
               </span>
             </Field>
-            <Field label="Last Contact Date">
-              {safeFormatDate(partner.lastContactDate, 'MMM d, yyyy', '—')}
-            </Field>
             <Field label="Type">
               {(partner.type ?? []).length === 0 ? (
                 '—'
@@ -315,9 +311,6 @@ export default function PartnerDetail() {
                   </div>
                 )}
               </Field>
-            </div>
-            <div className="sm:col-span-2">
-              <Field label="Next Action">{partner.nextAction}</Field>
             </div>
             <div className="sm:col-span-2">
               <Field label="Notes">

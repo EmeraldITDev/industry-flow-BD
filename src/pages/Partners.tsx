@@ -69,7 +69,6 @@ function exportPartnersCsv(partners: Partner[]) {
     'Linked Opportunities',
     'Total Value NGN',
     'Total Value USD',
-    'Next Action',
   ];
   const escape = (v: string) => `"${String(v).replace(/"/g, '""')}"`;
   const rows = partners.map((p) =>
@@ -84,7 +83,6 @@ function exportPartnersCsv(partners: Partner[]) {
       String(p.linkedOpportunitiesCount ?? 0),
       String(p.totalValueNgn ?? 0),
       String(p.totalValueUsd ?? 0),
-      p.nextAction ?? '',
     ]
       .map(escape)
       .join(',')
@@ -471,7 +469,8 @@ export default function Partners() {
                             toggleSelect(partner.id);
                             return;
                           }
-                          navigate(`/partners/${partner.id}`);
+                          // Open the linked-opportunities list (same as the count control).
+                          navigate(`/projects?partner_id=${partner.id}`);
                         }}
                       >
                         <div className="flex flex-wrap items-center gap-2">
@@ -576,27 +575,34 @@ export default function Partners() {
                               : ''}
                           </span>
                         </p>
-                        <p className="text-muted-foreground max-w-xs sm:ml-auto">
-                          Next:{' '}
-                          <span className="text-foreground">
-                            {partner.nextAction?.trim() || '—'}
-                          </span>
-                        </p>
                       </div>
                       {!selectMode && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="text-destructive border-destructive/40 hover:bg-destructive/10"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setDeleteTarget(partner);
-                          }}
-                        >
-                          <Trash2 className="mr-1.5 h-3.5 w-3.5" />
-                          Delete
-                        </Button>
+                        <div className="flex flex-wrap gap-2 sm:justify-end">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/partners/${partner.id}`);
+                            }}
+                          >
+                            View profile
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="text-destructive border-destructive/40 hover:bg-destructive/10"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeleteTarget(partner);
+                            }}
+                          >
+                            <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                            Delete
+                          </Button>
+                        </div>
                       )}
                     </div>
                   </div>

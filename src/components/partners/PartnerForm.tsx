@@ -45,7 +45,6 @@ export type PartnerFormValues = {
   verticals: string[];
   productCategories: string[];
   subProductCategories: string[];
-  nextAction: string;
   notes: string;
 };
 
@@ -69,7 +68,6 @@ export function emptyPartnerForm(): PartnerFormValues {
     verticals: [],
     productCategories: [],
     subProductCategories: [],
-    nextAction: '',
     notes: '',
   };
 }
@@ -92,7 +90,6 @@ export function partnerToFormValues(partner: Partner): PartnerFormValues {
     verticals: partner.verticals ?? [],
     productCategories: partner.productCategories ?? [],
     subProductCategories: partner.subProductCategories ?? [],
-    nextAction: partner.nextAction ?? '',
     notes: partner.notes ?? '',
   };
 }
@@ -115,7 +112,6 @@ export function formValuesToPayload(values: PartnerFormValues): CreatePartnerDat
     verticals: values.verticals,
     productCategories: values.productCategories,
     subProductCategories: values.subProductCategories,
-    nextAction: values.nextAction.trim() || undefined,
     notes: values.notes.trim() || undefined,
   };
 }
@@ -457,19 +453,6 @@ export function PartnerForm({
           allowCreate
           createLabel={(q) => `Add sub product "${q}"`}
           emptyText="No sub products found. Type to add a new one."
-        />
-      </div>
-
-      <div className="space-y-2.5">
-        <Label htmlFor="partner-next-action">Next Action</Label>
-        <Textarea
-          id="partner-next-action"
-          value={values.nextAction}
-          onChange={(e) =>
-            setValues((prev) => ({ ...prev, nextAction: e.target.value }))
-          }
-          placeholder="What should happen next?"
-          rows={3}
         />
       </div>
 

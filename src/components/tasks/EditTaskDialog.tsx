@@ -17,6 +17,8 @@ import { tasksService } from '@/services/tasks';
 import { teamService } from '@/services/team';
 import { Task, TaskPriority, TaskStatus, ProjectDocument } from '@/types';
 import { toast } from 'sonner';
+import { useAuth } from '@/context/AuthContext';
+import { canSetChairmanIntervention } from '@/lib/permissions/chairmanIntervention';
 import { TaskAttachmentsField } from '@/components/tasks/TaskAttachmentsField';
 import {
   AlertDialog,
@@ -37,6 +39,8 @@ interface EditTaskDialogProps {
 }
 
 export function EditTaskDialog({ open, onOpenChange, task, onTaskUpdated }: EditTaskDialogProps) {
+  const { user } = useAuth();
+  const canFlagChairman = canSetChairmanIntervention(user);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
@@ -122,7 +126,9 @@ export function EditTaskDialog({ open, onOpenChange, task, onTaskUpdated }: Edit
         status: formData.status,
         assigneeIds: formData.assigneeIds,
         assigneeId: formData.assigneeIds[0],
-        requiresChairmanIntervention: formData.requiresChairmanIntervention,
+        ...(canFlagChairman
+          ? { requiresChairmanIntervention: formData.requiresChairmanIntervention }
+          : {}),
         dueDate: formData.dueDate?.toISOString(),
         notes: formData.notes || undefined,
       }, task);
@@ -249,21 +255,27 @@ export function EditTaskDialog({ open, onOpenChange, task, onTaskUpdated }: Edit
             </Popover>
           </div>
 
-          <div className="flex items-center gap-2 rounded-md border px-3 py-2">
-            <Checkbox
-              id="edit-requires-chairman"
-              checked={formData.requiresChairmanIntervention}
-              onCheckedChange={(checked) =>
-                setFormData({
-                  ...formData,
-                  requiresChairmanIntervention: checked === true,
-                })
-              }
-            />
-            <Label htmlFor="edit-requires-chairman" className="text-sm font-normal cursor-pointer">
-              Requires chairman intervention
-            </Label>
-          </div>
+          {canFlagChairman ? (
+            <div className="flex items-center gap-2 rounded-md border px-3 py-2">
+              <Checkbox
+                id="edit-requires-chairman"
+                checked={formData.requiresChairmanIntervention}
+                onCheckedChange={(checked) =>
+                  setFormData({
+                    ...formData,
+                    requiresChairmanIntervention: checked === true,
+                  })
+                }
+              />
+              <Label htmlFor="edit-requires-chairman" className="text-sm font-normal cursor-pointer">
+                Requires chairman intervention
+              </Label>
+            </div>
+          ) : formData.requiresChairmanIntervention ? (
+            <div className="rounded-md border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-sm text-muted-foreground">
+              Requires chairman intervention (set by BD Director — read only)
+            </div>
+          ) : null}
 
           <div className="space-y-2">
             <Label htmlFor="edit-notes">Notes</Label>
