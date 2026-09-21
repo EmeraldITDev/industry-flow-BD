@@ -247,14 +247,14 @@ export const partnersService = {
     return normalizeArray(response.data).map(normalizePartner);
   },
 
-  /** Sync linked partners for a project (authoritative partner_ids write). */
+  /** Replace linked partners for a project (empty array clears all links). */
   syncForProject: async (
     projectId: string,
     partnerIds: string[]
   ): Promise<Partner[]> => {
     const response = await api.post(`/api/projects/${projectId}/partners`, {
-      partner_ids: partnerIds,
-      partnerIds,
+      partner_ids: partnerIds.map((id) => Number(id)).filter((n) => Number.isFinite(n) && n > 0),
+      partnerIds: partnerIds.map((id) => Number(id)).filter((n) => Number.isFinite(n) && n > 0),
     });
     return normalizeArray(response.data).map(normalizePartner);
   },
