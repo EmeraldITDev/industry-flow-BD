@@ -179,7 +179,6 @@ export const repositoryDocumentsService = {
     form.append('file', payload.file);
 
     const response = await api.post('/api/repository-documents', form, {
-      headers: { 'Content-Type': 'multipart/form-data' },
       onUploadProgress: (event) => {
         if (!onProgress || !event.total) return;
         onProgress(Math.round((event.loaded * 100) / event.total));
@@ -236,7 +235,6 @@ export const opportunityDocumentsService = {
     form.append('file', payload.file);
 
     const response = await api.post(`/api/projects/${projectId}/documents`, form, {
-      headers: { 'Content-Type': 'multipart/form-data' },
       onUploadProgress: (event) => {
         if (!onProgress || !event.total) return;
         onProgress(Math.round((event.loaded * 100) / event.total));

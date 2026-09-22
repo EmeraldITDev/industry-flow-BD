@@ -307,9 +307,7 @@ export const tasksService = {
   uploadAttachments: async (taskId: string, files: File[]): Promise<Task> => {
     const form = new FormData();
     files.forEach((f) => form.append('files[]', f));
-    const response = await api.post(`/api/tasks/${taskId}/attachments`, form, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    const response = await api.post(`/api/tasks/${taskId}/attachments`, form);
     const body = response.data?.data ?? response.data?.task ?? response.data;
     return normalizeTask(body);
   },

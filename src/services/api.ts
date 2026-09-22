@@ -20,6 +20,14 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    // FormData must omit Content-Type so the browser sets multipart + boundary.
+    // A hardcoded multipart/form-data (or the default application/json) breaks uploads.
+    if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
+      if (config.headers) {
+        delete (config.headers as Record<string, unknown>)['Content-Type'];
+        delete (config.headers as Record<string, unknown>)['content-type'];
+      }
+    }
     return config;
   },
   (error) => {

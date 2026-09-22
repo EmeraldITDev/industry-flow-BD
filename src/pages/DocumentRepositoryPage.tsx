@@ -200,7 +200,15 @@ export default function DocumentRepositoryPage() {
       resetUpload();
       queryClient.invalidateQueries({ queryKey: ['repository-documents'] });
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || 'Upload failed');
+      const validationErrors = err?.response?.data?.errors;
+      const firstValidation =
+        validationErrors &&
+        (Object.values(validationErrors).flat()[0] as string | undefined);
+      toast.error(
+        firstValidation ||
+          err?.response?.data?.message ||
+          'Upload failed'
+      );
     } finally {
       setIsUploading(false);
     }

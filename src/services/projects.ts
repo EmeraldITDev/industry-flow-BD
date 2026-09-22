@@ -249,6 +249,31 @@ export const projectsService = {
     return response.data ?? {};
   },
 
+  /**
+   * Fetch every project matching the current list filters (no pagination).
+   * Used by export / report so page size does not limit the dataset.
+   */
+  getAllMatching: async (
+    params: Record<string, unknown> = {}
+  ): Promise<Project[]> => {
+    const {
+      page: _page,
+      per_page: _perPage,
+      perPage: _perPageCamel,
+      ...rest
+    } = params;
+    const response = await api.get('/api/projects', {
+      params: { ...rest, lean: 1, all: 1 },
+    });
+    const data = response.data;
+    const rows = Array.isArray(data?.data)
+      ? data.data
+      : Array.isArray(data)
+        ? data
+        : [];
+    return rows.map((row: unknown) => normalizeProject(row));
+  },
+
   // Get all projects (handles both paginated and non-paginated API responses)
   getAll: async (filters?: ProjectFilters): Promise<Project[]> => {
     try {

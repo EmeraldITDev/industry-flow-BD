@@ -274,6 +274,13 @@ export default function Projects() {
     return params;
   }, [filters, partnerIdParam, pageParam]);
 
+  /** Filter params without page — used so export/report cover every matching row. */
+  const exportFetchParams = useMemo(() => {
+    if (isMetricDrill) return undefined;
+    const { page: _page, ...rest } = apiParams;
+    return rest;
+  }, [isMetricDrill, apiParams]);
+
   const {
     data: listData,
     isLoading: listLoading,
@@ -471,13 +478,19 @@ export default function Projects() {
           </Button>
           <GenerateReportButton
             projects={filteredProjects}
+            fetchParams={exportFetchParams}
+            totalHint={headerCount}
             filters={reportFilterSummary}
             defaultTitle={pageTitle + ' Report'}
             preselectedProjectIds={
               selectMode && selectedIds.size > 0 ? selectedIds : undefined
             }
           />
-          <ExportProjectsButton projects={filteredProjects} />
+          <ExportProjectsButton
+            projects={filteredProjects}
+            fetchParams={exportFetchParams}
+            totalHint={headerCount}
+          />
           {canCreateProjects && (
             <>
               {!selectMode ? (

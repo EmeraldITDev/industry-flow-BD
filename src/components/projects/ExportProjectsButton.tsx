@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -20,6 +20,7 @@ import { Download, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Project } from '@/types';
 import { PIPELINE_STAGES } from '@/types';
+import { projectsService } from '@/services/projects';
 
 const PREVIEW_ROWS = 10;
 
@@ -83,19 +84,71 @@ function buildCsv(projects: Project[]) {
 }
 
 interface ExportProjectsButtonProps {
-  projects: Project[];
+  /** In-memory rows (e.g. metric drill already loaded the full set). */
+  projects?: Project[];
+  /**
+   * When set, fetch the full filtered dataset from the API on open
+   * (pagination does not limit the export).
+   */
+  fetchParams?: Record<string, unknown>;
+  /** Optional count hint shown while the full set is loading. */
+  totalHint?: number;
 }
 
-export function ExportProjectsButton({ projects }: ExportProjectsButtonProps) {
+export function ExportProjectsButton({
+  projects: pageProjects = [],
+  fetchParams,
+  totalHint,
+}: ExportProjectsButtonProps) {
   const [open, setOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [exportProjects, setExportProjects] = useState<Project[]>(pageProjects);
 
-  const previewRows = useMemo(() => projects.slice(0, PREVIEW_ROWS), [projects]);
+  useEffect(() => {
+    if (!open) return;
+
+    let cancelled = false;
+
+    const load = async () => {
+      if (!fetchParams) {
+        setExportProjects(pageProjects);
+        return;
+      }
+      setIsLoading(true);
+      try {
+        const rows = await projectsService.getAllMatching(fetchParams);
+        if (!cancelled) setExportProjects(rows);
+      } catch (error) {
+        console.error('Failed to load projects for export:', error);
+        if (!cancelled) {
+          toast.error('Could not load the full project list for export');
+          setExportProjects(pageProjects);
+        }
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    };
+
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, fetchParams, pageProjects]);
+
+  const previewRows = useMemo(
+    () => exportProjects.slice(0, PREVIEW_ROWS),
+    [exportProjects]
+  );
+
+  const canOpen = (totalHint ?? pageProjects.length) > 0 || pageProjects.length > 0;
 
   const handleDownload = () => {
     setIsExporting(true);
     try {
-      const blob = new Blob([buildCsv(projects)], { type: 'text/csv;charset=utf-8;' });
+      const blob = new Blob([buildCsv(exportProjects)], {
+        type: 'text/csv;charset=utf-8;',
+      });
       const url = window.URL.createObjectURL(blob);
       const today = new Date().toISOString().split('T')[0];
 
@@ -108,7 +161,7 @@ export function ExportProjectsButton({ projects }: ExportProjectsButtonProps) {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
 
-      toast.success(`Exported ${projects.length} projects to CSV`);
+      toast.success(`Exported ${exportProjects.length} projects to CSV`);
       setOpen(false);
     } catch (error) {
       console.error('Failed to export projects:', error);
@@ -126,62 +179,75 @@ export function ExportProjectsButton({ projects }: ExportProjectsButtonProps) {
         variant="outline"
         size="sm"
         onClick={() => setOpen(true)}
-        disabled={projects.length === 0}
+        disabled={!canOpen}
       >
         <Download className="w-4 h-4 mr-2" />
-        Export to CSV
+        Export All
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-[95vw] w-[95vw] max-h-[85vh] flex flex-col">
           <DialogHeader>
-            <DialogTitle>Export preview</DialogTitle>
+            <DialogTitle>Export all matching projects</DialogTitle>
             <DialogDescription>
-              {projects.length} project{projects.length === 1 ? '' : 's'} · {COLUMNS.length} columns.
-              Showing the first {previewRows.length} row{previewRows.length === 1 ? '' : 's'} of the file.
+              {isLoading
+                ? `Loading full dataset${totalHint ? ` (~${totalHint} projects)` : ''}…`
+                : `${exportProjects.length} project${exportProjects.length === 1 ? '' : 's'} · ${COLUMNS.length} columns across the current view (all pages). Showing the first ${previewRows.length} row${previewRows.length === 1 ? '' : 's'} of the file.`}
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex-1 overflow-auto rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  {COLUMNS.map((c) => (
-                    <TableHead key={c.header} className="whitespace-nowrap text-xs">
-                      {c.header}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {previewRows.map((p) => (
-                  <TableRow key={p.id}>
+          <div className="flex-1 overflow-auto rounded-md border relative min-h-[160px]">
+            {isLoading ? (
+              <div className="absolute inset-0 flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Fetching all matching projects…
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
                     {COLUMNS.map((c) => (
-                      <TableCell
-                        key={c.header}
-                        className="text-xs max-w-[220px] truncate"
-                        title={c.get(p)}
-                      >
-                        {c.get(p) || '—'}
-                      </TableCell>
+                      <TableHead key={c.header} className="whitespace-nowrap text-xs">
+                        {c.header}
+                      </TableHead>
                     ))}
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {previewRows.map((p) => (
+                    <TableRow key={p.id}>
+                      {COLUMNS.map((c) => (
+                        <TableCell
+                          key={c.header}
+                          className="text-xs max-w-[220px] truncate"
+                          title={c.get(p)}
+                        >
+                          {c.get(p) || '—'}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
           </div>
 
           <DialogFooter>
             <Button variant="ghost" onClick={() => setOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleDownload} disabled={isExporting}>
+            <Button
+              onClick={handleDownload}
+              disabled={isExporting || isLoading || exportProjects.length === 0}
+            >
               {isExporting ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
               ) : (
                 <Download className="w-4 h-4 mr-2" />
               )}
-              {isExporting ? 'Preparing...' : 'Download CSV'}
+              {isExporting
+                ? 'Preparing...'
+                : `Download CSV (${exportProjects.length})`}
             </Button>
           </DialogFooter>
         </DialogContent>
