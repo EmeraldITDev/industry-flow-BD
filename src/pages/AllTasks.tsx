@@ -53,8 +53,10 @@ export default function AllTasks() {
   const chairmanOnly =
     searchParams.get('requiresChairmanIntervention') === '1' ||
     searchParams.get('assignedToChairman') === '1';
-  const [search, setSearch] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [search, setSearch] = useState(() => searchParams.get('search') || '');
+  const [debouncedSearch, setDebouncedSearch] = useState(() =>
+    (searchParams.get('search') || '').trim()
+  );
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
   const [projectFilter, setProjectFilter] = useState<string>('all');

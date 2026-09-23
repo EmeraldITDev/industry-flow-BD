@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from './AppSidebar';
-import { Search, LogOut, User, Settings, RefreshCw } from 'lucide-react';
-import { Input } from '@/components/ui/input';
+import { GlobalSearch } from './GlobalSearch';
+import { LogOut, User, Settings, RefreshCw } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { NotificationCenter } from '@/components/notifications/NotificationCenter';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
@@ -67,16 +67,9 @@ export function AppLayout({ children }: AppLayoutProps) {
           <header className="h-14 sm:h-16 border-b border-border bg-card flex items-center justify-between gap-2 px-3 sm:px-4 lg:px-6 min-w-0">
             <div className="flex items-center gap-2 sm:gap-4 min-w-0">
               <SidebarTrigger />
-              <div className="relative hidden sm:block min-w-0">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input 
-                  placeholder="Search projects, tasks..." 
-                  className="pl-10 w-40 md:w-56 lg:w-80 max-w-full bg-background text-sm"
-                />
-              </div>
+              <GlobalSearch />
             </div>
             <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
-              {/* Universal Refresh Button */}
               <Button
                 variant="outline"
                 size="sm"
@@ -88,7 +81,6 @@ export function AppLayout({ children }: AppLayoutProps) {
                 <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
                 <span className="hidden sm:inline">Refresh</span>
               </Button>
-              {/* Currency Toggle */}
               <Button
                 variant="outline"
                 size="sm"
@@ -103,7 +95,7 @@ export function AppLayout({ children }: AppLayoutProps) {
               </Button>
               <ThemeToggle />
               <NotificationCenter />
-              
+
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-full">
@@ -151,7 +143,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           </main>
         </div>
       </div>
-      
+
       <ProfileEditDialog open={profileDialogOpen} onOpenChange={setProfileDialogOpen} />
     </SidebarProvider>
   );
