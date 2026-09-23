@@ -61,21 +61,21 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-background">
+      <div className="min-h-screen flex w-full max-w-[100vw] overflow-x-hidden bg-background">
         <AppSidebar />
-        <div className="flex-1 flex flex-col">
-          <header className="h-14 sm:h-16 border-b border-border bg-card flex items-center justify-between px-3 sm:px-4 lg:px-6">
-            <div className="flex items-center gap-2 sm:gap-4">
+        <div className="flex min-w-0 flex-1 flex-col overflow-x-hidden">
+          <header className="h-14 sm:h-16 border-b border-border bg-card flex items-center justify-between gap-2 px-3 sm:px-4 lg:px-6 min-w-0">
+            <div className="flex items-center gap-2 sm:gap-4 min-w-0">
               <SidebarTrigger />
-              <div className="relative hidden sm:block">
+              <div className="relative hidden sm:block min-w-0">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input 
                   placeholder="Search projects, tasks..." 
-                  className="pl-10 w-48 md:w-64 lg:w-80 bg-background text-sm"
+                  className="pl-10 w-40 md:w-56 lg:w-80 max-w-full bg-background text-sm"
                 />
               </div>
             </div>
-            <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
               {/* Universal Refresh Button */}
               <Button
                 variant="outline"
@@ -146,7 +146,7 @@ export function AppLayout({ children }: AppLayoutProps) {
               </DropdownMenu>
             </div>
           </header>
-          <main className="flex-1 overflow-auto">
+          <main className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
             {children}
           </main>
         </div>

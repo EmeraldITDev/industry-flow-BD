@@ -264,11 +264,13 @@ export default function Dashboard() {
   
   return (
     <DashboardExportProvider>
-    <div className="p-3 sm:p-6 lg:p-8 space-y-3 sm:space-y-6">
+    <div className="min-w-0 max-w-full overflow-x-hidden p-3 sm:p-6 lg:p-8 space-y-3 sm:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <WelcomeHeader />
-        <div className="flex items-center gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between min-w-0">
+        <div className="min-w-0">
+          <WelcomeHeader />
+        </div>
+        <div className="flex items-center gap-3 shrink-0">
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isFetching}>
             <RefreshCw className={cn("w-4 h-4 mr-2", isFetching && "animate-spin")} />
             Refresh
@@ -294,7 +296,7 @@ export default function Dashboard() {
             <div className="flex-1 h-px bg-border" />
           </div>
 
-          <div className="grid grid-cols-1 gap-2 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-2 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3 min-w-0">
             <EmeraldStatCard
               label="Total PO Value (USD)"
               value={formatCurrencyFor(computedStats.wonPOValueUSD, 'USD')}
@@ -335,7 +337,7 @@ export default function Dashboard() {
           </div>
 
           {/* New Summary Cards: Total PO Value NGN, Total Margin USD, Total Margin NGN */}
-          <div className="grid grid-cols-1 gap-2 sm:gap-4 sm:grid-cols-2 md:grid-cols-4">
+          <div className="grid grid-cols-1 gap-2 sm:gap-4 sm:grid-cols-2 md:grid-cols-4 min-w-0">
             <StatCard 
               title="Total Projects" 
               value={computedStats.total.toLocaleString()} 
@@ -378,8 +380,8 @@ export default function Dashboard() {
             teamMembers={teamMembers}
           />
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <DashboardVisualExport filename="pipeline-funnel" contentClassName="p-0 bg-transparent border-0 shadow-none">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 min-w-0">
+            <DashboardVisualExport filename="pipeline-funnel" contentClassName="p-0 bg-transparent border-0 shadow-none min-w-0">
               <PipelineFunnel
                 stages={[
                   { label: 'Cold', count: computedStats.pipelineByStage.cold || 0, color: 'cold' },
@@ -394,7 +396,7 @@ export default function Dashboard() {
                 ]}
               />
             </DashboardVisualExport>
-            <DashboardVisualExport filename="segment-breakdown" contentClassName="p-0 bg-transparent border-0 shadow-none">
+            <DashboardVisualExport filename="segment-breakdown" contentClassName="p-0 bg-transparent border-0 shadow-none min-w-0">
               <SegmentBreakdown data={computedStats.bySector} />
             </DashboardVisualExport>
           </div>
@@ -405,14 +407,14 @@ export default function Dashboard() {
             <div className="flex-1 h-px bg-border" />
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <DashboardVisualExport filename="top-clients-by-value" contentClassName="p-0 bg-transparent border-0 shadow-none">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 min-w-0">
+            <DashboardVisualExport filename="top-clients-by-value" contentClassName="p-0 bg-transparent border-0 shadow-none min-w-0">
               <TopClientsByValue data={computedStats.topClients} />
             </DashboardVisualExport>
-            <DashboardVisualExport filename="pipeline-stage-distribution" contentClassName="p-0 bg-transparent border-0 shadow-none">
+            <DashboardVisualExport filename="pipeline-stage-distribution" contentClassName="p-0 bg-transparent border-0 shadow-none min-w-0">
               <ProbabilityMixDonut data={computedStats.byPipelineStage} />
             </DashboardVisualExport>
-            <DashboardVisualExport filename="product-category-mix" contentClassName="p-0 bg-transparent border-0 shadow-none">
+            <DashboardVisualExport filename="product-category-mix" contentClassName="p-0 bg-transparent border-0 shadow-none min-w-0">
               <ProductCategoryMixDonut data={computedStats.byProductCategory} />
             </DashboardVisualExport>
           </div>
@@ -423,19 +425,19 @@ export default function Dashboard() {
             <div className="flex-1 h-px bg-border" />
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <DashboardVisualExport filename="pipeline-by-sales-lead" contentClassName="p-0 bg-transparent border-0 shadow-none">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 min-w-0">
+            <DashboardVisualExport filename="pipeline-by-sales-lead" contentClassName="p-0 bg-transparent border-0 shadow-none min-w-0">
               <PipelineBySalesLead 
                 data={computedStats.accountTableData}
               />
             </DashboardVisualExport>
-            <DashboardVisualExport filename="team-opportunity-load" contentClassName="p-0 bg-transparent border-0 shadow-none">
+            <DashboardVisualExport filename="team-opportunity-load" contentClassName="p-0 bg-transparent border-0 shadow-none min-w-0">
               <TeamOpportunityLoad data={computedStats.teamLoad} />
             </DashboardVisualExport>
           </div>
 
           {/* Financial Overview */}
-          <div className="grid grid-cols-1 gap-2 sm:gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-2 sm:gap-4 md:grid-cols-2 min-w-0">
             <StatCard 
               title="Total Revenue (NGN)"
               value={formatCurrencyFor(computedStats.totalNGN, 'NGN')}
@@ -468,12 +470,12 @@ export default function Dashboard() {
       <RevenueAnalytics />
 
       {/* Bottom Section — restricted executive email does not see task/deadline widgets */}
-      <div className="grid grid-cols-1 gap-3 sm:gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2 space-y-3 sm:space-y-6">
+      <div className="grid grid-cols-1 gap-3 sm:gap-6 lg:grid-cols-3 min-w-0">
+        <div className="lg:col-span-2 space-y-3 sm:space-y-6 min-w-0">
           <RecentProjects recentProjects={computedStats.recent} />
           {!isRestrictedExecutive && <TasksSummary />}
         </div>
-        <div className="space-y-3 sm:space-y-6">
+        <div className="space-y-3 sm:space-y-6 min-w-0">
           {!isRestrictedExecutive && <DeadlineTracker projects={filteredProjects} />}
           {!isRestrictedExecutive && <ProjectCalendar />}
           <SectorOverview />

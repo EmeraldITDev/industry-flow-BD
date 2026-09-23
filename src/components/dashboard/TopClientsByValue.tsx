@@ -53,33 +53,36 @@ export function TopClientsByValue({
       : [`$${value.toFixed(2)}M`, 'Value'];
 
   return (
-    <div className={cn('bg-card border border-border rounded-xl p-6 animate-fade-up', className)}>
+    <div className={cn('bg-card border border-border rounded-xl p-4 sm:p-6 animate-fade-up min-w-0 overflow-hidden', className)}>
       <div className="mb-1">
         <h3 className="text-[13px] font-bold font-sans">{title}</h3>
       </div>
       <div className="text-[11px] text-muted-foreground mb-5">{subtitle}</div>
 
-      <div className="h-[260px]">
+      <div className="h-[260px] min-w-0 w-full">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={chartData}
             layout="vertical"
-            margin={{ top: 5, right: exportFull ? 100 : 60, left: 10, bottom: 5 }}
+            margin={{ top: 5, right: exportFull ? 72 : 48, left: 4, bottom: 5 }}
           >
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
             <XAxis
               type="number"
               dataKey={dataKey}
-              tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: exportFull ? 12 : 10 }}
+              tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: exportFull ? 11 : 10 }}
               axisLine={{ stroke: 'hsl(var(--border))' }}
               tickFormatter={xTickFormatter}
             />
             <YAxis
               type="category"
               dataKey="client"
-              tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
+              tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
               axisLine={{ stroke: 'hsl(var(--border))' }}
-              width={100}
+              width={72}
+              tickFormatter={(v: string) =>
+                v.length > 10 ? `${v.slice(0, 9)}…` : v
+              }
             />
             <Tooltip
               contentStyle={{
@@ -95,7 +98,7 @@ export function TopClientsByValue({
               <LabelList
                 dataKey="label"
                 position="right"
-                style={{ fill: 'hsl(var(--foreground))', fontSize: exportFull ? 14 : 12, fontWeight: 700 }}
+                style={{ fill: 'hsl(var(--foreground))', fontSize: exportFull ? 12 : 11, fontWeight: 700 }}
               />
             </Bar>
           </BarChart>

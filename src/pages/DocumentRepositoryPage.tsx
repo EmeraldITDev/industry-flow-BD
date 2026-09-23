@@ -207,7 +207,9 @@ export default function DocumentRepositoryPage() {
       toast.error(
         firstValidation ||
           err?.response?.data?.message ||
-          'Upload failed'
+          (!err?.response
+            ? 'Upload failed — connection dropped or file exceeds server limits (try under 25MB).'
+            : 'Upload failed')
       );
     } finally {
       setIsUploading(false);
@@ -287,14 +289,14 @@ export default function DocumentRepositoryPage() {
 
   return (
     <AppLayout>
-      <div className="p-4 sm:p-6 lg:p-8 space-y-6 overflow-x-hidden">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex items-center gap-2 sm:gap-3">
-            <div className="p-2 sm:p-3 rounded-xl bg-primary/10 border border-primary/20">
+      <div className="min-w-0 max-w-full overflow-x-hidden p-4 sm:p-6 lg:p-8 space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 min-w-0">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <div className="p-2 sm:p-3 rounded-xl bg-primary/10 border border-primary/20 shrink-0">
               <FileStack className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
             </div>
-            <div>
-              <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Document Repository</h1>
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight truncate">Document Repository</h1>
               <p className="text-xs sm:text-sm text-muted-foreground">
                 Shared BD team library — not tied to a specific project
               </p>
@@ -303,7 +305,7 @@ export default function DocumentRepositoryPage() {
               </p>
             </div>
           </div>
-          <Button onClick={() => setUploadOpen(true)}>
+          <Button onClick={() => setUploadOpen(true)} className="shrink-0">
             <Plus className="h-4 w-4 mr-2" />
             Upload Document
           </Button>
@@ -317,7 +319,7 @@ export default function DocumentRepositoryPage() {
           </AlertDescription>
         </Alert>
 
-        <Card>
+        <Card className="min-w-0 overflow-hidden">
           <CardHeader className="space-y-4">
             <div>
               <CardTitle className="text-base sm:text-lg">Library</CardTitle>
@@ -325,7 +327,7 @@ export default function DocumentRepositoryPage() {
                 Search across title, client, vertical, and document type
               </CardDescription>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 min-w-0">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input

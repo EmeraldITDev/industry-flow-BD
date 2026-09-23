@@ -33,27 +33,29 @@ export function SegmentBreakdown({
   };
 
   return (
-    <div className={cn('bg-card border border-border rounded-xl p-6 animate-fade-up', className)}>
+    <div className={cn('bg-card border border-border rounded-xl p-4 sm:p-6 animate-fade-up min-w-0 overflow-hidden', className)}>
       <div className="mb-1">
         <h3 className="text-[13px] font-bold font-sans">{title}</h3>
       </div>
       <div className="text-[11px] text-muted-foreground mb-5">{subtitle}</div>
 
-      <div className="h-[280px]">
+      <div className="h-[280px] min-w-0 w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={chartData} margin={{ top: 20, right: 10, left: -20, bottom: 20 }}>
+          <BarChart data={chartData} margin={{ top: 20, right: 8, left: 0, bottom: 20 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
             <XAxis
               dataKey="sector"
-              tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
+              tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
               axisLine={{ stroke: 'hsl(var(--border))' }}
               angle={-15}
               textAnchor="end"
               height={60}
+              interval={0}
             />
             <YAxis
               tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
               axisLine={{ stroke: 'hsl(var(--border))' }}
+              width={32}
             />
             <Tooltip
               contentStyle={{

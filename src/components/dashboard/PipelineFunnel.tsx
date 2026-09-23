@@ -60,7 +60,7 @@ export function PipelineFunnel({
     }));
 
   return (
-    <div className={cn('bg-card border border-border rounded-xl p-6 animate-fade-up', className)}>
+    <div className={cn('bg-card border border-border rounded-xl p-4 sm:p-6 animate-fade-up min-w-0 overflow-hidden', className)}>
       {/* Title */}
       <div className="mb-1">
         <h3 className="text-[13px] font-bold font-sans">{title}</h3>
@@ -68,37 +68,36 @@ export function PipelineFunnel({
       <div className="text-[11px] text-muted-foreground mb-5">{subtitle}</div>
 
       {/* Funnel bars */}
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-2 min-w-0">
         {stages.map((stage, index) => {
           const widthPercent = maxCount > 0 ? (stage.count / maxCount) * 100 : 0;
-          const minWidth = stage.count > 0 ? 'min-w-[40px]' : '';
 
           return (
-            <div key={index} className="flex items-center gap-2.5">
+            <div key={index} className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
               {/* Label */}
-              <div className="text-[12px] text-muted-foreground w-[90px] flex-shrink-0">
+              <div className="text-[11px] sm:text-[12px] text-muted-foreground w-16 sm:w-[90px] shrink-0 truncate">
                 {stage.label}
               </div>
 
-              {/* Bar */}
-              <div className="flex-1 bg-card border border-border/50 rounded h-8 overflow-hidden">
+              {/* Bar — no fixed minWidth; that was forcing horizontal page overflow */}
+              <div className="min-w-0 flex-1 bg-card border border-border/50 rounded h-8 overflow-hidden">
                 <div
                   className={cn(
-                    'h-full rounded flex items-center px-2.5 overflow-hidden transition-all duration-1000 ease-out',
+                    'h-full rounded flex items-center px-2 sm:px-2.5 overflow-hidden transition-all duration-1000 ease-out',
                     stageColors[stage.color.toLowerCase()] || 'bg-emerald-accent',
                   )}
-                  style={{ width: `${widthPercent}%`, minWidth: stage.count > 0 ? '120px' : undefined }}
+                  style={{ width: `${Math.max(widthPercent, stage.count > 0 ? 8 : 0)}%` }}
                 >
                   {stage.count > 0 && (
-                    <span className="text-[11px] font-medium text-white/90 whitespace-nowrap">
-                      {stage.count.toLocaleString()} {stage.count === 1 ? 'opportunity' : 'opportunities'}
+                    <span className="text-[10px] sm:text-[11px] font-medium text-white/90 whitespace-nowrap truncate">
+                      {stage.count.toLocaleString()} {stage.count === 1 ? 'opp' : 'opps'}
                     </span>
                   )}
                 </div>
               </div>
 
               {/* Count */}
-              <div className="text-[11px] text-muted-foreground w-[30px] text-right flex-shrink-0">
+              <div className="text-[11px] text-muted-foreground w-6 sm:w-[30px] text-right shrink-0 tabular-nums">
                 {stage.count}
               </div>
             </div>
@@ -108,8 +107,8 @@ export function PipelineFunnel({
 
       {/* Mini donut chart */}
       {donutData.length > 0 && (
-        <div className="mt-6 flex items-center gap-5">
-          <div className="w-[110px] h-[110px] flex-shrink-0">
+        <div className="mt-6 flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-5 min-w-0">
+          <div className="w-[110px] h-[110px] shrink-0">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
@@ -138,16 +137,16 @@ export function PipelineFunnel({
           </div>
           
           {/* Legend */}
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 min-w-0">
             {donutData.map((entry, index) => {
               const percentage = totalCount > 0 ? ((entry.value / totalCount) * 100).toFixed(0) : 0;
               return (
                 <div key={index} className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
                   <div
-                    className="w-2 h-2 rounded-full"
-                    style={{ backgroundColor: entry.color }}
+                    className="w-2 h-2 rounded-full shrink-0"
+                    style={{ backgroundColor: entry.color}}
                   />
-                  <span>{entry.name} {percentage}%</span>
+                  <span className="break-words">{entry.name} {percentage}%</span>
                 </div>
               );
             })}

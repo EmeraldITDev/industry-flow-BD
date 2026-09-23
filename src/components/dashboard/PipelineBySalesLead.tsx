@@ -25,8 +25,8 @@ export default function PipelineBySalesLead({ data }: PipelineBySalesLeadProps) 
   const sumTotal = sortedData.reduce((s, r) => s + r.totalOpportunities, 0);
 
   return (
-    <div className="card p-4 overflow-visible">
-      <div className="space-y-1 mb-4 pr-10">
+    <div className="card p-4 overflow-hidden min-w-0">
+      <div className="space-y-1 mb-4">
         <h3 className="text-base font-semibold text-foreground">
           Pipeline by Sales Lead
         </h3>
@@ -35,7 +35,8 @@ export default function PipelineBySalesLead({ data }: PipelineBySalesLeadProps) 
         </p>
       </div>
 
-      <ScrollArea className="h-[400px] overflow-x-auto">
+      <ScrollArea className="h-[400px] w-full">
+        <div className="min-w-0 overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50">
@@ -48,9 +49,9 @@ export default function PipelineBySalesLead({ data }: PipelineBySalesLeadProps) 
           <TableBody>
             {sortedData.map((row, idx) => (
               <TableRow key={`${row.account}-${idx}`} className={idx % 2 === 0 ? 'bg-background' : 'bg-muted/20'}>
-                <TableCell className="text-xs font-medium py-2">{row.account}</TableCell>
-                <TableCell className="text-xs py-2 text-muted-foreground">{row.location || '—'}</TableCell>
-                <TableCell className="text-xs py-2">{row.accountOwner}</TableCell>
+                <TableCell className="text-xs font-medium py-2 max-w-[140px] truncate">{row.account}</TableCell>
+                <TableCell className="text-xs py-2 text-muted-foreground max-w-[100px] truncate">{row.location || '—'}</TableCell>
+                <TableCell className="text-xs py-2 max-w-[120px] truncate">{row.accountOwner}</TableCell>
                 <TableCell className="text-xs py-2 text-right font-semibold">{row.totalOpportunities}</TableCell>
               </TableRow>
             ))}
@@ -61,6 +62,7 @@ export default function PipelineBySalesLead({ data }: PipelineBySalesLeadProps) 
             </TableRow>
           </TableBody>
         </Table>
+        </div>
       </ScrollArea>
     </div>
   );

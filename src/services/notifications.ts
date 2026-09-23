@@ -56,10 +56,11 @@ export const notificationsService = {
       const response = await api.get<{ count: number }>('/api/notifications/unread-count');
       return response.data.count || 0;
     } catch (error: any) {
-      if (error.response?.status === 401) {
-        return 0;
+      // Never surface unread-count failures in the UI (500s / network).
+      if (error.response?.status === 500) {
+        console.warn('[Notifications] unread-count server error — treating as 0');
       }
-      throw error;
+      return 0;
     }
   },
 

@@ -11,6 +11,8 @@ const api = axios.create({
     'Accept': 'application/json',
   },
   withCredentials: true, // Important for CORS with credentials
+  // Large PDF uploads (repo / opportunity docs) need headroom on slow links.
+  timeout: 120_000,
 });
 
 // Request interceptor to add token to requests
@@ -23,9 +25,17 @@ api.interceptors.request.use(
     // FormData must omit Content-Type so the browser sets multipart + boundary.
     // A hardcoded multipart/form-data (or the default application/json) breaks uploads.
     if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
-      if (config.headers) {
-        delete (config.headers as Record<string, unknown>)['Content-Type'];
-        delete (config.headers as Record<string, unknown>)['content-type'];
+      const headers = config.headers as any;
+      if (headers && typeof headers.set === 'function') {
+        // AxiosHeaders: `false` removes the default Content-Type.
+        headers.set('Content-Type', false);
+      } else if (headers) {
+        delete headers['Content-Type'];
+        delete headers['content-type'];
+      }
+      // Uploads can exceed the default timeout on mobile networks.
+      if (config.timeout == null || config.timeout < 180_000) {
+        config.timeout = 180_000;
       }
     }
     return config;
