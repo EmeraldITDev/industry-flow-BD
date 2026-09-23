@@ -204,6 +204,8 @@ export interface ProjectFilterSummary {
 export interface ProjectReportColumn {
   key: string;
   label: string;
+  /** Compact header used when many columns share one table. */
+  shortLabel?: string;
   weight: number;
   get: (project: Project) => string;
 }
@@ -222,44 +224,60 @@ const listOf = (values: string[] | undefined, legacy: string | undefined) =>
   values && values.length ? values.join(', ') : legacy || '—';
 
 export const PROJECT_REPORT_COLUMNS: ProjectReportColumn[] = [
-  { key: 'name',              label: 'Project Name',        weight: 12, get: p => p.name || '—' },
-  { key: 'description',       label: 'Description',         weight: 13, get: p => p.description || '—' },
-  { key: 'clientName',        label: 'Client',              weight: 8,  get: p => p.clientName || '—' },
-  { key: 'clientContact',     label: 'Client Contact',      weight: 8,  get: p => p.clientContact || '—' },
-  { key: 'channelPartner',    label: 'Channel Partner',     weight: 9,  get: p => p.channelPartner || '—' },
-  { key: 'businessVertical',  label: 'Business Vertical',   weight: 9,  get: p => p.businessVertical || '—' },
-  { key: 'sector',            label: 'Sector',              weight: 7,  get: p => p.sector || '—' },
-  { key: 'businessSegment',   label: 'Business Segment',    weight: 8,  get: p => p.businessSegment || '—' },
-  { key: 'pipelineStage',     label: 'Stage',               weight: 7,  get: stageLabelOf },
-  { key: 'status',            label: 'Status',              weight: 6,  get: p => p.status || '—' },
-  { key: 'contractValueUSD',  label: 'Value (USD)',         weight: 9,  get: p => fmtCurrency(p.contractValueUSD, 'USD ') },
-  { key: 'contractValueNGN',  label: 'Value (NGN)',         weight: 10, get: p => fmtCurrency(p.contractValueNGN, 'NGN ') },
-  { key: 'marginValueUSD',    label: 'Margin (USD)',        weight: 9,  get: p => fmtCurrency(p.marginValueUSD, 'USD ') },
-  { key: 'marginValueNGN',    label: 'Margin (NGN)',        weight: 10, get: p => fmtCurrency(p.marginValueNGN, 'NGN ') },
-  { key: 'marginPercent',     label: 'Margin %',            weight: 5,  get: marginPercentOf },
-  { key: 'dealProbability',   label: 'Probability',         weight: 6,  get: p => p.dealProbability || '—' },
-  { key: 'progress',          label: 'Progress',            weight: 5,  get: p => (p.progress == null ? '—' : `${p.progress}%`) },
-  { key: 'oem',               label: 'OEM',                 weight: 8,  get: p => p.oem || '—' },
-  { key: 'location',          label: 'Location',            weight: 8,  get: p => p.location || '—' },
-  { key: 'products',          label: 'Products',            weight: 10, get: p => listOf(p.products, p.product) },
-  { key: 'subproducts',       label: 'Sub-products',        weight: 10, get: p => listOf(p.subproducts, p.subProduct) },
-  { key: 'salesLead',         label: 'Sales Lead',          weight: 8,  get: p => p.salesLead || '—' },
-  { key: 'teamSize',          label: 'Team Size',           weight: 5,  get: p => (p.teamSize == null ? '—' : String(p.teamSize)) },
-  { key: 'tasks',             label: 'Tasks (done/total)',  weight: 6,  get: p => `${p.completedTasksCount ?? 0}/${p.tasksCount ?? p.tasks?.length ?? 0}` },
-  { key: 'pipelineIntakeDate',label: 'Intake Date',         weight: 8,  get: p => fmtDateValue(p.pipelineIntakeDate) },
-  { key: 'startDate',         label: 'Start Date',          weight: 8,  get: p => fmtDateValue(p.startDate) },
-  { key: 'endDate',           label: 'End Date',            weight: 8,  get: p => fmtDateValue(p.endDate) },
-  { key: 'expectedCloseDate', label: 'Expected Close',      weight: 8,  get: p => fmtDateValue(p.expectedCloseDate) },
-  { key: 'projectLeadComments', label: 'Lead Comments',     weight: 13, get: p => p.projectLeadComments || '—' },
-  { key: 'supportNeeded',     label: 'Support Needed',      weight: 13, get: p => p.supportNeeded || '—' },
+  { key: 'name',              label: 'Project Name',        shortLabel: 'Project',     weight: 14, get: p => p.name || '—' },
+  { key: 'description',       label: 'Description',         shortLabel: 'Description', weight: 18, get: p => (p.description?.trim() || '—') },
+  { key: 'clientName',        label: 'Client',              shortLabel: 'Client',      weight: 9,  get: p => p.clientName || '—' },
+  { key: 'clientContact',     label: 'Client Contact',      shortLabel: 'Contact',     weight: 8,  get: p => p.clientContact || '—' },
+  { key: 'channelPartner',    label: 'Partner',             shortLabel: 'Partner',     weight: 8,  get: p => p.channelPartner || '—' },
+  { key: 'businessVertical',  label: 'Business Vertical',   shortLabel: 'Vertical',    weight: 10, get: p => p.businessVertical || '—' },
+  { key: 'sector',            label: 'Sector',              shortLabel: 'Sector',      weight: 8,  get: p => p.sector || '—' },
+  { key: 'businessSegment',   label: 'Business Segment',    shortLabel: 'Segment',     weight: 8,  get: p => p.businessSegment || '—' },
+  { key: 'pipelineStage',     label: 'Stage',               shortLabel: 'Stage',       weight: 8,  get: stageLabelOf },
+  { key: 'status',            label: 'Status',              shortLabel: 'Status',      weight: 6,  get: p => p.status || '—' },
+  { key: 'contractValueUSD',  label: 'Value (USD)',         shortLabel: 'USD',         weight: 9,  get: p => fmtCurrency(p.contractValueUSD, 'USD ') },
+  { key: 'contractValueNGN',  label: 'Value (NGN)',         shortLabel: 'NGN',         weight: 10, get: p => fmtCurrency(p.contractValueNGN, 'NGN ') },
+  { key: 'marginValueUSD',    label: 'Margin (USD)',        shortLabel: 'Mgn USD',     weight: 9,  get: p => fmtCurrency(p.marginValueUSD, 'USD ') },
+  { key: 'marginValueNGN',    label: 'Margin (NGN)',        shortLabel: 'Mgn NGN',     weight: 10, get: p => fmtCurrency(p.marginValueNGN, 'NGN ') },
+  { key: 'marginPercent',     label: 'Margin %',            shortLabel: 'Mgn %',       weight: 6,  get: marginPercentOf },
+  { key: 'dealProbability',   label: 'Probability',         shortLabel: 'Prob.',       weight: 6,  get: p => p.dealProbability || '—' },
+  { key: 'progress',          label: 'Progress',            shortLabel: 'Prog.',       weight: 5,  get: p => (p.progress == null ? '—' : `${p.progress}%`) },
+  { key: 'oem',               label: 'OEM',                 shortLabel: 'OEM',         weight: 7,  get: p => p.oem || '—' },
+  { key: 'location',          label: 'Location',            shortLabel: 'Location',    weight: 8,  get: p => p.location || '—' },
+  { key: 'products',          label: 'Products',            shortLabel: 'Products',    weight: 10, get: p => listOf(p.products, p.product) },
+  { key: 'subproducts',       label: 'Sub-products',        shortLabel: 'Sub-prod.',   weight: 9,  get: p => listOf(p.subproducts, p.subProduct) },
+  { key: 'salesLead',         label: 'Sales Lead',          shortLabel: 'Sales',       weight: 8,  get: p => p.salesLead || '—' },
+  { key: 'teamSize',          label: 'Team Size',           shortLabel: 'Team',        weight: 5,  get: p => (p.teamSize == null ? '—' : String(p.teamSize)) },
+  { key: 'tasks',             label: 'Tasks (done/total)',  shortLabel: 'Tasks',       weight: 6,  get: p => `${p.completedTasksCount ?? 0}/${p.tasksCount ?? p.tasks?.length ?? 0}` },
+  { key: 'pipelineIntakeDate',label: 'Intake Date',         shortLabel: 'Intake',      weight: 8,  get: p => fmtDateValue(p.pipelineIntakeDate) },
+  { key: 'startDate',         label: 'Start Date',          shortLabel: 'Start',       weight: 8,  get: p => fmtDateValue(p.startDate) },
+  { key: 'endDate',           label: 'End Date',            shortLabel: 'End',         weight: 8,  get: p => fmtDateValue(p.endDate) },
+  { key: 'expectedCloseDate', label: 'Expected Close',      shortLabel: 'Close',       weight: 8,  get: p => fmtDateValue(p.expectedCloseDate) },
+  { key: 'projectLeadComments', label: 'Lead Comments',     shortLabel: 'Comments',    weight: 14, get: p => (p.projectLeadComments?.trim() || '—') },
+  { key: 'supportNeeded',     label: 'Support Needed',      shortLabel: 'Support',     weight: 12, get: p => (p.supportNeeded?.trim() || '—') },
 ];
 
-/** The historical 12-column layout, used when the caller does not pick columns. */
+/** Default readable layout — keeps description prominent and type large enough to read. */
 export const DEFAULT_PROJECT_REPORT_COLUMN_KEYS = [
   'name',
   'description',
   'clientName',
-  'channelPartner',
+  'businessVertical',
+  'sector',
+  'pipelineStage',
+  'status',
+  'contractValueUSD',
+  'contractValueNGN',
+  'dealProbability',
+  'location',
+  'products',
+];
+
+/** Broader but still printable in one landscape table. */
+export const FULL_PROJECT_REPORT_COLUMN_KEYS = [
+  'name',
+  'description',
+  'clientName',
+  'clientContact',
   'businessVertical',
   'sector',
   'pipelineStage',
@@ -268,6 +286,31 @@ export const DEFAULT_PROJECT_REPORT_COLUMN_KEYS = [
   'contractValueNGN',
   'marginPercent',
   'dealProbability',
+  'oem',
+  'location',
+  'products',
+  'startDate',
+  'expectedCloseDate',
+];
+
+/** Logical groups used when the selection is too wide for one table. */
+const REPORT_COLUMN_SECTIONS: { title: string; keys: string[] }[] = [
+  {
+    title: 'Overview',
+    keys: ['name', 'description', 'clientName', 'clientContact', 'businessVertical', 'sector', 'businessSegment', 'pipelineStage', 'status'],
+  },
+  {
+    title: 'Commercial',
+    keys: ['name', 'contractValueUSD', 'contractValueNGN', 'marginValueUSD', 'marginValueNGN', 'marginPercent', 'dealProbability', 'progress'],
+  },
+  {
+    title: 'Delivery details',
+    keys: ['name', 'oem', 'location', 'products', 'subproducts', 'channelPartner', 'salesLead', 'teamSize', 'tasks'],
+  },
+  {
+    title: 'Dates & notes',
+    keys: ['name', 'pipelineIntakeDate', 'startDate', 'endDate', 'expectedCloseDate', 'projectLeadComments', 'supportNeeded'],
+  },
 ];
 
 function pickColumns(keys: string[]): ProjectReportColumn[] {
@@ -279,6 +322,106 @@ function pickColumns(keys: string[]): ProjectReportColumn[] {
 function resolveColumns(keys: string[] | undefined): ProjectReportColumn[] {
   const selected = keys?.length ? pickColumns(keys) : [];
   return selected.length ? selected : pickColumns(DEFAULT_PROJECT_REPORT_COLUMN_KEYS);
+}
+
+/** Soft max columns per landscape table before we split into sections. */
+const MAX_COLS_PER_TABLE = 12;
+
+function buildColumnLayout(columns: ProjectReportColumn[]): { label: string; x: number; w: number }[] {
+  const totalWeight = columns.reduce((sum, c) => sum + c.weight, 0) || 1;
+  // Floor each column so labels/values stay readable; renormalise if needed.
+  const minShare = 0.055; // ~5.5% of content width
+  let shares = columns.map((c) => Math.max(c.weight / totalWeight, minShare));
+  const shareSum = shares.reduce((a, b) => a + b, 0);
+  shares = shares.map((s) => s / shareSum);
+
+  return columns.reduce<{ label: string; x: number; w: number }[]>((acc, c, i) => {
+    const prev = acc[acc.length - 1];
+    const x = prev ? prev.x + prev.w : MARGIN;
+    const useShort = columns.length > 8;
+    acc.push({
+      label: useShort && c.shortLabel ? c.shortLabel : c.label,
+      x,
+      w: shares[i] * CONTENT_W,
+    });
+    return acc;
+  }, []);
+}
+
+function fontSizesForColumnCount(colCount: number): { headerFont: number; bodyFont: number } {
+  if (colCount > 14) return { headerFont: 9, bodyFont: 8 };
+  if (colCount > 11) return { headerFont: 10, bodyFont: 8.5 };
+  if (colCount > 9) return { headerFont: 11, bodyFont: 9 };
+  return { headerFont: 12, bodyFont: 9.5 };
+}
+
+function maxLinesForColumn(key: string): number {
+  if (key === 'description' || key === 'projectLeadComments' || key === 'supportNeeded') return 6;
+  if (key === 'products' || key === 'subproducts') return 3;
+  return 2;
+}
+
+function drawProjectsTable(
+  pdf: jsPDF,
+  projects: Project[],
+  columns: ProjectReportColumn[],
+  startY: number,
+  sectionTitle?: string
+): number {
+  let y = startY;
+  const cols = buildColumnLayout(columns);
+  const { headerFont, bodyFont } = fontSizesForColumnCount(columns.length);
+  const LINE_H = bodyFont * 1.3;
+
+  if (sectionTitle) {
+    y = checkPageBreak(pdf, y, 36);
+    pdf.setFontSize(13);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(15, 23, 42);
+    pdf.text(sectionTitle, MARGIN, y);
+    y += 16;
+  }
+
+  y = drawTableHeader(pdf, cols, y, headerFont);
+
+  projects.forEach((p, idx) => {
+    pdf.setFontSize(bodyFont);
+    pdf.setFont('helvetica', 'normal');
+
+    const wrappedCells = columns.map((c, i) =>
+      wrapCellText(pdf, c.get(p), cellTextWidth(cols[i].w), maxLinesForColumn(c.key))
+    );
+    const maxLines = Math.max(1, ...wrappedCells.map((lines) => lines.length));
+    const rowH = Math.max(ROW_H, maxLines * LINE_H + 10);
+
+    y = checkPageBreak(pdf, y, rowH + 4);
+    if (y < MARGIN + 24) {
+      if (sectionTitle) {
+        pdf.setFontSize(12);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setTextColor(15, 23, 42);
+        pdf.text(`${sectionTitle} (cont.)`, MARGIN, y);
+        y += 14;
+      }
+      y = drawTableHeader(pdf, cols, y, headerFont);
+      pdf.setFontSize(bodyFont);
+      pdf.setFont('helvetica', 'normal');
+    }
+
+    if (idx % 2 === 0) {
+      pdf.setFillColor(248, 250, 252);
+      pdf.rect(MARGIN, y - 4, CONTENT_W, rowH, 'F');
+    }
+
+    pdf.setTextColor(30, 41, 59);
+    wrappedCells.forEach((lines, i) => {
+      drawCellLines(pdf, lines, cols[i].x, y, LINE_H, bodyFont + 3);
+    });
+
+    y += rowH;
+  });
+
+  return y + 8;
 }
 
 function buildFilterString(filters: ProjectFilterSummary): string {
@@ -305,56 +448,57 @@ export function generateProjectsReport(
   let y = addReportHeader(pdf, title, filterStr, projects.length, MARGIN + 10);
 
   const selectedColumns = resolveColumns(columnKeys);
-  const totalWeight = selectedColumns.reduce((sum, c) => sum + c.weight, 0);
-  const cols = selectedColumns.reduce<{ label: string; x: number; w: number }[]>((acc, c) => {
-    const prev = acc[acc.length - 1];
-    const x = prev ? prev.x + prev.w : MARGIN;
-    acc.push({ label: c.label, x, w: (c.weight / totalWeight) * CONTENT_W });
-    return acc;
-  }, []);
 
-  // Shrink type as columns are added so wide selections stay legible.
-  const colCount = selectedColumns.length;
-  const headerFont = colCount > 18 ? 8 : colCount > 14 ? 10 : colCount > 12 ? 11 : 13;
-  const bodyFont = colCount > 18 ? 6.5 : colCount > 14 ? 7.5 : colCount > 12 ? 8 : 9;
-  const LINE_H = bodyFont * 1.25;
+  if (selectedColumns.length <= MAX_COLS_PER_TABLE) {
+    y = drawProjectsTable(pdf, projects, selectedColumns, y);
+  } else {
+    // Too many columns for one landscape table — print logical sections so
+    // description and other narrative fields stay readable.
+    const selectedKeys = new Set(selectedColumns.map((c) => c.key));
+    const nameCol = PROJECT_REPORT_COLUMNS.find((c) => c.key === 'name');
+    let printedAny = false;
 
-  y = drawTableHeader(pdf, cols, y, headerFont);
+    for (const section of REPORT_COLUMN_SECTIONS) {
+      const keys = section.keys.filter((k) => selectedKeys.has(k) || k === 'name');
+      const uniqueKeys = Array.from(new Set(keys));
+      const cols = pickColumns(uniqueKeys);
+      // Skip sections that only have the repeated name column.
+      if (cols.length <= 1) continue;
+      if (!cols.some((c) => c.key !== 'name' && selectedKeys.has(c.key))) continue;
 
-  projects.forEach((p, idx) => {
-  pdf.setFontSize(bodyFont);
-  pdf.setFont('helvetica', 'normal');
+      if (printedAny) {
+        pdf.addPage();
+        y = MARGIN + 10;
+        pdf.setFontSize(11);
+        pdf.setFont('helvetica', 'normal');
+        pdf.setTextColor(100, 116, 139);
+        pdf.text(`${title} — continued`, MARGIN, y);
+        y += 18;
+      }
 
-  // Wrap every column; enforce width + line cap so text cannot bleed sideways.
-  const wrappedCells = selectedColumns.map((c, i) =>
-    wrapCellText(pdf, c.get(p), cellTextWidth(cols[i].w))
-  );
-  const maxLines = Math.max(1, ...wrappedCells.map((lines) => lines.length));
-  const rowH = Math.max(ROW_H, maxLines * LINE_H + 10);
+      // Ensure name is first for orientation across sections.
+      const ordered =
+        nameCol && cols[0]?.key !== 'name'
+          ? [nameCol, ...cols.filter((c) => c.key !== 'name')]
+          : cols;
 
-  y = checkPageBreak(pdf, y, rowH + 4);
-  if (y < MARGIN + 20) {
-    y = drawTableHeader(pdf, cols, y, headerFont);
-    // drawTableHeader leaves the font bold at header size
-    pdf.setFontSize(bodyFont);
-    pdf.setFont('helvetica', 'normal');
+      y = drawProjectsTable(pdf, projects, ordered, y, section.title);
+      printedAny = true;
+    }
+
+    // Any selected columns not covered by the section maps (future-proof).
+    const covered = new Set(REPORT_COLUMN_SECTIONS.flatMap((s) => s.keys));
+    const leftovers = selectedColumns.filter((c) => c.key !== 'name' && !covered.has(c.key));
+    if (leftovers.length) {
+      pdf.addPage();
+      y = MARGIN + 10;
+      const ordered = nameCol ? [nameCol, ...leftovers] : leftovers;
+      y = drawProjectsTable(pdf, projects, ordered, y, 'Additional fields');
+    }
   }
-
-  if (idx % 2 === 0) {
-    pdf.setFillColor(248, 250, 252);
-    pdf.rect(MARGIN, y - 4, CONTENT_W, rowH, 'F');
-  }
-
-  pdf.setTextColor(30, 41, 59);
-  wrappedCells.forEach((lines, i) => {
-    drawCellLines(pdf, lines, cols[i].x, y, LINE_H);
-  });
-
-  y += rowH;
-});
 
   // Summary totals
-  y = checkPageBreak(pdf, y, 40);
+  y = checkPageBreak(pdf, y, 48);
   y += 8;
   pdf.setDrawColor(203, 213, 225);
   pdf.line(MARGIN, y, PAGE_W - MARGIN, y);

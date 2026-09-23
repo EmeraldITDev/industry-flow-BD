@@ -24,6 +24,7 @@ import {
 import { cn } from '@/lib/utils';
 import {
   DEFAULT_PROJECT_REPORT_COLUMN_KEYS,
+  FULL_PROJECT_REPORT_COLUMN_KEYS,
   PROJECT_REPORT_COLUMNS,
   ProjectFilterSummary,
   generateProjectsReport,
@@ -104,7 +105,11 @@ export function GenerateReportButton({
 
       setIsLoading(true);
       try {
-        const rows = await projectsService.getAllMatching(fetchParams);
+        const rows = await projectsService.getAllMatching({
+          ...fetchParams,
+          // Full fields — lean payloads historically omitted description.
+          lean: 0,
+        });
         if (cancelled) return;
         setProjects(rows);
         setExcludedIds(buildInitialExcludedIds(rows, preselectedProjectIds));
@@ -248,7 +253,25 @@ export function GenerateReportButton({
 
               <div className="flex items-center justify-between">
                 <Label>Columns ({selectedColumns.length})</Label>
-                <div className="flex items-center gap-1">
+                <div className="flex flex-wrap items-center justify-end gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2 text-xs"
+                    onClick={() => setColumnKeys(DEFAULT_PROJECT_REPORT_COLUMN_KEYS)}
+                    disabled={isLoading}
+                  >
+                    Default
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2 text-xs"
+                    onClick={() => setColumnKeys(FULL_PROJECT_REPORT_COLUMN_KEYS)}
+                    disabled={isLoading}
+                  >
+                    Full
+                  </Button>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -257,15 +280,6 @@ export function GenerateReportButton({
                     disabled={isLoading}
                   >
                     All
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 px-2 text-xs"
-                    onClick={() => setColumnKeys(DEFAULT_PROJECT_REPORT_COLUMN_KEYS)}
-                    disabled={isLoading}
-                  >
-                    Reset
                   </Button>
                 </div>
               </div>
@@ -286,10 +300,10 @@ export function GenerateReportButton({
                 ))}
               </div>
 
-              {selectedColumns.length > 14 && (
+              {selectedColumns.length > 12 && (
                 <p className="text-xs text-muted-foreground">
-                  {selectedColumns.length} columns will be printed at a reduced font size to fit
-                  the page.
+                  {selectedColumns.length} columns will print as separate sections (Overview,
+                  Commercial, Delivery, Dates) so description and other fields stay readable.
                 </p>
               )}
             </div>

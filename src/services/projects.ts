@@ -185,6 +185,7 @@ export const normalizeProject = (project: any): Project => {
     marginValueNGN,
     marginValueUSD,
     // Normalized fields
+    description: project.description ?? project.Description ?? '',
     clientName: project.clientName ?? project.client_name ?? '',
     clientContact: project.clientContact ?? project.client_contact ?? '',
     startDate: project.startDate ?? project.start_date ?? '',
@@ -252,6 +253,9 @@ export const projectsService = {
   /**
    * Fetch every project matching the current list filters (no pagination).
    * Used by export / report so page size does not limit the dataset.
+   *
+   * Pass `lean: 0` (or `lean: false`) when the caller needs narrative fields
+   * such as description / lead comments (reports). Default remains lean for CSV export speed.
    */
   getAllMatching: async (
     params: Record<string, unknown> = {}
@@ -262,8 +266,11 @@ export const projectsService = {
       perPage: _perPageCamel,
       ...rest
     } = params;
+    const leanParam = rest.lean;
+    const lean =
+      leanParam === 0 || leanParam === false || leanParam === '0' ? 0 : 1;
     const response = await api.get('/api/projects', {
-      params: { ...rest, lean: 1, all: 1 },
+      params: { ...rest, lean, all: 1 },
     });
     const data = response.data;
     const rows = Array.isArray(data?.data)
