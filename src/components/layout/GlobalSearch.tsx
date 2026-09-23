@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { CheckSquare, FolderKanban, Loader2, Search } from 'lucide-react';
+import { CheckSquare, FolderKanban, Loader2, Search, X } from 'lucide-react';
 import {
   Command,
   CommandEmpty,
@@ -32,11 +32,25 @@ function stageLabel(stage?: string): string {
   return PIPELINE_STAGES.find((s) => s.value === stage)?.label || stage;
 }
 
+function useShortcutLabel(): string {
+  return useMemo(() => {
+    if (typeof navigator === 'undefined') return 'Ctrl+K';
+    const ua = navigator.userAgent || '';
+    const platform = (navigator as Navigator & { userAgentData?: { platform?: string } })
+      .userAgentData?.platform || navigator.platform || '';
+    const isApple = /Mac|iPhone|iPad|iPod/i.test(platform) || /Mac OS X/i.test(ua);
+    return isApple ? '⌘ K' : 'Ctrl+K';
+  }, []);
+}
+
 export function GlobalSearch({ className }: { className?: string }) {
   const navigate = useNavigate();
+  const shortcutLabel = useShortcutLabel();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const debouncedQuery = useDebouncedValue(query.trim(), 280);
+
+  const close = useCallback(() => setOpen(false), []);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -107,8 +121,14 @@ export function GlobalSearch({ className }: { className?: string }) {
       >
         <Search className="mr-2 h-4 w-4 shrink-0" />
         <span className="truncate flex-1 text-left">Search projects, tasks...</span>
-        <kbd className="pointer-events-none hidden md:inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
-          ⌘K
+        <kbd
+          className={cn(
+            'pointer-events-none ml-2 hidden shrink-0 md:inline-flex h-5 items-center',
+            'rounded border border-border bg-muted/80 px-1.5',
+            'font-sans text-[10px] font-medium leading-none tracking-wide text-foreground/80'
+          )}
+        >
+          {shortcutLabel}
         </kbd>
       </button>
 
@@ -124,18 +144,44 @@ export function GlobalSearch({ className }: { className?: string }) {
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="overflow-hidden p-0 shadow-lg sm:max-w-xl">
+        <DialogContent
+          hideCloseButton
+          className="overflow-hidden p-0 shadow-lg sm:max-w-xl gap-0"
+          onOpenAutoFocus={(e) => {
+            // Let CommandInput take focus instead of the close button.
+            e.preventDefault();
+            const input = (e.currentTarget as HTMLElement).querySelector<HTMLInputElement>(
+              '[cmdk-input]'
+            );
+            input?.focus();
+          }}
+        >
           <DialogTitle className="sr-only">Search projects and tasks</DialogTitle>
-          {/* Server-side search — disable cmdk client filtering */}
           <Command
             shouldFilter={false}
-            className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-group]]:px-2 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5"
+            className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-group]]:px-2 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-input]]:pr-10 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5"
           >
-            <CommandInput
-              placeholder="Search projects, clients, tasks, opportunity content..."
-              value={query}
-              onValueChange={setQuery}
-            />
+            <div className="relative">
+              <CommandInput
+                placeholder="Search projects, clients, tasks, opportunity content..."
+                value={query}
+                onValueChange={setQuery}
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="absolute right-2 top-1/2 z-10 h-8 w-8 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  close();
+                }}
+                aria-label="Close search"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
             <CommandList>
               {!hasQuery && (
                 <div className="px-4 py-6 text-center text-sm text-muted-foreground">
