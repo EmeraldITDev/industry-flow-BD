@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, useTransition } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { CheckSquare, FolderKanban, Loader2, Search, X } from 'lucide-react';
 import {
   Command,
@@ -46,9 +46,10 @@ function useShortcutLabel(): string {
 export function GlobalSearch({ className }: { className?: string }) {
   const navigate = useNavigate();
   const shortcutLabel = useShortcutLabel();
+  const [, startTransition] = useTransition();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
-  const debouncedQuery = useDebouncedValue(query.trim(), 280);
+  const debouncedQuery = useDebouncedValue(query.trim(), 150);
 
   const close = useCallback(() => setOpen(false), []);
 
@@ -69,43 +70,60 @@ export function GlobalSearch({ className }: { className?: string }) {
 
   const enabled = open && debouncedQuery.length >= 2;
 
-  const { data: projectHits = [], isFetching: loadingProjects } = useQuery({
+  const {
+    data: projectHits = [],
+    isFetching: loadingProjects,
+    isPending: pendingProjects,
+  } = useQuery({
     queryKey: ['global-search', 'projects', debouncedQuery],
     queryFn: async () => {
       const { projects } = await projectsService.list({
         search: debouncedQuery,
-        per_page: 8,
+        per_page: 6,
         lean: 1,
+        quick: 1,
       });
       return projects;
     },
     enabled,
-    staleTime: 30_000,
+    staleTime: 60_000,
+    placeholderData: keepPreviousData,
   });
 
-  const { data: taskHits = [], isFetching: loadingTasks } = useQuery({
+  const {
+    data: taskHits = [],
+    isFetching: loadingTasks,
+    isPending: pendingTasks,
+  } = useQuery({
     queryKey: ['global-search', 'tasks', debouncedQuery],
     queryFn: async () => {
       const { tasks } = await tasksService.list({
         search: debouncedQuery,
-        per_page: 8,
+        per_page: 6,
       });
       return tasks;
     },
     enabled,
-    staleTime: 30_000,
+    staleTime: 60_000,
+    placeholderData: keepPreviousData,
   });
 
-  const isLoading = enabled && (loadingProjects || loadingTasks);
   const hasQuery = debouncedQuery.length >= 2;
-  const empty = hasQuery && !isLoading && projectHits.length === 0 && taskHits.length === 0;
+  const isFetching = loadingProjects || loadingTasks;
+  // Only block the list on the very first response for this query.
+  const showBlockingSpinner =
+    enabled && (pendingProjects || pendingTasks) && projectHits.length === 0 && taskHits.length === 0;
+  const empty = hasQuery && !isFetching && projectHits.length === 0 && taskHits.length === 0;
 
+  /** Navigate immediately on press — don't wait for dialog exit animation. */
   const go = useCallback(
     (path: string) => {
+      startTransition(() => {
+        navigate(path);
+      });
       setOpen(false);
-      navigate(path);
     },
-    [navigate]
+    [navigate, startTransition]
   );
 
   return (
@@ -124,8 +142,8 @@ export function GlobalSearch({ className }: { className?: string }) {
         <kbd
           className={cn(
             'pointer-events-none ml-2 hidden shrink-0 md:inline-flex h-5 items-center',
-            'rounded border border-border bg-muted/80 px-1.5',
-            'font-sans text-[10px] font-medium leading-none tracking-wide text-foreground/80'
+            'rounded border border-border/80 bg-background px-1.5 shadow-sm',
+            'font-sans text-[10px] font-semibold leading-none tracking-wide text-foreground'
           )}
         >
           {shortcutLabel}
@@ -148,7 +166,6 @@ export function GlobalSearch({ className }: { className?: string }) {
           hideCloseButton
           className="overflow-hidden p-0 shadow-lg sm:max-w-xl gap-0"
           onOpenAutoFocus={(e) => {
-            // Let CommandInput take focus instead of the close button.
             e.preventDefault();
             const input = (e.currentTarget as HTMLElement).querySelector<HTMLInputElement>(
               '[cmdk-input]'
@@ -188,7 +205,7 @@ export function GlobalSearch({ className }: { className?: string }) {
                   Type at least 2 characters to search across projects and tasks.
                 </div>
               )}
-              {isLoading && (
+              {showBlockingSpinner && (
                 <div className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin" />
                   Searching…
@@ -198,24 +215,33 @@ export function GlobalSearch({ className }: { className?: string }) {
 
               {projectHits.length > 0 && (
                 <CommandGroup heading="Projects">
-                  {projectHits.map((project) => (
-                    <CommandItem
-                      key={`p-${project.id}`}
-                      value={`project-${project.id}`}
-                      onSelect={() => go(`/projects/${project.id}`)}
-                      className="gap-2"
-                    >
-                      <FolderKanban className="h-4 w-4 shrink-0 text-muted-foreground" />
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate font-medium">{project.name}</p>
-                        <p className="truncate text-xs text-muted-foreground">
-                          {[project.clientName, stageLabel(project.pipelineStage), project.location]
-                            .filter(Boolean)
-                            .join(' · ') || 'Opportunity'}
-                        </p>
-                      </div>
-                    </CommandItem>
-                  ))}
+                  {projectHits.map((project) => {
+                    const path = `/projects/${project.id}`;
+                    return (
+                      <CommandItem
+                        key={`p-${project.id}`}
+                        value={`project-${project.id}`}
+                        onSelect={() => go(path)}
+                        onPointerDown={(e) => {
+                          // Fire on press (not mouseup) so navigation isn't delayed by dialog teardown.
+                          if (e.button !== 0) return;
+                          e.preventDefault();
+                          go(path);
+                        }}
+                        className="gap-2 cursor-pointer"
+                      >
+                        <FolderKanban className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-medium">{project.name}</p>
+                          <p className="truncate text-xs text-muted-foreground">
+                            {[project.clientName, stageLabel(project.pipelineStage), project.location]
+                              .filter(Boolean)
+                              .join(' · ') || 'Opportunity'}
+                          </p>
+                        </div>
+                      </CommandItem>
+                    );
+                  })}
                 </CommandGroup>
               )}
 
@@ -223,34 +249,38 @@ export function GlobalSearch({ className }: { className?: string }) {
 
               {taskHits.length > 0 && (
                 <CommandGroup heading="Tasks">
-                  {taskHits.map((task) => (
-                    <CommandItem
-                      key={`t-${task.id}`}
-                      value={`task-${task.id}`}
-                      onSelect={() =>
-                        go(
-                          task.projectId
-                            ? `/projects/${task.projectId}`
-                            : `/tasks?search=${encodeURIComponent(task.title)}`
-                        )
-                      }
-                      className="gap-2"
-                    >
-                      <CheckSquare className="h-4 w-4 shrink-0 text-muted-foreground" />
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate font-medium">{task.title}</p>
-                        <p className="truncate text-xs text-muted-foreground capitalize">
-                          {[task.status?.replace(/_/g, ' '), task.priority]
-                            .filter(Boolean)
-                            .join(' · ')}
-                        </p>
-                      </div>
-                    </CommandItem>
-                  ))}
+                  {taskHits.map((task) => {
+                    const path = task.projectId
+                      ? `/projects/${task.projectId}`
+                      : `/tasks?search=${encodeURIComponent(task.title)}`;
+                    return (
+                      <CommandItem
+                        key={`t-${task.id}`}
+                        value={`task-${task.id}`}
+                        onSelect={() => go(path)}
+                        onPointerDown={(e) => {
+                          if (e.button !== 0) return;
+                          e.preventDefault();
+                          go(path);
+                        }}
+                        className="gap-2 cursor-pointer"
+                      >
+                        <CheckSquare className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-medium">{task.title}</p>
+                          <p className="truncate text-xs text-muted-foreground capitalize">
+                            {[task.status?.replace(/_/g, ' '), task.priority]
+                              .filter(Boolean)
+                              .join(' · ')}
+                          </p>
+                        </div>
+                      </CommandItem>
+                    );
+                  })}
                 </CommandGroup>
               )}
 
-              {hasQuery && !isLoading && (projectHits.length > 0 || taskHits.length > 0) && (
+              {hasQuery && !showBlockingSpinner && (projectHits.length > 0 || taskHits.length > 0) && (
                 <>
                   <CommandSeparator />
                   <CommandGroup heading="Quick links">
@@ -259,14 +289,29 @@ export function GlobalSearch({ className }: { className?: string }) {
                       onSelect={() =>
                         go(`/projects?search=${encodeURIComponent(debouncedQuery)}`)
                       }
+                      onPointerDown={(e) => {
+                        if (e.button !== 0) return;
+                        e.preventDefault();
+                        go(`/projects?search=${encodeURIComponent(debouncedQuery)}`);
+                      }}
+                      className="cursor-pointer"
                     >
                       View all matching projects
+                      {isFetching && (
+                        <Loader2 className="ml-auto h-3.5 w-3.5 animate-spin text-muted-foreground" />
+                      )}
                     </CommandItem>
                     <CommandItem
                       value="view-all-tasks"
                       onSelect={() =>
                         go(`/tasks?search=${encodeURIComponent(debouncedQuery)}`)
                       }
+                      onPointerDown={(e) => {
+                        if (e.button !== 0) return;
+                        e.preventDefault();
+                        go(`/tasks?search=${encodeURIComponent(debouncedQuery)}`);
+                      }}
+                      className="cursor-pointer"
                     >
                       View all matching tasks
                     </CommandItem>

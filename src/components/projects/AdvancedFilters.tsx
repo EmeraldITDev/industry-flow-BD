@@ -91,7 +91,7 @@ function AdvancedFiltersComponent({ filters, onFiltersChange, projects = [], tea
     if (searchDraft === filtersRef.current.search) return;
     const timer = window.setTimeout(() => {
       onFiltersChange({ ...filtersRef.current, search: searchDraft });
-    }, 250);
+    }, 180);
     return () => window.clearTimeout(timer);
   }, [searchDraft, onFiltersChange]);
 
