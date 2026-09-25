@@ -2,11 +2,27 @@ import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Loader2, Handshake } from 'lucide-react';
-import { partnersService, type PartnerTrackerRankRow } from '@/services/partners';
+import { Progress } from '@/components/ui/progress';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Loader2, Handshake, Download, ChevronRight } from 'lucide-react';
+import {
+  partnersService,
+  type PartnerTrackerMetrics,
+  type PartnerTrackerRankRow,
+} from '@/services/partners';
 import { useCurrency } from '@/context/CurrencyContext';
 import { cn } from '@/lib/utils';
+import {
+  exportActiveZeroCsv,
+  exportActiveZeroPdf,
+  exportIncompleteCsv,
+  exportIncompletePdf,
+} from '@/lib/partnerTrackerExports';
 
 function formatMoney(usd: number, ngn: number, preferUsd: boolean) {
   if (preferUsd) {
@@ -55,6 +71,77 @@ function RankTable({
         </Link>
       ))}
     </div>
+  );
+}
+
+function BreakdownBars({
+  rows,
+  onRowClick,
+}: {
+  rows: Array<{ key: string; label: string; count: number; pct: number }>;
+  onRowClick?: (key: string) => void;
+}) {
+  if (rows.length === 0) {
+    return <p className="text-sm text-muted-foreground py-2">No data for this breakdown.</p>;
+  }
+
+  return (
+    <div className="space-y-3">
+      {rows.map((row) => {
+        const Comp = onRowClick ? 'button' : 'div';
+        return (
+          <Comp
+            key={row.key}
+            type={onRowClick ? 'button' : undefined}
+            onClick={onRowClick ? () => onRowClick(row.key) : undefined}
+            className={cn(
+              'w-full text-left space-y-1.5',
+              onRowClick && 'rounded-md hover:bg-accent/40 px-1 py-1 -mx-1 transition-colors'
+            )}
+          >
+            <div className="flex items-baseline justify-between gap-3 text-sm">
+              <span className="truncate font-medium">{row.label}</span>
+              <span className="shrink-0 tabular-nums text-muted-foreground">
+                {row.count}
+                <span className="text-xs ml-1.5">({row.pct}%)</span>
+              </span>
+            </div>
+            <Progress value={Math.min(100, row.pct)} className="h-2" />
+          </Comp>
+        );
+      })}
+    </div>
+  );
+}
+
+function ExportMenu({
+  onPdf,
+  onCsv,
+  disabled,
+}: {
+  onPdf: () => void | Promise<void>;
+  onCsv: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" size="sm" disabled={disabled} className="shrink-0">
+          <Download className="h-3.5 w-3.5 mr-1.5" />
+          Export
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem
+          onSelect={() => {
+            void onPdf();
+          }}
+        >
+          Export PDF
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={onCsv}>Export CSV / Excel</DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -123,15 +210,15 @@ export function PartnerTrackerInsights({ className }: { className?: string }) {
               hint="Stage = Active Partner, no pivot links"
               onClick={() =>
                 navigate(
-                  `/partners?relationshipStage=${encodeURIComponent('Active Partner')}`
+                  `/partners?relationshipStage=${encodeURIComponent('Active Partner')}&zeroLinks=1`
                 )
               }
             />
             <MetricTile
               label="Incomplete profiles"
               value={String(data.incompleteProfiles.count)}
-              hint="Missing contact person or email"
-              onClick={() => navigate('/partners')}
+              hint="Missing contact person or email (Tracker badge)"
+              onClick={() => navigate('/partners?incomplete=1')}
             />
             <MetricTile
               label="Top-1 volume share"
@@ -148,6 +235,14 @@ export function PartnerTrackerInsights({ className }: { className?: string }) {
               value={String(data.validThruExpiring90Days.count)}
               hint="Agreements expiring within 90 days"
               onClick={() => navigate('/partners')}
+            />
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            <ActiveZeroCard data={data.activeWithZeroOpportunities} />
+            <IncompleteProfilesCard
+              incomplete={data.incompleteProfiles}
+              dataGaps={data.dataGaps}
             />
           </div>
 
@@ -184,66 +279,183 @@ export function PartnerTrackerInsights({ className }: { className?: string }) {
               </CardContent>
             </Card>
           </div>
-
-          {(data.activeWithZeroOpportunities.partners.length > 0 ||
-            data.incompleteProfiles.partners.length > 0) && (
-            <div className="grid gap-4 lg:grid-cols-2">
-              {data.activeWithZeroOpportunities.partners.length > 0 && (
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm">
-                      Active Partners with no linked opportunities
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-1">
-                    {data.activeWithZeroOpportunities.partners.slice(0, 8).map((p) => (
-                      <Link
-                        key={p.id}
-                        to={`/partners/${p.id}`}
-                        className="block text-sm truncate hover:text-primary"
-                      >
-                        {p.companyName}
-                      </Link>
-                    ))}
-                    {data.activeWithZeroOpportunities.count > 8 && (
-                      <p className="text-xs text-muted-foreground pt-1">
-                        +{data.activeWithZeroOpportunities.count - 8} more
-                      </p>
-                    )}
-                  </CardContent>
-                </Card>
-              )}
-              {data.incompleteProfiles.partners.length > 0 && (
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm">Incomplete partner profiles</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-1">
-                    {data.incompleteProfiles.partners.slice(0, 8).map((p) => (
-                      <Link
-                        key={p.id}
-                        to={`/partners/${p.id}`}
-                        className="flex items-center justify-between gap-2 text-sm hover:text-primary"
-                      >
-                        <span className="truncate">{p.companyName}</span>
-                        <Badge variant="outline" className="text-[10px] shrink-0">
-                          Incomplete
-                        </Badge>
-                      </Link>
-                    ))}
-                    {data.incompleteProfiles.count > 8 && (
-                      <p className="text-xs text-muted-foreground pt-1">
-                        +{data.incompleteProfiles.count - 8} more
-                      </p>
-                    )}
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-          )}
         </>
       )}
     </div>
+  );
+}
+
+function ActiveZeroCard({
+  data,
+}: {
+  data: PartnerTrackerMetrics['activeWithZeroOpportunities'];
+}) {
+  const navigate = useNavigate();
+  const seeAllHref = `/partners?relationshipStage=${encodeURIComponent('Active Partner')}&zeroLinks=1`;
+  const preview = data.partners.slice(0, 3);
+
+  return (
+    <Card className="border-primary/20">
+      <CardHeader className="pb-3 flex-row items-start justify-between space-y-0 gap-3">
+        <div className="min-w-0">
+          <CardTitle className="text-base">Active Partners · no linked opportunities</CardTitle>
+          <p className="text-xs text-muted-foreground mt-1">
+            Stage = Active Partner with zero Partner Tracker links. Breakdown by relationship
+            owner (multi-owner partners appear under each owner).
+          </p>
+        </div>
+        <ExportMenu
+          onPdf={() => exportActiveZeroPdf(data)}
+          onCsv={() => exportActiveZeroCsv(data)}
+          disabled={data.count === 0}
+        />
+      </CardHeader>
+      <CardContent className="space-y-5">
+        <div className="rounded-lg border border-primary/30 bg-primary/5 p-4">
+          <p className="text-3xl font-semibold tabular-nums tracking-tight text-foreground">
+            {data.count}
+          </p>
+          <p className="text-sm text-muted-foreground mt-1">
+            active partners with no linked opportunities
+          </p>
+        </div>
+
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+            By relationship owner
+          </p>
+          <BreakdownBars
+            rows={(data.byOwner ?? []).slice(0, 6).map((row) => ({
+              key: row.ownerId == null ? 'unassigned' : String(row.ownerId),
+              label: row.ownerName,
+              count: row.count,
+              pct: row.pct,
+            }))}
+            onRowClick={(key) => {
+              const ownerParam =
+                key === 'unassigned' ? 'unassigned' : encodeURIComponent(key);
+              navigate(`${seeAllHref}&ownerId=${ownerParam}`);
+            }}
+          />
+        </div>
+
+        {preview.length > 0 && (
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+              Examples
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {preview.map((p) => (
+                <Link
+                  key={p.id}
+                  to={`/partners/${p.id}`}
+                  className="rounded-full border border-border px-3 py-1.5 text-xs hover:border-primary/60 hover:text-primary transition-colors"
+                >
+                  {p.companyName}
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full sm:w-auto"
+          onClick={() => navigate(seeAllHref)}
+        >
+          See all {data.count}
+          <ChevronRight className="h-3.5 w-3.5 ml-1" />
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+function IncompleteProfilesCard({
+  incomplete,
+  dataGaps,
+}: {
+  incomplete: PartnerTrackerMetrics['incompleteProfiles'];
+  dataGaps: PartnerTrackerMetrics['dataGaps'];
+}) {
+  const navigate = useNavigate();
+  const preview = incomplete.partners.slice(0, 3);
+  const gapRows = (dataGaps?.fields ?? []).slice(0, 6);
+
+  return (
+    <Card className="border-primary/20">
+      <CardHeader className="pb-3 flex-row items-start justify-between space-y-0 gap-3">
+        <div className="min-w-0">
+          <CardTitle className="text-base">Incomplete partner profiles</CardTitle>
+          <p className="text-xs text-muted-foreground mt-1">
+            Headline matches the Partner Tracker Incomplete badge (contact person and/or email).
+            Data-gap bars below are a separate inventory across all partners.
+          </p>
+        </div>
+        <ExportMenu
+          onPdf={() => exportIncompletePdf(incomplete, dataGaps)}
+          onCsv={() => exportIncompleteCsv(incomplete, dataGaps)}
+          disabled={incomplete.count === 0 && (dataGaps?.partnersScanned ?? 0) === 0}
+        />
+      </CardHeader>
+      <CardContent className="space-y-5">
+        <div className="rounded-lg border border-primary/30 bg-primary/5 p-4">
+          <p className="text-3xl font-semibold tabular-nums tracking-tight text-foreground">
+            {incomplete.count}
+          </p>
+          <p className="text-sm text-muted-foreground mt-1">
+            incomplete profiles (contact person and/or email missing)
+          </p>
+        </div>
+
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+            Data gaps across all {dataGaps?.partnersScanned ?? 0} partners
+          </p>
+          <p className="text-[11px] text-muted-foreground mb-3">
+            Not the same number as the headline — field inventory for the whole book.
+          </p>
+          <BreakdownBars
+            rows={gapRows.map((f) => ({
+              key: f.key,
+              label: f.label,
+              count: f.count,
+              pct: f.pct,
+            }))}
+          />
+        </div>
+
+        {preview.length > 0 && (
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+              Examples (Tracker-incomplete)
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {preview.map((p) => (
+                <Link
+                  key={p.id}
+                  to={`/partners/${p.id}`}
+                  className="rounded-full border border-border px-3 py-1.5 text-xs hover:border-primary/60 hover:text-primary transition-colors"
+                >
+                  {p.companyName}
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full sm:w-auto"
+          onClick={() => navigate('/partners?incomplete=1')}
+        >
+          See all {incomplete.count}
+          <ChevronRight className="h-3.5 w-3.5 ml-1" />
+        </Button>
+      </CardContent>
+    </Card>
   );
 }
 

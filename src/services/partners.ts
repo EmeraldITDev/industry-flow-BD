@@ -8,6 +8,7 @@ import type {
   ScmVendorSearchResult,
   UpdatePartnerData,
 } from '@/types/partners';
+import { isPartnerProfileComplete } from '@/types/partners';
 
 export type PartnerTrackerRankRow = {
   id: number | string;
@@ -18,6 +19,20 @@ export type PartnerTrackerRankRow = {
   totalValueNgn: number;
 };
 
+export type PartnerTrackerOwnerBreakdown = {
+  ownerId: number | string | null;
+  ownerName: string;
+  count: number;
+  pct: number;
+};
+
+export type PartnerTrackerDataGapField = {
+  key: string;
+  label: string;
+  count: number;
+  pct: number;
+};
+
 export type PartnerTrackerMetrics = {
   definition: string;
   definitionLabel: string;
@@ -25,17 +40,34 @@ export type PartnerTrackerMetrics = {
   byVolume: PartnerTrackerRankRow[];
   activeWithZeroOpportunities: {
     count: number;
-    partners: Array<{ id: number | string; companyName: string; relationshipStage?: string | null }>;
+    definition?: string;
+    byOwner: PartnerTrackerOwnerBreakdown[];
+    partners: Array<{
+      id: number | string;
+      companyName: string;
+      relationshipStage?: string | null;
+      owners?: Array<{ id: number | string; name: string }>;
+      ownerNames?: string[];
+    }>;
   };
   incompleteProfiles: {
     count: number;
+    definition?: string;
     partners: Array<{
       id: number | string;
       companyName: string;
       contactPerson?: string | null;
       email?: string | null;
       relationshipStage?: string | null;
+      missingFields?: string[];
+      owners?: Array<{ id: number | string; name: string }>;
     }>;
+  };
+  /** Separate from incompleteProfiles — field inventory across all partners. */
+  dataGaps: {
+    partnersScanned: number;
+    definition?: string;
+    fields: PartnerTrackerDataGapField[];
   };
   concentration: {
     totalVolumeUsd: number;
@@ -88,6 +120,20 @@ const normalizeTrackerMetrics = (raw: any): PartnerTrackerMetrics => ({
         raw.active_with_zero_opportunities?.count ??
         0
     ),
+    definition:
+      raw.activeWithZeroOpportunities?.definition ??
+      raw.active_with_zero_opportunities?.definition ??
+      undefined,
+    byOwner: (
+      raw.activeWithZeroOpportunities?.byOwner ??
+      raw.active_with_zero_opportunities?.by_owner ??
+      []
+    ).map((row: any) => ({
+      ownerId: row.ownerId ?? row.owner_id ?? null,
+      ownerName: String(row.ownerName ?? row.owner_name ?? 'Unassigned'),
+      count: Number(row.count ?? 0),
+      pct: Number(row.pct ?? 0),
+    })),
     partners: (
       raw.activeWithZeroOpportunities?.partners ??
       raw.active_with_zero_opportunities?.partners ??
@@ -96,10 +142,17 @@ const normalizeTrackerMetrics = (raw: any): PartnerTrackerMetrics => ({
       id: p.id,
       companyName: String(p.companyName ?? p.company_name ?? ''),
       relationshipStage: p.relationshipStage ?? p.relationship_stage ?? null,
+      owners: (p.owners ?? []).map((o: any) => ({
+        id: o.id,
+        name: String(o.name ?? ''),
+      })),
+      ownerNames: (p.ownerNames ?? p.owner_names ?? []).map(String),
     })),
   },
   incompleteProfiles: {
     count: Number(raw.incompleteProfiles?.count ?? raw.incomplete_profiles?.count ?? 0),
+    definition:
+      raw.incompleteProfiles?.definition ?? raw.incomplete_profiles?.definition ?? undefined,
     partners: (raw.incompleteProfiles?.partners ?? raw.incomplete_profiles?.partners ?? []).map(
       (p: any) => ({
         id: p.id,
@@ -107,8 +160,28 @@ const normalizeTrackerMetrics = (raw: any): PartnerTrackerMetrics => ({
         contactPerson: p.contactPerson ?? p.contact_person ?? null,
         email: p.email ?? null,
         relationshipStage: p.relationshipStage ?? p.relationship_stage ?? null,
+        missingFields: (p.missingFields ?? p.missing_fields ?? []).map(String),
+        owners: (p.owners ?? []).map((o: any) => ({
+          id: o.id,
+          name: String(o.name ?? ''),
+        })),
       })
     ),
+  },
+  dataGaps: {
+    partnersScanned: Number(
+      raw.dataGaps?.partnersScanned ??
+        raw.data_gaps?.partners_scanned ??
+        raw.totals?.partners ??
+        0
+    ),
+    definition: raw.dataGaps?.definition ?? raw.data_gaps?.definition ?? undefined,
+    fields: (raw.dataGaps?.fields ?? raw.data_gaps?.fields ?? []).map((f: any) => ({
+      key: String(f.key ?? ''),
+      label: String(f.label ?? f.key ?? ''),
+      count: Number(f.count ?? 0),
+      pct: Number(f.pct ?? 0),
+    })),
   },
   concentration: {
     totalVolumeUsd: Number(
@@ -150,6 +223,150 @@ const normalizeTrackerMetrics = (raw: any): PartnerTrackerMetrics => ({
     ),
   },
 });
+
+/** Enrich metrics from full partner list when backend payload is older / incomplete. */
+function enrichTrackerMetricsFromPartners(
+  metrics: PartnerTrackerMetrics,
+  partners: Partner[]
+): PartnerTrackerMetrics {
+  const needsOwner =
+    !metrics.activeWithZeroOpportunities.byOwner?.length &&
+    metrics.activeWithZeroOpportunities.count >= 0;
+  const needsGaps = !metrics.dataGaps?.fields?.length;
+  const needsIncompleteList =
+    metrics.incompleteProfiles.count > 0 &&
+    metrics.incompleteProfiles.partners.length === 0;
+
+  if (!needsOwner && !needsGaps && !needsIncompleteList && metrics.activeWithZeroOpportunities.partners.length > 0) {
+    return metrics;
+  }
+
+  const activeZero = partners.filter(
+    (p) =>
+      p.relationshipStage === 'Active Partner' &&
+      Number(p.linkedOpportunitiesCount ?? 0) === 0
+  );
+
+  const incomplete = partners.filter((p) => !isPartnerProfileComplete(p));
+
+  const byOwnerMap = new Map<
+    string,
+    { ownerId: number | string | null; ownerName: string; count: number }
+  >();
+  for (const p of activeZero) {
+    const owners = p.relationshipOwners ?? [];
+    if (owners.length === 0) {
+      const cur = byOwnerMap.get('unassigned') ?? {
+        ownerId: null,
+        ownerName: 'Unassigned',
+        count: 0,
+      };
+      cur.count += 1;
+      byOwnerMap.set('unassigned', cur);
+    } else {
+      for (const o of owners) {
+        const key = String(o.id);
+        const cur = byOwnerMap.get(key) ?? {
+          ownerId: o.id,
+          ownerName: o.name,
+          count: 0,
+        };
+        cur.count += 1;
+        byOwnerMap.set(key, cur);
+      }
+    }
+  }
+  const totalActiveZero = activeZero.length;
+  const byOwner = [...byOwnerMap.values()]
+    .sort((a, b) => b.count - a.count || a.ownerName.localeCompare(b.ownerName))
+    .map((row) => ({
+      ...row,
+      pct: totalActiveZero > 0 ? Math.round((row.count / totalActiveZero) * 1000) / 10 : 0,
+    }));
+
+  const blank = (v?: string | null) => !v || !String(v).trim();
+  const blankList = (v?: string[] | null) => !v || v.length === 0;
+  const scanned = partners.length;
+  const gapDefs: Array<{ key: string; label: string; test: (p: Partner) => boolean }> = [
+    { key: 'contact_person', label: 'Missing contact person', test: (p) => blank(p.contactPerson) },
+    { key: 'email', label: 'Missing email', test: (p) => blank(p.email) },
+    { key: 'agreement_type', label: 'Missing agreement type', test: (p) => blank(p.agreementType) },
+    {
+      key: 'product_categories',
+      label: 'Missing product categories',
+      test: (p) => blankList(p.productCategories),
+    },
+    { key: 'verticals', label: 'Missing verticals', test: (p) => blankList(p.verticals) },
+    { key: 'phone', label: 'Missing phone', test: (p) => blank(p.phone) },
+    { key: 'valid_thru', label: 'Missing Valid Thru', test: (p) => blank(p.validThru) },
+  ];
+  const fields = gapDefs
+    .map((d) => {
+      const count = partners.filter(d.test).length;
+      return {
+        key: d.key,
+        label: d.label,
+        count,
+        pct: scanned > 0 ? Math.round((count / scanned) * 1000) / 10 : 0,
+      };
+    })
+    .sort((a, b) => b.count - a.count);
+
+  return {
+    ...metrics,
+    activeWithZeroOpportunities: {
+      count: totalActiveZero,
+      definition:
+        metrics.activeWithZeroOpportunities.definition ??
+        'Active Partner stage with zero partner_opportunity links',
+      byOwner: needsOwner || !metrics.activeWithZeroOpportunities.byOwner.length ? byOwner : metrics.activeWithZeroOpportunities.byOwner,
+      partners:
+        metrics.activeWithZeroOpportunities.partners.length > 0
+          ? metrics.activeWithZeroOpportunities.partners
+          : activeZero.map((p) => ({
+              id: p.id,
+              companyName: p.companyName,
+              relationshipStage: p.relationshipStage,
+              owners: (p.relationshipOwners ?? []).map((o) => ({ id: o.id, name: o.name })),
+              ownerNames: (p.relationshipOwners ?? []).map((o) => o.name),
+            })),
+    },
+    incompleteProfiles: {
+      count: incomplete.length,
+      definition:
+        metrics.incompleteProfiles.definition ??
+        'Missing contact person and/or email (matches Partner Tracker Incomplete badge)',
+      partners:
+        metrics.incompleteProfiles.partners.length > 0
+          ? metrics.incompleteProfiles.partners
+          : incomplete.map((p) => ({
+              id: p.id,
+              companyName: p.companyName,
+              contactPerson: p.contactPerson,
+              email: p.email,
+              relationshipStage: p.relationshipStage,
+              missingFields: [
+                ...(blank(p.contactPerson) ? ['contact_person'] : []),
+                ...(blank(p.email) ? ['email'] : []),
+              ],
+              owners: (p.relationshipOwners ?? []).map((o) => ({ id: o.id, name: o.name })),
+            })),
+    },
+    dataGaps:
+      needsGaps || !metrics.dataGaps.fields.length
+        ? {
+            partnersScanned: scanned,
+            definition:
+              'Field inventory across all partners (separate from Tracker incomplete badge)',
+            fields,
+          }
+        : metrics.dataGaps,
+    totals: {
+      ...metrics.totals,
+      partners: metrics.totals.partners || scanned,
+    },
+  };
+}
 
 const normalizeArray = (data: unknown): unknown[] => {
   if (Array.isArray(data)) return data;
@@ -312,6 +529,13 @@ export const partnersService = {
       params.relationship_owner_id = filters.relationshipOwnerId;
       params.relationshipOwnerId = filters.relationshipOwnerId;
     }
+    if (filters?.incomplete) {
+      params.incomplete = 1;
+    }
+    if (filters?.zeroLinks) {
+      params.zero_links = 1;
+      params.zeroLinks = 1;
+    }
 
     const response = await api.get('/api/partners', { params });
     return normalizeArray(response.data).map(normalizePartner);
@@ -338,6 +562,13 @@ export const partnersService = {
     if (filters?.relationshipOwnerId) {
       params.relationship_owner_id = filters.relationshipOwnerId;
       params.relationshipOwnerId = filters.relationshipOwnerId;
+    }
+    if (filters?.incomplete) {
+      params.incomplete = 1;
+    }
+    if (filters?.zeroLinks) {
+      params.zero_links = 1;
+      params.zeroLinks = 1;
     }
 
     const response = await api.get('/api/partners', { params });
@@ -377,11 +608,36 @@ export const partnersService = {
   /**
    * Shared Partner Tracker aggregates (partner_opportunity pivot).
    * Dashboard + Chairman cards must use this so counts match drill-downs.
+   * Falls back to enriching from /api/partners?all=1 when the metrics
+   * payload lacks owner breakdown / data-gap inventory (pre-deploy).
    */
   getTrackerMetrics: async (): Promise<PartnerTrackerMetrics> => {
-    const response = await api.get('/api/partners/tracker-metrics');
-    const raw = response.data?.data ?? response.data ?? {};
-    return normalizeTrackerMetrics(raw);
+    let metrics: PartnerTrackerMetrics;
+    try {
+      const response = await api.get('/api/partners/tracker-metrics');
+      const raw = response.data?.data ?? response.data ?? {};
+      metrics = normalizeTrackerMetrics(raw);
+    } catch {
+      metrics = normalizeTrackerMetrics({});
+    }
+
+    const needsEnrichment =
+      !metrics.activeWithZeroOpportunities.byOwner?.length ||
+      !metrics.dataGaps?.fields?.length ||
+      (metrics.incompleteProfiles.count > 0 &&
+        metrics.incompleteProfiles.partners.length === 0) ||
+      (metrics.activeWithZeroOpportunities.count > 0 &&
+        metrics.activeWithZeroOpportunities.partners.length === 0);
+
+    if (!needsEnrichment) return metrics;
+
+    try {
+      const response = await api.get('/api/partners', { params: { all: 1 } });
+      const partners = normalizeArray(response.data).map(normalizePartner);
+      return enrichTrackerMetricsFromPartners(metrics, partners);
+    } catch {
+      return metrics;
+    }
   },
 
   searchScmVendors: async (q: string = ''): Promise<ScmVendorSearchResult[]> => {

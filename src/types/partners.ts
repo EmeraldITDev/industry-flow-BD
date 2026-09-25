@@ -137,4 +137,8 @@ export interface PartnerFilters {
   product?: string;
   relationshipStage?: string;
   relationshipOwnerId?: string;
+  /** Matches Tracker Incomplete badge (missing contact and/or email). */
+  incomplete?: boolean;
+  /** Partners with zero partner_opportunity links. */
+  zeroLinks?: boolean;
 }

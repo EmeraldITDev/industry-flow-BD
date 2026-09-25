@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Card,
@@ -100,13 +100,26 @@ function exportPartnersCsv(partners: Partner[]) {
 
 export default function Partners() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [verticalFilter, setVerticalFilter] = useState(ALL);
-  const [stageFilter, setStageFilter] = useState(ALL);
+  const [stageFilter, setStageFilter] = useState(() => {
+    const stage = searchParams.get('relationshipStage') || searchParams.get('stage');
+    return stage && stage.trim() ? stage : ALL;
+  });
   const [productFilter, setProductFilter] = useState(ALL);
-  const [ownerFilter, setOwnerFilter] = useState(ALL);
+  const [ownerFilter, setOwnerFilter] = useState(() => {
+    const owner = searchParams.get('ownerId') || searchParams.get('relationshipOwnerId');
+    return owner && owner.trim() ? owner : ALL;
+  });
+  const [incompleteOnly, setIncompleteOnly] = useState(
+    () => searchParams.get('incomplete') === '1' || searchParams.get('incomplete') === 'true'
+  );
+  const [zeroLinksOnly, setZeroLinksOnly] = useState(
+    () => searchParams.get('zeroLinks') === '1' || searchParams.get('zero_links') === '1'
+  );
   const [addOpen, setAddOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Partner | null>(null);
   const [selectMode, setSelectMode] = useState(false);
@@ -123,7 +136,7 @@ export default function Partners() {
   useEffect(() => {
     setPage(1);
     setSelectedIds(new Set());
-  }, [debouncedSearch, verticalFilter, stageFilter, productFilter, ownerFilter]);
+  }, [debouncedSearch, verticalFilter, stageFilter, productFilter, ownerFilter, incompleteOnly, zeroLinksOnly]);
 
   const listFilters = useMemo(
     () => ({
@@ -132,10 +145,21 @@ export default function Partners() {
       relationshipStage: stageFilter !== ALL ? stageFilter : undefined,
       product: productFilter !== ALL ? productFilter : undefined,
       relationshipOwnerId: ownerFilter !== ALL ? ownerFilter : undefined,
+      incomplete: incompleteOnly || undefined,
+      zeroLinks: zeroLinksOnly || undefined,
       per_page: PER_PAGE,
       page,
     }),
-    [debouncedSearch, verticalFilter, stageFilter, productFilter, ownerFilter, page]
+    [
+      debouncedSearch,
+      verticalFilter,
+      stageFilter,
+      productFilter,
+      ownerFilter,
+      incompleteOnly,
+      zeroLinksOnly,
+      page,
+    ]
   );
 
   const { data: teamMembers = [] } = useQuery({
@@ -357,6 +381,7 @@ export default function Partners() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={ALL}>All relationship owners</SelectItem>
+                <SelectItem value="unassigned">Unassigned</SelectItem>
                 {ownerOptions.map((owner) => (
                   <SelectItem key={owner.id} value={owner.id}>
                     {owner.name}
@@ -404,6 +429,30 @@ export default function Partners() {
               </SelectContent>
             </Select>
           </div>
+          {(incompleteOnly || zeroLinksOnly) && (
+            <div className="flex flex-wrap items-center gap-2">
+              {incompleteOnly && (
+                <Badge
+                  variant="outline"
+                  className="gap-1 border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-300 cursor-pointer"
+                  onClick={() => setIncompleteOnly(false)}
+                >
+                  Incomplete profiles
+                  <X className="h-3 w-3" />
+                </Badge>
+              )}
+              {zeroLinksOnly && (
+                <Badge
+                  variant="outline"
+                  className="gap-1 border-primary/40 bg-primary/10 text-primary cursor-pointer"
+                  onClick={() => setZeroLinksOnly(false)}
+                >
+                  Zero linked opportunities
+                  <X className="h-3 w-3" />
+                </Badge>
+              )}
+            </div>
+          )}
         </CardHeader>
 
         <CardContent className="p-4 sm:p-6 pt-0 space-y-3">
