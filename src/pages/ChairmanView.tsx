@@ -367,7 +367,7 @@ export default function ChairmanView() {
       {/* 6. Partner Tracker insights (pivot) — before legacy channel-partner drivers */}
       <section id="exec-partner-tracker" className="space-y-2">
         <div className="bg-card border border-border rounded-lg p-4 sm:p-6">
-          <PartnerTrackerInsights />
+          <PartnerTrackerInsights variant="chairman" />
         </div>
       </section>
 

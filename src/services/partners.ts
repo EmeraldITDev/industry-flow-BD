@@ -46,6 +46,8 @@ export type PartnerTrackerMetrics = {
       id: number | string;
       companyName: string;
       relationshipStage?: string | null;
+      strategicValue?: string | null;
+      createdAt?: string | null;
       owners?: Array<{ id: number | string; name: string }>;
       ownerNames?: string[];
     }>;
@@ -142,6 +144,8 @@ const normalizeTrackerMetrics = (raw: any): PartnerTrackerMetrics => ({
       id: p.id,
       companyName: String(p.companyName ?? p.company_name ?? ''),
       relationshipStage: p.relationshipStage ?? p.relationship_stage ?? null,
+      strategicValue: p.strategicValue ?? p.strategic_value ?? null,
+      createdAt: p.createdAt ?? p.created_at ?? null,
       owners: (p.owners ?? []).map((o: any) => ({
         id: o.id,
         name: String(o.name ?? ''),
@@ -322,11 +326,20 @@ function enrichTrackerMetricsFromPartners(
       byOwner: needsOwner || !metrics.activeWithZeroOpportunities.byOwner.length ? byOwner : metrics.activeWithZeroOpportunities.byOwner,
       partners:
         metrics.activeWithZeroOpportunities.partners.length > 0
-          ? metrics.activeWithZeroOpportunities.partners
+          ? metrics.activeWithZeroOpportunities.partners.map((row) => {
+              const full = partners.find((p) => String(p.id) === String(row.id));
+              return {
+                ...row,
+                strategicValue: row.strategicValue ?? full?.strategicValue ?? null,
+                createdAt: row.createdAt ?? full?.createdAt ?? null,
+              };
+            })
           : activeZero.map((p) => ({
               id: p.id,
               companyName: p.companyName,
               relationshipStage: p.relationshipStage,
+              strategicValue: p.strategicValue ?? null,
+              createdAt: p.createdAt ?? null,
               owners: (p.relationshipOwners ?? []).map((o) => ({ id: o.id, name: o.name })),
               ownerNames: (p.relationshipOwners ?? []).map((o) => o.name),
             })),
@@ -627,7 +640,10 @@ export const partnersService = {
       (metrics.incompleteProfiles.count > 0 &&
         metrics.incompleteProfiles.partners.length === 0) ||
       (metrics.activeWithZeroOpportunities.count > 0 &&
-        metrics.activeWithZeroOpportunities.partners.length === 0);
+        metrics.activeWithZeroOpportunities.partners.length === 0) ||
+      metrics.activeWithZeroOpportunities.partners.some(
+        (p) => p.strategicValue == null && p.createdAt == null
+      );
 
     if (!needsEnrichment) return metrics;
 

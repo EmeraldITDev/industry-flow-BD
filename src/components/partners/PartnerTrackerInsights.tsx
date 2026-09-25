@@ -148,11 +148,21 @@ function ExportMenu({
 /**
  * Partner Tracker metrics for Dashboard + Chairman's View.
  * Uses partner_opportunity pivot volume (same as Partner Tracker), not channel_partner text.
+ *
+ * variant="dashboard" — full operational detail (owner bars + incomplete profiles).
+ * variant="chairman" — activation framing only; no incomplete card, no owner accountability.
  */
-export function PartnerTrackerInsights({ className }: { className?: string }) {
+export function PartnerTrackerInsights({
+  className,
+  variant = 'dashboard',
+}: {
+  className?: string;
+  variant?: 'dashboard' | 'chairman';
+}) {
   const navigate = useNavigate();
   const { currency } = useCurrency();
   const preferUsd = currency === 'USD';
+  const isChairman = variant === 'chairman';
 
   const { data, isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: ['partners-tracker-metrics'],
@@ -203,23 +213,38 @@ export function PartnerTrackerInsights({ className }: { className?: string }) {
 
       {data && (
         <>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div
+            className={cn(
+              'grid gap-3 sm:grid-cols-2',
+              isChairman ? 'lg:grid-cols-3' : 'lg:grid-cols-4'
+            )}
+          >
             <MetricTile
-              label="Active Partners · 0 opportunities"
+              label={
+                isChairman
+                  ? 'Partnerships ready for activation'
+                  : 'Active Partners · 0 opportunities'
+              }
               value={String(data.activeWithZeroOpportunities.count)}
-              hint="Stage = Active Partner, no pivot links"
+              hint={
+                isChairman
+                  ? 'Active Partners with no linked opportunities yet'
+                  : 'Stage = Active Partner, no pivot links'
+              }
               onClick={() =>
                 navigate(
                   `/partners?relationshipStage=${encodeURIComponent('Active Partner')}&zeroLinks=1`
                 )
               }
             />
-            <MetricTile
-              label="Incomplete profiles"
-              value={String(data.incompleteProfiles.count)}
-              hint="Missing contact person or email (Tracker badge)"
-              onClick={() => navigate('/partners?incomplete=1')}
-            />
+            {!isChairman && (
+              <MetricTile
+                label="Incomplete profiles"
+                value={String(data.incompleteProfiles.count)}
+                hint="Missing contact person or email (Tracker badge)"
+                onClick={() => navigate('/partners?incomplete=1')}
+              />
+            )}
             <MetricTile
               label="Top-1 volume share"
               value={`${data.concentration.top1Pct}%`}
@@ -230,21 +255,27 @@ export function PartnerTrackerInsights({ className }: { className?: string }) {
               value={`${data.concentration.top3Pct}%`}
               hint="Top 3 partners / all linked volume (USD)"
             />
-            <MetricTile
-              label="Valid Thru ≤ 90 days"
-              value={String(data.validThruExpiring90Days.count)}
-              hint="Agreements expiring within 90 days"
-              onClick={() => navigate('/partners')}
-            />
+            {!isChairman && (
+              <MetricTile
+                label="Valid Thru ≤ 90 days"
+                value={String(data.validThruExpiring90Days.count)}
+                hint="Agreements expiring within 90 days"
+                onClick={() => navigate('/partners')}
+              />
+            )}
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-2">
-            <ActiveZeroCard data={data.activeWithZeroOpportunities} />
-            <IncompleteProfilesCard
-              incomplete={data.incompleteProfiles}
-              dataGaps={data.dataGaps}
-            />
-          </div>
+          {isChairman ? (
+            <ActivationReadyCard data={data.activeWithZeroOpportunities} />
+          ) : (
+            <div className="grid gap-4 lg:grid-cols-2">
+              <ActiveZeroCard data={data.activeWithZeroOpportunities} />
+              <IncompleteProfilesCard
+                incomplete={data.incompleteProfiles}
+                dataGaps={data.dataGaps}
+              />
+            </div>
+          )}
 
           <div className="grid gap-4 lg:grid-cols-2">
             <Card>
@@ -282,6 +313,102 @@ export function PartnerTrackerInsights({ className }: { className?: string }) {
         </>
       )}
     </div>
+  );
+}
+
+const STRATEGIC_RANK: Record<string, number> = {
+  High: 0,
+  Medium: 1,
+  Low: 2,
+  Uncertain: 3,
+};
+
+function pickActivationFocus(
+  partners: PartnerTrackerMetrics['activeWithZeroOpportunities']['partners'],
+  limit = 2
+) {
+  const ranked = [...partners].sort((a, b) => {
+    const ra = STRATEGIC_RANK[String(a.strategicValue ?? '')] ?? 99;
+    const rb = STRATEGIC_RANK[String(b.strategicValue ?? '')] ?? 99;
+    if (ra !== rb) return ra - rb;
+    const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    return tb - ta;
+  });
+
+  return ranked.slice(0, limit).map((p) => {
+    const value = p.strategicValue?.trim();
+    const reason =
+      value && STRATEGIC_RANK[value] !== undefined
+        ? `${value} strategic value`
+        : 'Recently onboarded';
+    return { ...p, focusReason: reason };
+  });
+}
+
+/** Chairman's View — forward-looking activation signal (no owner bars). */
+function ActivationReadyCard({
+  data,
+}: {
+  data: PartnerTrackerMetrics['activeWithZeroOpportunities'];
+}) {
+  const navigate = useNavigate();
+  const seeAllHref = `/partners?relationshipStage=${encodeURIComponent('Active Partner')}&zeroLinks=1`;
+  const focus = pickActivationFocus(data.partners, 2);
+
+  return (
+    <Card className="border-primary/20">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base">Partnerships ready for activation</CardTitle>
+        <p className="text-xs text-muted-foreground mt-1">
+          {data.count} Active Partners with no linked opportunities yet
+        </p>
+      </CardHeader>
+      <CardContent className="space-y-5">
+        <button
+          type="button"
+          onClick={() => navigate(seeAllHref)}
+          className="w-full text-left rounded-lg border border-primary/30 bg-primary/5 p-4 hover:border-primary/60 transition-colors"
+        >
+          <p className="text-3xl font-semibold tabular-nums tracking-tight text-foreground">
+            {data.count}
+          </p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Active Partners with no linked opportunities yet
+          </p>
+        </button>
+
+        {focus.length > 0 && (
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+              Where to focus next
+            </p>
+            <div className="space-y-2">
+              {focus.map((p) => (
+                <Link
+                  key={p.id}
+                  to={`/partners/${p.id}`}
+                  className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2.5 text-sm hover:border-primary/60 transition-colors"
+                >
+                  <span className="truncate font-medium">{p.companyName}</span>
+                  <span className="shrink-0 text-xs text-muted-foreground">{p.focusReason}</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full sm:w-auto"
+          onClick={() => navigate(seeAllHref)}
+        >
+          Review all {data.count}
+          <ChevronRight className="h-3.5 w-3.5 ml-1" />
+        </Button>
+      </CardContent>
+    </Card>
   );
 }
 
