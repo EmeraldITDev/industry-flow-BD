@@ -43,8 +43,12 @@ import {
   type OpportunityDocument,
 } from '@/services/documents';
 import { toast } from 'sonner';
-import { Download, FileText, Loader2, Plus, Trash2 } from 'lucide-react';
+import { Download, Eye, FileText, Loader2, Plus, Trash2 } from 'lucide-react';
 import { safeFormatDate } from '@/lib/dateUtils';
+import {
+  DocumentPreviewModal,
+  type DocumentPreviewTarget,
+} from '@/components/documents/DocumentPreviewModal';
 
 type Props = {
   projectId: string;
@@ -62,6 +66,7 @@ export function ProjectDocumentsSection({ projectId, canManage = true }: Props) 
   const [isUploading, setIsUploading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [previewTarget, setPreviewTarget] = useState<DocumentPreviewTarget | null>(null);
 
   const { data: documents = [], isLoading } = useQuery({
     queryKey: ['opportunity-documents', projectId],
@@ -141,6 +146,22 @@ export function ProjectDocumentsSection({ projectId, canManage = true }: Props) 
     [projectId]
   );
 
+  const openPreview = useCallback(
+    (doc: OpportunityDocument) => {
+      setPreviewTarget({
+        id: doc.id,
+        title: doc.title,
+        fileName: doc.fileName || doc.title,
+        mimeType: doc.mimeType,
+        resolveUrl: async () => {
+          const fresh = await opportunityDocumentsService.getById(projectId, doc.id);
+          return fresh.url;
+        },
+      });
+    },
+    [projectId]
+  );
+
   return (
     <>
       <Card>
@@ -190,6 +211,15 @@ export function ProjectDocumentsSection({ projectId, canManage = true }: Props) 
                     </p>
                   </div>
                   <div className="flex gap-2 shrink-0">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => openPreview(doc)}
+                    >
+                      <Eye className="h-4 w-4" />
+                      <span className="ml-2">Preview</span>
+                    </Button>
                     <Button
                       type="button"
                       size="sm"
@@ -309,6 +339,14 @@ export function ProjectDocumentsSection({ projectId, canManage = true }: Props) 
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <DocumentPreviewModal
+        open={!!previewTarget}
+        onOpenChange={(open) => {
+          if (!open) setPreviewTarget(null);
+        }}
+        document={previewTarget}
+      />
     </>
   );
 }

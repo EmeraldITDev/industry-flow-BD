@@ -49,6 +49,7 @@ import {
 import { toast } from 'sonner';
 import {
   Download,
+  Eye,
   FileStack,
   Info,
   Loader2,
@@ -59,6 +60,10 @@ import {
   Users,
 } from 'lucide-react';
 import { safeFormatDate } from '@/lib/dateUtils';
+import {
+  DocumentPreviewModal,
+  type DocumentPreviewTarget,
+} from '@/components/documents/DocumentPreviewModal';
 
 const PER_PAGE = 50;
 
@@ -104,6 +109,7 @@ export default function DocumentRepositoryPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [previewTarget, setPreviewTarget] = useState<DocumentPreviewTarget | null>(null);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -283,6 +289,19 @@ export default function DocumentRepositoryPage() {
     }
   }, []);
 
+  const openPreview = useCallback((doc: RepositoryDocument) => {
+    setPreviewTarget({
+      id: doc.id,
+      title: doc.title,
+      fileName: doc.fileName || doc.title,
+      mimeType: doc.mimeType,
+      resolveUrl: async () => {
+        const fresh = await repositoryDocumentsService.getById(doc.id);
+        return fresh.url;
+      },
+    });
+  }, []);
+
   useEffect(() => {
     if (!uploadOpen) resetUpload();
   }, [uploadOpen]);
@@ -412,6 +431,14 @@ export default function DocumentRepositoryPage() {
                       </p>
                     </div>
                     <div className="flex flex-wrap gap-2 shrink-0">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => openPreview(doc)}
+                      >
+                        <Eye className="h-4 w-4" />
+                        <span className="ml-2">Preview</span>
+                      </Button>
                       <Button
                         size="sm"
                         variant="outline"
@@ -667,6 +694,14 @@ export default function DocumentRepositoryPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <DocumentPreviewModal
+        open={!!previewTarget}
+        onOpenChange={(open) => {
+          if (!open) setPreviewTarget(null);
+        }}
+        document={previewTarget}
+      />
     </AppLayout>
   );
 }
