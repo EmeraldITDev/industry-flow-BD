@@ -18,7 +18,7 @@ export function DriversPanel({ data }: { data: ExecutiveIntelligence }) {
         <Tabs defaultValue="clients">
           <TabsList className="flex flex-wrap h-auto">
             <TabsTrigger value="clients">Clients</TabsTrigger>
-            <TabsTrigger value="partners">Partners / Suppliers</TabsTrigger>
+            <TabsTrigger value="partners">Channel partner text</TabsTrigger>
             <TabsTrigger value="verticals">Business Verticals</TabsTrigger>
             <TabsTrigger value="sectors">Sectors</TabsTrigger>
             <TabsTrigger value="products">Products</TabsTrigger>
@@ -30,7 +30,9 @@ export function DriversPanel({ data }: { data: ExecutiveIntelligence }) {
           </TabsContent>
           <TabsContent value="partners" className="mt-4">
             <p className="text-xs text-muted-foreground mb-3">
-              Based on the recorded channel partner, falling back to OEM where no partner is recorded.
+              <span className="font-medium text-foreground">Channel partner / OEM text</span> on
+              opportunities (legacy driver). For Partner Tracker pivot links and volume, use the
+              “Partner Tracker insights” section above — those numbers match the Partner Tracker.
             </p>
             <RankedList
               groups={data.partners}

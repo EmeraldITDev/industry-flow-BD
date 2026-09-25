@@ -35,6 +35,7 @@ export type PartnerFormValues = {
   phone: string;
   type: string[];
   agreementType: string;
+  validThru: string;
   specialization: string;
   website: string;
   location: string;
@@ -58,6 +59,7 @@ export function emptyPartnerForm(): PartnerFormValues {
     phone: '',
     type: [],
     agreementType: '',
+    validThru: '',
     specialization: '',
     website: '',
     location: '',
@@ -80,6 +82,7 @@ export function partnerToFormValues(partner: Partner): PartnerFormValues {
     phone: partner.phone ?? '',
     type: partner.type ?? [],
     agreementType: partner.agreementType ?? '',
+    validThru: partner.validThru ?? '',
     specialization: partner.specialization ?? '',
     website: partner.website ?? '',
     location: partner.location ?? '',
@@ -102,6 +105,7 @@ export function formValuesToPayload(values: PartnerFormValues): CreatePartnerDat
     phone: values.phone.trim() || undefined,
     type: values.type,
     agreementType: values.agreementType.trim() || null,
+    validThru: values.validThru.trim() || null,
     specialization: values.specialization.trim() || undefined,
     website: values.website.trim() || undefined,
     location: values.location.trim() || undefined,
@@ -297,6 +301,23 @@ export function PartnerForm({
           </Select>
         </div>
         <div className="space-y-2.5">
+          <Label htmlFor="partner-valid-thru">Valid Thru (optional)</Label>
+          <Input
+            id="partner-valid-thru"
+            type="date"
+            value={values.validThru}
+            onChange={(e) =>
+              setValues((prev) => ({ ...prev, validThru: e.target.value }))
+            }
+          />
+          <p className="text-xs text-muted-foreground">
+            Partnership agreement expiry date, if known.
+          </p>
+        </div>
+      </div>
+
+      <div className="grid gap-5 sm:grid-cols-2">
+        <div className="space-y-2.5">
           <Label>Strategic Value</Label>
           <Select
             value={values.strategicValue || NONE}
@@ -320,9 +341,6 @@ export function PartnerForm({
             </SelectContent>
           </Select>
         </div>
-      </div>
-
-      <div className="grid gap-5 sm:grid-cols-2">
         <div className="space-y-2.5">
           <Label>Engagement Status</Label>
           <Select

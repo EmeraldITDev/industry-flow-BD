@@ -240,6 +240,15 @@ export default function PartnerDetail() {
               )}
             </Field>
             <Field label="Agreement Type">{partner.agreementType}</Field>
+            <Field label="Valid Thru">
+              {partner.validThru
+                ? new Date(partner.validThru).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                  })
+                : '—'}
+            </Field>
             <Field label="Strategic Value">{partner.strategicValue}</Field>
             <Field label="Engagement Status">{partner.engagementStatus}</Field>
             <Field label="Relationship Owners">

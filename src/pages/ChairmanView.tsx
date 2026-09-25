@@ -37,6 +37,7 @@ import { RiskPanel } from '@/components/executive/RiskPanel';
 import { RequiresAttentionPanel } from '@/components/executive/RequiresAttentionPanel';
 import { ExecutiveSummaryPanel } from '@/components/executive/ExecutiveSummaryPanel';
 import { OpportunityTable } from '@/components/executive/OpportunityTable';
+import { PartnerTrackerInsights } from '@/components/partners/PartnerTrackerInsights';
 import { Project } from '@/types';
 
 export default function ChairmanView() {
@@ -363,17 +364,24 @@ export default function ChairmanView() {
         </Card>
       </section>
 
-      {/* 6. Drivers */}
+      {/* 6. Partner Tracker insights (pivot) — before legacy channel-partner drivers */}
+      <section id="exec-partner-tracker" className="space-y-2">
+        <div className="bg-card border border-border rounded-lg p-4 sm:p-6">
+          <PartnerTrackerInsights />
+        </div>
+      </section>
+
+      {/* 7. Drivers (legacy channel_partner / OEM text — labeled distinctly) */}
       <section id="exec-drivers">
         <DriversPanel data={data} />
       </section>
 
-      {/* 7. Movement */}
+      {/* 8. Movement */}
       <section id="exec-movement">
         <MovementPanel data={data} />
       </section>
 
-      {/* 8. Risk */}
+      {/* 9. Risk */}
       <RiskPanel
         data={data}
         onOpenMetric={(metric) => {

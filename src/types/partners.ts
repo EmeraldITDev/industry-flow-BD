@@ -62,6 +62,8 @@ export interface Partner {
   phone?: string;
   type: string[];
   agreementType?: string | null;
+  /** Optional partnership agreement expiry (Valid Thru). */
+  validThru?: string | null;
   specialization?: string;
   website?: string;
   location?: string;
@@ -110,6 +112,7 @@ export interface CreatePartnerData {
   phone?: string;
   type?: string[];
   agreementType?: string | null;
+  validThru?: string | null;
   specialization?: string;
   website?: string;
   location?: string;

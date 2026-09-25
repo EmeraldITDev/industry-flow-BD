@@ -2,7 +2,18 @@
 export const PRODUCT_CATALOG: { product: string; subproducts: string[] }[] = [
   {
     product: 'Capital Parts',
-    subproducts: ['Spares', 'Valves', 'Pumps', 'Compressors', 'Motors', 'Gearboxes', 'Nozzles', 'Transformers', 'Panels'],
+    subproducts: [
+      'Spares',
+      'Valves',
+      'Pumps',
+      'Compressors',
+      'Motors',
+      'Gearboxes',
+      'Nozzles',
+      'Transformers',
+      'Panels',
+      'Rotating Equipment',
+    ],
   },
   {
     product: 'Consumables',
@@ -14,7 +25,6 @@ export const PRODUCT_CATALOG: { product: string; subproducts: string[] }[] = [
   },
   { product: 'Electricals', subproducts: [] },
   { product: 'Automation & Controls', subproducts: [] },
-  { product: 'Other rotating equipment', subproducts: [] },
   { product: 'O&M services', subproducts: [] },
   { product: 'Petroleum Products', subproducts: [] },
   { product: 'Urea', subproducts: [] },

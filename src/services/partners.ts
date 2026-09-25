@@ -9,6 +9,148 @@ import type {
   UpdatePartnerData,
 } from '@/types/partners';
 
+export type PartnerTrackerRankRow = {
+  id: number | string;
+  companyName: string;
+  relationshipStage?: string | null;
+  linkedOpportunitiesCount: number;
+  totalValueUsd: number;
+  totalValueNgn: number;
+};
+
+export type PartnerTrackerMetrics = {
+  definition: string;
+  definitionLabel: string;
+  byOpportunityCount: PartnerTrackerRankRow[];
+  byVolume: PartnerTrackerRankRow[];
+  activeWithZeroOpportunities: {
+    count: number;
+    partners: Array<{ id: number | string; companyName: string; relationshipStage?: string | null }>;
+  };
+  incompleteProfiles: {
+    count: number;
+    partners: Array<{
+      id: number | string;
+      companyName: string;
+      contactPerson?: string | null;
+      email?: string | null;
+      relationshipStage?: string | null;
+    }>;
+  };
+  concentration: {
+    totalVolumeUsd: number;
+    totalVolumeNgn: number;
+    top1Pct: number;
+    top3Pct: number;
+    topPartners: PartnerTrackerRankRow[];
+  };
+  validThruExpiring90Days: {
+    count: number;
+    partners: Array<{
+      id: number | string;
+      companyName: string;
+      validThru?: string | null;
+      relationshipStage?: string | null;
+    }>;
+  };
+  totals: {
+    partners: number;
+    partnersWithLinks: number;
+    linkedOpportunities: number;
+  };
+};
+
+const normalizeRankRow = (raw: any): PartnerTrackerRankRow => ({
+  id: raw.id,
+  companyName: String(raw.companyName ?? raw.company_name ?? ''),
+  relationshipStage: raw.relationshipStage ?? raw.relationship_stage ?? null,
+  linkedOpportunitiesCount: Number(
+    raw.linkedOpportunitiesCount ?? raw.linked_opportunities_count ?? 0
+  ),
+  totalValueUsd: Number(raw.totalValueUsd ?? raw.total_value_usd ?? 0),
+  totalValueNgn: Number(raw.totalValueNgn ?? raw.total_value_ngn ?? 0),
+});
+
+const normalizeTrackerMetrics = (raw: any): PartnerTrackerMetrics => ({
+  definition: String(raw.definition ?? 'partner_opportunity_pivot'),
+  definitionLabel: String(
+    raw.definitionLabel ??
+      raw.definition_label ??
+      'Linked via Partner Tracker (partner_opportunity pivot)'
+  ),
+  byOpportunityCount: (raw.byOpportunityCount ?? raw.by_opportunity_count ?? []).map(
+    normalizeRankRow
+  ),
+  byVolume: (raw.byVolume ?? raw.by_volume ?? []).map(normalizeRankRow),
+  activeWithZeroOpportunities: {
+    count: Number(
+      raw.activeWithZeroOpportunities?.count ??
+        raw.active_with_zero_opportunities?.count ??
+        0
+    ),
+    partners: (
+      raw.activeWithZeroOpportunities?.partners ??
+      raw.active_with_zero_opportunities?.partners ??
+      []
+    ).map((p: any) => ({
+      id: p.id,
+      companyName: String(p.companyName ?? p.company_name ?? ''),
+      relationshipStage: p.relationshipStage ?? p.relationship_stage ?? null,
+    })),
+  },
+  incompleteProfiles: {
+    count: Number(raw.incompleteProfiles?.count ?? raw.incomplete_profiles?.count ?? 0),
+    partners: (raw.incompleteProfiles?.partners ?? raw.incomplete_profiles?.partners ?? []).map(
+      (p: any) => ({
+        id: p.id,
+        companyName: String(p.companyName ?? p.company_name ?? ''),
+        contactPerson: p.contactPerson ?? p.contact_person ?? null,
+        email: p.email ?? null,
+        relationshipStage: p.relationshipStage ?? p.relationship_stage ?? null,
+      })
+    ),
+  },
+  concentration: {
+    totalVolumeUsd: Number(
+      raw.concentration?.totalVolumeUsd ?? raw.concentration?.total_volume_usd ?? 0
+    ),
+    totalVolumeNgn: Number(
+      raw.concentration?.totalVolumeNgn ?? raw.concentration?.total_volume_ngn ?? 0
+    ),
+    top1Pct: Number(raw.concentration?.top1Pct ?? raw.concentration?.top1_pct ?? 0),
+    top3Pct: Number(raw.concentration?.top3Pct ?? raw.concentration?.top3_pct ?? 0),
+    topPartners: (
+      raw.concentration?.topPartners ??
+      raw.concentration?.top_partners ??
+      []
+    ).map(normalizeRankRow),
+  },
+  validThruExpiring90Days: {
+    count: Number(
+      raw.validThruExpiring90Days?.count ?? raw.valid_thru_expiring_90_days?.count ?? 0
+    ),
+    partners: (
+      raw.validThruExpiring90Days?.partners ??
+      raw.valid_thru_expiring_90_days?.partners ??
+      []
+    ).map((p: any) => ({
+      id: p.id,
+      companyName: String(p.companyName ?? p.company_name ?? ''),
+      validThru: p.validThru ?? p.valid_thru ?? null,
+      relationshipStage: p.relationshipStage ?? p.relationship_stage ?? null,
+    })),
+  },
+  totals: {
+    partners: Number(raw.totals?.partners ?? 0),
+    partnersWithLinks: Number(
+      raw.totals?.partnersWithLinks ?? raw.totals?.partners_with_links ?? 0
+    ),
+    linkedOpportunities: Number(
+      raw.totals?.linkedOpportunities ?? raw.totals?.linked_opportunities ?? 0
+    ),
+  },
+});
+
 const normalizeArray = (data: unknown): unknown[] => {
   if (Array.isArray(data)) return data;
   if (data && typeof data === 'object') {
@@ -68,6 +210,7 @@ export const normalizePartner = (raw: any): Partner => {
         ? raw.type.split(/[;,|]/).map((s: string) => s.trim()).filter(Boolean)
         : [],
     agreementType: raw.agreementType ?? raw.agreement_type ?? null,
+    validThru: raw.validThru ?? raw.valid_thru ?? null,
     specialization: raw.specialization ?? '',
     website: raw.website ?? '',
     location: raw.location ?? '',
@@ -120,6 +263,7 @@ const toPayload = (data: CreatePartnerData | UpdatePartnerData): Record<string, 
     phone: 'phone',
     type: 'type',
     agreementType: 'agreement_type',
+    validThru: 'valid_thru',
     specialization: 'specialization',
     website: 'website',
     location: 'location',
@@ -228,6 +372,16 @@ export const partnersService = {
 
   delete: async (id: string): Promise<void> => {
     await api.delete(`/api/partners/${id}`);
+  },
+
+  /**
+   * Shared Partner Tracker aggregates (partner_opportunity pivot).
+   * Dashboard + Chairman cards must use this so counts match drill-downs.
+   */
+  getTrackerMetrics: async (): Promise<PartnerTrackerMetrics> => {
+    const response = await api.get('/api/partners/tracker-metrics');
+    const raw = response.data?.data ?? response.data ?? {};
+    return normalizeTrackerMetrics(raw);
   },
 
   searchScmVendors: async (q: string = ''): Promise<ScmVendorSearchResult[]> => {
