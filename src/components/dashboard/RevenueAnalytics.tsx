@@ -8,31 +8,23 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { projectsService } from '@/services/projects';
 import { teamService } from '@/services/team';
-import { Project, PipelineStage, TeamMember } from '@/types';
+import { Project, PIPELINE_STAGES, TeamMember } from '@/types';
 import { DollarSign, Users, Building2, Layers, Banknote } from 'lucide-react';
 import { useCurrency } from '@/context/CurrencyContext';
 import { useDashboardCurrencyFormat } from '@/hooks/useDashboardCurrencyFormat';
+import { isWon } from '@/lib/executive/analytics';
 
-type RevenueFilter = 'all' | 'pending' | 'proposal' | 'won';
+/** 'all' | canonical pipeline_stage | composite 'won' (same definition as Dashboard KPIs). */
+type RevenueFilter = 'all' | 'won' | (typeof PIPELINE_STAGES)[number]['value'];
 
-const stageToFilter: Record<PipelineStage, RevenueFilter> = {
-  cold: 'pending',
-  initiation: 'pending',
-  qualification: 'pending',
-  proposal: 'proposal',
-  negotiation: 'proposal',
-  approval: 'won',
-  execution: 'won',
-  closure: 'won',
-  lost: 'pending',
-};
-
-const filterLabels: Record<RevenueFilter, string> = {
-  all: 'All Projects',
-  pending: 'Pending',
-  proposal: 'In Proposal',
-  won: 'Won',
-};
+const STAGE_TABS: { key: RevenueFilter; label: string }[] = [
+  { key: 'all', label: 'All Projects' },
+  ...PIPELINE_STAGES.map((s) => ({
+    key: s.value as RevenueFilter,
+    label: s.label === 'Approval / Won' ? 'Approval' : s.label,
+  })),
+  { key: 'won', label: 'Won' },
+];
 
 export const RevenueAnalytics = () => {
   const [filter, setFilter] = useState<RevenueFilter>('all');
@@ -58,14 +50,23 @@ export const RevenueAnalytics = () => {
   const filteredProjects = useMemo(() => {
     const allProjects = projects || [];
     if (filter === 'all') return allProjects;
-    return allProjects.filter((p: Project) => stageToFilter[p.pipelineStage] === filter);
+    // Composite "Won" — same rule as Dashboard / executive isWon
+    if (filter === 'won') return allProjects.filter((p: Project) => isWon(p));
+    // Exact pipeline_stage — same counting basis as Sales Pipeline Funnel
+    return allProjects.filter((p: Project) => {
+      const stage = (p.pipelineStage || 'cold').toLowerCase().trim();
+      return stage === filter;
+    });
   }, [projects, filter]);
+
+  const filterLabel =
+    STAGE_TABS.find((t) => t.key === filter)?.label ?? filter;
 
   const revenueByProject = useMemo(() => {
     return filteredProjects.map((p: Project) => {
       const revenue = getContractValue(p);
       const margin = getMarginValue(p);
-      
+
       return {
         id: p.id,
         name: p.name,
@@ -81,7 +82,7 @@ export const RevenueAnalytics = () => {
 
   const revenueByTeamMember = useMemo(() => {
     const memberRevenue: Record<string, { name: string; revenue: number; projects: number; margin: number }> = {};
-    
+
     filteredProjects.forEach((p: Project) => {
       const leadId = p.projectLeadId;
       if (leadId) {
@@ -96,13 +97,13 @@ export const RevenueAnalytics = () => {
         }
       }
     });
-    
+
     return Object.values(memberRevenue).sort((a, b) => b.revenue - a.revenue);
   }, [filteredProjects, currency, teamMembers, getContractValue, getMarginValue]);
 
   const revenueByCustomer = useMemo(() => {
     const customerRevenue: Record<string, { name: string; revenue: number; projects: number; margin: number }> = {};
-    
+
     filteredProjects.forEach((p: Project) => {
       const client = p.clientName || 'Unknown';
       if (!customerRevenue[client]) {
@@ -112,13 +113,13 @@ export const RevenueAnalytics = () => {
       customerRevenue[client].margin += currency === 'NGN' ? (p.marginValueNGN || 0) : (p.marginValueUSD || 0);
       customerRevenue[client].projects += 1;
     });
-    
+
     return Object.values(customerRevenue).sort((a, b) => b.revenue - a.revenue);
   }, [filteredProjects, currency, getContractValue, getMarginValue]);
 
   const revenueBySegment = useMemo(() => {
     const segmentRevenue: Record<string, { name: string; revenue: number; projects: number; margin: number }> = {};
-    
+
     filteredProjects.forEach((p: Project) => {
       const segment = p.businessSegment || 'Unassigned';
       if (!segmentRevenue[segment]) {
@@ -128,12 +129,12 @@ export const RevenueAnalytics = () => {
       segmentRevenue[segment].margin += getMarginValue(p);
       segmentRevenue[segment].projects += 1;
     });
-    
+
     return Object.values(segmentRevenue).sort((a, b) => b.revenue - a.revenue);
   }, [filteredProjects, currency, getContractValue, getMarginValue]);
 
   const totalRevenue = useMemo(() => {
-    return filteredProjects.reduce((sum: number, p: Project) => 
+    return filteredProjects.reduce((sum: number, p: Project) =>
       sum + getContractValue(p), 0
     );
   }, [filteredProjects, currency, getContractValue]);
@@ -158,25 +159,24 @@ export const RevenueAnalytics = () => {
     <Card className="bg-card border-border">
       <CardHeader className="p-3 sm:p-6 pb-2 sm:pb-4">
         <CardTitle className="text-base sm:text-lg font-semibold text-foreground">Revenue Analytics</CardTitle>
-        
-        {/* Filter Buttons */}
+
+        {/* Pipeline stage filters — same canonical list as Dashboard funnel / stage donut */}
         <div className="flex flex-wrap gap-1.5 sm:gap-2 mt-3 sm:mt-4">
-          {(Object.keys(filterLabels) as RevenueFilter[]).map((f) => (
+          {STAGE_TABS.map((t) => (
             <Button
-              key={f}
-              variant={filter === f ? 'default' : 'outline'}
+              key={t.key}
+              variant={filter === t.key ? 'default' : 'outline'}
               size="sm"
-              onClick={() => setFilter(f)}
+              onClick={() => setFilter(t.key)}
               className="h-7 sm:h-8 text-[10px] sm:text-xs px-2 sm:px-3"
             >
-              {filterLabels[f]}
+              {t.label}
             </Button>
           ))}
         </div>
 
-        {/* Total Revenue Display */}
         <div className="mt-3 sm:mt-4 p-2.5 sm:p-4 rounded-lg bg-primary/10 border border-primary/20">
-          <p className="text-[10px] sm:text-sm text-muted-foreground">Total Revenue ({filterLabels[filter]})</p>
+          <p className="text-[10px] sm:text-sm text-muted-foreground">Total Revenue ({filterLabel})</p>
           <p className="text-lg sm:text-2xl font-bold text-primary">{formatCurrencyValue(totalRevenue)}</p>
           <p className="text-[10px] sm:text-sm text-muted-foreground">{filteredProjects.length} projects</p>
         </div>
@@ -187,7 +187,11 @@ export const RevenueAnalytics = () => {
           <div className="text-center py-8">
             <Banknote className="w-12 h-12 mx-auto text-muted-foreground mb-2" />
             <p className="text-muted-foreground">No revenue data yet</p>
-            <p className="text-sm text-muted-foreground mt-1">Create projects to see revenue analytics</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              {filter === 'all'
+                ? 'Create projects to see revenue analytics'
+                : `No projects in ${filterLabel}`}
+            </p>
           </div>
         ) : (
           <Tabs defaultValue="project" className="w-full">
