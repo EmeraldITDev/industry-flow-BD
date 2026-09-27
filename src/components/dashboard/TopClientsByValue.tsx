@@ -2,12 +2,14 @@ import { useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LabelList } from 'recharts';
 import { useDashboardExportOptional } from '@/context/DashboardExportContext';
+import { useNavigate } from 'react-router-dom';
 
 interface TopClientsByValueProps {
   data: Record<string, number>;
   title?: string;
   subtitle?: string;
   className?: string;
+  hrefFor?: (client: string) => string;
 }
 
 function formatUsdFull(n: number) {
@@ -25,11 +27,13 @@ function formatUsdShort(n: number) {
 export function TopClientsByValue({
   data,
   title = 'Top Clients by PO Value (USD)',
-  subtitle = 'Excluding BEDS (meter scale outlier)',
+  subtitle = 'Excluding BEDS (meter scale outlier) — click a bar to open that client',
   className,
+  hrefFor,
 }: TopClientsByValueProps) {
   const dash = useDashboardExportOptional();
   const exportFull = dash?.exportFullNumbers ?? false;
+  const navigate = useNavigate();
 
   const chartData = useMemo(() => {
     return Object.entries(data)
@@ -38,9 +42,10 @@ export function TopClientsByValue({
         valueUsd,
         valueM: valueUsd / 1_000_000,
         label: exportFull ? formatUsdFull(valueUsd) : formatUsdShort(valueUsd),
+        href: hrefFor?.(client),
       }))
       .sort((a, b) => a.valueM - b.valueM);
-  }, [data, exportFull]);
+  }, [data, exportFull, hrefFor]);
 
   const dataKey = exportFull ? 'valueUsd' : 'valueM';
 
@@ -94,7 +99,16 @@ export function TopClientsByValue({
               labelStyle={{ color: 'hsl(var(--foreground))' }}
               formatter={(value: number) => tooltipFormatter(value)}
             />
-            <Bar dataKey={dataKey} fill="#00c2a8" radius={[0, 5, 5, 0]} animationDuration={1000}>
+            <Bar
+              dataKey={dataKey}
+              fill="#00c2a8"
+              radius={[0, 5, 5, 0]}
+              animationDuration={1000}
+              cursor={hrefFor ? 'pointer' : 'default'}
+              onClick={(entry: { href?: string }) => {
+                if (entry?.href) navigate(entry.href);
+              }}
+            >
               <LabelList
                 dataKey="label"
                 position="right"

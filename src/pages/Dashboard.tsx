@@ -27,11 +27,17 @@ import { teamService } from '@/services/team';
 import { FolderKanban, Loader2, DollarSign, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { Project } from '@/types';
+import { Project, PIPELINE_STAGES } from '@/types';
 import { Progress } from '@/components/ui/progress';
 import { getStageProgress } from '@/lib/stageProgress';
 import { useAuth } from '@/context/AuthContext';
 import { isRestrictedExecutiveUser } from '@/lib/executive/access';
+import {
+  projectsDrillHref,
+  resolveLeadIds,
+} from '@/lib/dashboard/projectsDrillHref';
+import { businessVerticals } from '@/data/mockData';
+
 export default function Dashboard() {
   const { formatCurrencyFor } = useDashboardCurrencyFormat();
   const { user } = useAuth();
@@ -154,22 +160,22 @@ export default function Dashboard() {
     
     const winRate = projects.length > 0 ? (won / projects.length) * 100 : 0;
     
+    // Single stage query shared by Sales Pipeline Funnel + Pipeline Stage Distribution
+    // so counts can never drift between the two widgets.
     const pipelineByStage: Record<string, number> = {
       cold: 0, initiation: 0, qualification: 0, proposal: 0,
-      negotiation: 0, approval: 0, execution: 0, closure: 0,
+      negotiation: 0, approval: 0, execution: 0, closure: 0, lost: 0,
     };
-    
-    let lostDeals = 0;
-    
     projects.forEach((p: Project) => {
-      if (p.status === 'on_hold' || p.status === 'on-hold') {
-        lostDeals++;
-      } else if (p.pipelineStage) {
-        pipelineByStage[p.pipelineStage] = (pipelineByStage[p.pipelineStage] || 0) + 1;
+      const stage = (p.pipelineStage || 'cold').toLowerCase().trim();
+      if (stage in pipelineByStage) {
+        pipelineByStage[stage] += 1;
       } else {
-        pipelineByStage.cold++;
+        pipelineByStage.cold += 1;
       }
     });
+    const byPipelineStage = { ...pipelineByStage };
+    const lostDeals = pipelineByStage.lost || 0;
     
     const bySector: Record<string, number> = {};
     projects.forEach((p: Project) => {
@@ -194,13 +200,6 @@ export default function Dashboard() {
         return acc;
       }, {} as Record<string, number>);
     
-    // Pipeline stage distribution (for donut)
-    const byPipelineStage: Record<string, number> = {};
-    projects.forEach((p: Project) => {
-      const stage = p.pipelineStage || 'cold';
-      byPipelineStage[stage] = (byPipelineStage[stage] || 0) + 1;
-    });
-    
     // Product category mix by opportunity count
     const byProductCategory: Record<string, number> = {};
     projects.forEach((p: Project) => {
@@ -209,23 +208,23 @@ export default function Dashboard() {
       byProductCategory[product] = (byProductCategory[product] || 0) + 1;
     });
 
-    // Pipeline by sales lead: build account table data
-    const accountTableMap: Record<string, { location: string; owner: string; count: number }> = {};
+    // Pipeline by sales lead: one row per account + owner so the opportunity
+    // count matches the clientNames ∩ projectLeads drill-down filter.
+    const accountTableMap: Record<string, { account: string; location: string; owner: string; count: number }> = {};
     projects.forEach((p: Project) => {
       const client = p.clientName?.trim() || 'Unknown';
       const lead = resolveLeadName(p);
       const loc = p.location?.trim() || '';
-      if (!accountTableMap[client]) {
-        accountTableMap[client] = { location: loc, owner: lead, count: 0 };
+      const key = `${client}::${lead}`;
+      if (!accountTableMap[key]) {
+        accountTableMap[key] = { account: client, location: loc, owner: lead, count: 0 };
       }
-      accountTableMap[client].count++;
-      // Update location/owner if previously empty
-      if (!accountTableMap[client].location && loc) accountTableMap[client].location = loc;
-      if (accountTableMap[client].owner === 'Unassigned' && lead !== 'Unassigned') accountTableMap[client].owner = lead;
+      accountTableMap[key].count++;
+      if (!accountTableMap[key].location && loc) accountTableMap[key].location = loc;
     });
 
-    const accountTableData = Object.entries(accountTableMap).map(([account, info]) => ({
-      account,
+    const accountTableData = Object.values(accountTableMap).map((info) => ({
+      account: info.account,
       location: info.location,
       accountOwner: info.owner,
       totalOpportunities: info.count,
@@ -260,6 +259,76 @@ export default function Dashboard() {
       accountTableData, teamLoad, averageProgress: avgProgress, recent,
     };
   }, [filteredProjects, teamMembers]);
+
+  /** Preserve dashboard filter bar + apply click-triggered overrides → /projects?… */
+  const drill = useMemo(() => {
+    const base = (overrides: Parameters<typeof projectsDrillHref>[1] = {}) =>
+      projectsDrillHref(dashboardFilters, overrides, teamMembers);
+
+    const leadIdsFor = (leadName: string) =>
+      resolveLeadIds([leadName], teamMembers);
+
+    return {
+      won: base({ metric: 'won' }),
+      active: base({ metric: 'active' }),
+      all: base({}),
+      stage: (stage: string) => base({ pipelineStages: [stage] }),
+      sector: (sector: string) =>
+        (businessVerticals as readonly string[]).includes(sector)
+          ? base({ businessVerticals: [sector] })
+          : base({ sectors: [sector] }),
+      client: (client: string) => base({ clientNames: [client] }),
+      product: (product: string) => base({ products: [product] }),
+      accountOwner: (account: string, owner: string) =>
+        base({
+          clientNames: [account],
+          projectLeads: leadIdsFor(owner),
+        }),
+      leadProjects: (lead: string) =>
+        base({ projectLeads: leadIdsFor(lead) }),
+      leadWon: (lead: string) =>
+        base({ metric: 'won', projectLeads: leadIdsFor(lead) }),
+      leadActive: (lead: string) =>
+        base({ statuses: ['active'], projectLeads: leadIdsFor(lead) }),
+    };
+  }, [dashboardFilters, teamMembers]);
+
+  const funnelStages = useMemo(
+    () =>
+      PIPELINE_STAGES.map((s) => ({
+        label:
+          s.value === 'approval'
+            ? 'Approval ✓'
+            : s.value === 'lost'
+              ? 'Lost ✗'
+              : s.label,
+        count: computedStats.pipelineByStage[s.value] || 0,
+        color: s.value,
+        stageKey: s.value,
+        href: drill.stage(s.value),
+      })),
+    [computedStats.pipelineByStage, drill]
+  );
+
+  const accountTableWithHrefs = useMemo(
+    () =>
+      computedStats.accountTableData.map((row) => ({
+        ...row,
+        href: drill.accountOwner(row.account, row.accountOwner),
+      })),
+    [computedStats.accountTableData, drill]
+  );
+
+  const teamLoadWithHrefs = useMemo(
+    () =>
+      computedStats.teamLoad.map((row) => ({
+        ...row,
+        projectsHref: drill.leadProjects(row.lead),
+        wonHref: drill.leadWon(row.lead),
+        activeHref: drill.leadActive(row.lead),
+      })),
+    [computedStats.teamLoad, drill]
+  );
 
   const isLoading = !projectsList;
   
@@ -302,6 +371,7 @@ export default function Dashboard() {
               label="Total PO Value (USD)"
               value={formatCurrencyFor(computedStats.wonPOValueUSD, 'USD')}
               subtitle={`${computedStats.won} won opportunities`}
+              subtitleHref={drill.won}
               colorScheme="won"
               delta="Active"
             />
@@ -309,6 +379,7 @@ export default function Dashboard() {
               label="Active Pipeline (USD)"
               value={formatCurrencyFor(computedStats.activePipelineUSD, 'USD')}
               subtitle={`${computedStats.active} open opportunities`}
+              subtitleHref={drill.active}
               colorScheme="pipeline"
             />
             <EmeraldStatCard
@@ -328,12 +399,14 @@ export default function Dashboard() {
               value={computedStats.total.toLocaleString()}
               subtitle={`${computedStats.segments} business segments`}
               colorScheme="leads"
+              href={drill.all}
             />
             <EmeraldStatCard
               label="Win Rate"
               value={`${computedStats.winRate.toFixed(2)}%`}
               subtitle={`${computedStats.won} won / ${computedStats.total} total`}
               colorScheme="rate"
+              href={drill.won}
             />
           </div>
 
@@ -343,7 +416,7 @@ export default function Dashboard() {
               title="Total Projects" 
               value={computedStats.total.toLocaleString()} 
               icon={FolderKanban}
-              href="/projects"
+              href={drill.all}
             />
             <StatCard 
               title="Total PO Value (₦)" 
@@ -383,22 +456,13 @@ export default function Dashboard() {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 min-w-0">
             <DashboardVisualExport filename="pipeline-funnel" contentClassName="p-0 bg-transparent border-0 shadow-none min-w-0">
-              <PipelineFunnel
-                stages={[
-                  { label: 'Cold', count: computedStats.pipelineByStage.cold || 0, color: 'cold' },
-                  { label: 'Initiation', count: computedStats.pipelineByStage.initiation || 0, color: 'initiation' },
-                  { label: 'Qualification', count: computedStats.pipelineByStage.qualification || 0, color: 'qualification' },
-                  { label: 'Proposal', count: computedStats.pipelineByStage.proposal || 0, color: 'proposal' },
-                  { label: 'Negotiation', count: computedStats.pipelineByStage.negotiation || 0, color: 'negotiation' },
-                  { label: 'Approval ✓', count: computedStats.pipelineByStage.approval || 0, color: 'approval' },
-                  { label: 'Execution', count: computedStats.pipelineByStage.execution || 0, color: 'execution' },
-                  { label: 'Closure', count: computedStats.pipelineByStage.closure || 0, color: 'closure' },
-                  { label: 'Lost ✗', count: computedStats.lostDeals || 0, color: 'lost' },
-                ]}
-              />
+              <PipelineFunnel stages={funnelStages} />
             </DashboardVisualExport>
             <DashboardVisualExport filename="segment-breakdown" contentClassName="p-0 bg-transparent border-0 shadow-none min-w-0">
-              <SegmentBreakdown data={computedStats.bySector} />
+              <SegmentBreakdown
+                data={computedStats.bySector}
+                hrefFor={drill.sector}
+              />
             </DashboardVisualExport>
           </div>
 
@@ -410,13 +474,22 @@ export default function Dashboard() {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 min-w-0">
             <DashboardVisualExport filename="top-clients-by-value" contentClassName="p-0 bg-transparent border-0 shadow-none min-w-0">
-              <TopClientsByValue data={computedStats.topClients} />
+              <TopClientsByValue
+                data={computedStats.topClients}
+                hrefFor={drill.client}
+              />
             </DashboardVisualExport>
             <DashboardVisualExport filename="pipeline-stage-distribution" contentClassName="p-0 bg-transparent border-0 shadow-none min-w-0">
-              <ProbabilityMixDonut data={computedStats.byPipelineStage} />
+              <ProbabilityMixDonut
+                data={computedStats.byPipelineStage}
+                hrefFor={drill.stage}
+              />
             </DashboardVisualExport>
             <DashboardVisualExport filename="product-category-mix" contentClassName="p-0 bg-transparent border-0 shadow-none min-w-0">
-              <ProductCategoryMixDonut data={computedStats.byProductCategory} />
+              <ProductCategoryMixDonut
+                data={computedStats.byProductCategory}
+                hrefFor={drill.product}
+              />
             </DashboardVisualExport>
           </div>
 
@@ -428,12 +501,10 @@ export default function Dashboard() {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 min-w-0">
             <DashboardVisualExport filename="pipeline-by-sales-lead" contentClassName="p-0 bg-transparent border-0 shadow-none min-w-0">
-              <PipelineBySalesLead 
-                data={computedStats.accountTableData}
-              />
+              <PipelineBySalesLead data={accountTableWithHrefs} />
             </DashboardVisualExport>
             <DashboardVisualExport filename="team-opportunity-load" contentClassName="p-0 bg-transparent border-0 shadow-none min-w-0">
-              <TeamOpportunityLoad data={computedStats.teamLoad} />
+              <TeamOpportunityLoad data={teamLoadWithHrefs} />
             </DashboardVisualExport>
           </div>
 

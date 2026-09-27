@@ -1,23 +1,29 @@
 import { cn } from '@/lib/utils';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LabelList } from 'recharts';
+import { useNavigate } from 'react-router-dom';
 
 interface SegmentBreakdownProps {
   data: Record<string, number>;
   title?: string;
   subtitle?: string;
   className?: string;
+  /** Map sector label → /projects?… href */
+  hrefFor?: (sector: string) => string;
 }
 
 export function SegmentBreakdown({
   data,
   title = 'Segment Breakdown',
-  subtitle = 'Opportunity count per business unit',
+  subtitle = 'Opportunity count per business unit — click a bar to open matching projects',
   className,
+  hrefFor,
 }: SegmentBreakdownProps) {
+  const navigate = useNavigate();
   const chartData = Object.entries(data)
     .map(([sector, count]) => ({
       sector,
       count,
+      href: hrefFor?.(sector),
     }))
     .sort((a, b) => b.count - a.count);
 
@@ -28,6 +34,9 @@ export function SegmentBreakdown({
       case 'EMR_Special Projects': return '#8b5cf6';
       case 'EMR_Trading': return '#f0a500';
       case 'EMR_Manufacturing': return '#e84393';
+      case 'Petrochemicals': return '#0077ff';
+      case 'Power': return '#00c2a8';
+      case 'Oil & Gas': return '#8b5cf6';
       default: return '#3a5070';
     }
   };
@@ -67,7 +76,15 @@ export function SegmentBreakdown({
               labelStyle={{ color: 'hsl(var(--foreground))' }}
               itemStyle={{ color: 'hsl(var(--muted-foreground))' }}
             />
-            <Bar dataKey="count" radius={[6, 6, 0, 0]} animationDuration={1000}>
+            <Bar
+              dataKey="count"
+              radius={[6, 6, 0, 0]}
+              animationDuration={1000}
+              cursor={hrefFor ? 'pointer' : 'default'}
+              onClick={(entry: { href?: string }) => {
+                if (entry?.href) navigate(entry.href);
+              }}
+            >
               {chartData.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={getBarColor(entry.sector)} />
               ))}

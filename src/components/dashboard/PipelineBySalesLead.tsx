@@ -8,12 +8,14 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { Link } from 'react-router-dom';
 
 export interface AccountRow {
   account: string;
   location: string;
   accountOwner: string;
   totalOpportunities: number;
+  href?: string;
 }
 
 interface PipelineBySalesLeadProps {
@@ -31,7 +33,7 @@ export default function PipelineBySalesLead({ data }: PipelineBySalesLeadProps) 
           Pipeline by Sales Lead
         </h3>
         <p className="text-xs text-muted-foreground">
-          Account summary with opportunities per owner
+          Account summary with opportunities per owner — click a count to open matching projects
         </p>
       </div>
 
@@ -52,10 +54,22 @@ export default function PipelineBySalesLead({ data }: PipelineBySalesLeadProps) 
                 <TableCell className="text-xs font-medium py-2 max-w-[140px] truncate">{row.account}</TableCell>
                 <TableCell className="text-xs py-2 text-muted-foreground max-w-[100px] truncate">{row.location || '—'}</TableCell>
                 <TableCell className="text-xs py-2 max-w-[120px] truncate">{row.accountOwner}</TableCell>
-                <TableCell className="text-xs py-2 text-right font-semibold">{row.totalOpportunities}</TableCell>
+                <TableCell className="text-xs py-2 text-right font-semibold">
+                  {row.href ? (
+                    <Link
+                      to={row.href}
+                      className={cn(
+                        'tabular-nums text-primary underline-offset-2 hover:underline'
+                      )}
+                    >
+                      {row.totalOpportunities}
+                    </Link>
+                  ) : (
+                    row.totalOpportunities
+                  )}
+                </TableCell>
               </TableRow>
             ))}
-            {/* Sum Total row */}
             <TableRow className="border-t-2 border-foreground/20 bg-muted/40">
               <TableCell colSpan={3} className="text-xs font-bold py-2">Sum Total</TableCell>
               <TableCell className="text-xs font-bold py-2 text-right">{sumTotal}</TableCell>

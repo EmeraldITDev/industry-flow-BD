@@ -1,5 +1,6 @@
 import { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Link } from 'react-router-dom';
 
 interface EmeraldStatCardProps {
   label: string;
@@ -9,6 +10,10 @@ interface EmeraldStatCardProps {
   colorScheme?: 'won' | 'pipeline' | 'commission' | 'commission_usd' | 'leads' | 'rate';
   icon?: LucideIcon;
   className?: string;
+  /** Navigate to filtered Projects list (same query the number was computed from). */
+  href?: string;
+  /** When set, only the subtitle is clickable (e.g. "34 won opportunities"). */
+  subtitleHref?: string;
 }
 
 const colorSchemes = {
@@ -52,15 +57,20 @@ export function EmeraldStatCard({
   colorScheme = 'won',
   icon: Icon,
   className,
+  href,
+  subtitleHref,
 }: EmeraldStatCardProps) {
   const scheme = colorSchemes[colorScheme];
+  const cardClickable = !!href && !subtitleHref;
 
-  return (
+  const body = (
     <div
       className={cn(
         'relative overflow-hidden rounded-xl bg-card border border-border min-w-0',
         'p-4 sm:p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-accent',
         'animate-fade-up',
+        (cardClickable || subtitleHref) && 'hover:border-primary/50',
+        cardClickable && 'cursor-pointer',
         className
       )}
     >
@@ -87,9 +97,18 @@ export function EmeraldStatCard({
             >
               {value}
             </div>
-            {subtitle && (
-              <div className="text-[11px] text-muted-foreground mt-1.5 break-words">{subtitle}</div>
-            )}
+            {subtitle &&
+              (subtitleHref ? (
+                <Link
+                  to={subtitleHref}
+                  className="text-[11px] text-muted-foreground mt-1.5 break-words underline-offset-2 hover:underline hover:text-foreground inline-block"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {subtitle}
+                </Link>
+              ) : (
+                <div className="text-[11px] text-muted-foreground mt-1.5 break-words">{subtitle}</div>
+              ))}
           </div>
 
           {/* Delta badge */}
@@ -109,4 +128,10 @@ export function EmeraldStatCard({
       </div>
     </div>
   );
+
+  if (cardClickable && href) {
+    return <Link to={href} className="block min-w-0">{body}</Link>;
+  }
+
+  return body;
 }

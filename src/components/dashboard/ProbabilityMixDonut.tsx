@@ -1,12 +1,15 @@
 import { cn } from '@/lib/utils';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { PIPELINE_STAGES } from '@/types';
+import { useNavigate } from 'react-router-dom';
 
 interface ProbabilityMixDonutProps {
   data: Record<string, number>;
   title?: string;
   subtitle?: string;
   className?: string;
+  /** Map pipeline stage value → /projects?… href (same keys as Sales Pipeline Funnel). */
+  hrefFor?: (stage: string) => string;
 }
 
 const stageColors: Record<string, string> = {
@@ -52,20 +55,28 @@ function renderCustomLabel({ cx, cy, midAngle, innerRadius, outerRadius, value, 
 export function ProbabilityMixDonut({
   data,
   title = 'Pipeline Stage Distribution',
-  subtitle = 'Projects by pipeline stage',
+  subtitle = 'Projects by pipeline stage — click a segment or legend row',
   className,
+  hrefFor,
 }: ProbabilityMixDonutProps) {
+  const navigate = useNavigate();
   const chartData = Object.entries(data)
     .filter(([_, count]) => count > 0)
     .map(([stage, count]) => {
-      const stageInfo = PIPELINE_STAGES.find(s => s.value === stage);
+      const stageInfo = PIPELINE_STAGES.find((s) => s.value === stage);
       return {
         name: stageInfo?.label || stage,
+        stage,
         value: count,
         color: stageColors[stage] || '#3a5070',
+        href: hrefFor?.(stage),
       };
     })
     .sort((a, b) => b.value - a.value);
+
+  const go = (href?: string) => {
+    if (href) navigate(href);
+  };
 
   return (
     <div className={cn('bg-card border border-border rounded-xl p-6 animate-fade-up', className)}>
@@ -87,9 +98,11 @@ export function ProbabilityMixDonut({
               dataKey="value"
               label={renderCustomLabel}
               labelLine={false}
+              style={{ cursor: hrefFor ? 'pointer' : 'default' }}
+              onClick={(_, idx) => go(chartData[idx]?.href)}
             >
               {chartData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.color} />
+                <Cell key={`cell-${index}`} fill={entry.color} className="outline-none cursor-pointer" />
               ))}
             </Pie>
             <Tooltip
@@ -107,13 +120,22 @@ export function ProbabilityMixDonut({
 
       <div className="mt-2 space-y-1">
         {chartData.map((entry, idx) => (
-          <div key={idx} className="flex items-center justify-between text-[11px]">
-            <div className="flex items-center gap-2">
+          <button
+            key={idx}
+            type="button"
+            disabled={!entry.href}
+            onClick={() => go(entry.href)}
+            className={cn(
+              'flex w-full items-center justify-between text-[11px] rounded-md px-1 py-0.5 -mx-1',
+              entry.href && 'hover:bg-accent/50 cursor-pointer transition-colors'
+            )}
+          >
+            <div className="flex items-center gap-2 min-w-0">
               <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: entry.color }} />
-              <span className="text-muted-foreground">{entry.name}</span>
+              <span className="text-muted-foreground truncate">{entry.name}</span>
             </div>
-            <span className="font-semibold text-foreground">{entry.value}</span>
-          </div>
+            <span className="font-semibold text-foreground tabular-nums">{entry.value}</span>
+          </button>
         ))}
       </div>
     </div>

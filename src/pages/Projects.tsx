@@ -141,6 +141,10 @@ export default function Projects() {
   const metricChannelPartners = searchParams.get('channelPartners') || '';
   const metricProducts = searchParams.get('products') || '';
   const metricSubproducts = searchParams.get('subproducts') || '';
+  const metricProjectLeads = searchParams.get('projectLeads') || '';
+  const metricAssignees = searchParams.get('assignees') || '';
+  const metricBusinessSegments = searchParams.get('businessSegments') || '';
+  const metricStatuses = searchParams.get('statuses') || '';
   const partnerIdParam =
     searchParams.get('partner_id') || searchParams.get('partnerId') || '';
   const pageParam = Math.max(1, Number(searchParams.get('page') || '1') || 1);
@@ -158,6 +162,10 @@ export default function Projects() {
     if (metricChannelPartners) extra.channelPartners = metricChannelPartners;
     if (metricProducts) extra.products = metricProducts;
     if (metricSubproducts) extra.subproducts = metricSubproducts;
+    if (metricProjectLeads) extra.projectLeads = metricProjectLeads;
+    if (metricAssignees) extra.assignees = metricAssignees;
+    if (metricBusinessSegments) extra.businessSegments = metricBusinessSegments;
+    if (metricStatuses) extra.statuses = metricStatuses;
     return extra;
   }, [
     metricFrom,
@@ -171,6 +179,10 @@ export default function Projects() {
     metricChannelPartners,
     metricProducts,
     metricSubproducts,
+    metricProjectLeads,
+    metricAssignees,
+    metricBusinessSegments,
+    metricStatuses,
   ]);
 
   const handleFiltersChange = useCallback((newFilters: FilterState) => {

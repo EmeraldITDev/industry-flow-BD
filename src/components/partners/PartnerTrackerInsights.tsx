@@ -298,7 +298,7 @@ export function PartnerTrackerInsights({
                 <CardTitle className="text-sm">Top partners by linked volume</CardTitle>
                 <p className="text-xs text-muted-foreground">
                   Contract value sum on pivot-linked opportunities ({preferUsd ? 'USD' : 'NGN'}{' '}
-                  preferred).
+                  preferred). Click a row to open linked opportunities (same pivot query).
                 </p>
               </CardHeader>
               <CardContent>
