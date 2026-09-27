@@ -1,7 +1,7 @@
 import api from './api';
 import { Project, PipelineStage, Sector, BusinessSegment, RiskLevel, ProjectStats } from '@/types';
 import { notifyAssignment } from './notificationHelper';
-import { getDefaultStatusForStage, isValidStageStatus, type ProjectStatus } from '@/lib/stageStatusRules';
+import { type ProjectStatus } from '@/lib/stageStatusRules';
 
 export interface CreateProjectData {
   name: string;
@@ -128,17 +128,11 @@ export const normalizeProject = (project: any): Project => {
 
   // Normalize other fields that may also be snake_case
   const pipelineStage = (project.pipelineStage ?? project.pipeline_stage ?? 'initiation') as PipelineStage;
-  let status = (project.status ?? 'active') as ProjectStatus;
-
-  // Only rewrite statuses the frontend enum already understands. Backend
-  // values like `on_hold` and `cancelled` must survive so dashboard counts
-  // (especially the Lost segment) can match the database.
-  const frontendStatuses: ProjectStatus[] = ['active', 'on-hold', 'completed', 'inactive'];
-  if (frontendStatuses.includes(status) && !isValidStageStatus(pipelineStage, status)) {
-    const correctedStatus = getDefaultStatusForStage(pipelineStage);
-    console.warn(`[Projects Service] Auto-correcting status for project "${project.name}" (id: ${project.id}): "${status}" → "${correctedStatus}" (stage: ${pipelineStage})`);
-    status = correctedStatus;
-  }
+  // Keep the backend status as-is. Silent stage/status "auto-correction" here
+  // made Dashboard KPI counts (e.g. 147 "open") diverge from server-side
+  // filters / metric=active drills (237). Stage↔status rules belong on
+  // create/edit validation, not on every read.
+  const status = (project.status ?? 'active') as ProjectStatus;
 
   // Compute teamMemberIds
   const teamMemberIds = (project.teamMemberIds ?? project.team_member_ids ?? []).map((id: any) => String(id));
@@ -525,9 +519,11 @@ export const projectsService = {
       }
     });
 
-    // Ensure financial fields are present (as null or number) so backend overwrites
+    // Ensure financial fields are always sent as number or null (never omitted).
+    // JSON.stringify drops `undefined`, which left stale margin_value_usd in the DB
+    // when Margin % was empty while Contract was edited.
     financialKeys.forEach(key => {
-      if (!(key in requestData)) {
+      if (!(key in requestData) || requestData[key] === undefined) {
         requestData[key] = null;
       }
     });

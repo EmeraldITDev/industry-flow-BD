@@ -270,7 +270,7 @@ export default function Dashboard() {
 
     return {
       won: base({ metric: 'won' }),
-      active: base({ metric: 'active' }),
+      active: base({ statuses: ['active'] }),
       all: base({}),
       stage: (stage: string) => base({ pipelineStages: [stage] }),
       sector: (sector: string) =>

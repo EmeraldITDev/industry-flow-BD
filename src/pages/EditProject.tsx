@@ -292,6 +292,22 @@ export default function EditProject() {
 
     setIsSubmitting(true);
     try {
+      const contractNGN = parseNumberInput(formData.contractValueNGN);
+      const contractUSD = parseNumberInput(formData.contractValueUSD);
+      const marginPctNGN = parseNumberInput(formData.marginPercentNGN);
+      const marginPctUSD = parseNumberInput(formData.marginPercentUSD);
+
+      // Margin value is auto-calculated from Contract × Margin %.
+      // If either input is missing, send null so a stale/wrong margin_* is never left behind.
+      const marginValueNGN =
+        contractNGN != null && marginPctNGN != null
+          ? (contractNGN * marginPctNGN) / 100
+          : null;
+      const marginValueUSD =
+        contractUSD != null && marginPctUSD != null
+          ? (contractUSD * marginPctUSD) / 100
+          : null;
+
       await projectsService.update(id, {
         name: formData.name,
         description: formData.description,
@@ -314,26 +330,12 @@ export default function EditProject() {
         assigneeId: formData.assigneeId || null,
         partnerIds: formData.partnerIds,
         partner_ids: formData.partnerIds,
-        // Convert string values to numbers, send undefined if empty
-        contractValueNGN: parseNumberInput(formData.contractValueNGN),
-        contractValueUSD: parseNumberInput(formData.contractValueUSD),
-        marginPercentNGN: parseNumberInput(formData.marginPercentNGN),
-        marginPercentUSD: parseNumberInput(formData.marginPercentUSD),
-        // Calculate margin values if both contract value and margin percent are provided
-        marginValueNGN:
-          parseNumberInput(formData.contractValueNGN) != null &&
-          parseNumberInput(formData.marginPercentNGN) != null
-            ? (parseNumberInput(formData.contractValueNGN)! *
-                parseNumberInput(formData.marginPercentNGN)!) /
-              100
-            : undefined,
-        marginValueUSD:
-          parseNumberInput(formData.contractValueUSD) != null &&
-          parseNumberInput(formData.marginPercentUSD) != null
-            ? (parseNumberInput(formData.contractValueUSD)! *
-                parseNumberInput(formData.marginPercentUSD)!) /
-              100
-            : undefined,
+        contractValueNGN: contractNGN ?? null,
+        contractValueUSD: contractUSD ?? null,
+        marginPercentNGN: marginPctNGN ?? null,
+        marginPercentUSD: marginPctUSD ?? null,
+        marginValueNGN,
+        marginValueUSD,
         projectLeadComments: formData.projectLeadComments || undefined,
         supportNeeded: formData.supportNeeded || undefined,
         projectImage: formData.projectImage ?? null,
@@ -925,6 +927,9 @@ export default function EditProject() {
                       className="bg-muted cursor-not-allowed"
                       placeholder="Auto-calculated"
                     />
+                    <p className="text-[10px] text-muted-foreground">
+                      Requires both Contract and Margin %. If either is empty on save, the stored margin value is cleared.
+                    </p>
                   </div>
                 </div>
               </div>
@@ -976,6 +981,9 @@ export default function EditProject() {
                       className="bg-muted cursor-not-allowed"
                       placeholder="Auto-calculated"
                     />
+                    <p className="text-[10px] text-muted-foreground">
+                      Requires both Contract and Margin %. If either is empty on save, the stored margin value is cleared.
+                    </p>
                   </div>
                 </div>
               </div>
