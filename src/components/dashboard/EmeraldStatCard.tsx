@@ -14,8 +14,8 @@ interface EmeraldStatCardProps {
   href?: string;
   /** When set, only the subtitle is clickable (e.g. "34 won opportunities"). */
   subtitleHref?: string;
-  /** Small exclusion note (e.g. missing USD/NGN values). */
-  note?: string;
+  /** Open a panel / run a handler instead of navigating (takes precedence over href). */
+  onActivate?: () => void;
 }
 
 const colorSchemes = {
@@ -61,10 +61,10 @@ export function EmeraldStatCard({
   className,
   href,
   subtitleHref,
-  note,
+  onActivate,
 }: EmeraldStatCardProps) {
   const scheme = colorSchemes[colorScheme];
-  const cardClickable = !!href && !subtitleHref;
+  const cardClickable = !!onActivate || (!!href && !subtitleHref);
 
   const body = (
     <div
@@ -76,6 +76,19 @@ export function EmeraldStatCard({
         cardClickable && 'cursor-pointer',
         className
       )}
+      role={onActivate ? 'button' : undefined}
+      tabIndex={onActivate ? 0 : undefined}
+      onClick={onActivate}
+      onKeyDown={
+        onActivate
+          ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onActivate();
+              }
+            }
+          : undefined
+      }
     >
       {/* Top gradient border */}
       <div
@@ -112,11 +125,6 @@ export function EmeraldStatCard({
               ) : (
                 <div className="text-[11px] text-muted-foreground mt-1.5 break-words">{subtitle}</div>
               ))}
-            {note && (
-              <p className="text-[10px] text-muted-foreground/80 mt-1.5 leading-snug">
-                {note}
-              </p>
-            )}
           </div>
 
           {/* Delta badge */}
@@ -137,7 +145,7 @@ export function EmeraldStatCard({
     </div>
   );
 
-  if (cardClickable && href) {
+  if (!onActivate && cardClickable && href) {
     return <Link to={href} className="block min-w-0">{body}</Link>;
   }
 

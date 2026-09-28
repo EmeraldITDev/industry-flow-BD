@@ -64,13 +64,22 @@ export function RankedList({
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <span className="text-sm font-medium truncate max-w-[16rem]">{group.label}</span>
               <span className="text-sm tabular-nums flex gap-3">
-                {group.usd > 0 && <span className="font-semibold">{fmtUsd(group.usd)}</span>}
-                {group.ngn > 0 && <span className="text-muted-foreground">{fmtNgn(group.ngn)}</span>}
+                {group.displayValue ? (
+                  <span className="font-semibold">{group.displayValue}</span>
+                ) : (
+                  <>
+                    {group.usd > 0 && <span className="font-semibold">{fmtUsd(group.usd)}</span>}
+                    {group.ngn > 0 && (
+                      <span className="text-muted-foreground">{fmtNgn(group.ngn)}</span>
+                    )}
+                  </>
+                )}
               </span>
             </div>
             <Progress value={(magnitude / max) * 100} className="h-1.5 mt-1.5" />
             <p className="text-xs text-muted-foreground mt-1">
-              {Math.round(group.count)} opportunities · {group.lateStage} late-stage
+              {Math.round(group.count)} opportunities
+              {group.lateStage > 0 ? ` · ${group.lateStage} late-stage` : ''}
               {showWon ? ` · ${group.won} won` : ''}
               {group.avgProbability
                 ? ` · avg probability ${fmtPercent(group.avgProbability)}`

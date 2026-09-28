@@ -228,6 +228,8 @@ export interface OpportunityRow {
   probability: ProbabilityBand;
   usd: number;
   ngn: number;
+  /** When set (e.g. margin %), shown instead of usd/ngn. */
+  displayValue?: string;
   expectedCloseDate: string | null;
   businessVertical: string;
   sector: string;
@@ -254,6 +256,8 @@ export interface RankedGroup {
   metric?: string;
   value_share_pct?: number | null;
   record_share_pct?: number | null;
+  /** When set (e.g. margin %), shown instead of usd/ngn. */
+  displayValue?: string;
 }
 
 export interface AccountSnapshot extends RankedGroup {

@@ -145,6 +145,8 @@ export default function Projects() {
   const metricAssignees = searchParams.get('assignees') || '';
   const metricBusinessSegments = searchParams.get('businessSegments') || '';
   const metricStatuses = searchParams.get('statuses') || '';
+  const missingParam = searchParams.get('missing') || '';
+  const hasParam = searchParams.get('has') || '';
   const partnerIdParam =
     searchParams.get('partner_id') || searchParams.get('partnerId') || '';
   const pageParam = Math.max(1, Number(searchParams.get('page') || '1') || 1);
@@ -166,6 +168,8 @@ export default function Projects() {
     if (metricAssignees) extra.assignees = metricAssignees;
     if (metricBusinessSegments) extra.businessSegments = metricBusinessSegments;
     if (metricStatuses) extra.statuses = metricStatuses;
+    if (missingParam) extra.missing = missingParam;
+    if (hasParam) extra.has = hasParam;
     return extra;
   }, [
     metricFrom,
@@ -183,6 +187,8 @@ export default function Projects() {
     metricAssignees,
     metricBusinessSegments,
     metricStatuses,
+    missingParam,
+    hasParam,
   ]);
 
   const handleFiltersChange = useCallback((newFilters: FilterState) => {
@@ -190,7 +196,16 @@ export default function Projects() {
     // Only preserve drill-down / partner-scope keys that AdvancedFilters does not own.
     // Re-applying FilterState keys (products, stages, …) from the old URL overwrote
     // multi-select updates — blocking second selections and chip removal.
-    const preserveKeys = ['metric', 'from', 'to', 'period', 'partner_id', 'partnerId'];
+    const preserveKeys = [
+      'metric',
+      'from',
+      'to',
+      'period',
+      'partner_id',
+      'partnerId',
+      'missing',
+      'has',
+    ];
     for (const key of preserveKeys) {
       const value = searchParams.get(key);
       if (value) params.set(key, value);
@@ -226,11 +241,17 @@ export default function Projects() {
   
   // Calculate page title based on sector filter
   const sectorParam = filters.businessVerticals.length === 1 ? filters.businessVerticals[0] : null;
+  const coverageTitle =
+    missingParam || hasParam
+      ? `${missingParam ? 'Missing' : 'With'} ${missingParam || hasParam} value`
+      : null;
   const pageTitle = isMetricDrill
     ? metricLabel(metric)
-    : sectorParam && sectorDisplayNames[sectorParam]
-      ? sectorDisplayNames[sectorParam]
-      : 'Projects';
+    : coverageTitle
+      ? coverageTitle
+      : sectorParam && sectorDisplayNames[sectorParam]
+        ? sectorDisplayNames[sectorParam]
+        : 'Projects';
   const { canCreateProjects } = usePermissions();
 
   const {
@@ -282,9 +303,11 @@ export default function Projects() {
   const apiParams = useMemo(() => {
     const params = filterStateToApiParams(filters);
     if (partnerIdParam) params.partner_id = partnerIdParam;
+    if (missingParam) params.missing = missingParam;
+    if (hasParam) params.has = hasParam;
     params.page = pageParam;
     return params;
-  }, [filters, partnerIdParam, pageParam]);
+  }, [filters, partnerIdParam, missingParam, hasParam, pageParam]);
 
   /** Filter params without page — used so export/report cover every matching row. */
   const exportFetchParams = useMemo(() => {

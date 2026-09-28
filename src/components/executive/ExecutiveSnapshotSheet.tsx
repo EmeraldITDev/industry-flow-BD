@@ -223,10 +223,59 @@ export function ExecutiveSnapshotSheet({
                   </div>
                 )}
 
-                <div>
-                  <h4 className="text-sm font-semibold mb-1">Top opportunities by value</h4>
-                  <OpportunityTable rows={model.topOpportunities} limit={8} />
-                </div>
+                {model.rankedSections?.map((section) => (
+                  <div key={section.title}>
+                    <h4 className="text-sm font-semibold mb-2">{section.title}</h4>
+                    <RankedList
+                      groups={section.groups}
+                      filterKey={section.filterKey}
+                      metricOverride={section.metricOverride}
+                      extraQuery={section.extraQuery}
+                      limit={section.limit ?? 8}
+                      showWon={section.showWon ?? true}
+                    />
+                  </div>
+                ))}
+
+                {model.marginExtremes && (
+                  <>
+                    <div>
+                      <h4 className="text-sm font-semibold mb-1">Highest margin projects</h4>
+                      <OpportunityTable rows={model.marginExtremes.highest} limit={5} />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-semibold mb-1">Lowest margin projects</h4>
+                      <OpportunityTable rows={model.marginExtremes.lowest} limit={5} />
+                    </div>
+                  </>
+                )}
+
+                {model.topOpportunities.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold mb-1">
+                      {model.topOpportunitiesTitle ?? 'Top opportunities by value'}
+                    </h4>
+                    <OpportunityTable rows={model.topOpportunities} limit={10} />
+                  </div>
+                )}
+
+                {model.dataCoverage && (
+                  <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-2">
+                    <h4 className="text-sm font-semibold">Data coverage</h4>
+                    <p className="text-sm text-muted-foreground">{model.dataCoverage.message}</p>
+                    {model.dataCoverage.missingCount > 0 && (
+                      <Button
+                        variant="link"
+                        className="h-auto p-0 text-sm"
+                        onClick={() =>
+                          navigate(`/projects?${model.dataCoverage!.missingQuery}`)
+                        }
+                      >
+                        View these projects
+                      </Button>
+                    )}
+                  </div>
+                )}
 
                 <Button
                   variant="outline"

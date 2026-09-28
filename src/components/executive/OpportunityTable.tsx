@@ -66,14 +66,22 @@ export function OpportunityTable({
             </p>
           </div>
           <div className="text-right shrink-0">
-            {row.usd > 0 && <div className="text-sm font-semibold tabular-nums">{fmtUsd(row.usd)}</div>}
-            {row.ngn > 0 && (
-              <div className="text-sm font-semibold tabular-nums text-muted-foreground">
-                {fmtNgn(row.ngn)}
-              </div>
-            )}
-            {row.usd === 0 && row.ngn === 0 && (
-              <div className="text-xs text-muted-foreground">No value recorded</div>
+            {row.displayValue ? (
+              <div className="text-sm font-semibold tabular-nums">{row.displayValue}</div>
+            ) : (
+              <>
+                {row.usd > 0 && (
+                  <div className="text-sm font-semibold tabular-nums">{fmtUsd(row.usd)}</div>
+                )}
+                {row.ngn > 0 && (
+                  <div className="text-sm font-semibold tabular-nums text-muted-foreground">
+                    {fmtNgn(row.ngn)}
+                  </div>
+                )}
+                {row.usd === 0 && row.ngn === 0 && (
+                  <div className="text-xs text-muted-foreground">No value recorded</div>
+                )}
+              </>
             )}
           </div>
           <ChevronRight className="w-4 h-4 text-muted-foreground/50 mt-1 group-hover:text-primary shrink-0" />

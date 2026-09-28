@@ -14,17 +14,46 @@ interface StatCardProps {
   };
   className?: string;
   href?: string;
-  /** Small exclusion note under the value. */
+  /** Secondary coverage line (same style as muted description). */
   description?: string;
+  /** Open a panel / run a handler instead of navigating (takes precedence over href). */
+  onActivate?: () => void;
 }
 
-export function StatCard({ title, value, icon: Icon, iconSymbol, trend, className, href, description }: StatCardProps) {
+export function StatCard({
+  title,
+  value,
+  icon: Icon,
+  iconSymbol,
+  trend,
+  className,
+  href,
+  description,
+  onActivate,
+}: StatCardProps) {
+  const clickable = !!onActivate || !!href;
+
   const content = (
-    <Card className={cn(
-      "relative overflow-hidden transition-all",
-      href && "cursor-pointer hover:border-primary/50 hover:shadow-md",
-      className
-    )}>
+    <Card
+      className={cn(
+        'relative overflow-hidden transition-all',
+        clickable && 'cursor-pointer hover:border-primary/50 hover:shadow-md',
+        className
+      )}
+      role={onActivate ? 'button' : undefined}
+      tabIndex={onActivate ? 0 : undefined}
+      onClick={onActivate}
+      onKeyDown={
+        onActivate
+          ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onActivate();
+              }
+            }
+          : undefined
+      }
+    >
       <CardContent className="p-3 sm:p-4 lg:p-6">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
@@ -33,13 +62,17 @@ export function StatCard({ title, value, icon: Icon, iconSymbol, trend, classNam
               <div className="text-sm sm:text-lg lg:text-xl font-bold break-all">{value}</div>
             </div>
             {description && (
-              <p className="text-[10px] text-muted-foreground/80 mt-1 leading-snug">{description}</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground mt-1 leading-snug">
+                {description}
+              </p>
             )}
             {trend && (
-              <p className={cn(
-                "text-[10px] sm:text-sm mt-0.5 sm:mt-2 font-medium",
-                trend.isPositive ? "text-chart-1" : "text-destructive"
-              )}>
+              <p
+                className={cn(
+                  'text-[10px] sm:text-sm mt-0.5 sm:mt-2 font-medium',
+                  trend.isPositive ? 'text-chart-1' : 'text-destructive'
+                )}
+              >
                 {trend.isPositive ? '↑' : '↓'} {Math.abs(trend.value)}%
               </p>
             )}
@@ -56,7 +89,7 @@ export function StatCard({ title, value, icon: Icon, iconSymbol, trend, classNam
     </Card>
   );
 
-  if (href) {
+  if (!onActivate && href) {
     return <Link to={href}>{content}</Link>;
   }
 

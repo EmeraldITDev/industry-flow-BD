@@ -22,6 +22,13 @@ export type ProjectsDrillOverrides = {
   /** When set, skip mapping dashboard startDates → dateFrom/dateTo. */
   dateFrom?: string;
   dateTo?: string;
+  /**
+   * Projects with no stored value for this field (null/0).
+   * Tokens: ngn | usd | margin_ngn | margin_usd | margin_percent_ngn | margin_percent_usd
+   */
+  missing?: string;
+  /** Projects with a stored positive value for this field (same tokens as missing). */
+  has?: string;
 };
 
 function setJsonArray(params: URLSearchParams, key: string, values: string[] | undefined) {
@@ -100,6 +107,9 @@ export function projectsDrillHref(
   if (overrides.partner_id) {
     params.set('partner_id', overrides.partner_id);
   }
+
+  if (overrides.missing) params.set('missing', overrides.missing);
+  if (overrides.has) params.set('has', overrides.has);
 
   if (overrides.dateFrom) params.set('dateFrom', overrides.dateFrom);
   if (overrides.dateTo) params.set('dateTo', overrides.dateTo);

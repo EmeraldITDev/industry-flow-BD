@@ -34,6 +34,13 @@ import { useAuth } from '@/context/AuthContext';
 import { isRestrictedExecutiveUser } from '@/lib/executive/access';
 import { isWon } from '@/lib/executive/analytics';
 import {
+  buildFinancialSnapshotModel,
+  COMMISSION_RATE,
+  coverageLine,
+  FinancialPanelKey,
+} from '@/lib/executive/financialPanel';
+import { ExecutiveSnapshotSheet } from '@/components/executive/ExecutiveSnapshotSheet';
+import {
   projectsDrillHref,
   resolveLeadIds,
 } from '@/lib/dashboard/projectsDrillHref';
@@ -44,6 +51,7 @@ export default function Dashboard() {
   const { user } = useAuth();
   const isRestrictedExecutive = isRestrictedExecutiveUser(user);
   const [dashboardFilters, setDashboardFilters] = useState<DashboardFilterState>(defaultDashboardFilters);
+  const [financialPanelKey, setFinancialPanelKey] = useState<FinancialPanelKey | null>(null);
   const queryClient = useQueryClient();
   
   const { data: projectsList = [], isFetching } = useQuery({
@@ -104,6 +112,10 @@ export default function Dashboard() {
     let missingUsdActive = 0;
     let missingNgnActive = 0;
     let missingUsdWon = 0;
+    let withNgnValue = 0;
+    let withUsdValue = 0;
+    let withMarginPctUSD = 0;
+    let withMarginPctNGN = 0;
     
     const active = projects.filter((p: Project) => p.status === 'active').length;
     const completed = projects.filter((p: Project) => p.status === 'completed').length;
@@ -117,7 +129,9 @@ export default function Dashboard() {
       const ngnValue = stored(p.contractValueNGN);
       const usdValue = stored(p.contractValueUSD);
       if (!usdValue) missingUsdAll += 1;
+      else withUsdValue += 1;
       if (!ngnValue) missingNgnAll += 1;
+      else withNgnValue += 1;
 
       totalNGN += ngnValue;
       totalUSD += usdValue;
@@ -129,8 +143,8 @@ export default function Dashboard() {
       // Margin percentages - sum individual project margin %
       const mPctUSD = stored(p.marginPercentUSD);
       const mPctNGN = stored(p.marginPercentNGN);
-      if (mPctUSD > 0) { sumMarginPercentUSD += mPctUSD; countMarginPercentUSD++; }
-      if (mPctNGN > 0) { sumMarginPercentNGN += mPctNGN; countMarginPercentNGN++; }
+      if (mPctUSD > 0) { sumMarginPercentUSD += mPctUSD; countMarginPercentUSD++; withMarginPctUSD++; }
+      if (mPctNGN > 0) { sumMarginPercentNGN += mPctNGN; countMarginPercentNGN++; withMarginPctNGN++; }
       
       if (isWon(p)) {
         wonPOValueUSD += usdValue;
@@ -145,7 +159,7 @@ export default function Dashboard() {
         if (!ngnValue) missingNgnActive += 1;
       }
       
-      const commissionRate = 0.05;
+      const commissionRate = COMMISSION_RATE;
       totalCommissionNGN += ngnValue * commissionRate;
       totalCommissionUSD += usdValue * commissionRate;
     });
@@ -263,6 +277,7 @@ export default function Dashboard() {
       avgMarginPercentUSD: countMarginPercentUSD > 0 ? sumMarginPercentUSD / countMarginPercentUSD : 0,
       avgMarginPercentNGN: countMarginPercentNGN > 0 ? sumMarginPercentNGN / countMarginPercentNGN : 0,
       missingUsdAll, missingNgnAll, missingUsdActive, missingNgnActive, missingUsdWon,
+      withNgnValue, withUsdValue, withMarginPctUSD, withMarginPctNGN,
       winRate, segments, pipelineByStage, lostDeals,
       bySector, topClients, byPipelineStage, byProductCategory,
       accountTableData, teamLoad, averageProgress: avgProgress, recent,
@@ -339,6 +354,30 @@ export default function Dashboard() {
     [computedStats.teamLoad, drill]
   );
 
+  const financialPanelModel = useMemo(() => {
+    if (!financialPanelKey) return null;
+    const headlineFor = (key: FinancialPanelKey): string => {
+      switch (key) {
+        case 'commission_ngn':
+          return formatCurrencyFor(computedStats.totalCommissionNGN, 'NGN');
+        case 'commission_usd':
+          return formatCurrencyFor(computedStats.totalCommissionUSD, 'USD');
+        case 'po_ngn':
+          return formatCurrencyFor(computedStats.totalNGN, 'NGN');
+        case 'margin_pct_usd':
+          return `${computedStats.avgMarginPercentUSD.toFixed(2)}%`;
+        case 'margin_pct_ngn':
+          return `${computedStats.avgMarginPercentNGN.toFixed(2)}%`;
+      }
+    };
+    return buildFinancialSnapshotModel({
+      key: financialPanelKey,
+      projects: filteredProjects,
+      headline: headlineFor(financialPanelKey),
+      filterBaseHref: drill.all,
+    });
+  }, [financialPanelKey, filteredProjects, computedStats, drill, formatCurrencyFor]);
+
   const isLoading = !projectsList;
   
   return (
@@ -404,24 +443,16 @@ export default function Dashboard() {
             <EmeraldStatCard
               label="Total Commission (NGN)"
               value={formatCurrencyFor(computedStats.totalCommissionNGN, 'NGN')}
-              subtitle="Across all segments"
+              subtitle={coverageLine(computedStats.withNgnValue, computedStats.total)}
               colorScheme="commission"
-              note={
-                computedStats.missingNgnAll > 0
-                  ? `${computedStats.missingNgnAll} project${computedStats.missingNgnAll === 1 ? '' : 's'} have no NGN value and are excluded`
-                  : undefined
-              }
+              onActivate={() => setFinancialPanelKey('commission_ngn')}
             />
             <EmeraldStatCard
               label="Total Commission (USD)"
               value={formatCurrencyFor(computedStats.totalCommissionUSD, 'USD')}
-              subtitle="Across all segments"
+              subtitle={coverageLine(computedStats.withUsdValue, computedStats.total)}
               colorScheme="commission_usd"
-              note={
-                computedStats.missingUsdAll > 0
-                  ? `${computedStats.missingUsdAll} project${computedStats.missingUsdAll === 1 ? '' : 's'} have no USD value and are excluded`
-                  : undefined
-              }
+              onActivate={() => setFinancialPanelKey('commission_usd')}
             />
             <EmeraldStatCard
               label="Total Opportunities"
@@ -453,17 +484,20 @@ export default function Dashboard() {
               icon={DollarSign}
               iconSymbol="₦"
               className="bg-primary/5 border-primary/20"
-              description={
-                computedStats.missingNgnAll > 0
-                  ? `${computedStats.missingNgnAll} project${computedStats.missingNgnAll === 1 ? '' : 's'} have no NGN value and are excluded`
-                  : undefined
-              }
+              description={coverageLine(computedStats.withNgnValue, computedStats.total)}
+              onActivate={() => setFinancialPanelKey('po_ngn')}
             />
             <StatCard 
               title="Margin % (USD)" 
               value={`${computedStats.avgMarginPercentUSD.toFixed(2)}%`} 
               icon={DollarSign}
               className="bg-chart-2/5 border-chart-2/20"
+              description={
+                computedStats.withMarginPctUSD > 0
+                  ? coverageLine(computedStats.withMarginPctUSD, computedStats.total)
+                  : undefined
+              }
+              onActivate={() => setFinancialPanelKey('margin_pct_usd')}
             />
             <StatCard 
               title="Margin % (NGN)" 
@@ -471,6 +505,12 @@ export default function Dashboard() {
               icon={DollarSign}
               iconSymbol="₦"
               className="bg-chart-3/5 border-chart-3/20"
+              description={
+                computedStats.withMarginPctNGN > 0
+                  ? coverageLine(computedStats.withMarginPctNGN, computedStats.total)
+                  : undefined
+              }
+              onActivate={() => setFinancialPanelKey('margin_pct_ngn')}
             />
           </div>
 
@@ -596,6 +636,14 @@ export default function Dashboard() {
           <SectorOverview />
         </div>
       </div>
+
+      <ExecutiveSnapshotSheet
+        open={financialPanelKey !== null}
+        onOpenChange={(open) => {
+          if (!open) setFinancialPanelKey(null);
+        }}
+        model={financialPanelModel}
+      />
     </div>
     </DashboardExportProvider>
   );

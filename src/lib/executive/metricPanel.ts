@@ -28,6 +28,23 @@ export interface SnapshotSummaryStat {
   drillTo?: string;
 }
 
+export interface SnapshotRankedSection {
+  title: string;
+  groups: RankedGroup[];
+  filterKey?: string;
+  showWon?: boolean;
+  extraQuery?: string;
+  metricOverride?: string;
+  limit?: number;
+}
+
+export interface SnapshotDataCoverage {
+  message: string;
+  /** Query string (no leading ?) for /projects?… missing-value list. */
+  missingQuery: string;
+  missingCount: number;
+}
+
 export interface ExecutiveSnapshotModel {
   title: string;
   subtitle?: string;
@@ -42,7 +59,16 @@ export interface ExecutiveSnapshotModel {
   showEntityBreakdown: boolean;
   entityMetricOverride?: string;
   entityExtraQuery?: string;
+  /** Extra ranked breakdowns (e.g. Dashboard financial panels). */
+  rankedSections?: SnapshotRankedSection[];
   topOpportunities: OpportunityRow[];
+  topOpportunitiesTitle?: string;
+  /** Margin panels: highest / lowest by margin %. */
+  marginExtremes?: {
+    highest: OpportunityRow[];
+    lowest: OpportunityRow[];
+  };
+  dataCoverage?: SnapshotDataCoverage;
   openAllQuery: string;
   openAllLabel: string;
   /** Shared Pipeline USD/NGN panel — toggle which currency is emphasised. */
