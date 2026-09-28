@@ -137,6 +137,11 @@ export interface PartnerFilters {
   product?: string;
   relationshipStage?: string;
   relationshipOwnerId?: string;
+  /**
+   * Linked-opportunity pipeline stages (partner_opportunity pivot).
+   * Values from PIPELINE_STAGES, plus special sentinel `"won"` (shared isWon rule).
+   */
+  pipelineStages?: string[];
   /** Matches Tracker Incomplete badge (missing contact and/or email). */
   incomplete?: boolean;
   /** Partners with zero partner_opportunity links. */

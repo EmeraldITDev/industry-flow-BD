@@ -542,6 +542,11 @@ export const partnersService = {
       params.relationship_owner_id = filters.relationshipOwnerId;
       params.relationshipOwnerId = filters.relationshipOwnerId;
     }
+    if (filters?.pipelineStages?.length) {
+      const encoded = JSON.stringify(filters.pipelineStages);
+      params.pipeline_stages = encoded;
+      params.pipelineStages = encoded;
+    }
     if (filters?.incomplete) {
       params.incomplete = 1;
     }
@@ -575,6 +580,11 @@ export const partnersService = {
     if (filters?.relationshipOwnerId) {
       params.relationship_owner_id = filters.relationshipOwnerId;
       params.relationshipOwnerId = filters.relationshipOwnerId;
+    }
+    if (filters?.pipelineStages?.length) {
+      const encoded = JSON.stringify(filters.pipelineStages);
+      params.pipeline_stages = encoded;
+      params.pipelineStages = encoded;
     }
     if (filters?.incomplete) {
       params.incomplete = 1;

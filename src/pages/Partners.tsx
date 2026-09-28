@@ -49,13 +49,38 @@ import { PRODUCT_OPTIONS } from '@/data/productCatalog';
 import { RELATIONSHIP_STAGES, isPartnerProfileComplete } from '@/types/partners';
 import type { Partner } from '@/types/partners';
 import type { Sector } from '@/types';
+import { PIPELINE_STAGES } from '@/types';
 import { RelationshipStageBadge } from '@/components/partners/RelationshipStageBadge';
 import { PartnerFormSheet } from '@/components/partners/PartnerFormSheet';
+import { MultiSearchableSelect } from '@/components/ui/multi-searchable-select';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
 const ALL = 'all';
 const PER_PAGE = 50;
+
+/** Shared PIPELINE_STAGES + composite Won (same isWon rule as Revenue Analytics / funnel). */
+const PIPELINE_STAGE_FILTER_OPTIONS = [
+  ...PIPELINE_STAGES.map((s) => ({ value: s.value, label: s.label })),
+  { value: 'won', label: 'Won' },
+];
+
+function parsePipelineStagesParam(raw: string | null): string[] {
+  if (!raw?.trim()) return [];
+  const allowed = new Set(PIPELINE_STAGE_FILTER_OPTIONS.map((o) => o.value));
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      return parsed.map(String).filter((v) => allowed.has(v));
+    }
+  } catch {
+    /* comma-separated fallback */
+  }
+  return raw
+    .split(',')
+    .map((s) => s.trim().toLowerCase())
+    .filter((v) => allowed.has(v));
+}
 
 function exportPartnersCsv(partners: Partner[]) {
   const headers = [
@@ -120,6 +145,11 @@ export default function Partners() {
   const [zeroLinksOnly, setZeroLinksOnly] = useState(
     () => searchParams.get('zeroLinks') === '1' || searchParams.get('zero_links') === '1'
   );
+  const [pipelineStageFilter, setPipelineStageFilter] = useState<string[]>(() =>
+    parsePipelineStagesParam(
+      searchParams.get('pipelineStages') || searchParams.get('pipeline_stages')
+    )
+  );
   const [addOpen, setAddOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Partner | null>(null);
   const [selectMode, setSelectMode] = useState(false);
@@ -136,7 +166,16 @@ export default function Partners() {
   useEffect(() => {
     setPage(1);
     setSelectedIds(new Set());
-  }, [debouncedSearch, verticalFilter, stageFilter, productFilter, ownerFilter, incompleteOnly, zeroLinksOnly]);
+  }, [
+    debouncedSearch,
+    verticalFilter,
+    stageFilter,
+    productFilter,
+    ownerFilter,
+    incompleteOnly,
+    zeroLinksOnly,
+    pipelineStageFilter,
+  ]);
 
   const listFilters = useMemo(
     () => ({
@@ -145,6 +184,7 @@ export default function Partners() {
       relationshipStage: stageFilter !== ALL ? stageFilter : undefined,
       product: productFilter !== ALL ? productFilter : undefined,
       relationshipOwnerId: ownerFilter !== ALL ? ownerFilter : undefined,
+      pipelineStages: pipelineStageFilter.length ? pipelineStageFilter : undefined,
       incomplete: incompleteOnly || undefined,
       zeroLinks: zeroLinksOnly || undefined,
       per_page: PER_PAGE,
@@ -156,6 +196,7 @@ export default function Partners() {
       stageFilter,
       productFilter,
       ownerFilter,
+      pipelineStageFilter,
       incompleteOnly,
       zeroLinksOnly,
       page,
@@ -362,7 +403,8 @@ export default function Partners() {
           <div>
             <CardTitle className="text-base sm:text-lg">Partners</CardTitle>
             <CardDescription>
-              Filter by relationship owner, stage, vertical, or product
+              Filter by relationship owner, relationship stage, pipeline stage
+              (linked opportunities), vertical, or product
             </CardDescription>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-[1fr_repeat(4,minmax(11rem,14rem))] gap-3">
@@ -391,10 +433,10 @@ export default function Partners() {
             </Select>
             <Select value={stageFilter} onValueChange={setStageFilter}>
               <SelectTrigger>
-                <SelectValue placeholder="All stages" />
+                <SelectValue placeholder="Relationship stage" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={ALL}>All stages</SelectItem>
+                <SelectItem value={ALL}>Relationship stage</SelectItem>
                 {RELATIONSHIP_STAGES.map((stage) => (
                   <SelectItem key={stage} value={stage}>
                     {stage}
@@ -428,6 +470,19 @@ export default function Partners() {
                 ))}
               </SelectContent>
             </Select>
+          </div>
+          <div className="space-y-1.5">
+            <p className="text-xs text-muted-foreground">
+              Pipeline stage (linked opportunities)
+            </p>
+            <MultiSearchableSelect
+              values={pipelineStageFilter}
+              onValuesChange={setPipelineStageFilter}
+              options={PIPELINE_STAGE_FILTER_OPTIONS}
+              placeholder="Any pipeline stage"
+              searchPlaceholder="Search pipeline stages..."
+              emptyText="No stages found."
+            />
           </div>
           {(incompleteOnly || zeroLinksOnly) && (
             <div className="flex flex-wrap items-center gap-2">
