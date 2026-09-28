@@ -5,6 +5,9 @@ export type Currency = 'USD' | 'NGN';
 type ContractFields = {
   contractValueUSD?: number | null;
   contractValueNGN?: number | null;
+  /** API ProjectResource camelCase variants */
+  contractValueUsd?: number | null;
+  contractValueNgn?: number | null;
 };
 
 type MarginFields = ContractFields & {
@@ -12,7 +15,13 @@ type MarginFields = ContractFields & {
   marginValueNGN?: number | null;
   marginPercentUSD?: number | null;
   marginPercentNGN?: number | null;
+  marginValueUsd?: number | null;
+  marginValueNgn?: number | null;
+  marginPercentUsd?: number | null;
+  marginPercentNgn?: number | null;
 };
+
+export type CurrencyAmount = { value: number; currency: Currency };
 
 interface CurrencyContextType {
   currency: Currency;
@@ -24,7 +33,7 @@ interface CurrencyContextType {
   formatCurrencyFull: (value: number) => string;
   formatCurrencyFullFor: (value: number, displayCurrency?: Currency) => string;
   /**
-   * Stored contract value for the active display currency only.
+   * Stored contract for the active display currency only.
    * Returns null when that currency is missing — never invents via FX.
    */
   getContractValue: (project: ContractFields) => number | null;
@@ -33,6 +42,12 @@ interface CurrencyContextType {
    * May use same-currency percent × same-currency contract; never cross-converts.
    */
   getMarginValue: (project: MarginFields) => number | null;
+  /**
+   * Prefer active currency; if missing, fall back to the other stored currency
+   * (with that currency's symbol). Never FX-converts.
+   */
+  getContractDisplay: (project: ContractFields) => CurrencyAmount | null;
+  getMarginDisplay: (project: MarginFields) => CurrencyAmount | null;
 }
 
 const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined);
@@ -119,35 +134,63 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
 
   const getContractValue = useCallback(
     (project: ContractFields): number | null => {
-      if (currency === 'NGN') return positive(project.contractValueNGN);
-      return positive(project.contractValueUSD);
+      if (currency === 'NGN') {
+        return positive(project.contractValueNGN ?? project.contractValueNgn);
+      }
+      return positive(project.contractValueUSD ?? project.contractValueUsd);
     },
     [currency]
   );
 
-  const getMarginValue = useCallback(
-    (project: MarginFields): number | null => {
-      if (currency === 'NGN') {
-        const stored = positive(project.marginValueNGN);
-        if (stored != null) return stored;
-        const percent = positive(project.marginPercentNGN);
-        const contract = positive(project.contractValueNGN);
-        if (percent != null && contract != null) {
-          return Math.round(contract * (percent / 100));
-        }
-        return null;
-      }
-
-      const stored = positive(project.marginValueUSD);
+  const marginFor = useCallback((project: MarginFields, cur: Currency): number | null => {
+    if (cur === 'NGN') {
+      const stored = positive(project.marginValueNGN ?? project.marginValueNgn);
       if (stored != null) return stored;
-      const percent = positive(project.marginPercentUSD);
-      const contract = positive(project.contractValueUSD);
+      const percent = positive(project.marginPercentNGN ?? project.marginPercentNgn);
+      const contract = positive(project.contractValueNGN ?? project.contractValueNgn);
       if (percent != null && contract != null) {
-        return parseFloat((contract * (percent / 100)).toFixed(2));
+        return Math.round(contract * (percent / 100));
       }
       return null;
+    }
+    const stored = positive(project.marginValueUSD ?? project.marginValueUsd);
+    if (stored != null) return stored;
+    const percent = positive(project.marginPercentUSD ?? project.marginPercentUsd);
+    const contract = positive(project.contractValueUSD ?? project.contractValueUsd);
+    if (percent != null && contract != null) {
+      return parseFloat((contract * (percent / 100)).toFixed(2));
+    }
+    return null;
+  }, []);
+
+  const getMarginValue = useCallback(
+    (project: MarginFields): number | null => marginFor(project, currency),
+    [currency, marginFor]
+  );
+
+  const getContractDisplay = useCallback(
+    (project: ContractFields): CurrencyAmount | null => {
+      const preferred = getContractValue(project);
+      if (preferred != null) return { value: preferred, currency };
+      const other: Currency = currency === 'USD' ? 'NGN' : 'USD';
+      const fallback =
+        other === 'NGN'
+          ? positive(project.contractValueNGN ?? project.contractValueNgn)
+          : positive(project.contractValueUSD ?? project.contractValueUsd);
+      return fallback != null ? { value: fallback, currency: other } : null;
     },
-    [currency]
+    [currency, getContractValue]
+  );
+
+  const getMarginDisplay = useCallback(
+    (project: MarginFields): CurrencyAmount | null => {
+      const preferred = marginFor(project, currency);
+      if (preferred != null) return { value: preferred, currency };
+      const other: Currency = currency === 'USD' ? 'NGN' : 'USD';
+      const fallback = marginFor(project, other);
+      return fallback != null ? { value: fallback, currency: other } : null;
+    },
+    [currency, marginFor]
   );
 
   const value = useMemo(
@@ -161,6 +204,8 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
       formatCurrencyFullFor,
       getContractValue,
       getMarginValue,
+      getContractDisplay,
+      getMarginDisplay,
     }),
     [
       currency,
@@ -172,6 +217,8 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
       formatCurrencyFullFor,
       getContractValue,
       getMarginValue,
+      getContractDisplay,
+      getMarginDisplay,
     ]
   );
 

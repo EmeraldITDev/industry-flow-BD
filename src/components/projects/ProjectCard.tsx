@@ -63,7 +63,7 @@ function ProjectCardComponent({
   selected,
   onSelectToggle,
 }: ProjectCardProps) {
-  const { formatCurrency, getContractValue, getMarginValue } = useCurrency();
+  const { formatCurrencyFor, getContractDisplay, getMarginDisplay } = useCurrency();
 
   const tasks = Array.isArray(project.tasks) ? project.tasks : [];
   const completedTasks =
@@ -75,8 +75,8 @@ function ProjectCardComponent({
     PIPELINE_STAGES.find((s) => s.value === project.pipelineStage)?.label ||
     project.pipelineStage;
 
-  const contractValue = getContractValue(project);
-  const marginValue = getMarginValue(project);
+  const contractDisplay = getContractDisplay(project);
+  const marginDisplay = getMarginDisplay(project);
 
   const products = (project.products?.length
     ? project.products
@@ -241,13 +241,17 @@ function ProjectCardComponent({
           <div className="flex items-center justify-between gap-2">
             <span className="text-muted-foreground shrink-0">Contract</span>
             <span className="font-medium truncate">
-              {contractValue != null ? formatCurrency(contractValue) : '—'}
+              {contractDisplay
+                ? formatCurrencyFor(contractDisplay.value, contractDisplay.currency)
+                : '—'}
             </span>
           </div>
           <div className="flex items-center justify-between gap-2">
             <span className="text-muted-foreground shrink-0">Margin</span>
             <span className="font-medium text-chart-2 truncate">
-              {marginValue != null ? formatCurrency(marginValue) : '—'}
+              {marginDisplay
+                ? formatCurrencyFor(marginDisplay.value, marginDisplay.currency)
+                : '—'}
             </span>
           </div>
         </div>

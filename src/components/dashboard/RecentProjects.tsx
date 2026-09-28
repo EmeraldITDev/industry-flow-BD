@@ -10,7 +10,6 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, Users, FolderOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCurrency } from '@/context/CurrencyContext';
-import { useDashboardCurrencyFormat } from '@/hooks/useDashboardCurrencyFormat';
 import { getStageProgress } from '@/lib/stageProgress';
 
 interface RecentProjectsProps {
@@ -18,8 +17,7 @@ interface RecentProjectsProps {
 }
 
 export function RecentProjects({ recentProjects: propRecentProjects }: RecentProjectsProps = {}) {
-  const { getContractValue, getMarginValue } = useCurrency();
-  const { formatCurrency } = useDashboardCurrencyFormat();
+  const { getContractDisplay, getMarginDisplay, formatCurrencyFor } = useCurrency();
   
   // Use provided recent projects from stats API, or fetch all projects as fallback
   const { data: projects, isLoading } = useQuery({
@@ -98,20 +96,24 @@ export function RecentProjects({ recentProjects: propRecentProjects }: RecentPro
                 {project.description || 'No description'}
               </p>
               {(() => {
-                const contractValue = getContractValue(project);
-                const marginValue = getMarginValue(project);
+                const contractDisplay = getContractDisplay(project);
+                const marginDisplay = getMarginDisplay(project);
                 return (
                   <div className="mb-1.5 sm:mb-2 text-[10px] sm:text-xs space-y-0.5">
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground">Value:</span>
                       <span className="font-medium">
-                        {contractValue != null ? formatCurrency(contractValue) : '—'}
+                        {contractDisplay
+                          ? formatCurrencyFor(contractDisplay.value, contractDisplay.currency)
+                          : '—'}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground">Margin:</span>
                       <span className="font-medium text-chart-2">
-                        {marginValue != null ? formatCurrency(marginValue) : '—'}
+                        {marginDisplay
+                          ? formatCurrencyFor(marginDisplay.value, marginDisplay.currency)
+                          : '—'}
                       </span>
                     </div>
                   </div>

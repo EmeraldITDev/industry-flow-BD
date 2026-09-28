@@ -82,15 +82,21 @@ export const normalizeProject = (project: any): Project => {
     return 0;
   };
 
-  // Get financial values from either format
-  const contractValueNGN = getValue('contractValueNGN', 'contract_value_ngn');
-  const contractValueUSD = getValue('contractValueUSD', 'contract_value_usd');
-  let marginPercentNGN = getValue('marginPercentNGN', 'margin_percent_ngn');
-  let marginPercentUSD = getValue('marginPercentUSD', 'margin_percent_usd');
+  // Get financial values from either format (API may send contractValueUsd or contractValueUSD)
+  const contractValueNGN = getValue('contractValueNGN', 'contract_value_ngn')
+    || getValue('contractValueNgn', 'contract_value_ngn');
+  const contractValueUSD = getValue('contractValueUSD', 'contract_value_usd')
+    || getValue('contractValueUsd', 'contract_value_usd');
+  let marginPercentNGN = getValue('marginPercentNGN', 'margin_percent_ngn')
+    || getValue('marginPercentNgn', 'margin_percent_ngn');
+  let marginPercentUSD = getValue('marginPercentUSD', 'margin_percent_usd')
+    || getValue('marginPercentUsd', 'margin_percent_usd');
   
   // Calculate margin values - use provided value or calculate from percent
-  let marginValueNGN = getValue('marginValueNGN', 'margin_value_ngn');
-  let marginValueUSD = getValue('marginValueUSD', 'margin_value_usd');
+  let marginValueNGN = getValue('marginValueNGN', 'margin_value_ngn')
+    || getValue('marginValueNgn', 'margin_value_ngn');
+  let marginValueUSD = getValue('marginValueUSD', 'margin_value_usd')
+    || getValue('marginValueUsd', 'margin_value_usd');
   
   // If margin values are 0 but we have contract and percent, calculate them
   if (marginValueNGN === 0 && contractValueNGN > 0 && marginPercentNGN > 0) {
