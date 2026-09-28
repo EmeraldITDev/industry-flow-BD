@@ -630,20 +630,14 @@ export const partnersService = {
 
   /**
    * Shared Partner Tracker aggregates (partner_opportunity pivot).
-   * Dashboard + Chairman cards must use this so counts match drill-downs.
+   * Dashboard + Chairman tiles must use this unfiltered payload.
    * Falls back to enriching from /api/partners?all=1 when the metrics
    * payload lacks owner breakdown / data-gap inventory (pre-deploy).
    */
-  getTrackerMetrics: async (
-    opts?: { pipelineStages?: string[] }
-  ): Promise<PartnerTrackerMetrics> => {
+  getTrackerMetrics: async (): Promise<PartnerTrackerMetrics> => {
     let metrics: PartnerTrackerMetrics;
-    const params: Record<string, string> = {};
-    if (opts?.pipelineStages?.length) {
-      params.pipelineStages = JSON.stringify(opts.pipelineStages);
-    }
     try {
-      const response = await api.get('/api/partners/tracker-metrics', { params });
+      const response = await api.get('/api/partners/tracker-metrics');
       const raw = response.data?.data ?? response.data ?? {};
       metrics = normalizeTrackerMetrics(raw);
     } catch {
@@ -669,6 +663,41 @@ export const partnersService = {
       return enrichTrackerMetricsFromPartners(metrics, partners);
     } catch {
       return metrics;
+    }
+  },
+
+  /**
+   * Top partners by count or volume. Optional pipelineStages scopes the
+   * shared rankedPartners aggregate (same filter as Projects click-through).
+   */
+  getTrackerRankings: async (opts: {
+    sort: 'count' | 'volume';
+    pipelineStages?: string[];
+    limit?: number;
+  }): Promise<PartnerTrackerRankRow[]> => {
+    const params: Record<string, string | number> = {
+      sort: opts.sort,
+      limit: opts.limit ?? 10,
+    };
+    if (opts.pipelineStages?.length) {
+      params.pipelineStages = JSON.stringify(opts.pipelineStages);
+    }
+    try {
+      const response = await api.get('/api/partners/tracker-rankings', { params });
+      const raw = response.data?.data ?? response.data ?? {};
+      const rows = Array.isArray(raw.rows) ? raw.rows : Array.isArray(raw) ? raw : [];
+      return rows.map((row: any) => ({
+        id: String(row.id ?? ''),
+        companyName: String(row.companyName ?? row.company_name ?? ''),
+        relationshipStage: row.relationshipStage ?? row.relationship_stage ?? null,
+        linkedOpportunitiesCount: Number(row.linkedOpportunitiesCount ?? row.linked_opportunities_count ?? 0) || 0,
+        totalValueUsd: Number(row.totalValueUsd ?? row.total_value_usd ?? 0) || 0,
+        totalValueNgn: Number(row.totalValueNgn ?? row.total_value_ngn ?? 0) || 0,
+      }));
+    } catch {
+      // Pre-deploy fallback: unfiltered metrics rankings.
+      const metrics = await partnersService.getTrackerMetrics();
+      return opts.sort === 'volume' ? metrics.byVolume : metrics.byOpportunityCount;
     }
   },
 

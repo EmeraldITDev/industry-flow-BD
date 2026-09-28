@@ -182,18 +182,48 @@ export function PartnerTrackerInsights({
   const { currency } = useCurrency();
   const preferUsd = currency === 'USD';
   const isChairman = variant === 'chairman';
-  const [pipelineStages, setPipelineStages] = useState<string[]>([]);
+  const [countStages, setCountStages] = useState<string[]>([]);
+  const [volumeStages, setVolumeStages] = useState<string[]>([]);
 
-  const stageKey = useMemo(
-    () => [...pipelineStages].sort().join(','),
-    [pipelineStages]
+  const countStageKey = useMemo(
+    () => [...countStages].sort().join(','),
+    [countStages]
+  );
+  const volumeStageKey = useMemo(
+    () => [...volumeStages].sort().join(','),
+    [volumeStages]
   );
 
   const { data, isLoading, isError, refetch, isFetching } = useQuery({
-    queryKey: ['partners-tracker-metrics', stageKey],
+    queryKey: ['partners-tracker-metrics'],
+    queryFn: () => partnersService.getTrackerMetrics(),
+    staleTime: 60_000,
+  });
+
+  const {
+    data: countRows = [],
+    isLoading: countLoading,
+    isFetching: countFetching,
+  } = useQuery({
+    queryKey: ['partners-tracker-rankings', 'count', countStageKey],
     queryFn: () =>
-      partnersService.getTrackerMetrics({
-        pipelineStages: pipelineStages.length ? pipelineStages : undefined,
+      partnersService.getTrackerRankings({
+        sort: 'count',
+        pipelineStages: countStages.length ? countStages : undefined,
+      }),
+    staleTime: 60_000,
+  });
+
+  const {
+    data: volumeRows = [],
+    isLoading: volumeLoading,
+    isFetching: volumeFetching,
+  } = useQuery({
+    queryKey: ['partners-tracker-rankings', 'volume', volumeStageKey],
+    queryFn: () =>
+      partnersService.getTrackerRankings({
+        sort: 'volume',
+        pipelineStages: volumeStages.length ? volumeStages : undefined,
       }),
     staleTime: 60_000,
   });
@@ -224,26 +254,6 @@ export function PartnerTrackerInsights({
             {isFetching ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Refresh'}
           </Button>
         </div>
-      </div>
-
-      <div className="max-w-xl space-y-1.5">
-        <p className="text-xs text-muted-foreground">
-          Pipeline stage (linked opportunities)
-        </p>
-        <MultiSearchableSelect
-          values={pipelineStages}
-          onValuesChange={setPipelineStages}
-          options={PIPELINE_STAGE_FILTER_OPTIONS}
-          placeholder="Any pipeline stage"
-          searchPlaceholder="Search pipeline stages..."
-          emptyText="No stages found."
-        />
-        {pipelineStages.length > 0 && (
-          <p className="text-[11px] text-muted-foreground">
-            Rankings below count only opportunities in the selected stage
-            {pipelineStages.length === 1 ? '' : 's'}. Row clicks keep the same filter.
-          </p>
-        )}
       </div>
 
       {isLoading && (
@@ -327,36 +337,84 @@ export function PartnerTrackerInsights({
 
           <div className="grid gap-4 lg:grid-cols-2">
             <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm">Top partners by opportunity count</CardTitle>
-                <p className="text-xs text-muted-foreground">
-                  Click a row to open linked opportunities (same pivot query).
-                </p>
+              <CardHeader className="pb-2 space-y-3">
+                <div>
+                  <CardTitle className="text-sm">Top partners by opportunity count</CardTitle>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Click a row to open linked opportunities (same pivot query).
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">Pipeline stage</p>
+                  <MultiSearchableSelect
+                    values={countStages}
+                    onValuesChange={setCountStages}
+                    options={PIPELINE_STAGE_FILTER_OPTIONS}
+                    placeholder="Any pipeline stage"
+                    searchPlaceholder="Search pipeline stages..."
+                    emptyText="No stages found."
+                  />
+                </div>
               </CardHeader>
               <CardContent>
-                <RankTable
-                  rows={data.byOpportunityCount}
-                  mode="count"
-                  empty="No partners with linked opportunities yet."
-                  pipelineStages={pipelineStages}
-                />
+                {(countLoading || countFetching) && countRows.length === 0 ? (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Updating ranking…
+                  </div>
+                ) : (
+                  <RankTable
+                    rows={countRows}
+                    mode="count"
+                    empty={
+                      countStages.length > 0
+                        ? 'No partners have linked opportunities in the selected stage(s).'
+                        : 'No partners with linked opportunities yet.'
+                    }
+                    pipelineStages={countStages}
+                  />
+                )}
               </CardContent>
             </Card>
             <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm">Top partners by linked volume</CardTitle>
-                <p className="text-xs text-muted-foreground">
-                  Contract value sum on pivot-linked opportunities ({preferUsd ? 'USD' : 'NGN'}{' '}
-                  preferred). Click a row to open linked opportunities (same pivot query).
-                </p>
+              <CardHeader className="pb-2 space-y-3">
+                <div>
+                  <CardTitle className="text-sm">Top partners by linked volume</CardTitle>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Contract value sum on pivot-linked opportunities ({preferUsd ? 'USD' : 'NGN'}{' '}
+                    preferred). Click a row to open linked opportunities (same pivot query).
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">Pipeline stage</p>
+                  <MultiSearchableSelect
+                    values={volumeStages}
+                    onValuesChange={setVolumeStages}
+                    options={PIPELINE_STAGE_FILTER_OPTIONS}
+                    placeholder="Any pipeline stage"
+                    searchPlaceholder="Search pipeline stages..."
+                    emptyText="No stages found."
+                  />
+                </div>
               </CardHeader>
               <CardContent>
-                <RankTable
-                  rows={data.byVolume}
-                  mode="volume"
-                  empty="No linked opportunity volume recorded yet."
-                  pipelineStages={pipelineStages}
-                />
+                {(volumeLoading || volumeFetching) && volumeRows.length === 0 ? (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Updating ranking…
+                  </div>
+                ) : (
+                  <RankTable
+                    rows={volumeRows}
+                    mode="volume"
+                    empty={
+                      volumeStages.length > 0
+                        ? 'No partners have linked volume in the selected stage(s).'
+                        : 'No linked opportunity volume recorded yet.'
+                    }
+                    pipelineStages={volumeStages}
+                  />
+                )}
               </CardContent>
             </Card>
           </div>
