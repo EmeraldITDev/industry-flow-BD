@@ -2,6 +2,18 @@ import React, { createContext, useContext, useState, useCallback, useMemo, React
 
 export type Currency = 'USD' | 'NGN';
 
+type ContractFields = {
+  contractValueUSD?: number | null;
+  contractValueNGN?: number | null;
+};
+
+type MarginFields = ContractFields & {
+  marginValueUSD?: number | null;
+  marginValueNGN?: number | null;
+  marginPercentUSD?: number | null;
+  marginPercentNGN?: number | null;
+};
+
 interface CurrencyContextType {
   currency: Currency;
   setCurrency: (currency: Currency) => void;
@@ -11,17 +23,30 @@ interface CurrencyContextType {
   /** Full numbers with grouping — no K/M/B abbreviations (exports, reports). */
   formatCurrencyFull: (value: number) => string;
   formatCurrencyFullFor: (value: number, displayCurrency?: Currency) => string;
-  getContractValue: (project: { contractValueUSD?: number; contractValueNGN?: number }) => number;
-  getMarginValue: (project: { marginValueUSD?: number; marginValueNGN?: number }) => number;
+  /**
+   * Stored contract value for the active display currency only.
+   * Returns null when that currency is missing — never invents via FX.
+   */
+  getContractValue: (project: ContractFields) => number | null;
+  /**
+   * Stored margin for the active display currency only.
+   * May use same-currency percent × same-currency contract; never cross-converts.
+   */
+  getMarginValue: (project: MarginFields) => number | null;
 }
 
 const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined);
 
+function positive(n: unknown): number | null {
+  const v = Number(n);
+  if (!Number.isFinite(v) || v <= 0) return null;
+  return v;
+}
+
 export function CurrencyProvider({ children }: { children: ReactNode }) {
   const [currency, setCurrencyState] = useState<Currency>(() => {
-    // Load from localStorage or default to USD
     const stored = localStorage.getItem('preferredCurrency');
-    return (stored === 'NGN' || stored === 'USD') ? stored : 'USD';
+    return stored === 'NGN' || stored === 'USD' ? stored : 'USD';
   });
 
   const setCurrency = useCallback((newCurrency: Currency) => {
@@ -37,38 +62,41 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  // Exchange rate used to convert between NGN and USD when one currency value is missing.
-  // Configure via VITE_NGN_PER_USD (e.g., 800). Default to 800 if not set.
-  const NGN_PER_USD = parseFloat(import.meta.env.VITE_NGN_PER_USD as string) || 800;
-
   const abbreviateValue = (value: number, symbol: string): string => {
     if (!value || value === 0) return `${symbol}0`;
     const abs = Math.abs(value);
     const sign = value < 0 ? '-' : '';
-    if (abs >= 1_000_000_000) return `${sign}${symbol}${(abs / 1_000_000_000).toFixed(2)}B`;
     if (abs >= 1_000_000_000) return `${sign}${symbol}${(abs / 1_000_000_000).toFixed(2)}B`;
     if (abs >= 1_000_000) return `${sign}${symbol}${(abs / 1_000_000).toFixed(2)}M`;
     if (abs >= 1_000) return `${sign}${symbol}${(abs / 1_000).toFixed(2)}K`;
     return `${sign}${symbol}${abs.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
-  const formatCurrency = useCallback((value: number): string => {
-    const symbol = currency === 'NGN' ? '₦' : '$';
-    return abbreviateValue(value, symbol);
-  }, [currency]);
+  const formatCurrency = useCallback(
+    (value: number): string => {
+      const symbol = currency === 'NGN' ? '₦' : '$';
+      return abbreviateValue(value, symbol);
+    },
+    [currency]
+  );
 
-  // Explicit formatter that allows specifying the display currency independent of user's selected currency
-  const formatCurrencyFor = useCallback((value: number, displayCurrency?: Currency): string => {
-    const useCurrency = displayCurrency ?? currency;
-    const symbol = useCurrency === 'NGN' ? '₦' : '$';
-    return abbreviateValue(value, symbol);
-  }, [currency]);
+  const formatCurrencyFor = useCallback(
+    (value: number, displayCurrency?: Currency): string => {
+      const useCurrency = displayCurrency ?? currency;
+      const symbol = useCurrency === 'NGN' ? '₦' : '$';
+      return abbreviateValue(value, symbol);
+    },
+    [currency]
+  );
 
   const fullValue = useCallback((value: number, symbol: string): string => {
     if (value === 0 || !Number.isFinite(value)) return `${symbol}0`;
     const abs = Math.abs(value);
     const sign = value < 0 ? '-' : '';
-    const formatted = abs.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const formatted = abs.toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
     return `${sign}${symbol}${formatted}`;
   }, []);
 
@@ -89,45 +117,38 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     [currency, fullValue]
   );
 
-  const getContractValue = useCallback((project: { contractValueUSD?: number; contractValueNGN?: number }): number => {
-    const usd = project.contractValueUSD || 0;
-    const ngn = project.contractValueNGN || 0;
+  const getContractValue = useCallback(
+    (project: ContractFields): number | null => {
+      if (currency === 'NGN') return positive(project.contractValueNGN);
+      return positive(project.contractValueUSD);
+    },
+    [currency]
+  );
 
-    if (currency === 'NGN') {
-      if (ngn > 0) return ngn;
-      if (usd > 0) return Math.round(usd * NGN_PER_USD);
-      return 0;
-    }
+  const getMarginValue = useCallback(
+    (project: MarginFields): number | null => {
+      if (currency === 'NGN') {
+        const stored = positive(project.marginValueNGN);
+        if (stored != null) return stored;
+        const percent = positive(project.marginPercentNGN);
+        const contract = positive(project.contractValueNGN);
+        if (percent != null && contract != null) {
+          return Math.round(contract * (percent / 100));
+        }
+        return null;
+      }
 
-    // currency === 'USD'
-    if (usd > 0) return usd;
-    if (ngn > 0) return parseFloat((ngn / NGN_PER_USD).toFixed(2));
-    return 0;
-  }, [currency, NGN_PER_USD]);
-
-  const getMarginValue = useCallback((project: { marginValueUSD?: number; marginValueNGN?: number; marginPercentUSD?: number; marginPercentNGN?: number; contractValueUSD?: number; contractValueNGN?: number }): number => {
-    // Prefer explicit margin values, otherwise fall back to percent * contract (with conversions if needed)
-    const mUsd = project.marginValueUSD || 0;
-    const mNgn = project.marginValueNGN || 0;
-
-    if (currency === 'NGN') {
-      if (mNgn > 0) return mNgn;
-      // Try compute from percent
-      const percent = project.marginPercentNGN ?? project.marginPercentUSD;
-      const contract = getContractValue({ contractValueNGN: project.contractValueNGN, contractValueUSD: project.contractValueUSD });
-      if (percent && contract > 0) return Math.round(contract * (percent / 100));
-      if (mUsd > 0) return Math.round(mUsd * NGN_PER_USD);
-      return 0;
-    }
-
-    // currency === 'USD'
-    if (mUsd > 0) return mUsd;
-    const percent = project.marginPercentUSD ?? project.marginPercentNGN;
-    const contract = getContractValue({ contractValueNGN: project.contractValueNGN, contractValueUSD: project.contractValueUSD });
-    if (percent && contract > 0) return parseFloat((contract * (percent / 100)).toFixed(2));
-    if (mNgn > 0) return parseFloat((mNgn / NGN_PER_USD).toFixed(2));
-    return 0;
-  }, [currency, NGN_PER_USD, getContractValue]);
+      const stored = positive(project.marginValueUSD);
+      if (stored != null) return stored;
+      const percent = positive(project.marginPercentUSD);
+      const contract = positive(project.contractValueUSD);
+      if (percent != null && contract != null) {
+        return parseFloat((contract * (percent / 100)).toFixed(2));
+      }
+      return null;
+    },
+    [currency]
+  );
 
   const value = useMemo(
     () => ({
@@ -155,9 +176,7 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
   );
 
   return (
-    <CurrencyContext.Provider value={value}>
-      {children}
-    </CurrencyContext.Provider>
+    <CurrencyContext.Provider value={value}>{children}</CurrencyContext.Provider>
   );
 }
 
@@ -167,4 +186,13 @@ export function useCurrency() {
     throw new Error('useCurrency must be used within a CurrencyProvider');
   }
   return context;
+}
+
+/** Display helper: missing stored value → em dash. */
+export function formatOrDash(
+  value: number | null | undefined,
+  format: (n: number) => string
+): string {
+  if (value == null || !Number.isFinite(value) || value <= 0) return '—';
+  return format(value);
 }

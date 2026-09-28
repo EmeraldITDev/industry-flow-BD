@@ -100,22 +100,22 @@ export function RecentProjects({ recentProjects: propRecentProjects }: RecentPro
               {(() => {
                 const contractValue = getContractValue(project);
                 const marginValue = getMarginValue(project);
-                return contractValue > 0 || marginValue > 0 ? (
-                  <div className="mb-1.5 sm:mb-2 text-[10px] sm:text-xs">
-                    {contractValue > 0 && (
-                      <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground">Value:</span>
-                        <span className="font-medium">{formatCurrency(contractValue)}</span>
-                      </div>
-                    )}
-                    {marginValue > 0 && (
-                      <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground">Margin:</span>
-                        <span className="font-medium text-chart-2">{formatCurrency(marginValue)}</span>
-                      </div>
-                    )}
+                return (
+                  <div className="mb-1.5 sm:mb-2 text-[10px] sm:text-xs space-y-0.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">Value:</span>
+                      <span className="font-medium">
+                        {contractValue != null ? formatCurrency(contractValue) : '—'}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">Margin:</span>
+                      <span className="font-medium text-chart-2">
+                        {marginValue != null ? formatCurrency(marginValue) : '—'}
+                      </span>
+                    </div>
                   </div>
-                ) : null;
+                );
               })()}
               <div className="flex items-center justify-between text-[10px] sm:text-sm gap-2">
                 <div className="flex items-center gap-1 text-muted-foreground">

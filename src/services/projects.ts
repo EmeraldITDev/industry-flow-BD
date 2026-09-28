@@ -691,8 +691,11 @@ export const projectsService = {
           console.warn('[Projects Service] Could not fetch tasks for stats fallback:', tasksError);
         }
         
-        const NGN_PER_USD = parseFloat(import.meta.env.VITE_NGN_PER_USD as string) || 800;
-        
+        const stored = (v: unknown) => {
+          const n = Number(v);
+          return Number.isFinite(n) && n > 0 ? n : 0;
+        };
+
         const stats: ProjectStats = {
           total: projects.length,
           totalProjects: projects.length,
@@ -711,16 +714,15 @@ export const projectsService = {
             const dueDate = t.dueDate || t.due_date;
             return new Date(dueDate) < new Date();
           }).length,
-          totalValueNgn: projects.reduce((sum: number, p: Project) => {
-            const ngn = Number(p.contractValueNGN) || 0;
-            const usd = Number(p.contractValueUSD) || 0;
-            return sum + (ngn > 0 ? ngn : (usd > 0 ? usd * NGN_PER_USD : 0));
-          }, 0),
-          totalValueUsd: projects.reduce((sum: number, p: Project) => {
-            const ngn = Number(p.contractValueNGN) || 0;
-            const usd = Number(p.contractValueUSD) || 0;
-            return sum + (usd > 0 ? usd : (ngn > 0 ? ngn / NGN_PER_USD : 0));
-          }, 0),
+          // Stored currency totals only — never invent via VITE_NGN_PER_USD.
+          totalValueNgn: projects.reduce(
+            (sum: number, p: Project) => sum + stored(p.contractValueNGN),
+            0
+          ),
+          totalValueUsd: projects.reduce(
+            (sum: number, p: Project) => sum + stored(p.contractValueUSD),
+            0
+          ),
           averageProgress: projects.length > 0 
             ? projects.reduce((sum: number, p: Project) => sum + (p.progress || 0), 0) / projects.length
             : 0,

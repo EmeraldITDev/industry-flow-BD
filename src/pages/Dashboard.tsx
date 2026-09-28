@@ -68,8 +68,11 @@ export default function Dashboard() {
   }, [projectsList, dashboardFilters, teamMembers]);
 
   const computedStats = useMemo(() => {
-    const NGN_PER_USD = parseFloat(import.meta.env.VITE_NGN_PER_USD as string) || 800;
     const projects = filteredProjects || [];
+    const stored = (v: unknown) => {
+      const n = Number(v);
+      return Number.isFinite(n) && n > 0 ? n : 0;
+    };
 
     // Build team name lookup
     const teamNameMap = new Map<string, string>();
@@ -95,6 +98,11 @@ export default function Dashboard() {
     let countMarginPercentUSD = 0;
     let sumMarginPercentNGN = 0;
     let countMarginPercentNGN = 0;
+    let missingUsdAll = 0;
+    let missingNgnAll = 0;
+    let missingUsdActive = 0;
+    let missingNgnActive = 0;
+    let missingUsdWon = 0;
     
     const active = projects.filter((p: Project) => p.status === 'active').length;
     const completed = projects.filter((p: Project) => p.status === 'completed').length;
@@ -109,32 +117,36 @@ export default function Dashboard() {
     const segments = [...new Set(projects.map(p => p.sector).filter(Boolean))].length;
 
     projects.forEach((p: Project) => {
-      const ngnRaw = Number(p.contractValueNGN ?? 0) || 0;
-      const usdRaw = Number(p.contractValueUSD ?? 0) || 0;
-      const ngnValue = ngnRaw > 0 ? ngnRaw : (usdRaw > 0 ? Math.round(usdRaw * NGN_PER_USD) : 0);
-      const usdValue = usdRaw > 0 ? usdRaw : (ngnRaw > 0 ? parseFloat((ngnRaw / NGN_PER_USD).toFixed(2)) : 0);
-      
+      // Stored values only — never invent the other currency via a fixed FX rate.
+      const ngnValue = stored(p.contractValueNGN);
+      const usdValue = stored(p.contractValueUSD);
+      if (!usdValue) missingUsdAll += 1;
+      if (!ngnValue) missingNgnAll += 1;
+
       totalNGN += ngnValue;
       totalUSD += usdValue;
       
-      // Margin values
-      totalMarginNGN += Number(p.marginValueNGN ?? 0) || 0;
-      totalMarginUSD += Number(p.marginValueUSD ?? 0) || 0;
+      // Margin values (stored only)
+      totalMarginNGN += stored(p.marginValueNGN);
+      totalMarginUSD += stored(p.marginValueUSD);
       
       // Margin percentages - sum individual project margin %
-      const mPctUSD = Number(p.marginPercentUSD ?? 0) || 0;
-      const mPctNGN = Number(p.marginPercentNGN ?? 0) || 0;
+      const mPctUSD = stored(p.marginPercentUSD);
+      const mPctNGN = stored(p.marginPercentNGN);
       if (mPctUSD > 0) { sumMarginPercentUSD += mPctUSD; countMarginPercentUSD++; }
       if (mPctNGN > 0) { sumMarginPercentNGN += mPctNGN; countMarginPercentNGN++; }
       
       if (p.status === 'completed' || p.pipelineStage === 'approval' || p.pipelineStage === 'execution' || p.pipelineStage === 'closure') {
         wonPOValueUSD += usdValue;
         wonPOValueNGN += ngnValue;
+        if (!usdValue) missingUsdWon += 1;
       }
       
       if (p.status === 'active') {
         activePipelineUSD += usdValue;
         activePipelineNGN += ngnValue;
+        if (!usdValue) missingUsdActive += 1;
+        if (!ngnValue) missingNgnActive += 1;
       }
       
       const commissionRate = 0.05;
@@ -254,6 +266,7 @@ export default function Dashboard() {
       totalCommissionNGN, totalCommissionUSD, totalMarginNGN, totalMarginUSD,
       avgMarginPercentUSD: countMarginPercentUSD > 0 ? sumMarginPercentUSD / countMarginPercentUSD : 0,
       avgMarginPercentNGN: countMarginPercentNGN > 0 ? sumMarginPercentNGN / countMarginPercentNGN : 0,
+      missingUsdAll, missingNgnAll, missingUsdActive, missingNgnActive, missingUsdWon,
       winRate, segments, pipelineByStage, lostDeals,
       bySector, topClients, byPipelineStage, byProductCategory,
       accountTableData, teamLoad, averageProgress: avgProgress, recent,
@@ -374,6 +387,11 @@ export default function Dashboard() {
               subtitleHref={drill.won}
               colorScheme="won"
               delta="Active"
+              note={
+                computedStats.missingUsdWon > 0
+                  ? `${computedStats.missingUsdWon} project${computedStats.missingUsdWon === 1 ? '' : 's'} have no USD value and are excluded`
+                  : undefined
+              }
             />
             <EmeraldStatCard
               label="Active Pipeline (USD)"
@@ -381,18 +399,33 @@ export default function Dashboard() {
               subtitle={`${computedStats.active} open opportunities`}
               subtitleHref={drill.active}
               colorScheme="pipeline"
+              note={
+                computedStats.missingUsdActive > 0
+                  ? `${computedStats.missingUsdActive} project${computedStats.missingUsdActive === 1 ? '' : 's'} have no USD value and are excluded`
+                  : undefined
+              }
             />
             <EmeraldStatCard
               label="Total Commission (NGN)"
               value={formatCurrencyFor(computedStats.totalCommissionNGN, 'NGN')}
               subtitle="Across all segments"
               colorScheme="commission"
+              note={
+                computedStats.missingNgnAll > 0
+                  ? `${computedStats.missingNgnAll} project${computedStats.missingNgnAll === 1 ? '' : 's'} have no NGN value and are excluded`
+                  : undefined
+              }
             />
             <EmeraldStatCard
               label="Total Commission (USD)"
               value={formatCurrencyFor(computedStats.totalCommissionUSD, 'USD')}
               subtitle="Across all segments"
               colorScheme="commission_usd"
+              note={
+                computedStats.missingUsdAll > 0
+                  ? `${computedStats.missingUsdAll} project${computedStats.missingUsdAll === 1 ? '' : 's'} have no USD value and are excluded`
+                  : undefined
+              }
             />
             <EmeraldStatCard
               label="Total Opportunities"
@@ -424,6 +457,11 @@ export default function Dashboard() {
               icon={DollarSign}
               iconSymbol="₦"
               className="bg-primary/5 border-primary/20"
+              description={
+                computedStats.missingNgnAll > 0
+                  ? `${computedStats.missingNgnAll} project${computedStats.missingNgnAll === 1 ? '' : 's'} have no NGN value and are excluded`
+                  : undefined
+              }
             />
             <StatCard 
               title="Margin % (USD)" 

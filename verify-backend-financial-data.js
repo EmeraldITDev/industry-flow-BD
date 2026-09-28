@@ -13,7 +13,7 @@
 console.log('🔍 BACKEND FINANCIAL DATA DIAGNOSTIC\n');
 
 const API_URL = 'https://industry-flow-backend.onrender.com/api/projects';
-const NGN_PER_USD = 1600; // From .env
+// No FX invention — totals use stored USD/NGN only.
 
 async function diagnoseBackend() {
   try {

@@ -237,26 +237,20 @@ function ProjectCardComponent({
           </div>
         )}
 
-        {(contractValue > 0 || marginValue > 0) && (
-          <div className="flex flex-col gap-0.5 text-[10px] sm:text-xs min-w-0">
-            {contractValue > 0 && (
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-muted-foreground shrink-0">Contract</span>
-                <span className="font-medium truncate">
-                  {formatCurrency(contractValue)}
-                </span>
-              </div>
-            )}
-            {marginValue > 0 && (
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-muted-foreground shrink-0">Margin</span>
-                <span className="font-medium text-chart-2 truncate">
-                  {formatCurrency(marginValue)}
-                </span>
-              </div>
-            )}
+        <div className="flex flex-col gap-0.5 text-[10px] sm:text-xs min-w-0">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-muted-foreground shrink-0">Contract</span>
+            <span className="font-medium truncate">
+              {contractValue != null ? formatCurrency(contractValue) : '—'}
+            </span>
           </div>
-        )}
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-muted-foreground shrink-0">Margin</span>
+            <span className="font-medium text-chart-2 truncate">
+              {marginValue != null ? formatCurrency(marginValue) : '—'}
+            </span>
+          </div>
+        </div>
 
         <div className="space-y-1">
           <div className="flex items-center justify-between text-[10px] sm:text-xs">

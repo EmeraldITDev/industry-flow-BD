@@ -14,6 +14,8 @@ interface EmeraldStatCardProps {
   href?: string;
   /** When set, only the subtitle is clickable (e.g. "34 won opportunities"). */
   subtitleHref?: string;
+  /** Small exclusion note (e.g. missing USD/NGN values). */
+  note?: string;
 }
 
 const colorSchemes = {
@@ -59,6 +61,7 @@ export function EmeraldStatCard({
   className,
   href,
   subtitleHref,
+  note,
 }: EmeraldStatCardProps) {
   const scheme = colorSchemes[colorScheme];
   const cardClickable = !!href && !subtitleHref;
@@ -109,6 +112,11 @@ export function EmeraldStatCard({
               ) : (
                 <div className="text-[11px] text-muted-foreground mt-1.5 break-words">{subtitle}</div>
               ))}
+            {note && (
+              <p className="text-[10px] text-muted-foreground/80 mt-1.5 leading-snug">
+                {note}
+              </p>
+            )}
           </div>
 
           {/* Delta badge */}

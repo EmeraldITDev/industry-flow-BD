@@ -12,7 +12,9 @@ export interface CreateTaskData {
   requiresChairmanIntervention?: boolean;
   assignedToChairman?: boolean;
   dueDate?: string;
-  projectId: string;
+  /** Exactly one of projectId / partnerId must be set. */
+  projectId?: string;
+  partnerId?: string;
   notes?: string;
 }
 
@@ -23,6 +25,7 @@ export interface UpdateTaskData extends Partial<CreateTaskData> {
 
 export interface TaskFilters {
   projectId?: string;
+  partnerId?: string;
   status?: TaskStatus;
   priority?: TaskPriority;
   assigneeId?: string;
@@ -30,31 +33,28 @@ export interface TaskFilters {
   assignedToChairman?: boolean;
 }
 
-// Helper to normalize array responses from backend
 const normalizeArray = (data: any): any[] => {
   if (Array.isArray(data)) return data;
   if (data && Array.isArray(data.data)) return data.data;
   return [];
 };
 
-// Convert frontend status format (kebab-case) to backend format (snake_case)
 const statusToBackend = (status: TaskStatus): string => {
   const statusMap: Record<TaskStatus, string> = {
-    'todo': 'todo',
+    todo: 'todo',
     'in-progress': 'in_progress',
-    'review': 'in_review',
-    'completed': 'completed'
+    review: 'in_review',
+    completed: 'completed',
   };
   return statusMap[status] || status;
 };
 
-// Convert backend status format (snake_case) to frontend format (kebab-case)
 const statusToFrontend = (status: string): TaskStatus => {
   const statusMap: Record<string, TaskStatus> = {
-    'todo': 'todo',
-    'in_progress': 'in-progress',
-    'in_review': 'review',
-    'completed': 'completed'
+    todo: 'todo',
+    in_progress: 'in-progress',
+    in_review: 'review',
+    completed: 'completed',
   };
   return (statusMap[status] || status) as TaskStatus;
 };
@@ -73,7 +73,6 @@ const normalizeDocuments = (raw: unknown): ProjectDocument[] => {
   }));
 };
 
-// Normalize a single task from backend format to frontend format
 const normalizeTask = (task: any): Task => {
   const assigneesRaw = task.assignees ?? task.assigneeUsers ?? [];
   const assigneeIdsFromList = Array.isArray(assigneesRaw)
@@ -97,12 +96,21 @@ const normalizeTask = (task: any): Task => {
           ? assigneesRaw.map((a: any) => a.name).filter(Boolean).join(', ')
           : undefined);
 
+  const projectIdRaw = task.project_id ?? task.projectId;
+  const partnerIdRaw = task.partner_id ?? task.partnerId;
+
   return {
     ...task,
     id: String(task.id),
     status: statusToFrontend(task.status),
-    projectId: String(task.project_id || task.projectId),
-    assigneeId: primaryAssigneeId != null && primaryAssigneeId !== '' ? String(primaryAssigneeId) : undefined,
+    projectId:
+      projectIdRaw != null && projectIdRaw !== '' ? String(projectIdRaw) : undefined,
+    partnerId:
+      partnerIdRaw != null && partnerIdRaw !== '' ? String(partnerIdRaw) : undefined,
+    assigneeId:
+      primaryAssigneeId != null && primaryAssigneeId !== ''
+        ? String(primaryAssigneeId)
+        : undefined,
     assigneeIds,
     assignee: assigneeLabel,
     assignees: Array.isArray(assigneesRaw)
@@ -125,16 +133,16 @@ const normalizeTask = (task: any): Task => {
   };
 };
 
-// Normalize task array
-const normalizeTasks = (tasks: any[]): Task[] => {
-  return tasks.map(normalizeTask);
-};
+const normalizeTasks = (tasks: any[]): Task[] => tasks.map(normalizeTask);
 
 export const tasksService = {
-  // Get all tasks (optionally filtered by project) — full dump escape hatch
   getAll: async (filters?: TaskFilters): Promise<Task[]> => {
     const params: Record<string, unknown> = {};
     if (filters?.projectId) params.project_id = filters.projectId;
+    if (filters?.partnerId) {
+      params.partner_id = filters.partnerId;
+      params.partnerId = filters.partnerId;
+    }
     if (filters?.status) params.status = statusToBackend(filters.status);
     if (filters?.priority) params.priority = filters.priority;
     if (filters?.assigneeId) params.assignee_id = filters.assigneeId;
@@ -147,11 +155,9 @@ export const tasksService = {
     const response = await api.get('/api/tasks', {
       params: { ...params, all: 1 },
     });
-    const tasks = normalizeArray(response.data);
-    return normalizeTasks(tasks);
+    return normalizeTasks(normalizeArray(response.data));
   },
 
-  /** Server-paginated task list for All Tasks. */
   list: async (
     filters?: TaskFilters & { page?: number; per_page?: number; search?: string }
   ): Promise<{ tasks: Task[]; total: number; page: number; lastPage: number }> => {
@@ -160,6 +166,10 @@ export const tasksService = {
       per_page: filters?.per_page ?? 50,
     };
     if (filters?.projectId) params.project_id = filters.projectId;
+    if (filters?.partnerId) {
+      params.partner_id = filters.partnerId;
+      params.partnerId = filters.partnerId;
+    }
     if (filters?.status) params.status = statusToBackend(filters.status);
     if (filters?.priority) params.priority = filters.priority;
     if (filters?.assigneeId) params.assignee_id = filters.assigneeId;
@@ -182,36 +192,46 @@ export const tasksService = {
     };
   },
 
-  // Get tasks for a specific project
   getByProject: async (projectId: string): Promise<Task[]> => {
     const response = await api.get(`/api/projects/${projectId}/tasks`);
-    const tasks = normalizeArray(response.data);
-    return normalizeTasks(tasks);
+    return normalizeTasks(normalizeArray(response.data));
   },
 
-  // Get single task by ID
+  getByPartner: async (partnerId: string): Promise<Task[]> => {
+    return tasksService.getAll({ partnerId });
+  },
+
   getById: async (id: string): Promise<Task> => {
     const response = await api.get(`/api/tasks/${id}`);
     return normalizeTask(response.data);
   },
 
-  // Create new task
   create: async (data: CreateTaskData): Promise<Task> => {
+    if (!data.projectId && !data.partnerId) {
+      throw new Error('Task requires a projectId or partnerId');
+    }
+    if (data.projectId && data.partnerId) {
+      throw new Error('Task cannot have both projectId and partnerId');
+    }
+
     const ids = (data.assigneeIds ?? (data.assigneeId ? [data.assigneeId] : []))
       .map(String)
       .filter(Boolean);
-    const backendData = {
+    const backendData: Record<string, unknown> = {
       ...data,
       status: data.status ? statusToBackend(data.status) : undefined,
       assigneeIds: ids,
       assignee_ids: ids.map((id) => Number(id)).filter((n) => Number.isFinite(n) && n > 0),
       assigneeId: ids[0],
       assignee_id: ids[0] ? Number(ids[0]) : null,
+      projectId: data.projectId,
+      project_id: data.projectId ? Number(data.projectId) : null,
+      partnerId: data.partnerId,
+      partner_id: data.partnerId ? Number(data.partnerId) : null,
     };
     const response = await api.post('/api/tasks', backendData);
     const createdTask = normalizeTask(response.data);
-    
-    // Send notification if task is assigned to someone
+
     if (createdTask.assigneeId) {
       await notifyAssignment({
         type: 'task_assigned',
@@ -219,16 +239,15 @@ export const tasksService = {
         taskId: createdTask.id,
         taskTitle: createdTask.title,
         projectId: createdTask.projectId,
-        projectName: 'Project', // Will be fetched if needed
+        projectName: createdTask.partnerId ? 'Partner' : 'Project',
         dueDate: createdTask.dueDate,
         message: `You have been assigned to task "${createdTask.title}"`,
       });
     }
-    
+
     return createdTask;
   },
 
-  // Update task
   update: async (id: string, data: UpdateTaskData, originalTask?: Task): Promise<Task> => {
     const hasAssigneeIds = Array.isArray(data.assigneeIds);
     const ids = hasAssigneeIds
@@ -247,11 +266,16 @@ export const tasksService = {
       backendData.assigneeId = ids[0] ?? null;
       backendData.assignee_id = ids[0] ? Number(ids[0]) : null;
     }
+    if (data.projectId !== undefined) {
+      backendData.project_id = data.projectId ? Number(data.projectId) : null;
+    }
+    if (data.partnerId !== undefined) {
+      backendData.partner_id = data.partnerId ? Number(data.partnerId) : null;
+    }
 
     const response = await api.put(`/api/tasks/${id}`, backendData);
     const updatedTask = normalizeTask(response.data);
-    
-    // Send notification if assignee changed
+
     if (data.assigneeId && data.assigneeId !== originalTask?.assigneeId) {
       await notifyAssignment({
         type: 'task_assigned',
@@ -259,34 +283,29 @@ export const tasksService = {
         taskId: id,
         taskTitle: data.title || originalTask?.title || 'Untitled Task',
         projectId: originalTask?.projectId || '',
-        projectName: 'Project', // Will be fetched if needed
+        projectName: originalTask?.partnerId ? 'Partner' : 'Project',
         dueDate: data.dueDate || originalTask?.dueDate,
         message: `You have been assigned to task "${data.title || originalTask?.title || 'Untitled Task'}"`,
       });
     }
-    
+
     return updatedTask;
   },
 
-  // Update task status only
   updateStatus: async (id: string, status: TaskStatus): Promise<Task> => {
-    // Convert status to backend format
     const backendStatus = statusToBackend(status);
     const response = await api.patch(`/api/tasks/${id}/status`, { status: backendStatus });
     return normalizeTask(response.data);
   },
 
-  // Delete task
   delete: async (id: string): Promise<void> => {
     await api.delete(`/api/tasks/${id}`);
   },
 
-  // Assign task to user
   assign: async (id: string, assigneeId: string, originalTask?: Task): Promise<Task> => {
     const response = await api.patch(`/api/tasks/${id}/assign`, { assigneeId });
     const assignedTask = normalizeTask(response.data);
-    
-    // Send notification
+
     if (assigneeId && assigneeId !== originalTask?.assigneeId) {
       await notifyAssignment({
         type: 'task_assigned',
@@ -294,16 +313,15 @@ export const tasksService = {
         taskId: id,
         taskTitle: assignedTask.title,
         projectId: assignedTask.projectId,
-        projectName: 'Project',
+        projectName: assignedTask.partnerId ? 'Partner' : 'Project',
         dueDate: assignedTask.dueDate,
         message: `You have been assigned to task "${assignedTask.title}"`,
       });
     }
-    
+
     return assignedTask;
   },
 
-  /** Upload one or more files; backend should return updated task with documents. */
   uploadAttachments: async (taskId: string, files: File[]): Promise<Task> => {
     const form = new FormData();
     files.forEach((f) => form.append('files[]', f));

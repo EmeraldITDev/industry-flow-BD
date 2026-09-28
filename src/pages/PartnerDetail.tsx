@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,18 +24,29 @@ import {
   Pencil,
   AlertTriangle,
   Trash2,
+  Plus,
+  FolderKanban,
 } from 'lucide-react';
 import { partnersService } from '@/services/partners';
+import { projectsService } from '@/services/projects';
+import { tasksService } from '@/services/tasks';
 import {
   KycStatusBadge,
   RelationshipStageBadge,
 } from '@/components/partners/RelationshipStageBadge';
 import { PartnerFormSheet } from '@/components/partners/PartnerFormSheet';
 import { LinkScmVendorModal } from '@/components/partners/LinkScmVendorModal';
+import { TaskList } from '@/components/tasks/TaskList';
+import { KanbanBoard } from '@/components/tasks/KanbanBoard';
+import { AddTaskDialog } from '@/components/tasks/AddTaskDialog';
+import { EditTaskDialog } from '@/components/tasks/EditTaskDialog';
 import { sectorColors } from '@/data/mockData';
-import type { Sector } from '@/types';
+import type { Sector, Task, TaskStatus } from '@/types';
+import { PIPELINE_STAGES } from '@/types';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { usePermissions } from '@/hooks/usePermissions';
+
 function Field({
   label,
   children,
@@ -54,8 +66,12 @@ export default function PartnerDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { canAssignTasks } = usePermissions();
   const [editOpen, setEditOpen] = useState(false);
   const [linkOpen, setLinkOpen] = useState(false);
+  const [addTaskOpen, setAddTaskOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [activeTab, setActiveTab] = useState('profile');
 
   const {
     data: partner,
@@ -67,6 +83,26 @@ export default function PartnerDetail() {
     enabled: !!id,
   });
 
+  const {
+    data: opportunities = [],
+    isLoading: oppsLoading,
+    isError: oppsError,
+  } = useQuery({
+    queryKey: ['partner-opportunities', id],
+    queryFn: () => projectsService.getAllMatching({ partner_id: id }),
+    enabled: !!id && activeTab === 'opportunities',
+  });
+
+  const {
+    data: partnerTasks = [],
+    isLoading: tasksLoading,
+    refetch: refetchTasks,
+  } = useQuery({
+    queryKey: ['partner-tasks', id],
+    queryFn: () => tasksService.getByPartner(id!),
+    enabled: !!id && activeTab === 'tasks',
+  });
+
   const deleteMutation = useMutation({
     mutationFn: () => partnersService.delete(id!),
     onSuccess: () => {
@@ -76,6 +112,32 @@ export default function PartnerDetail() {
     },
     onError: () => toast.error('Failed to delete partner'),
   });
+
+  const handleTaskCreated = () => {
+    refetchTasks();
+    queryClient.invalidateQueries({ queryKey: ['partner-tasks', id] });
+  };
+
+  const handleTaskMove = async (taskId: string, newStatus: TaskStatus) => {
+    try {
+      await tasksService.updateStatus(taskId, newStatus);
+      toast.success('Task status updated');
+      refetchTasks();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to update task status');
+    }
+  };
+
+  const handleTaskDelete = async (taskId: string) => {
+    if (!confirm('Are you sure you want to delete this task?')) return;
+    try {
+      await tasksService.delete(taskId);
+      toast.success('Task deleted successfully');
+      refetchTasks();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to delete task');
+    }
+  };
 
   if (isLoading) {
     return (
@@ -107,12 +169,7 @@ export default function PartnerDetail() {
     <div className="p-4 sm:p-6 lg:p-8 space-y-6 overflow-x-hidden">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-3 min-w-0">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="-ml-2 w-fit"
-            asChild
-          >
+          <Button variant="ghost" size="sm" className="-ml-2 w-fit" asChild>
             <Link to="/partners">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Partner Tracker
@@ -180,229 +237,376 @@ export default function PartnerDetail() {
         </div>
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardHeader className="p-4 sm:p-6">
-            <CardTitle className="text-base">Partner Details</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-5 sm:grid-cols-2 p-4 sm:p-6 pt-0">
-            <Field label="Contact Person">{partner.contactPerson}</Field>
-            <Field label="Email">{partner.email}</Field>
-            <Field label="Phone">{partner.phone}</Field>
-            <Field label="Website">
-              {partner.website ? (
-                <a
-                  href={
-                    /^https?:\/\//i.test(partner.website)
-                      ? partner.website
-                      : `https://${partner.website}`
-                  }
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-primary hover:underline break-all"
-                >
-                  {partner.website}
-                </a>
-              ) : (
-                '—'
-              )}
-            </Field>
-            <Field label="Location">{partner.location}</Field>
-            <Field label="Linked Opportunities">
-              <Link
-                to={`/projects?partner_id=${partner.id}`}
-                className="text-primary hover:underline tabular-nums"
-              >
-                {partner.linkedOpportunitiesCount ?? 0}
-              </Link>
-            </Field>
-            <Field label="Volume">
-              <span className="tabular-nums">
-                {(partner.totalValueUsd ?? 0) > 0
-                  ? `$${(partner.totalValueUsd ?? 0).toLocaleString()}`
-                  : '—'}
-                {(partner.totalValueNgn ?? 0) > 0
-                  ? ` · ₦${(partner.totalValueNgn ?? 0).toLocaleString()}`
-                  : ''}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList>
+          <TabsTrigger value="profile">Profile</TabsTrigger>
+          <TabsTrigger value="opportunities">
+            Opportunities
+            {(partner.linkedOpportunitiesCount ?? 0) > 0 && (
+              <span className="ml-1.5 text-muted-foreground tabular-nums">
+                ({partner.linkedOpportunitiesCount})
               </span>
-            </Field>
-            <Field label="Type">
-              {(partner.type ?? []).length === 0 ? (
-                '—'
-              ) : (
-                <div className="flex flex-wrap gap-1.5">
-                  {partner.type.map((t) => (
-                    <Badge key={t} variant="secondary" className="text-xs font-normal">
-                      {t}
-                    </Badge>
-                  ))}
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="tasks">Tasks</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="profile" className="mt-4 space-y-5">
+          <div className="grid gap-5 lg:grid-cols-3">
+            <Card className="lg:col-span-2">
+              <CardHeader className="p-4 sm:p-6">
+                <CardTitle className="text-base">Partner Details</CardTitle>
+              </CardHeader>
+              <CardContent className="grid gap-5 sm:grid-cols-2 p-4 sm:p-6 pt-0">
+                <Field label="Contact Person">{partner.contactPerson}</Field>
+                <Field label="Email">{partner.email}</Field>
+                <Field label="Phone">{partner.phone}</Field>
+                <Field label="Website">
+                  {partner.website ? (
+                    <a
+                      href={
+                        /^https?:\/\//i.test(partner.website)
+                          ? partner.website
+                          : `https://${partner.website}`
+                      }
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-primary hover:underline break-all"
+                    >
+                      {partner.website}
+                    </a>
+                  ) : (
+                    '—'
+                  )}
+                </Field>
+                <Field label="Location">{partner.location}</Field>
+                <Field label="Linked Opportunities">
+                  <button
+                    type="button"
+                    className="text-primary hover:underline tabular-nums"
+                    onClick={() => setActiveTab('opportunities')}
+                  >
+                    {partner.linkedOpportunitiesCount ?? 0}
+                  </button>
+                </Field>
+                <Field label="Volume">
+                  <span className="tabular-nums">
+                    {(partner.totalValueUsd ?? 0) > 0
+                      ? `$${(partner.totalValueUsd ?? 0).toLocaleString()}`
+                      : '—'}
+                    {(partner.totalValueNgn ?? 0) > 0
+                      ? ` · ₦${(partner.totalValueNgn ?? 0).toLocaleString()}`
+                      : ''}
+                  </span>
+                </Field>
+                <Field label="Type">
+                  {(partner.type ?? []).length === 0 ? (
+                    '—'
+                  ) : (
+                    <div className="flex flex-wrap gap-1.5">
+                      {partner.type.map((t) => (
+                        <Badge key={t} variant="secondary" className="text-xs font-normal">
+                          {t}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </Field>
+                <Field label="Agreement Type">{partner.agreementType}</Field>
+                <Field label="Valid Thru">
+                  {partner.validThru
+                    ? new Date(partner.validThru).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                      })
+                    : '—'}
+                </Field>
+                <Field label="Strategic Value">{partner.strategicValue}</Field>
+                <Field label="Engagement Status">{partner.engagementStatus}</Field>
+                <Field label="Relationship Owners">
+                  {ownerNames.length > 0
+                    ? ownerNames.join(', ')
+                    : partner.relationshipOwnerIds.length > 0
+                      ? `${partner.relationshipOwnerIds.length} assigned`
+                      : '—'}
+                </Field>
+                <Field label="Relationship Stage">
+                  <RelationshipStageBadge stage={partner.relationshipStage} />
+                </Field>
+                <div className="sm:col-span-2">
+                  <Field label="Specialization">
+                    <p className="whitespace-pre-wrap font-normal text-muted-foreground">
+                      {partner.specialization?.trim() || '—'}
+                    </p>
+                  </Field>
+                </div>
+                <div className="sm:col-span-2">
+                  <Field label="Verticals">
+                    {partner.verticals.length === 0 ? (
+                      '—'
+                    ) : (
+                      <div className="flex flex-wrap gap-1.5">
+                        {partner.verticals.map((v) => (
+                          <Badge
+                            key={v}
+                            variant="outline"
+                            className={cn(
+                              'text-xs font-normal',
+                              sectorColors[v as Sector] ??
+                                'bg-muted text-muted-foreground'
+                            )}
+                          >
+                            {v}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </Field>
+                </div>
+                <div className="sm:col-span-2">
+                  <Field label="Product Categories">
+                    {partner.productCategories.length === 0 ? (
+                      '—'
+                    ) : (
+                      <div className="flex flex-wrap gap-1.5">
+                        {partner.productCategories.map((c) => (
+                          <Badge
+                            key={c}
+                            variant="secondary"
+                            className="text-xs font-normal"
+                          >
+                            {c}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </Field>
+                </div>
+                <div className="sm:col-span-2">
+                  <Field label="Sub Product Categories">
+                    {(partner.subProductCategories ?? []).length === 0 ? (
+                      '—'
+                    ) : (
+                      <div className="flex flex-wrap gap-1.5">
+                        {partner.subProductCategories.map((c) => (
+                          <Badge
+                            key={c}
+                            variant="outline"
+                            className="text-xs font-normal"
+                          >
+                            {c}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </Field>
+                </div>
+                <div className="sm:col-span-2">
+                  <Field label="Notes">
+                    <p className="whitespace-pre-wrap font-normal text-muted-foreground">
+                      {partner.notes?.trim() || '—'}
+                    </p>
+                  </Field>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="p-4 sm:p-6">
+                <CardTitle className="text-base">SCM Vendor</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4 p-4 sm:p-6 pt-0">
+                {!hasScmLink && (
+                  <>
+                    <p className="text-sm text-muted-foreground">
+                      No SCM vendor is linked to this partner yet.
+                    </p>
+                    <Button onClick={() => setLinkOpen(true)} className="w-full">
+                      <Link2 className="mr-2 h-4 w-4" />
+                      Link to SCM Vendor
+                    </Button>
+                  </>
+                )}
+
+                {hasScmLink && scmUnavailable && (
+                  <p className="rounded-md border border-dashed bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+                    SCM data unavailable
+                  </p>
+                )}
+
+                {hasScmLink && partner.scmData && (
+                  <div className="space-y-3">
+                    <Field label="Vendor ID">
+                      {partner.scmData.vendorId || partner.scmVendorId}
+                    </Field>
+                    <Field label="KYC Status">
+                      <KycStatusBadge status={partner.scmData.kycStatus} />
+                    </Field>
+                    <Field label="Active Status">
+                      {typeof partner.scmData.activeStatus === 'boolean'
+                        ? partner.scmData.activeStatus
+                          ? 'Active'
+                          : 'Inactive'
+                        : partner.scmData.activeStatus || '—'}
+                    </Field>
+                    <Field label="Category">
+                      {partner.scmData.category || '—'}
+                    </Field>
+                    <Separator />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      onClick={() => setLinkOpen(true)}
+                    >
+                      Change SCM Vendor
+                    </Button>
+                  </div>
+                )}
+
+                {hasScmLink && partner.scmData === undefined && (
+                  <div className="space-y-3">
+                    <Field label="Vendor ID">{partner.scmVendorId}</Field>
+                    <p className="text-xs text-muted-foreground">
+                      Detailed SCM fields were not included in this response.
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      onClick={() => setLinkOpen(true)}
+                    >
+                      Change SCM Vendor
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="opportunities" className="mt-4">
+          <Card>
+            <CardHeader className="p-4 sm:p-6">
+              <CardTitle className="text-base flex items-center gap-2">
+                <FolderKanban className="h-4 w-4" />
+                Linked opportunities
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 sm:p-6 pt-0">
+              {(oppsLoading) && (
+                <div className="flex items-center justify-center gap-2 py-12 text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Loading opportunities…
                 </div>
               )}
-            </Field>
-            <Field label="Agreement Type">{partner.agreementType}</Field>
-            <Field label="Valid Thru">
-              {partner.validThru
-                ? new Date(partner.validThru).toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric',
-                  })
-                : '—'}
-            </Field>
-            <Field label="Strategic Value">{partner.strategicValue}</Field>
-            <Field label="Engagement Status">{partner.engagementStatus}</Field>
-            <Field label="Relationship Owners">
-              {ownerNames.length > 0
-                ? ownerNames.join(', ')
-                : partner.relationshipOwnerIds.length > 0
-                  ? `${partner.relationshipOwnerIds.length} assigned`
-                  : '—'}
-            </Field>
-            <Field label="Relationship Stage">
-              <RelationshipStageBadge stage={partner.relationshipStage} />
-            </Field>
-            <div className="sm:col-span-2">
-              <Field label="Specialization">
-                <p className="whitespace-pre-wrap font-normal text-muted-foreground">
-                  {partner.specialization?.trim() || '—'}
+              {oppsError && !oppsLoading && (
+                <p className="text-sm text-muted-foreground py-8 text-center">
+                  Unable to load linked opportunities.
                 </p>
-              </Field>
-            </div>
-            <div className="sm:col-span-2">
-              <Field label="Verticals">
-                {partner.verticals.length === 0 ? (
-                  '—'
-                ) : (
-                  <div className="flex flex-wrap gap-1.5">
-                    {partner.verticals.map((v) => (
-                      <Badge
-                        key={v}
-                        variant="outline"
-                        className={cn(
-                          'text-xs font-normal',
-                          sectorColors[v as Sector] ??
-                            'bg-muted text-muted-foreground'
-                        )}
-                      >
-                        {v}
-                      </Badge>
-                    ))}
-                  </div>
-                )}
-              </Field>
-            </div>
-            <div className="sm:col-span-2">
-              <Field label="Product Categories">
-                {partner.productCategories.length === 0 ? (
-                  '—'
-                ) : (
-                  <div className="flex flex-wrap gap-1.5">
-                    {partner.productCategories.map((c) => (
-                      <Badge key={c} variant="secondary" className="text-xs font-normal">
-                        {c}
-                      </Badge>
-                    ))}
-                  </div>
-                )}
-              </Field>
-            </div>
-            <div className="sm:col-span-2">
-              <Field label="Sub Product Categories">
-                {(partner.subProductCategories ?? []).length === 0 ? (
-                  '—'
-                ) : (
-                  <div className="flex flex-wrap gap-1.5">
-                    {partner.subProductCategories.map((c) => (
-                      <Badge key={c} variant="outline" className="text-xs font-normal">
-                        {c}
-                      </Badge>
-                    ))}
-                  </div>
-                )}
-              </Field>
-            </div>
-            <div className="sm:col-span-2">
-              <Field label="Notes">
-                <p className="whitespace-pre-wrap font-normal text-muted-foreground">
-                  {partner.notes?.trim() || '—'}
-                </p>
-              </Field>
-            </div>
-          </CardContent>
-        </Card>
+              )}
+              {!oppsLoading && opportunities.length === 0 && (
+                <div className="rounded-lg border border-dashed py-12 text-center space-y-2">
+                  <p className="text-sm font-medium">No linked opportunities yet</p>
+                  <p className="text-xs text-muted-foreground">
+                    Link this partner from an opportunity&apos;s Partners section.
+                  </p>
+                </div>
+              )}
+              {!oppsLoading && opportunities.length > 0 && (
+                <ul className="divide-y rounded-lg border">
+                  {opportunities.map((opp: any) => {
+                    const stageLabel =
+                      PIPELINE_STAGES.find((s) => s.value === opp.pipelineStage)
+                        ?.label || opp.pipelineStage;
+                    return (
+                      <li key={opp.id}>
+                        <Link
+                          to={`/projects/${opp.id}`}
+                          className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 px-4 py-3 hover:bg-muted/40 transition-colors"
+                        >
+                          <div className="min-w-0">
+                            <p className="font-medium text-sm truncate">{opp.name}</p>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {opp.clientName || '—'}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <Badge variant="outline" className="text-xs capitalize">
+                              {opp.status}
+                            </Badge>
+                            <Badge variant="secondary" className="text-xs">
+                              {stageLabel}
+                            </Badge>
+                          </div>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-        <Card>
-          <CardHeader className="p-4 sm:p-6">
-            <CardTitle className="text-base">SCM Vendor</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4 p-4 sm:p-6 pt-0">
-            {!hasScmLink && (
-              <>
-                <p className="text-sm text-muted-foreground">
-                  No SCM vendor is linked to this partner yet.
-                </p>
-                <Button onClick={() => setLinkOpen(true)} className="w-full">
-                  <Link2 className="mr-2 h-4 w-4" />
-                  Link to SCM Vendor
+        <TabsContent value="tasks" className="mt-4 space-y-4">
+          <Tabs defaultValue="kanban" className="w-full">
+            <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
+              <TabsList>
+                <TabsTrigger value="kanban">Kanban Board</TabsTrigger>
+                <TabsTrigger value="list">Task List</TabsTrigger>
+              </TabsList>
+              {canAssignTasks && (
+                <Button size="sm" onClick={() => setAddTaskOpen(true)}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Task
                 </Button>
+              )}
+            </div>
+
+            {tasksLoading ? (
+              <div className="flex items-center justify-center gap-2 py-16 text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Loading tasks…
+              </div>
+            ) : (
+              <>
+                <TabsContent value="kanban" className="mt-0">
+                  <KanbanBoard
+                    tasks={partnerTasks}
+                    onTaskMove={handleTaskMove}
+                    onTaskDelete={handleTaskDelete}
+                    onTaskEdit={(task) => setEditingTask(task)}
+                  />
+                </TabsContent>
+                <TabsContent value="list" className="mt-0">
+                  <TaskList
+                    tasks={partnerTasks}
+                    onTaskDelete={handleTaskDelete}
+                    onTaskEdit={(task) => setEditingTask(task)}
+                  />
+                </TabsContent>
               </>
             )}
+          </Tabs>
 
-            {hasScmLink && scmUnavailable && (
-              <p className="rounded-md border border-dashed bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
-                SCM data unavailable
-              </p>
-            )}
-
-            {hasScmLink && partner.scmData && (
-              <div className="space-y-3">
-                <Field label="Vendor ID">
-                  {partner.scmData.vendorId || partner.scmVendorId}
-                </Field>
-                <Field label="KYC Status">
-                  <KycStatusBadge status={partner.scmData.kycStatus} />
-                </Field>
-                <Field label="Active Status">
-                  {typeof partner.scmData.activeStatus === 'boolean'
-                    ? partner.scmData.activeStatus
-                      ? 'Active'
-                      : 'Inactive'
-                    : partner.scmData.activeStatus || '—'}
-                </Field>
-                <Field label="Category">
-                  {partner.scmData.category || '—'}
-                </Field>
-                <Separator />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full"
-                  onClick={() => setLinkOpen(true)}
-                >
-                  Change SCM Vendor
-                </Button>
-              </div>
-            )}
-
-            {hasScmLink && partner.scmData === undefined && (
-              <div className="space-y-3">
-                <Field label="Vendor ID">{partner.scmVendorId}</Field>
-                <p className="text-xs text-muted-foreground">
-                  Detailed SCM fields were not included in this response.
-                </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full"
-                  onClick={() => setLinkOpen(true)}
-                >
-                  Change SCM Vendor
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+          <AddTaskDialog
+            open={addTaskOpen}
+            onOpenChange={setAddTaskOpen}
+            partnerId={id}
+            onTaskCreated={handleTaskCreated}
+          />
+          <EditTaskDialog
+            open={!!editingTask}
+            onOpenChange={(open) => {
+              if (!open) setEditingTask(null);
+            }}
+            task={editingTask}
+            onTaskUpdated={handleTaskCreated}
+          />
+        </TabsContent>
+      </Tabs>
 
       <PartnerFormSheet
         open={editOpen}

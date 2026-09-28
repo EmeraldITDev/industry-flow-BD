@@ -14,9 +14,11 @@ interface StatCardProps {
   };
   className?: string;
   href?: string;
+  /** Small exclusion note under the value. */
+  description?: string;
 }
 
-export function StatCard({ title, value, icon: Icon, iconSymbol, trend, className, href }: StatCardProps) {
+export function StatCard({ title, value, icon: Icon, iconSymbol, trend, className, href, description }: StatCardProps) {
   const content = (
     <Card className={cn(
       "relative overflow-hidden transition-all",
@@ -30,6 +32,9 @@ export function StatCard({ title, value, icon: Icon, iconSymbol, trend, classNam
             <div className="mt-1 sm:mt-2">
               <div className="text-sm sm:text-lg lg:text-xl font-bold break-all">{value}</div>
             </div>
+            {description && (
+              <p className="text-[10px] text-muted-foreground/80 mt-1 leading-snug">{description}</p>
+            )}
             {trend && (
               <p className={cn(
                 "text-[10px] sm:text-sm mt-0.5 sm:mt-2 font-medium",

@@ -28,8 +28,10 @@ export function RevenueBySectorChart({ projects }: RevenueBySectorChartProps) {
   const data = useMemo(() => {
     const sectorRevenue: Record<string, number> = {};
     projects.forEach((p) => {
+      const value = getContractValue(p);
+      if (value == null) return;
       const sector = p.sector || 'Other';
-      sectorRevenue[sector] = (sectorRevenue[sector] || 0) + getContractValue(p);
+      sectorRevenue[sector] = (sectorRevenue[sector] || 0) + value;
     });
     return Object.entries(sectorRevenue)
       .filter(([, v]) => v > 0)

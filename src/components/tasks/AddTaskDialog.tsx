@@ -24,11 +24,20 @@ import { TaskAttachmentsField } from '@/components/tasks/TaskAttachmentsField';
 interface AddTaskDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  projectId: string;
+  /** Project parent — mutually exclusive with partnerId. */
+  projectId?: string;
+  /** Partner parent — mutually exclusive with projectId. */
+  partnerId?: string;
   onTaskCreated?: () => void;
 }
 
-export function AddTaskDialog({ open, onOpenChange, projectId, onTaskCreated }: AddTaskDialogProps) {
+export function AddTaskDialog({
+  open,
+  onOpenChange,
+  projectId,
+  partnerId,
+  onTaskCreated,
+}: AddTaskDialogProps) {
   const { user } = useAuth();
   const canFlagChairman = canSetChairmanIntervention(user);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -44,7 +53,6 @@ export function AddTaskDialog({ open, onOpenChange, projectId, onTaskCreated }: 
   });
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
 
-  // Fetch team members from backend
   const { data: teamMembers = [] } = useQuery({
     queryKey: ['team'],
     queryFn: () => teamService.getAll(),
@@ -55,6 +63,9 @@ export function AddTaskDialog({ open, onOpenChange, projectId, onTaskCreated }: 
     value: String(member.id),
     label: member.name || member.email || String(member.id),
   }));
+
+  // Attachments still require a project path on the API — hold for partner tasks (step 5).
+  const allowAttachments = Boolean(projectId) && !partnerId;
 
   const resetForm = () => {
     setFormData({
@@ -78,9 +89,13 @@ export function AddTaskDialog({ open, onOpenChange, projectId, onTaskCreated }: 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.title.trim()) {
       toast.error('Please enter a task title');
+      return;
+    }
+    if (!projectId && !partnerId) {
+      toast.error('Task parent is missing');
       return;
     }
 
@@ -97,12 +112,13 @@ export function AddTaskDialog({ open, onOpenChange, projectId, onTaskCreated }: 
           ? formData.requiresChairmanIntervention
           : false,
         dueDate: formData.dueDate?.toISOString(),
-        projectId: projectId,
+        projectId: projectId || undefined,
+        partnerId: partnerId || undefined,
         notes: formData.notes || undefined,
       };
 
       const created = await tasksService.create(taskData);
-      if (pendingFiles.length > 0) {
+      if (allowAttachments && pendingFiles.length > 0) {
         await tasksService.uploadAttachments(created.id, pendingFiles);
       }
       toast.success('Task created successfully');
@@ -149,7 +165,9 @@ export function AddTaskDialog({ open, onOpenChange, projectId, onTaskCreated }: 
               <Label>Priority</Label>
               <Select
                 value={formData.priority}
-                onValueChange={(value: TaskPriority) => setFormData({ ...formData, priority: value })}
+                onValueChange={(value: TaskPriority) =>
+                  setFormData({ ...formData, priority: value })
+                }
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -167,7 +185,9 @@ export function AddTaskDialog({ open, onOpenChange, projectId, onTaskCreated }: 
               <Label>Status</Label>
               <Select
                 value={formData.status}
-                onValueChange={(value: TaskStatus) => setFormData({ ...formData, status: value })}
+                onValueChange={(value: TaskStatus) =>
+                  setFormData({ ...formData, status: value })
+                }
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -251,14 +271,21 @@ export function AddTaskDialog({ open, onOpenChange, projectId, onTaskCreated }: 
             />
           </div>
 
-          <TaskAttachmentsField
-            pendingFiles={pendingFiles}
-            onPendingChange={setPendingFiles}
-            disabled={isSubmitting}
-          />
+          {allowAttachments && (
+            <TaskAttachmentsField
+              pendingFiles={pendingFiles}
+              onPendingChange={setPendingFiles}
+              disabled={isSubmitting}
+            />
+          )}
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={isSubmitting}
+            >
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>
