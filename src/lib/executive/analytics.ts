@@ -166,9 +166,16 @@ export function probabilityBand(p: Project): ProbabilityBand {
 
 const PROBABILITY_SCORE: Record<ProbabilityBand, number> = { high: 0.75, medium: 0.45, low: 0.15 };
 
-export const isWon = (p: Project) =>
-  WON_STAGES.includes((p.pipelineStage || '').toLowerCase().trim() as PipelineStage) ||
-  p.status === 'completed';
+/**
+ * Canonical Won rule (frontend).
+ * (status = completed OR stage in approval|execution|closure) AND stage ≠ lost.
+ * Lost is never Won — even if status is completed.
+ */
+export const isWon = (p: Project) => {
+  const stage = (p.pipelineStage || '').toLowerCase().trim() as PipelineStage;
+  if (stage === 'lost') return false;
+  return WON_STAGES.includes(stage) || p.status === 'completed';
+};
 export const isLost = (p: Project) => (p.pipelineStage || '').toLowerCase().trim() === 'lost';
 export const isActivePipeline = (p: Project) => p.status === 'active';
 export const isLateStage = (p: Project) =>

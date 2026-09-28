@@ -32,6 +32,7 @@ import { Progress } from '@/components/ui/progress';
 import { getStageProgress } from '@/lib/stageProgress';
 import { useAuth } from '@/context/AuthContext';
 import { isRestrictedExecutiveUser } from '@/lib/executive/access';
+import { isWon } from '@/lib/executive/analytics';
 import {
   projectsDrillHref,
   resolveLeadIds,
@@ -106,12 +107,7 @@ export default function Dashboard() {
     
     const active = projects.filter((p: Project) => p.status === 'active').length;
     const completed = projects.filter((p: Project) => p.status === 'completed').length;
-    const won = projects.filter((p: Project) => 
-      p.status === 'completed' || 
-      p.pipelineStage === 'approval' || 
-      p.pipelineStage === 'execution' || 
-      p.pipelineStage === 'closure'
-    ).length;
+    const won = projects.filter((p: Project) => isWon(p)).length;
     const highRisk = projects.filter((p: Project) => p.dealProbability === 'high' || p.dealProbability === 'critical').length;
     
     const segments = [...new Set(projects.map(p => p.sector).filter(Boolean))].length;
@@ -136,7 +132,7 @@ export default function Dashboard() {
       if (mPctUSD > 0) { sumMarginPercentUSD += mPctUSD; countMarginPercentUSD++; }
       if (mPctNGN > 0) { sumMarginPercentNGN += mPctNGN; countMarginPercentNGN++; }
       
-      if (p.status === 'completed' || p.pipelineStage === 'approval' || p.pipelineStage === 'execution' || p.pipelineStage === 'closure') {
+      if (isWon(p)) {
         wonPOValueUSD += usdValue;
         wonPOValueNGN += ngnValue;
         if (!usdValue) missingUsdWon += 1;
@@ -248,7 +244,7 @@ export default function Dashboard() {
       const lead = resolveLeadName(p);
       if (!teamLoadMap[lead]) teamLoadMap[lead] = { total: 0, won: 0, active: 0 };
       teamLoadMap[lead].total++;
-      if (p.status === 'completed' || p.pipelineStage === 'approval' || p.pipelineStage === 'execution' || p.pipelineStage === 'closure') {
+      if (isWon(p)) {
         teamLoadMap[lead].won++;
       }
       if (p.status === 'active') teamLoadMap[lead].active++;
