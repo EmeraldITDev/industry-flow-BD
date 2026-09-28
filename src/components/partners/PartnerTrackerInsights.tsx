@@ -1,3 +1,4 @@
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,6 +24,22 @@ import {
   exportIncompleteCsv,
   exportIncompletePdf,
 } from '@/lib/partnerTrackerExports';
+import { MultiSearchableSelect } from '@/components/ui/multi-searchable-select';
+import { PIPELINE_STAGES } from '@/types';
+
+/** Same options as Partner Tracker list filter (incl. composite Won). */
+const PIPELINE_STAGE_FILTER_OPTIONS = [
+  ...PIPELINE_STAGES.map((s) => ({ value: s.value, label: s.label })),
+  { value: 'won', label: 'Won' },
+];
+
+function partnerProjectsHref(partnerId: string | number, pipelineStages: string[]) {
+  const params = new URLSearchParams({ partner_id: String(partnerId) });
+  if (pipelineStages.length > 0) {
+    params.set('pipelineStages', JSON.stringify(pipelineStages));
+  }
+  return `/projects?${params.toString()}`;
+}
 
 function formatMoney(usd: number, ngn: number, preferUsd: boolean) {
   if (preferUsd) {
@@ -39,10 +56,12 @@ function RankTable({
   rows,
   mode,
   empty,
+  pipelineStages,
 }: {
   rows: PartnerTrackerRankRow[];
   mode: 'count' | 'volume';
   empty: string;
+  pipelineStages: string[];
 }) {
   const { currency } = useCurrency();
   const preferUsd = currency === 'USD';
@@ -56,7 +75,7 @@ function RankTable({
       {rows.map((row, idx) => (
         <Link
           key={row.id}
-          to={`/projects?partner_id=${row.id}`}
+          to={partnerProjectsHref(row.id, pipelineStages)}
           className="flex items-center justify-between gap-3 rounded-md px-2 py-1.5 text-sm hover:bg-accent/60 transition-colors"
         >
           <div className="min-w-0 flex items-center gap-2">
@@ -163,10 +182,19 @@ export function PartnerTrackerInsights({
   const { currency } = useCurrency();
   const preferUsd = currency === 'USD';
   const isChairman = variant === 'chairman';
+  const [pipelineStages, setPipelineStages] = useState<string[]>([]);
+
+  const stageKey = useMemo(
+    () => [...pipelineStages].sort().join(','),
+    [pipelineStages]
+  );
 
   const { data, isLoading, isError, refetch, isFetching } = useQuery({
-    queryKey: ['partners-tracker-metrics'],
-    queryFn: () => partnersService.getTrackerMetrics(),
+    queryKey: ['partners-tracker-metrics', stageKey],
+    queryFn: () =>
+      partnersService.getTrackerMetrics({
+        pipelineStages: pipelineStages.length ? pipelineStages : undefined,
+      }),
     staleTime: 60_000,
   });
 
@@ -196,6 +224,26 @@ export function PartnerTrackerInsights({
             {isFetching ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Refresh'}
           </Button>
         </div>
+      </div>
+
+      <div className="max-w-xl space-y-1.5">
+        <p className="text-xs text-muted-foreground">
+          Pipeline stage (linked opportunities)
+        </p>
+        <MultiSearchableSelect
+          values={pipelineStages}
+          onValuesChange={setPipelineStages}
+          options={PIPELINE_STAGE_FILTER_OPTIONS}
+          placeholder="Any pipeline stage"
+          searchPlaceholder="Search pipeline stages..."
+          emptyText="No stages found."
+        />
+        {pipelineStages.length > 0 && (
+          <p className="text-[11px] text-muted-foreground">
+            Rankings below count only opportunities in the selected stage
+            {pipelineStages.length === 1 ? '' : 's'}. Row clicks keep the same filter.
+          </p>
+        )}
       </div>
 
       {isLoading && (
@@ -290,6 +338,7 @@ export function PartnerTrackerInsights({
                   rows={data.byOpportunityCount}
                   mode="count"
                   empty="No partners with linked opportunities yet."
+                  pipelineStages={pipelineStages}
                 />
               </CardContent>
             </Card>
@@ -306,6 +355,7 @@ export function PartnerTrackerInsights({
                   rows={data.byVolume}
                   mode="volume"
                   empty="No linked opportunity volume recorded yet."
+                  pipelineStages={pipelineStages}
                 />
               </CardContent>
             </Card>

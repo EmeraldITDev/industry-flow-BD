@@ -634,10 +634,16 @@ export const partnersService = {
    * Falls back to enriching from /api/partners?all=1 when the metrics
    * payload lacks owner breakdown / data-gap inventory (pre-deploy).
    */
-  getTrackerMetrics: async (): Promise<PartnerTrackerMetrics> => {
+  getTrackerMetrics: async (
+    opts?: { pipelineStages?: string[] }
+  ): Promise<PartnerTrackerMetrics> => {
     let metrics: PartnerTrackerMetrics;
+    const params: Record<string, string> = {};
+    if (opts?.pipelineStages?.length) {
+      params.pipelineStages = JSON.stringify(opts.pipelineStages);
+    }
     try {
-      const response = await api.get('/api/partners/tracker-metrics');
+      const response = await api.get('/api/partners/tracker-metrics', { params });
       const raw = response.data?.data ?? response.data ?? {};
       metrics = normalizeTrackerMetrics(raw);
     } catch {
