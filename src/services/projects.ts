@@ -18,6 +18,7 @@ export interface CreateProjectData {
   pipelineIntakeDate?: string;
   oem?: string;
   location?: string;
+  leadTime?: string;
   expectedCloseDate?: string;
   businessSegment?: BusinessSegment;
   product?: string;
@@ -199,6 +200,8 @@ export const normalizeProject = (project: any): Project => {
     businessSegment: project.businessSegment ?? project.business_segment ?? '',
     businessVertical: project.businessVertical ?? project.business_vertical ?? '',
     oem: project.oem ?? project.OEM ?? 'n/a',
+    location: project.location ?? project.Location ?? '',
+    leadTime: project.leadTime ?? project.lead_time ?? '',
     subProduct: project.subProduct ?? project.sub_product ?? '',
     products: Array.isArray(project.products)
       ? project.products.filter(Boolean).map(String)
@@ -467,6 +470,7 @@ export const projectsService = {
       businessSegment: 'business_segment',
       businessVertical: 'business_vertical',
       subProduct: 'sub_product',
+      leadTime: 'lead_time',
       projectLeadId: 'project_lead_id',
       assigneeId: 'assignee_id',
       channelPartner: 'channel_partner',
@@ -561,6 +565,7 @@ export const projectsService = {
       businessSegment: 'business_segment',
       businessVertical: 'business_vertical',
       subProduct: 'sub_product',
+      leadTime: 'lead_time',
       projectLeadId: 'project_lead_id',
       assigneeId: 'assignee_id',
       channelPartner: 'channel_partner',

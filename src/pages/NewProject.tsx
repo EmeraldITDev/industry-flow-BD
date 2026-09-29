@@ -123,6 +123,7 @@ export default function NewProject() {
     // Extended fields
     oem: "",
     location: "",
+    leadTime: "",
     expectedCloseDate: undefined as Date | undefined,
     businessSegment: "" as BusinessSegment | "",
     products: [] as string[],
@@ -225,6 +226,7 @@ export default function NewProject() {
         pipelineIntakeDate: formData.pipelineIntakeDate?.toISOString(),
         oem: formData.oem || undefined,
         location: formData.location || undefined,
+        leadTime: formData.leadTime || undefined,
         expectedCloseDate: formData.expectedCloseDate?.toISOString(),
         businessSegment: (formData.businessVertical as BusinessSegment) || undefined,
         products: formData.products,
@@ -602,6 +604,16 @@ export default function NewProject() {
                     setFormData({ ...formData, location: e.target.value })
                   }
                   placeholder="e.g., Lagos, Nigeria"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Lead Time</Label>
+                <Input
+                  value={formData.leadTime}
+                  onChange={(e) =>
+                    setFormData({ ...formData, leadTime: e.target.value })
+                  }
+                  placeholder="e.g., 8–12 weeks"
                 />
               </div>
               <div className="space-y-2">

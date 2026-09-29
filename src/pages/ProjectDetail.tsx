@@ -137,6 +137,7 @@ export default function ProjectDetail() {
         clientContact: data.client_contact || data.clientContact,
         oem: data.oem,
         location: data.location,
+        leadTime: data.leadTime || data.lead_time,
         businessSegment: data.business_segment || data.businessSegment,
         businessVertical:
           data.businessVertical || data.business_vertical || undefined,
@@ -550,6 +551,12 @@ export default function ProjectDetail() {
                   <div>
                     <p className="text-xs text-muted-foreground">Location</p>
                     <p className="font-medium text-sm">{project.location}</p>
+                  </div>
+                )}
+                {project.leadTime && (
+                  <div>
+                    <p className="text-xs text-muted-foreground">Lead Time</p>
+                    <p className="font-medium text-sm">{project.leadTime}</p>
                   </div>
                 )}
                 {project.businessVertical && (

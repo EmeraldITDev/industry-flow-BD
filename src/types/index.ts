@@ -128,6 +128,7 @@ export interface Project {
   pipelineIntakeDate?: string;
   oem?: string;
   location?: string;
+  leadTime?: string;
   expectedCloseDate?: string;
   businessSegment?: BusinessSegment;
   product?: string;

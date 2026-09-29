@@ -126,6 +126,7 @@ export default function EditProject() {
     clientContact: "",
     oem: "",
     location: "",
+    leadTime: "",
     expectedCloseDate: undefined as Date | undefined,
     businessSegment: "" as BusinessSegment | "",
     products: [] as string[],
@@ -212,6 +213,7 @@ export default function EditProject() {
       clientContact: data.clientContact ?? data.client_contact ?? "",
       oem: data.oem ?? "",
       location: data.location ?? "",
+      leadTime: data.leadTime ?? data.lead_time ?? "",
       businessSegment: (data.businessSegment ?? data.business_segment ?? "") as
         | BusinessSegment
         | "",
@@ -322,6 +324,7 @@ export default function EditProject() {
         pipelineIntakeDate: formData.pipelineIntakeDate?.toISOString(),
         oem: formData.oem || undefined,
         location: formData.location || undefined,
+        leadTime: formData.leadTime || undefined,
         expectedCloseDate: formData.expectedCloseDate?.toISOString(),
         businessSegment: (formData.businessVertical as BusinessSegment) || undefined,
         products: formData.products,
@@ -741,6 +744,18 @@ export default function EditProject() {
                     setFormData({ ...formData, location: e.target.value })
                   }
                   placeholder="Project location"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="leadTime">Lead Time</Label>
+                <Input
+                  id="leadTime"
+                  value={formData.leadTime}
+                  onChange={(e) =>
+                    setFormData({ ...formData, leadTime: e.target.value })
+                  }
+                  placeholder="e.g., 8–12 weeks"
                 />
               </div>
             </div>
