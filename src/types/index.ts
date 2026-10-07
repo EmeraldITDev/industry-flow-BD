@@ -143,6 +143,12 @@ export interface Project {
   // Financial fields (dual currency)
   contractValueNGN?: number;
   contractValueUSD?: number;
+  discountTypeNGN?: 'percent' | 'amount' | null;
+  discountValueNGN?: number | null;
+  discountedContractValueNGN?: number | null;
+  discountTypeUSD?: 'percent' | 'amount' | null;
+  discountValueUSD?: number | null;
+  discountedContractValueUSD?: number | null;
   marginPercentNGN?: number;
   marginPercentUSD?: number;
   marginValueNGN?: number;

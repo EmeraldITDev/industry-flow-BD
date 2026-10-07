@@ -125,9 +125,15 @@ export default function Dashboard() {
     const segments = [...new Set(projects.map(p => p.sector).filter(Boolean))].length;
 
     projects.forEach((p: Project) => {
-      // Stored values only — never invent the other currency via a fixed FX rate.
-      const ngnValue = stored(p.contractValueNGN);
-      const usdValue = stored(p.contractValueUSD);
+      // Value KPIs use discounted when present, else original. Commission stays on original.
+      const ngnValue = stored(
+        p.discountedContractValueNGN ?? p.contractValueNGN
+      );
+      const usdValue = stored(
+        p.discountedContractValueUSD ?? p.contractValueUSD
+      );
+      const originalNgn = stored(p.contractValueNGN);
+      const originalUsd = stored(p.contractValueUSD);
       if (!usdValue) missingUsdAll += 1;
       else withUsdValue += 1;
       if (!ngnValue) missingNgnAll += 1;
@@ -136,7 +142,7 @@ export default function Dashboard() {
       totalNGN += ngnValue;
       totalUSD += usdValue;
       
-      // Margin values (stored only)
+      // Margin values (stored only — already computed from discounted base when discount set)
       totalMarginNGN += stored(p.marginValueNGN);
       totalMarginUSD += stored(p.marginValueUSD);
       
@@ -160,8 +166,8 @@ export default function Dashboard() {
       }
       
       const commissionRate = COMMISSION_RATE;
-      totalCommissionNGN += ngnValue * commissionRate;
-      totalCommissionUSD += usdValue * commissionRate;
+      totalCommissionNGN += originalNgn * commissionRate;
+      totalCommissionUSD += originalUsd * commissionRate;
     });
 
     const avgProgress = projects.length > 0

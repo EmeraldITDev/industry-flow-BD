@@ -1,5 +1,11 @@
 import { Project, PipelineStage } from '@/types';
 import { AccountGroup, matchAccountGroup } from './accountGroups';
+import {
+  effectiveContractNgn,
+  effectiveContractUsd,
+  originalContractNgn,
+  originalContractUsd,
+} from '@/lib/contractValue';
 
 /* ------------------------------------------------------------------ *
  * Definitions agreed with the business
@@ -127,8 +133,12 @@ export function resolveReviewWindow(
  * Field helpers — currency values are never mixed or converted
  * ------------------------------------------------------------------ */
 
-export const usdOf = (p: Project) => Number(p.contractValueUSD ?? 0) || 0;
-export const ngnOf = (p: Project) => Number(p.contractValueNGN ?? 0) || 0;
+/** Effective (discounted when set) — used by pipeline / won / revenue analytics. */
+export const usdOf = (p: Project) => effectiveContractUsd(p);
+export const ngnOf = (p: Project) => effectiveContractNgn(p);
+/** Original quoted contract — used by Commission. */
+export const originalUsdOf = (p: Project) => originalContractUsd(p);
+export const originalNgnOf = (p: Project) => originalContractNgn(p);
 /** Magnitude used only for ranking, never displayed as a total. */
 const rankWeight = (p: Project) => usdOf(p) + ngnOf(p) / 1_000_000;
 

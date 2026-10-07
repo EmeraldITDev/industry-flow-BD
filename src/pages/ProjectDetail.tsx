@@ -139,6 +139,21 @@ export default function ProjectDetail() {
         oem: data.oem,
         location: data.location,
         leadTime: data.leadTime || data.lead_time,
+        winDate: data.winDate || data.win_date,
+        discountTypeNGN: data.discountTypeNGN || data.discount_type_ngn,
+        discountValueNGN:
+          data.discountValueNGN ?? data.discount_value_ngn ?? null,
+        discountedContractValueNGN:
+          data.discountedContractValueNGN ??
+          data.discounted_contract_value_ngn ??
+          null,
+        discountTypeUSD: data.discountTypeUSD || data.discount_type_usd,
+        discountValueUSD:
+          data.discountValueUSD ?? data.discount_value_usd ?? null,
+        discountedContractValueUSD:
+          data.discountedContractValueUSD ??
+          data.discounted_contract_value_usd ??
+          null,
         businessSegment: data.business_segment || data.businessSegment,
         businessVertical:
           data.businessVertical || data.business_vertical || undefined,
@@ -634,24 +649,56 @@ export default function ProjectDetail() {
                     <p className="font-medium text-sm">{project.salesLead}</p>
                   </div>
                 )}
-                {project.contractValueNGN && (
+                {(project.contractValueNGN ||
+                  project.discountedContractValueNGN != null) && (
                   <div>
                     <p className="text-xs text-muted-foreground">
                       Contract Value (NGN)
                     </p>
-                    <p className="font-medium text-sm">
-                      ₦{project.contractValueNGN.toLocaleString()}
-                    </p>
+                    {project.discountedContractValueNGN != null ? (
+                      <>
+                        <p className="text-xs text-muted-foreground line-through">
+                          ₦
+                          {Number(project.contractValueNGN || 0).toLocaleString()}
+                        </p>
+                        <p className="font-medium text-sm">
+                          ₦
+                          {Number(
+                            project.discountedContractValueNGN,
+                          ).toLocaleString()}
+                        </p>
+                      </>
+                    ) : (
+                      <p className="font-medium text-sm">
+                        ₦{Number(project.contractValueNGN).toLocaleString()}
+                      </p>
+                    )}
                   </div>
                 )}
-                {project.contractValueUSD && (
+                {(project.contractValueUSD ||
+                  project.discountedContractValueUSD != null) && (
                   <div>
                     <p className="text-xs text-muted-foreground">
                       Contract Value (USD)
                     </p>
-                    <p className="font-medium text-sm">
-                      ${project.contractValueUSD.toLocaleString()}
-                    </p>
+                    {project.discountedContractValueUSD != null ? (
+                      <>
+                        <p className="text-xs text-muted-foreground line-through">
+                          $
+                          {Number(project.contractValueUSD || 0).toLocaleString()}
+                        </p>
+                        <p className="font-medium text-sm">
+                          $
+                          {Number(
+                            project.discountedContractValueUSD,
+                          ).toLocaleString()}
+                        </p>
+                      </>
+                    ) : (
+                      <p className="font-medium text-sm">
+                        ${Number(project.contractValueUSD).toLocaleString()}
+                      </p>
+                    )}
                   </div>
                 )}
                 {/* Margin: show both percent and value for NGN and USD, compute percent if missing */}
@@ -1101,6 +1148,25 @@ export default function ProjectDetail() {
                     <p className="font-medium text-sm">
                       {safeFormatDate(
                         project.expectedCloseDate,
+                        "MMM d, yyyy",
+                        "Not set",
+                      )}
+                    </p>
+                  </div>
+                </div>
+              )}
+              {project.winDate && (
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-md bg-accent">
+                    <Calendar className="w-4 h-4 text-accent-foreground" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">
+                      Approved/Won Date
+                    </p>
+                    <p className="font-medium text-sm">
+                      {safeFormatDate(
+                        project.winDate,
                         "MMM d, yyyy",
                         "Not set",
                       )}

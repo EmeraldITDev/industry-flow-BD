@@ -126,9 +126,9 @@ function coverageFieldLabel(field: FinancialCoverageField): string {
 function hasValue(p: Project, field: FinancialCoverageField): boolean {
   switch (field) {
     case 'ngn':
-      return stored(p.contractValueNGN) > 0;
+      return stored(p.discountedContractValueNGN ?? p.contractValueNGN) > 0;
     case 'usd':
-      return stored(p.contractValueUSD) > 0;
+      return stored(p.discountedContractValueUSD ?? p.contractValueUSD) > 0;
     case 'margin_percent_ngn':
       return stored(p.marginPercentNGN) > 0;
     case 'margin_percent_usd':
@@ -142,6 +142,7 @@ function projectValue(
 ): { amount: number; currency: 'USD' | 'NGN'; contributing: boolean } {
   switch (key) {
     case 'commission_ngn': {
+      // Commission always uses ORIGINAL contract value.
       const ngn = stored(p.contractValueNGN);
       return { amount: ngn * COMMISSION_RATE, currency: 'NGN', contributing: ngn > 0 };
     }
@@ -150,7 +151,7 @@ function projectValue(
       return { amount: usd * COMMISSION_RATE, currency: 'USD', contributing: usd > 0 };
     }
     case 'po_ngn': {
-      const ngn = stored(p.contractValueNGN);
+      const ngn = stored(p.discountedContractValueNGN ?? p.contractValueNGN);
       return { amount: ngn, currency: 'NGN', contributing: ngn > 0 };
     }
     case 'margin_pct_usd': {

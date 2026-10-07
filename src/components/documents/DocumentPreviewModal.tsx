@@ -9,7 +9,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Download, Eye, Loader2 } from 'lucide-react';
-import * as XLSX from 'xlsx';
 import { renderAsync } from 'docx-preview';
 import {
   fetchDocumentBlob,
@@ -17,6 +16,7 @@ import {
   resolveDocumentPreviewKind,
   type DocumentPreviewKind,
 } from '@/lib/documentPreview';
+import { parseXlsxInWorker } from '@/lib/parseXlsxPreview';
 import { cn } from '@/lib/utils';
 
 export type DocumentPreviewTarget = {
@@ -74,7 +74,39 @@ export function DocumentPreviewModal({ open, onOpenChange, document: doc }: Prop
 
     const run = async () => {
       setState({ status: 'loading' });
+      setDownloadUrl(null);
       try {
+        // XLSX/DOCX: preview via same-origin proxy only — defer signed URL until Download.
+        if ((kind === 'xlsx' || kind === 'docx') && doc.fetchPreviewBlob) {
+          try {
+            const blob = await doc.fetchPreviewBlob();
+            if (cancelled) return;
+            if (kind === 'xlsx') {
+              const buffer = await blob.arrayBuffer();
+              if (cancelled) return;
+              const rows = await parseXlsxInWorker(buffer, {
+                maxRows: 200,
+                maxCols: 40,
+              });
+              if (cancelled) return;
+              setState({ status: 'ready', kind, csvRows: rows });
+              return;
+            }
+            docxBufferRef.current = await blob.arrayBuffer();
+            if (cancelled) return;
+            setState({ status: 'ready', kind });
+            return;
+          } catch {
+            if (cancelled) return;
+            setState({
+              status: 'unavailable',
+              reason:
+                'Preview not available — the file could not be loaded through the document proxy. Download instead.',
+            });
+            return;
+          }
+        }
+
         const url = await doc.resolveUrl();
         if (cancelled) return;
         if (!url) {
@@ -121,22 +153,13 @@ export function DocumentPreviewModal({ open, onOpenChange, document: doc }: Prop
 
         let blob: Blob;
         try {
-          if (
-            (kind === 'xlsx' || kind === 'docx') &&
-            doc.fetchPreviewBlob
-          ) {
-            blob = await doc.fetchPreviewBlob();
-          } else {
-            blob = await fetchDocumentBlob(url);
-          }
+          blob = await fetchDocumentBlob(url);
         } catch {
           if (cancelled) return;
           setState({
             status: 'unavailable',
             reason:
-              kind === 'xlsx' || kind === 'docx'
-                ? 'Preview not available — the file could not be loaded through the document proxy. Download instead.'
-                : 'Preview not available — the file could not be loaded for in-app rendering (often a CORS restriction). Download instead.',
+              'Preview not available — the file could not be loaded for in-app rendering (often a CORS restriction). Download instead.',
             downloadUrl: url,
           });
           return;
@@ -147,39 +170,6 @@ export function DocumentPreviewModal({ open, onOpenChange, document: doc }: Prop
           const text = await blob.text();
           if (cancelled) return;
           setState({ status: 'ready', kind, csvRows: parseCsvText(text).slice(0, 500) });
-          return;
-        }
-
-        if (kind === 'xlsx') {
-          const buffer = await blob.arrayBuffer();
-          if (cancelled) return;
-          const workbook = XLSX.read(buffer, { type: 'array' });
-          const sheetName = workbook.SheetNames[0];
-          if (!sheetName) {
-            setState({
-              status: 'unavailable',
-              reason: 'This workbook has no sheets to preview.',
-              downloadUrl: url,
-            });
-            return;
-          }
-          const sheet = workbook.Sheets[sheetName];
-          const rows = XLSX.utils.sheet_to_json<(string | number | boolean | null)[]>(sheet, {
-            header: 1,
-            defval: '',
-            blankrows: false,
-          }) as unknown as string[][];
-          const limited = rows.slice(0, 200).map((r) =>
-            (Array.isArray(r) ? r : []).slice(0, 40).map((c) => String(c ?? ''))
-          );
-          setState({ status: 'ready', kind, csvRows: limited });
-          return;
-        }
-
-        if (kind === 'docx') {
-          docxBufferRef.current = await blob.arrayBuffer();
-          if (cancelled) return;
-          setState({ status: 'ready', kind });
           return;
         }
 
@@ -247,9 +237,18 @@ export function DocumentPreviewModal({ open, onOpenChange, document: doc }: Prop
     };
   }, [state, downloadUrl]);
 
-  const handleDownload = () => {
-    if (!downloadUrl) return;
-    window.open(downloadUrl, '_blank', 'noopener,noreferrer');
+  const handleDownload = async () => {
+    try {
+      let url = downloadUrl;
+      if (!url && doc?.resolveUrl) {
+        url = await doc.resolveUrl();
+        if (url) setDownloadUrl(url);
+      }
+      if (!url) return;
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } catch {
+      // leave button usable; toast omitted to keep modal self-contained
+    }
   };
 
   return (
@@ -285,13 +284,8 @@ export function DocumentPreviewModal({ open, onOpenChange, document: doc }: Prop
             <Unavailable
               message={state.reason}
               onDownload={
-                state.downloadUrl || downloadUrl
-                  ? () =>
-                      window.open(
-                        state.downloadUrl || downloadUrl || '',
-                        '_blank',
-                        'noopener,noreferrer'
-                      )
+                doc?.resolveUrl || state.downloadUrl || downloadUrl
+                  ? () => void handleDownload()
                   : undefined
               }
             />
@@ -348,7 +342,11 @@ export function DocumentPreviewModal({ open, onOpenChange, document: doc }: Prop
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             Close
           </Button>
-          <Button type="button" onClick={handleDownload} disabled={!downloadUrl}>
+          <Button
+            type="button"
+            onClick={() => void handleDownload()}
+            disabled={!doc?.resolveUrl && !downloadUrl}
+          >
             <Download className="h-4 w-4 mr-2" />
             Download
           </Button>

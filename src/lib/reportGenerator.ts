@@ -234,8 +234,10 @@ export const PROJECT_REPORT_COLUMNS: ProjectReportColumn[] = [
   { key: 'businessSegment',   label: 'Business Segment',    shortLabel: 'Segment',     weight: 8,  get: p => p.businessSegment || '—' },
   { key: 'pipelineStage',     label: 'Stage',               shortLabel: 'Stage',       weight: 8,  get: stageLabelOf },
   { key: 'status',            label: 'Status',              shortLabel: 'Status',      weight: 6,  get: p => p.status || '—' },
-  { key: 'contractValueUSD',  label: 'Value (USD)',         shortLabel: 'USD',         weight: 9,  get: p => fmtCurrency(p.contractValueUSD, 'USD ') },
-  { key: 'contractValueNGN',  label: 'Value (NGN)',         shortLabel: 'NGN',         weight: 10, get: p => fmtCurrency(p.contractValueNGN, 'NGN ') },
+  { key: 'contractValueUSD',  label: 'Value (USD)',         shortLabel: 'USD',         weight: 9,  get: p => fmtCurrency(p.discountedContractValueUSD ?? p.contractValueUSD, 'USD ') },
+  { key: 'contractValueNGN',  label: 'Value (NGN)',         shortLabel: 'NGN',         weight: 10, get: p => fmtCurrency(p.discountedContractValueNGN ?? p.contractValueNGN, 'NGN ') },
+  { key: 'originalContractUSD', label: 'Original (USD)',    shortLabel: 'Orig USD',    weight: 9,  get: p => fmtCurrency(p.contractValueUSD, 'USD ') },
+  { key: 'originalContractNGN', label: 'Original (NGN)',    shortLabel: 'Orig NGN',    weight: 10, get: p => fmtCurrency(p.contractValueNGN, 'NGN ') },
   { key: 'marginValueUSD',    label: 'Margin (USD)',        shortLabel: 'Mgn USD',     weight: 9,  get: p => fmtCurrency(p.marginValueUSD, 'USD ') },
   { key: 'marginValueNGN',    label: 'Margin (NGN)',        shortLabel: 'Mgn NGN',     weight: 10, get: p => fmtCurrency(p.marginValueNGN, 'NGN ') },
   { key: 'marginPercent',     label: 'Margin %',            shortLabel: 'Mgn %',       weight: 6,  get: marginPercentOf },
@@ -504,8 +506,18 @@ export function generateProjectsReport(
   pdf.line(MARGIN, y, PAGE_W - MARGIN, y);
   y += 14;
 
-  const totalUSD = projects.reduce((s, p) => s + (Number(p.contractValueUSD) || 0), 0);
-  const totalNGN = projects.reduce((s, p) => s + (Number(p.contractValueNGN) || 0), 0);
+  const totalUSD = projects.reduce(
+    (s, p) =>
+      s +
+      (Number(p.discountedContractValueUSD ?? p.contractValueUSD) || 0),
+    0,
+  );
+  const totalNGN = projects.reduce(
+    (s, p) =>
+      s +
+      (Number(p.discountedContractValueNGN ?? p.contractValueNGN) || 0),
+    0,
+  );
 
   pdf.setFontSize(13);
   pdf.setFont('helvetica', 'bold');
@@ -696,19 +708,34 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
     const rightX = m + colW + gap;
 
     const usdRows = [
-      { label: 'Contract Value', value: fmtCurrency(project.contractValueUSD, 'USD ') },
+      { label: 'Original Contract', value: fmtCurrency(project.contractValueUSD, 'USD ') },
+      {
+        label: 'Discounted Contract',
+        value:
+          project.discountedContractValueUSD != null
+            ? fmtCurrency(project.discountedContractValueUSD, 'USD ')
+            : '—',
+      },
       { label: 'Margin Value', value: fmtCurrency(project.marginValueUSD, 'USD ') },
       { label: 'Margin %', value: project.marginPercentUSD != null ? `${project.marginPercentUSD}%` : '—' },
     ];
     const ngnRows = [
-      { label: 'Contract Value', value: fmtCurrency(project.contractValueNGN, 'NGN ') },
+      { label: 'Original Contract', value: fmtCurrency(project.contractValueNGN, 'NGN ') },
+      {
+        label: 'Discounted Contract',
+        value:
+          project.discountedContractValueNGN != null
+            ? fmtCurrency(project.discountedContractValueNGN, 'NGN ')
+            : '—',
+      },
       { label: 'Margin Value', value: fmtCurrency(project.marginValueNGN, 'NGN ') },
       { label: 'Margin %', value: project.marginPercentNGN != null ? `${project.marginPercentNGN}%` : '—' },
     ];
 
     const gridRowH = 22;
     const headerH = 20;
-    const totalH = headerH + gridRowH * 3 + 4;
+    const rowCount = Math.max(usdRows.length, ngnRows.length);
+    const totalH = headerH + gridRowH * rowCount + 4;
     ensureSpace(totalH + 6);
 
     // Column headers
@@ -725,7 +752,7 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
     const headerY = y;
     y += headerH;
 
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < rowCount; i++) {
       const rowY = y + i * gridRowH;
 
       if (i % 2 === 0) {
@@ -751,7 +778,7 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
     }
 
     // Outer borders
-    const gridH = headerH + gridRowH * 3;
+    const gridH = headerH + gridRowH * rowCount;
     pdf.setDrawColor(BORDER.r, BORDER.g, BORDER.b);
     pdf.setLineWidth(0.5);
     pdf.rect(leftX, headerY, colW, gridH, 'S');
@@ -760,7 +787,7 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
     pdf.line(leftX, headerY + headerH, leftX + colW, headerY + headerH);
     pdf.line(rightX, headerY + headerH, rightX + colW, headerY + headerH);
 
-    y += gridRowH * 3 + 8;
+    y += gridRowH * rowCount + 8;
   };
 
   /* ---- Progress & Completion section ---- */

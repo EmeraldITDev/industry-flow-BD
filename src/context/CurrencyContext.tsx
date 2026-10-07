@@ -8,6 +8,10 @@ type ContractFields = {
   /** API ProjectResource camelCase variants */
   contractValueUsd?: number | null;
   contractValueNgn?: number | null;
+  discountedContractValueUSD?: number | null;
+  discountedContractValueNGN?: number | null;
+  discountedContractValueUsd?: number | null;
+  discountedContractValueNgn?: number | null;
 };
 
 type MarginFields = ContractFields & {
@@ -135,9 +139,19 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
   const getContractValue = useCallback(
     (project: ContractFields): number | null => {
       if (currency === 'NGN') {
-        return positive(project.contractValueNGN ?? project.contractValueNgn);
+        return positive(
+          project.discountedContractValueNGN ??
+            project.discountedContractValueNgn ??
+            project.contractValueNGN ??
+            project.contractValueNgn
+        );
       }
-      return positive(project.contractValueUSD ?? project.contractValueUsd);
+      return positive(
+        project.discountedContractValueUSD ??
+          project.discountedContractValueUsd ??
+          project.contractValueUSD ??
+          project.contractValueUsd
+      );
     },
     [currency]
   );
@@ -147,7 +161,12 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
       const stored = positive(project.marginValueNGN ?? project.marginValueNgn);
       if (stored != null) return stored;
       const percent = positive(project.marginPercentNGN ?? project.marginPercentNgn);
-      const contract = positive(project.contractValueNGN ?? project.contractValueNgn);
+      const contract = positive(
+        project.discountedContractValueNGN ??
+          project.discountedContractValueNgn ??
+          project.contractValueNGN ??
+          project.contractValueNgn
+      );
       if (percent != null && contract != null) {
         return Math.round(contract * (percent / 100));
       }
@@ -156,7 +175,12 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     const stored = positive(project.marginValueUSD ?? project.marginValueUsd);
     if (stored != null) return stored;
     const percent = positive(project.marginPercentUSD ?? project.marginPercentUsd);
-    const contract = positive(project.contractValueUSD ?? project.contractValueUsd);
+    const contract = positive(
+      project.discountedContractValueUSD ??
+        project.discountedContractValueUsd ??
+        project.contractValueUSD ??
+        project.contractValueUsd
+    );
     if (percent != null && contract != null) {
       return parseFloat((contract * (percent / 100)).toFixed(2));
     }
@@ -175,8 +199,18 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
       const other: Currency = currency === 'USD' ? 'NGN' : 'USD';
       const fallback =
         other === 'NGN'
-          ? positive(project.contractValueNGN ?? project.contractValueNgn)
-          : positive(project.contractValueUSD ?? project.contractValueUsd);
+          ? positive(
+              project.discountedContractValueNGN ??
+                project.discountedContractValueNgn ??
+                project.contractValueNGN ??
+                project.contractValueNgn
+            )
+          : positive(
+              project.discountedContractValueUSD ??
+                project.discountedContractValueUsd ??
+                project.contractValueUSD ??
+                project.contractValueUsd
+            );
       return fallback != null ? { value: fallback, currency: other } : null;
     },
     [currency, getContractValue]

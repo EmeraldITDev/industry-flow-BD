@@ -20,6 +20,13 @@ export interface CreateProjectData {
   location?: string;
   leadTime?: string;
   expectedCloseDate?: string;
+  winDate?: string | null;
+  discountTypeNGN?: 'percent' | 'amount' | null;
+  discountValueNGN?: number | null;
+  discountedContractValueNGN?: number | null;
+  discountTypeUSD?: 'percent' | 'amount' | null;
+  discountValueUSD?: number | null;
+  discountedContractValueUSD?: number | null;
   businessSegment?: BusinessSegment;
   product?: string;
   subProduct?: string;
@@ -207,6 +214,34 @@ export const normalizeProject = (project: any): Project => {
     lastStageUpdate: project.lastStageUpdate ?? project.last_stage_update ?? null,
     winDate: project.winDate ?? project.win_date ?? null,
     wonAt: project.wonAt ?? project.won_at ?? null,
+    discountTypeNGN: (project.discountTypeNGN ??
+      project.discountTypeNgn ??
+      project.discount_type_ngn ??
+      null) as 'percent' | 'amount' | null,
+    discountValueNGN:
+      project.discountValueNGN ??
+      project.discountValueNgn ??
+      project.discount_value_ngn ??
+      null,
+    discountedContractValueNGN:
+      project.discountedContractValueNGN ??
+      project.discountedContractValueNgn ??
+      project.discounted_contract_value_ngn ??
+      null,
+    discountTypeUSD: (project.discountTypeUSD ??
+      project.discountTypeUsd ??
+      project.discount_type_usd ??
+      null) as 'percent' | 'amount' | null,
+    discountValueUSD:
+      project.discountValueUSD ??
+      project.discountValueUsd ??
+      project.discount_value_usd ??
+      null,
+    discountedContractValueUSD:
+      project.discountedContractValueUSD ??
+      project.discountedContractValueUsd ??
+      project.discounted_contract_value_usd ??
+      null,
     businessSegment: project.businessSegment ?? project.business_segment ?? '',
     businessVertical: project.businessVertical ?? project.business_vertical ?? '',
     oem: project.oem ?? project.OEM ?? 'n/a',
@@ -500,10 +535,17 @@ export const projectsService = {
       pipelineStage: 'pipeline_stage',
       pipelineIntakeDate: 'pipeline_intake_date',
       expectedCloseDate: 'expected_close_date',
+      winDate: 'win_date',
       businessSegment: 'business_segment',
       businessVertical: 'business_vertical',
       subProduct: 'sub_product',
       leadTime: 'lead_time',
+      discountTypeNGN: 'discount_type_ngn',
+      discountValueNGN: 'discount_value_ngn',
+      discountedContractValueNGN: 'discounted_contract_value_ngn',
+      discountTypeUSD: 'discount_type_usd',
+      discountValueUSD: 'discount_value_usd',
+      discountedContractValueUSD: 'discounted_contract_value_usd',
       projectLeadId: 'project_lead_id',
       assigneeId: 'assignee_id',
       channelPartner: 'channel_partner',
@@ -553,7 +595,18 @@ export const projectsService = {
     const requestData: Record<string, any> = { ...data };
 
     // Explicitly include financial fields even if undefined (backend should treat as null/clear)
-    const financialKeys = ['contractValueNGN', 'contractValueUSD', 'marginPercentNGN', 'marginPercentUSD', 'marginValueNGN', 'marginValueUSD'];
+    const financialKeys = [
+      'contractValueNGN',
+      'contractValueUSD',
+      'discountValueNGN',
+      'discountedContractValueNGN',
+      'discountValueUSD',
+      'discountedContractValueUSD',
+      'marginPercentNGN',
+      'marginPercentUSD',
+      'marginValueNGN',
+      'marginValueUSD',
+    ];
 
     // Remove undefined from non-financial fields, but keep financials explicit
     Object.keys(requestData).forEach(key => {
@@ -595,10 +648,17 @@ export const projectsService = {
       pipelineStage: 'pipeline_stage',
       pipelineIntakeDate: 'pipeline_intake_date',
       expectedCloseDate: 'expected_close_date',
+      winDate: 'win_date',
       businessSegment: 'business_segment',
       businessVertical: 'business_vertical',
       subProduct: 'sub_product',
       leadTime: 'lead_time',
+      discountTypeNGN: 'discount_type_ngn',
+      discountValueNGN: 'discount_value_ngn',
+      discountedContractValueNGN: 'discounted_contract_value_ngn',
+      discountTypeUSD: 'discount_type_usd',
+      discountValueUSD: 'discount_value_usd',
+      discountedContractValueUSD: 'discounted_contract_value_usd',
       projectLeadId: 'project_lead_id',
       assigneeId: 'assignee_id',
       channelPartner: 'channel_partner',

@@ -48,6 +48,14 @@ import { PartnerMultiSelect } from "@/components/partners/PartnerMultiSelect";
 import { PRODUCT_OPTIONS, getSubproductOptions } from "@/data/productCatalog";
 import { ProjectDocumentsSection } from "@/components/projects/ProjectDocumentsSection";
 import { partnersService } from "@/services/partners";
+import {
+  DiscountControls,
+  buildDiscountPayload,
+  type DiscountType,
+} from "@/components/projects/DiscountControls";
+import { canSetProjectDiscount } from "@/lib/permissions/projectDiscount";
+import { WON_STAGES } from "@/lib/executive/analytics";
+import { useAuth } from "@/context/AuthContext";
 import type { Partner } from "@/types/partners";
 
 const dealProbabilities: { value: RiskLevel; label: string; color: string }[] =
@@ -71,6 +79,10 @@ export default function EditProject() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const canEditDiscount = canSetProjectDiscount(user);
+  const isWonStage = (stage: PipelineStage) =>
+    (WON_STAGES as readonly string[]).includes(stage);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Fetch project data
@@ -128,6 +140,11 @@ export default function EditProject() {
     location: "",
     leadTime: "",
     expectedCloseDate: undefined as Date | undefined,
+    winDate: undefined as Date | undefined,
+    discountTypeNGN: "" as DiscountType,
+    discountValueNGN: "",
+    discountTypeUSD: "" as DiscountType,
+    discountValueUSD: "",
     businessSegment: "" as BusinessSegment | "",
     products: [] as string[],
     subproducts: [] as string[],
@@ -214,6 +231,29 @@ export default function EditProject() {
       oem: data.oem ?? "",
       location: data.location ?? "",
       leadTime: data.leadTime ?? data.lead_time ?? "",
+      winDate: data.winDate
+        ? parseISO(data.winDate)
+        : data.win_date
+          ? parseISO(data.win_date)
+          : undefined,
+      discountTypeNGN: (data.discountTypeNGN ??
+        data.discount_type_ngn ??
+        "") as DiscountType,
+      discountValueNGN:
+        data.discountValueNGN != null
+          ? String(data.discountValueNGN)
+          : data.discount_value_ngn != null
+            ? String(data.discount_value_ngn)
+            : "",
+      discountTypeUSD: (data.discountTypeUSD ??
+        data.discount_type_usd ??
+        "") as DiscountType,
+      discountValueUSD:
+        data.discountValueUSD != null
+          ? String(data.discountValueUSD)
+          : data.discount_value_usd != null
+            ? String(data.discount_value_usd)
+            : "",
       businessSegment: (data.businessSegment ?? data.business_segment ?? "") as
         | BusinessSegment
         | "",
@@ -299,15 +339,40 @@ export default function EditProject() {
       const marginPctNGN = parseNumberInput(formData.marginPercentNGN);
       const marginPctUSD = parseNumberInput(formData.marginPercentUSD);
 
-      // Margin value is auto-calculated from Contract × Margin %.
-      // If either input is missing, send null so a stale/wrong margin_* is never left behind.
+      const discNGN = canEditDiscount
+        ? buildDiscountPayload(
+            formData.contractValueNGN,
+            formData.discountTypeNGN,
+            formData.discountValueNGN,
+          )
+        : {
+            discountType: null,
+            discountValue: null,
+            discountedContractValue: null,
+          };
+      const discUSD = canEditDiscount
+        ? buildDiscountPayload(
+            formData.contractValueUSD,
+            formData.discountTypeUSD,
+            formData.discountValueUSD,
+          )
+        : {
+            discountType: null,
+            discountValue: null,
+            discountedContractValue: null,
+          };
+
+      const marginBaseNGN =
+        discNGN.discountedContractValue ?? contractNGN ?? null;
+      const marginBaseUSD =
+        discUSD.discountedContractValue ?? contractUSD ?? null;
       const marginValueNGN =
-        contractNGN != null && marginPctNGN != null
-          ? (contractNGN * marginPctNGN) / 100
+        marginBaseNGN != null && marginPctNGN != null
+          ? (marginBaseNGN * marginPctNGN) / 100
           : null;
       const marginValueUSD =
-        contractUSD != null && marginPctUSD != null
-          ? (contractUSD * marginPctUSD) / 100
+        marginBaseUSD != null && marginPctUSD != null
+          ? (marginBaseUSD * marginPctUSD) / 100
           : null;
 
       await projectsService.update(id, {
@@ -326,6 +391,21 @@ export default function EditProject() {
         location: formData.location || undefined,
         leadTime: formData.leadTime || undefined,
         expectedCloseDate: formData.expectedCloseDate?.toISOString(),
+        winDate: isWonStage(formData.pipelineStage)
+          ? formData.winDate
+            ? formData.winDate.toISOString().slice(0, 10)
+            : null
+          : undefined,
+        ...(canEditDiscount
+          ? {
+              discountTypeNGN: discNGN.discountType,
+              discountValueNGN: discNGN.discountValue,
+              discountedContractValueNGN: discNGN.discountedContractValue,
+              discountTypeUSD: discUSD.discountType,
+              discountValueUSD: discUSD.discountValue,
+              discountedContractValueUSD: discUSD.discountedContractValue,
+            }
+          : {}),
         businessSegment: (formData.businessVertical as BusinessSegment) || undefined,
         products: formData.products,
         subproducts: formData.subproducts,
@@ -646,6 +726,48 @@ export default function EditProject() {
               </div>
 
               <div className="space-y-2">
+                <Label>Approved/Won Date</Label>
+                {isWonStage(formData.pipelineStage) ? (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !formData.winDate && "text-muted-foreground",
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {formData.winDate
+                          ? format(formData.winDate, "PPP")
+                          : "Pick date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={formData.winDate}
+                        onSelect={(date) =>
+                          setFormData({ ...formData, winDate: date })
+                        }
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                ) : (
+                  <Input
+                    readOnly
+                    className="bg-muted cursor-not-allowed"
+                    value={
+                      formData.winDate
+                        ? format(formData.winDate, "PPP")
+                        : "Available when stage is Approval / Execution / Closure"
+                    }
+                  />
+                )}
+              </div>
+
+              <div className="space-y-2">
                 <Label>Pipeline Intake Date</Label>
                 <Popover>
                   <PopoverTrigger asChild>
@@ -910,6 +1032,19 @@ export default function EditProject() {
                     placeholder="0"
                   />
                 </div>
+                <DiscountControls
+                  currency="NGN"
+                  contractValue={formData.contractValueNGN}
+                  discountType={formData.discountTypeNGN}
+                  discountValue={formData.discountValueNGN}
+                  canEdit={canEditDiscount}
+                  onTypeChange={(type) =>
+                    setFormData({ ...formData, discountTypeNGN: type })
+                  }
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, discountValueNGN: value })
+                  }
+                />
                 <div className="grid grid-cols-2 gap-2">
                   <div className="space-y-2">
                     <Label>Margin %</Label>
@@ -929,15 +1064,19 @@ export default function EditProject() {
                     <Label>Margin Value (₦)</Label>
                     <Input
                       type="number"
-                      value={
-                        formData.contractValueNGN && formData.marginPercentNGN
-                          ? (
-                              (parseFloat(formData.contractValueNGN) *
-                                parseFloat(formData.marginPercentNGN)) /
-                              100
-                            ).toFixed(2)
-                          : ""
-                      }
+                      value={(() => {
+                        const disc = buildDiscountPayload(
+                          formData.contractValueNGN,
+                          formData.discountTypeNGN,
+                          formData.discountValueNGN,
+                        ).discountedContractValue;
+                        const base =
+                          disc ?? parseFloat(formData.contractValueNGN);
+                        const pct = parseFloat(formData.marginPercentNGN);
+                        if (!Number.isFinite(base) || !Number.isFinite(pct))
+                          return "";
+                        return ((base * pct) / 100).toFixed(2);
+                      })()}
                       readOnly
                       className="bg-muted cursor-not-allowed"
                       placeholder="Auto-calculated"
@@ -964,6 +1103,19 @@ export default function EditProject() {
                     placeholder="0"
                   />
                 </div>
+                <DiscountControls
+                  currency="USD"
+                  contractValue={formData.contractValueUSD}
+                  discountType={formData.discountTypeUSD}
+                  discountValue={formData.discountValueUSD}
+                  canEdit={canEditDiscount}
+                  onTypeChange={(type) =>
+                    setFormData({ ...formData, discountTypeUSD: type })
+                  }
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, discountValueUSD: value })
+                  }
+                />
                 <div className="grid grid-cols-2 gap-2">
                   <div className="space-y-2">
                     <Label>Margin %</Label>
@@ -983,15 +1135,19 @@ export default function EditProject() {
                     <Label>Margin Value ($)</Label>
                     <Input
                       type="number"
-                      value={
-                        formData.contractValueUSD && formData.marginPercentUSD
-                          ? (
-                              (parseFloat(formData.contractValueUSD) *
-                                parseFloat(formData.marginPercentUSD)) /
-                              100
-                            ).toFixed(2)
-                          : ""
-                      }
+                      value={(() => {
+                        const disc = buildDiscountPayload(
+                          formData.contractValueUSD,
+                          formData.discountTypeUSD,
+                          formData.discountValueUSD,
+                        ).discountedContractValue;
+                        const base =
+                          disc ?? parseFloat(formData.contractValueUSD);
+                        const pct = parseFloat(formData.marginPercentUSD);
+                        if (!Number.isFinite(base) || !Number.isFinite(pct))
+                          return "";
+                        return ((base * pct) / 100).toFixed(2);
+                      })()}
                       readOnly
                       className="bg-muted cursor-not-allowed"
                       placeholder="Auto-calculated"
