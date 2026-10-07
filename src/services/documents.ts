@@ -159,6 +159,13 @@ export const repositoryDocumentsService = {
     return normalizeRepoDoc(unwrapOne(response.data));
   },
 
+  fetchContent: async (id: string): Promise<Blob> => {
+    const response = await api.get(`/api/repository-documents/${id}/content`, {
+      responseType: 'blob',
+    });
+    return response.data as Blob;
+  },
+
   upload: async (
     payload: {
       title: string;
@@ -222,6 +229,14 @@ export const opportunityDocumentsService = {
   getById: async (projectId: string, docId: string): Promise<OpportunityDocument> => {
     const response = await api.get(`/api/projects/${projectId}/documents/${docId}`);
     return normalizeOppDoc(unwrapOne(response.data));
+  },
+
+  fetchContent: async (projectId: string, docId: string): Promise<Blob> => {
+    const response = await api.get(
+      `/api/projects/${projectId}/documents/${docId}/content`,
+      { responseType: 'blob' }
+    );
+    return response.data as Blob;
   },
 
   upload: async (

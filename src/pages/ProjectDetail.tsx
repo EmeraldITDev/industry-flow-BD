@@ -66,6 +66,7 @@ import {
 } from "@/lib/stageStatusRules";
 import { generateSingleProjectReport } from "@/lib/reportGenerator";
 import { ProjectDocumentsSection } from "@/components/projects/ProjectDocumentsSection";
+import { ProjectActivitySection } from "@/components/projects/ProjectActivitySection";
 import { partnersService } from "@/services/partners";
 import { RelationshipStageBadge } from "@/components/partners/RelationshipStageBadge";
 import { LinkScmVendorModal } from "@/components/partners/LinkScmVendorModal";
@@ -822,6 +823,8 @@ export default function ProjectDetail() {
               canManage={canEditProjects}
             />
           )}
+
+          {id && <ProjectActivitySection projectId={id} />}
 
           <Tabs defaultValue="kanban" className="w-full">
             <div className="flex items-center justify-between mb-4">

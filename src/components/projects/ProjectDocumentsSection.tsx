@@ -157,6 +157,8 @@ export function ProjectDocumentsSection({ projectId, canManage = true }: Props) 
           const fresh = await opportunityDocumentsService.getById(projectId, doc.id);
           return fresh.url;
         },
+        fetchPreviewBlob: () =>
+          opportunityDocumentsService.fetchContent(projectId, doc.id),
       });
     },
     [projectId]

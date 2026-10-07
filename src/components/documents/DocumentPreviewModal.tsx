@@ -24,8 +24,10 @@ export type DocumentPreviewTarget = {
   title: string;
   fileName: string;
   mimeType?: string | null;
-  /** Fresh signed URL resolver — called when the modal opens. */
+  /** Fresh signed URL resolver — used for Download (and PDF/image fallback). */
   resolveUrl: () => Promise<string | null>;
+  /** Same-origin API stream for XLSX/DOCX preview (avoids S3 CORS). */
+  fetchPreviewBlob?: () => Promise<Blob>;
 };
 
 type Props = {
@@ -119,13 +121,22 @@ export function DocumentPreviewModal({ open, onOpenChange, document: doc }: Prop
 
         let blob: Blob;
         try {
-          blob = await fetchDocumentBlob(url);
+          if (
+            (kind === 'xlsx' || kind === 'docx') &&
+            doc.fetchPreviewBlob
+          ) {
+            blob = await doc.fetchPreviewBlob();
+          } else {
+            blob = await fetchDocumentBlob(url);
+          }
         } catch {
           if (cancelled) return;
           setState({
             status: 'unavailable',
             reason:
-              'Preview not available — the file could not be loaded for in-app rendering (often a CORS restriction). Download instead.',
+              kind === 'xlsx' || kind === 'docx'
+                ? 'Preview not available — the file could not be loaded through the document proxy. Download instead.'
+                : 'Preview not available — the file could not be loaded for in-app rendering (often a CORS restriction). Download instead.',
             downloadUrl: url,
           });
           return;

@@ -299,6 +299,7 @@ export default function DocumentRepositoryPage() {
         const fresh = await repositoryDocumentsService.getById(doc.id);
         return fresh.url;
       },
+      fetchPreviewBlob: () => repositoryDocumentsService.fetchContent(doc.id),
     });
   }, []);
 

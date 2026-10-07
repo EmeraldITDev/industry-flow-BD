@@ -47,6 +47,16 @@ export interface UpdateProjectData extends Partial<CreateProjectData> {
   spentBudget?: number;
 }
 
+export interface ProjectActivityEvent {
+  id: number;
+  eventType: string;
+  fieldName: string | null;
+  oldValue: string | null;
+  newValue: string | null;
+  occurredAt: string | null;
+  actor: { id: number; name: string } | null;
+}
+
 export interface ProjectFilters {
   search?: string;
   sector?: Sector;
@@ -430,6 +440,29 @@ export const projectsService = {
     // Some APIs wrap the project as { data: project } - unwrap if present
     const raw = response.data?.data ?? response.data;
     return normalizeProject(raw);
+  },
+
+  getActivity: async (id: string): Promise<ProjectActivityEvent[]> => {
+    const response = await api.get(`/api/projects/${id}/activity`);
+    const rows = Array.isArray(response.data?.data)
+      ? response.data.data
+      : Array.isArray(response.data)
+        ? response.data
+        : [];
+    return rows.map((row: Record<string, unknown>) => ({
+      id: Number(row.id),
+      eventType: String(row.eventType ?? row.event_type ?? ''),
+      fieldName: (row.fieldName ?? row.field_name ?? null) as string | null,
+      oldValue: (row.oldValue ?? row.old_value ?? null) as string | null,
+      newValue: (row.newValue ?? row.new_value ?? null) as string | null,
+      occurredAt: (row.occurredAt ?? row.occurred_at ?? null) as string | null,
+      actor: row.actor
+        ? {
+            id: Number((row.actor as { id: number }).id),
+            name: String((row.actor as { name?: string }).name ?? ''),
+          }
+        : null,
+    }));
   },
 
   // Create new project
