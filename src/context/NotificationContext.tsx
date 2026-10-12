@@ -26,6 +26,8 @@ const toastConfig: Record<NotificationType, { icon: string }> = {
   deadline_approaching: { icon: '⏰' },
   comment: { icon: '💬' },
   stage_change: { icon: '➡️' },
+  staff_added_to_project: { icon: '👥' },
+  project_tagged: { icon: '🏷️' },
 };
 
 export function NotificationProvider({ children }: { children: React.ReactNode }) {

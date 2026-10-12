@@ -25,7 +25,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { CalendarIcon, Loader2, ArrowLeft } from "lucide-react";
+import { CalendarIcon, Loader2, ArrowLeft, X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
 import { businessVerticals, industrySectors, businessSegments } from "@/data/mockData";
@@ -97,7 +98,7 @@ export default function EditProject() {
   });
 
   // Fetch team members
-  const { data: teamMembers = [] } = useQuery({
+  const { data: teamMembers = [], isLoading: isLoadingTeam } = useQuery({
     queryKey: ["team"],
     queryFn: () => teamService.getAll(),
     staleTime: 5 * 60 * 1000,
@@ -150,6 +151,7 @@ export default function EditProject() {
     subproducts: [] as string[],
     projectLeadId: "",
     assigneeId: "",
+    teamMemberIds: [] as string[],
     partnerIds: [] as string[],
     contractValueNGN: "",
     contractValueUSD: "",
@@ -272,6 +274,11 @@ export default function EditProject() {
 
       projectLeadId: String(data.projectLeadId ?? data.project_lead_id ?? ""),
       assigneeId: String(data.assigneeId ?? data.assignee_id ?? ""),
+      teamMemberIds: Array.isArray(data.teamMemberIds ?? data.team_member_ids)
+        ? (data.teamMemberIds ?? data.team_member_ids).map((id: any) => String(id))
+        : Array.isArray(data.teamMembers)
+          ? data.teamMembers.map((m: any) => String(m.id)).filter(Boolean)
+          : prev.teamMemberIds,
       partnerIds: Array.isArray(data.partners)
         ? data.partners.map((p: any) => String(p.id)).filter(Boolean)
         : Array.isArray(data.partnerIds ?? data.partner_ids)
@@ -317,6 +324,15 @@ export default function EditProject() {
       partnerIds: linkedPartners.map((p: Partner) => p.id),
     }));
   }, [linkedPartners]);
+
+  const handleTeamMemberToggle = (memberId: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      teamMemberIds: prev.teamMemberIds.includes(memberId)
+        ? prev.teamMemberIds.filter((id) => id !== memberId)
+        : [...prev.teamMemberIds, memberId],
+    }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -411,6 +427,7 @@ export default function EditProject() {
         subproducts: formData.subproducts,
         projectLeadId: formData.projectLeadId || undefined,
         assigneeId: formData.assigneeId || null,
+        teamMemberIds: formData.teamMemberIds,
         partnerIds: formData.partnerIds,
         partner_ids: formData.partnerIds,
         contractValueNGN: contractNGN ?? null,
@@ -1004,6 +1021,39 @@ export default function EditProject() {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+            <div>
+              <Label className="mb-2 block">Team Members</Label>
+              {isLoadingTeam ? (
+                <p className="text-sm text-muted-foreground">
+                  Loading team members...
+                </p>
+              ) : teamMembers.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  No team members found. Add team members in the Team page
+                  first.
+                </p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {teamMembers.map((member: any) => (
+                    <Badge
+                      key={member.id}
+                      variant={
+                        formData.teamMemberIds.includes(String(member.id))
+                          ? "default"
+                          : "outline"
+                      }
+                      className="cursor-pointer"
+                      onClick={() => handleTeamMemberToggle(String(member.id))}
+                    >
+                      {member.name}
+                      {formData.teamMemberIds.includes(String(member.id)) && (
+                        <X className="ml-1 h-3 w-3" />
+                      )}
+                    </Badge>
+                  ))}
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

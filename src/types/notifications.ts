@@ -5,7 +5,9 @@ export type NotificationType =
   | 'status_change' 
   | 'deadline_approaching' 
   | 'comment' 
-  | 'stage_change';
+  | 'stage_change'
+  | 'staff_added_to_project'
+  | 'project_tagged';
 
 export interface Notification {
   id: number;

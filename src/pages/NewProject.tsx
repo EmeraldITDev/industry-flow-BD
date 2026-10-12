@@ -60,7 +60,6 @@ import {
 import { canSetProjectDiscount } from "@/lib/permissions/projectDiscount";
 import { WON_STAGES } from "@/lib/executive/analytics";
 import { computeMarginValue } from "@/lib/contractValue";
-import { useAuth } from "@/context/AuthContext";
 import { PRODUCT_OPTIONS, getSubproductOptions } from "@/data/productCatalog";
 import { partnersService } from "@/services/partners";
 

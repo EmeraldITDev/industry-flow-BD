@@ -47,6 +47,7 @@ export interface CreateProjectData {
   supportNeeded?: string;
   dealProbability?: RiskLevel;
   projectImage?: string;
+  teamMemberIds?: string[];
 }
 
 export interface UpdateProjectData extends Partial<CreateProjectData> {
@@ -159,7 +160,11 @@ export const normalizeProject = (project: any): Project => {
   const status = (project.status ?? 'active') as ProjectStatus;
 
   // Compute teamMemberIds
-  const teamMemberIds = (project.teamMemberIds ?? project.team_member_ids ?? []).map((id: any) => String(id));
+  const teamMemberIds = (
+    project.teamMemberIds ??
+    project.team_member_ids ??
+    (project.teamMembers ?? project.team_members ?? []).map((m: any) => m?.id)
+  ).map((id: any) => String(id));
   
   // Compute teamSize from unique people (lead + assignee + members)
   const projectLeadId = project.projectLeadId ?? project.project_lead_id ?? null;
@@ -550,6 +555,7 @@ export const projectsService = {
       assigneeId: 'assignee_id',
       channelPartner: 'channel_partner',
       partnerIds: 'partner_ids',
+      teamMemberIds: 'team_member_ids',
       projectLeadComments: 'project_lead_comments',
       supportNeeded: 'support_needed',
       dealProbability: 'deal_probability',
@@ -663,6 +669,7 @@ export const projectsService = {
       assigneeId: 'assignee_id',
       channelPartner: 'channel_partner',
       partnerIds: 'partner_ids',
+      teamMemberIds: 'team_member_ids',
       projectLeadComments: 'project_lead_comments',
       supportNeeded: 'support_needed',
       dealProbability: 'risk_level',

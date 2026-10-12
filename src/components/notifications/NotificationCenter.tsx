@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
-import { Bell, CheckCheck, Trash2, X, Clock, UserPlus, RefreshCw, ArrowRightLeft, MessageSquare, Loader2 } from 'lucide-react';
+import { Bell, CheckCheck, Trash2, X, Clock, UserPlus, RefreshCw, ArrowRightLeft, MessageSquare, Loader2, AtSign } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -21,6 +21,8 @@ const notificationIcons: Record<NotificationType, typeof Bell> = {
   deadline_approaching: Clock,
   comment: MessageSquare,
   stage_change: ArrowRightLeft,
+  staff_added_to_project: UserPlus,
+  project_tagged: AtSign,
 };
 
 const notificationColors: Record<NotificationType, string> = {
@@ -29,6 +31,8 @@ const notificationColors: Record<NotificationType, string> = {
   deadline_approaching: 'text-chart-4',
   comment: 'text-muted-foreground',
   stage_change: 'text-primary',
+  staff_added_to_project: 'text-chart-1',
+  project_tagged: 'text-chart-3',
 };
 
 export function NotificationCenter() {
@@ -58,8 +62,9 @@ export function NotificationCenter() {
     setOpen(false);
     
     // Navigate based on notification type and related data
-    if (notification.project?.id) {
-      navigate(`/projects/${notification.project.id}`);
+    const projectId = notification.project?.id ?? notification.projectId;
+    if (projectId) {
+      navigate(`/projects/${projectId}`);
     } else if (notification.task?.id) {
       // If task has project info, navigate to that project
       navigate('/projects');
