@@ -1,73 +1,71 @@
-# Welcome to your Lovable project
+# Industry Flow — Frontend
 
-## Project info
+Web app for **Industry Flow**, Emerald's business development and project pipeline platform. It covers projects and opportunities, tasks, team management, partners, documents, an executive dashboard and in-app notifications.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## Tech Stack
 
-## How can I edit this code?
+- **React 18** + **TypeScript**, built with **Vite**
+- **Tailwind CSS** + **shadcn/ui** (Radix UI)
+- **TanStack Query** for server state, **Axios** for API calls
+- **React Router** for routing
+- **Recharts** for charts, **jsPDF** for PDF reports
+- Installable as a **PWA**
 
-There are several ways of editing your application.
+## Getting Started
 
-**Use Lovable**
+### Prerequisites
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+- Node.js 18+ and npm
+- A running [Industry Flow backend](https://github.com/EmeraldITDev/industry-flow-backend)
 
-Changes made via Lovable will be committed automatically to this repo.
+### Installation
 
-**Use your preferred IDE**
+```bash
+git clone <repository-url>
+cd industry-flow-BD
+npm install
+```
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+Create a `.env` file in the project root:
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+```env
+VITE_API_URL=http://localhost:8000
+```
 
-Follow these steps:
+If `VITE_API_URL` is not set, the app uses the production API.
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+### Run
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+```bash
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+The app runs at `http://localhost:8080`.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Scripts
 
-**Use GitHub Codespaces**
+| Command | Description |
+| --- | --- |
+| `npm run dev` | Start the development server |
+| `npm run build` | Build for production into `dist/` |
+| `npm run preview` | Preview the production build locally |
+| `npm run lint` | Run ESLint |
+| `npm run pwa:icons` | Regenerate PWA icons |
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Project Structure
 
-## What technologies are used for this project?
+```
+src/
+├── components/   # UI components (ui/ holds shadcn primitives)
+├── context/      # React context providers (auth, notifications)
+├── hooks/        # Custom hooks
+├── lib/          # Utilities, permissions and calculations
+├── pages/        # Route-level pages
+├── services/     # API service layer (one file per resource)
+├── types/        # Shared TypeScript types
+└── App.tsx       # Routes and providers
+```
 
-This project is built with:
+## Deployment
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+The app is deployed on **Vercel**. `vercel.json` rewrites all non-API routes to `index.html` for client-side routing. Set `VITE_API_URL` in the Vercel project's environment variables.
