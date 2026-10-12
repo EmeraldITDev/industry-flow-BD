@@ -1012,7 +1012,7 @@ export default function NewProject() {
               </div>
             </div>
             <div>
-              <Label className="mb-2 block">Team Members</Label>
+              <Label className="mb-2 block">Tag Members</Label>
               {isLoadingTeam ? (
                 <p className="text-sm text-muted-foreground">
                   Loading team members...
