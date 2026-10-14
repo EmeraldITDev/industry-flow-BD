@@ -166,16 +166,23 @@ export function PartnerForm({
   const typeOptions = PARTNER_TYPES.map((t) => ({ value: t, label: t }));
 
   const handleProductsChange = (productCategories: string[]) => {
-    const allowed = new Set(
-      getSubproductOptions(productCategories).map((o) => o.value)
-    );
-    setValues((prev) => ({
-      ...prev,
-      productCategories,
-      subProductCategories: prev.subProductCategories.filter((sp) =>
-        allowed.has(sp)
-      ),
-    }));
+    setValues((prev) => {
+      const allowed = new Set(
+        getSubproductOptions(productCategories).map((o) => o.value)
+      );
+      const removed = new Set(
+        getSubproductOptions(
+          prev.productCategories.filter((p) => !productCategories.includes(p))
+        ).map((o) => o.value)
+      );
+      return {
+        ...prev,
+        productCategories,
+        subProductCategories: prev.subProductCategories.filter(
+          (sp) => allowed.has(sp) || !removed.has(sp)
+        ),
+      };
+    });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -441,7 +448,12 @@ export function PartnerForm({
         <MultiSearchableSelect
           values={values.productCategories}
           onValuesChange={handleProductsChange}
-          options={PRODUCT_OPTIONS}
+          options={(() => {
+            const extraSaved = values.productCategories
+              .filter((p) => !PRODUCT_OPTIONS.some((o) => o.value === p))
+              .map((p) => ({ value: p, label: p }));
+            return [...PRODUCT_OPTIONS, ...extraSaved];
+          })()}
           placeholder="Select product categories"
           searchPlaceholder="Search products..."
         />
