@@ -64,7 +64,7 @@ export function TaskCompletionChart({ projects }: TaskCompletionChartProps) {
         </Button>
       </CardHeader>
       <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0" ref={chartRef}>
-        <ResponsiveContainer width="100%" height={220}>
+        <ResponsiveContainer width="100%" height={220} debounce={100}>
           <BarChart data={data} margin={{ top: 5, right: 10, left: -15, bottom: 5 }}>
             <XAxis dataKey="name" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }} />
             <YAxis tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }} allowDecimals={false} />

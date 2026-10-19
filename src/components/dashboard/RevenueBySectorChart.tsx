@@ -73,7 +73,7 @@ export function RevenueBySectorChart({ projects }: RevenueBySectorChartProps) {
         </Button>
       </CardHeader>
       <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0" ref={chartRef}>
-        <ResponsiveContainer width="100%" height={250}>
+        <ResponsiveContainer width="100%" height={250} debounce={100}>
           <PieChart>
             <Pie
               data={data}

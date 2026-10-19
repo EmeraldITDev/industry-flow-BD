@@ -125,7 +125,7 @@ export function PipelineFunnel({
       {donutData.length > 0 && (
         <div className="mt-6 flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-5 min-w-0">
           <div className="w-[110px] h-[110px] shrink-0">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" debounce={100}>
               <PieChart>
                 <Pie
                   data={donutData}

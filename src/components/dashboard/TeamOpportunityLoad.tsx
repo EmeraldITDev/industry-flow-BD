@@ -1,5 +1,11 @@
 import { Link } from 'react-router-dom';
+import { useMemo } from 'react';
 import { cn } from '@/lib/utils';
+import { useClientPagination } from '@/hooks/useClientPagination';
+import { ListPager } from '@/components/ui/list-pager';
+import { useDashboardExportOptional } from '@/context/DashboardExportContext';
+
+const PAGE_SIZE = 10;
 
 interface TeamMember {
   lead: string;
@@ -17,8 +23,11 @@ interface TeamOpportunityLoadProps {
 }
 
 export default function TeamOpportunityLoad({ data }: TeamOpportunityLoadProps) {
-  const sortedData = [...data].sort((a, b) => b.totalDeals - a.totalDeals);
-  const maxDeals = Math.max(...sortedData.map((d) => d.totalDeals), 1);
+  const sortedData = useMemo(() => [...data].sort((a, b) => b.totalDeals - a.totalDeals), [data]);
+  // Bar widths stay relative to the busiest lead overall, not just this page.
+  const maxDeals = sortedData.reduce((max, d) => Math.max(max, d.totalDeals), 1);
+  const exporting = useDashboardExportOptional()?.exportFullNumbers ?? false;
+  const pagination = useClientPagination(sortedData, PAGE_SIZE, { showAll: exporting });
 
   return (
     <div className="card p-4">
@@ -40,7 +49,7 @@ export default function TeamOpportunityLoad({ data }: TeamOpportunityLoadProps) 
           <div className="text-center">Active</div>
         </div>
 
-        {sortedData.map((member) => {
+        {pagination.pageItems.map((member) => {
           const barWidth = (member.totalDeals / maxDeals) * 100;
 
           return (
@@ -113,6 +122,7 @@ export default function TeamOpportunityLoad({ data }: TeamOpportunityLoadProps) 
           );
         })}
       </div>
+      <ListPager pagination={pagination} label="leads" />
     </div>
   );
 }

@@ -12,6 +12,10 @@ import { tasksService } from '@/services/tasks';
 import { CheckCircle2, Circle, Clock, AlertCircle, User, ArrowRightLeft, ClipboardList } from 'lucide-react';
 import { Task, Project, TeamMember } from '@/types';
 import { toast } from 'sonner';
+import { useClientPagination } from '@/hooks/useClientPagination';
+import { ListPager } from '@/components/ui/list-pager';
+
+const MEMBERS_PER_PAGE = 10;
 
 const normalizeComparable = (value: unknown) => String(value ?? '').trim().toLowerCase();
 
@@ -42,10 +46,37 @@ const getTaskAssigneeKeys = (task: Task): TaskAssigneeKeys => {
   };
 };
 
-const isTaskAssignedToMember = (keys: TaskAssigneeKeys, member: TeamMember) =>
-  keys.ids.has(normalizeComparable(member.id)) ||
-  keys.names.has(normalizeComparable(member.name)) ||
-  keys.emails.has(normalizeComparable(member.email));
+/**
+ * Tasks per member, matching a task to a member by assignee id, name or email.
+ * Members are indexed once, so this is one pass over tasks instead of members × tasks.
+ */
+const groupTasksByMember = (tasks: Task[], members: TeamMember[]): Task[][] => {
+  const byId = new Map<string, number[]>();
+  const byName = new Map<string, number[]>();
+  const byEmail = new Map<string, number[]>();
+  const add = (map: Map<string, number[]>, key: string, index: number) => {
+    if (!key) return;
+    const list = map.get(key);
+    if (list) list.push(index);
+    else map.set(key, [index]);
+  };
+  members.forEach((member, index) => {
+    add(byId, normalizeComparable(member.id), index);
+    add(byName, normalizeComparable(member.name), index);
+    add(byEmail, normalizeComparable(member.email), index);
+  });
+
+  const grouped: Task[][] = members.map(() => []);
+  tasks.forEach((task) => {
+    const keys = getTaskAssigneeKeys(task);
+    const matched = new Set<number>();
+    keys.ids.forEach((k) => byId.get(k)?.forEach((i) => matched.add(i)));
+    keys.names.forEach((k) => byName.get(k)?.forEach((i) => matched.add(i)));
+    keys.emails.forEach((k) => byEmail.get(k)?.forEach((i) => matched.add(i)));
+    matched.forEach((i) => grouped[i].push(task));
+  });
+  return grouped;
+};
 
 export function TasksSummary() {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -59,8 +90,9 @@ export function TasksSummary() {
   });
 
   const { data: tasksFromApi, isLoading: tasksLoading } = useQuery({
-    queryKey: ['all-tasks'],
-    queryFn: () => tasksService.getAll(),
+    // Lean list shared with ProjectCalendar (one request for both widgets).
+    queryKey: ['all-tasks', 'lean'],
+    queryFn: () => tasksService.getAllLean(),
     staleTime: 60 * 1000,
   });
 
@@ -95,11 +127,10 @@ export function TasksSummary() {
   }), [allTasks]);
 
   const tasksByMember = useMemo(() => {
-    const taskKeys = allTasks.map((task: Task) => ({ task, keys: getTaskAssigneeKeys(task) }));
-    return (teamMembers || []).map((member: TeamMember) => {
-      const memberTasks = taskKeys
-        .filter(({ keys }) => isTaskAssignedToMember(keys, member))
-        .map(({ task }) => task);
+    const members = teamMembers || [];
+    const grouped = groupTasksByMember(allTasks, members);
+    return members.map((member: TeamMember, index: number) => {
+      const memberTasks = grouped[index];
       return {
         member,
         tasks: memberTasks,
@@ -110,6 +141,8 @@ export function TasksSummary() {
       };
     });
   }, [allTasks, teamMembers]);
+
+  const memberPages = useClientPagination(tasksByMember, MEMBERS_PER_PAGE);
 
   const statusConfig = [
     { key: 'todo', label: 'To Do', icon: Circle, color: 'text-chart-5' },
@@ -192,7 +225,7 @@ export function TasksSummary() {
               </div>
             ) : (
               <div className="space-y-2 sm:space-y-3">
-                {tasksByMember.map(({ member, tasks, todo, inProgress, review, completed }) => (
+                {memberPages.pageItems.map(({ member, tasks, todo, inProgress, review, completed }) => (
                   <div 
                     key={member.id} 
                     className="p-2.5 sm:p-4 rounded-lg bg-accent/30 border border-border"
@@ -300,6 +333,7 @@ export function TasksSummary() {
                     )}
                   </div>
                 ))}
+                <ListPager pagination={memberPages} label="members" />
               </div>
             )}
           </TabsContent>

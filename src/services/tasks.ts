@@ -158,6 +158,17 @@ export const tasksService = {
     return normalizeTasks(normalizeArray(response.data));
   },
 
+  /**
+   * Every task without attachments or long text (description / notes).
+   * For dashboard counts and calendars; use getAll / list where documents are shown.
+   */
+  getAllLean: async (filters?: Pick<TaskFilters, 'assigneeId'>): Promise<Task[]> => {
+    const params: Record<string, unknown> = { all: 1, lean: 1 };
+    if (filters?.assigneeId) params.assignee_id = filters.assigneeId;
+    const response = await api.get('/api/tasks', { params });
+    return normalizeTasks(normalizeArray(response.data));
+  },
+
   list: async (
     filters?: TaskFilters & { page?: number; per_page?: number; search?: string }
   ): Promise<{ tasks: Task[]; total: number; page: number; lastPage: number }> => {

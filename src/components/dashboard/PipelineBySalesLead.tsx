@@ -9,6 +9,12 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Link } from 'react-router-dom';
+import { useMemo } from 'react';
+import { useClientPagination } from '@/hooks/useClientPagination';
+import { ListPager } from '@/components/ui/list-pager';
+import { useDashboardExportOptional } from '@/context/DashboardExportContext';
+
+const PAGE_SIZE = 15;
 
 export interface AccountRow {
   account: string;
@@ -23,8 +29,14 @@ interface PipelineBySalesLeadProps {
 }
 
 export default function PipelineBySalesLead({ data }: PipelineBySalesLeadProps) {
-  const sortedData = [...data].sort((a, b) => a.account.localeCompare(b.account));
+  const sortedData = useMemo(
+    () => [...data].sort((a, b) => a.account.localeCompare(b.account)),
+    [data]
+  );
   const sumTotal = sortedData.reduce((s, r) => s + r.totalOpportunities, 0);
+  // Exports capture every row; on screen only one page of rows is mounted.
+  const exporting = useDashboardExportOptional()?.exportFullNumbers ?? false;
+  const pagination = useClientPagination(sortedData, PAGE_SIZE, { showAll: exporting });
 
   return (
     <div className="card p-4 overflow-hidden min-w-0">
@@ -49,7 +61,9 @@ export default function PipelineBySalesLead({ data }: PipelineBySalesLeadProps) 
             </TableRow>
           </TableHeader>
           <TableBody>
-            {sortedData.map((row, idx) => (
+            {pagination.pageItems.map((row, i) => {
+              const idx = pagination.start - 1 + i;
+              return (
               <TableRow key={`${row.account}-${idx}`} className={idx % 2 === 0 ? 'bg-background' : 'bg-muted/20'}>
                 <TableCell className="text-xs font-medium py-2 max-w-[140px] truncate">{row.account}</TableCell>
                 <TableCell className="text-xs py-2 text-muted-foreground max-w-[100px] truncate">{row.location || '—'}</TableCell>
@@ -69,7 +83,8 @@ export default function PipelineBySalesLead({ data }: PipelineBySalesLeadProps) 
                   )}
                 </TableCell>
               </TableRow>
-            ))}
+              );
+            })}
             <TableRow className="border-t-2 border-foreground/20 bg-muted/40">
               <TableCell colSpan={3} className="text-xs font-bold py-2">Sum Total</TableCell>
               <TableCell className="text-xs font-bold py-2 text-right">{sumTotal}</TableCell>
@@ -78,6 +93,7 @@ export default function PipelineBySalesLead({ data }: PipelineBySalesLeadProps) 
         </Table>
         </div>
       </ScrollArea>
+      <ListPager pagination={pagination} label="accounts" />
     </div>
   );
 }

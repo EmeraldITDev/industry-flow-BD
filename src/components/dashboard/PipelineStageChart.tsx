@@ -57,7 +57,7 @@ export function PipelineStageChart({ projects }: PipelineStageChartProps) {
         </Button>
       </CardHeader>
       <CardContent className="p-3 pt-2 sm:p-6 sm:pt-2" ref={chartRef}>
-        <ResponsiveContainer width="100%" height={220}>
+        <ResponsiveContainer width="100%" height={220} debounce={100}>
           <BarChart data={data} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
             <XAxis

@@ -64,7 +64,7 @@ export function ProjectStatusChart({ projects }: ProjectStatusChartProps) {
         </Button>
       </CardHeader>
       <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0" ref={chartRef}>
-        <ResponsiveContainer width="100%" height={220}>
+        <ResponsiveContainer width="100%" height={220} debounce={100}>
           <PieChart>
             <Pie
               data={data}

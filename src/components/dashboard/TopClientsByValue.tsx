@@ -65,7 +65,7 @@ export function TopClientsByValue({
       <div className="text-[11px] text-muted-foreground mb-5">{subtitle}</div>
 
       <div className="h-[260px] min-w-0 w-full">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" debounce={100}>
           <BarChart
             data={chartData}
             layout="vertical"

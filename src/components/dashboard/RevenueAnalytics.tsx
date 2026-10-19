@@ -13,6 +13,11 @@ import { DollarSign, Users, Building2, Layers, Banknote } from 'lucide-react';
 import { formatOrDash, useCurrency } from '@/context/CurrencyContext';
 import { useDashboardCurrencyFormat } from '@/hooks/useDashboardCurrencyFormat';
 import { isWon } from '@/lib/executive/analytics';
+import { useClientPagination } from '@/hooks/useClientPagination';
+import { ListPager } from '@/components/ui/list-pager';
+
+/** Rows mounted per tab; totals above still cover every project. */
+const PAGE_SIZE = 10;
 
 /** 'all' | canonical pipeline_stage | composite 'won' (same definition as Dashboard KPIs). */
 type RevenueFilter = 'all' | 'won' | (typeof PIPELINE_STAGES)[number]['value'];
@@ -159,6 +164,11 @@ export const RevenueAnalytics = () => {
     }, 0);
   }, [filteredProjects, getContractValue]);
 
+  const projectPages = useClientPagination(revenueByProject, PAGE_SIZE, { resetKey: filter });
+  const teamPages = useClientPagination(revenueByTeamMember, PAGE_SIZE, { resetKey: filter });
+  const customerPages = useClientPagination(revenueByCustomer, PAGE_SIZE, { resetKey: filter });
+  const segmentPages = useClientPagination(revenueBySegment, PAGE_SIZE, { resetKey: filter });
+
   if (projectsLoading) {
     return (
       <Card className="bg-card border-border">
@@ -267,8 +277,9 @@ export const RevenueAnalytics = () => {
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="project" className="space-y-2 max-h-80 overflow-y-auto">
-              {revenueByProject.map((item) => (
+            <TabsContent value="project">
+              <div className="space-y-2 max-h-80 overflow-y-auto">
+              {projectPages.pageItems.map((item) => (
                 <Link
                   key={item.id}
                   to={`/projects/${item.id}`}
@@ -290,10 +301,13 @@ export const RevenueAnalytics = () => {
                   </div>
                 </Link>
               ))}
+              </div>
+              <ListPager pagination={projectPages} label="projects" />
             </TabsContent>
 
-            <TabsContent value="team" className="space-y-2 max-h-80 overflow-y-auto">
-              {revenueByTeamMember.map((item) => (
+            <TabsContent value="team">
+              <div className="space-y-2 max-h-80 overflow-y-auto">
+              {teamPages.pageItems.map((item) => (
                 <div
                   key={item.name}
                   className="flex items-center justify-between gap-2 p-2 sm:p-3 rounded-lg border border-border"
@@ -314,10 +328,13 @@ export const RevenueAnalytics = () => {
                   </div>
                 </div>
               ))}
+              </div>
+              <ListPager pagination={teamPages} label="leads" />
             </TabsContent>
 
-            <TabsContent value="customer" className="space-y-2 max-h-80 overflow-y-auto">
-              {revenueByCustomer.map((item) => (
+            <TabsContent value="customer">
+              <div className="space-y-2 max-h-80 overflow-y-auto">
+              {customerPages.pageItems.map((item) => (
                 <div
                   key={item.name}
                   className="flex items-center justify-between gap-2 p-2 sm:p-3 rounded-lg border border-border"
@@ -338,10 +355,13 @@ export const RevenueAnalytics = () => {
                   </div>
                 </div>
               ))}
+              </div>
+              <ListPager pagination={customerPages} label="customers" />
             </TabsContent>
 
-            <TabsContent value="segment" className="space-y-2 max-h-80 overflow-y-auto">
-              {revenueBySegment.map((item) => (
+            <TabsContent value="segment">
+              <div className="space-y-2 max-h-80 overflow-y-auto">
+              {segmentPages.pageItems.map((item) => (
                 <div
                   key={item.name}
                   className="flex items-center justify-between gap-2 p-2 sm:p-3 rounded-lg border border-border"
@@ -362,6 +382,8 @@ export const RevenueAnalytics = () => {
                   </div>
                 </div>
               ))}
+              </div>
+              <ListPager pagination={segmentPages} label="segments" />
             </TabsContent>
           </Tabs>
         )}

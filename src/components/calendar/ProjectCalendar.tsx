@@ -40,9 +40,9 @@ export function ProjectCalendar() {
 
   // Fetch tasks — restricted executive only loads their own assignees from the API
   const { data: tasks = [], isLoading: isLoadingTasks } = useQuery({
-    queryKey: scopeToSelf ? ['all-tasks', 'assignee', user?.id] : ['all-tasks'],
+    queryKey: scopeToSelf ? ['all-tasks', 'lean', 'assignee', user?.id] : ['all-tasks', 'lean'],
     queryFn: () =>
-      tasksService.getAll(
+      tasksService.getAllLean(
         scopeToSelf && user?.id ? { assigneeId: user.id } : undefined
       ),
     staleTime: 5 * 60 * 1000,

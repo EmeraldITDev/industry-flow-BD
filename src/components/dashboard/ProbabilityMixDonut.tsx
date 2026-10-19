@@ -86,7 +86,7 @@ export function ProbabilityMixDonut({
       <div className="text-[11px] text-muted-foreground mb-3">{subtitle}</div>
 
       <div className="h-[200px]">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" debounce={100}>
           <PieChart>
             <Pie
               data={chartData}
