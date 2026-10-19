@@ -75,6 +75,12 @@ export function ProjectCalendar() {
         };
       });
 
+    // Index once so each task's project lookup is O(1) instead of a scan of every project.
+    const projectsById = new Map<unknown, (typeof projects)[number]>();
+    projects.forEach((p: any) => {
+      if (!projectsById.has(p.id)) projectsById.set(p.id, p);
+    });
+
     const taskDeadlines: DeadlineItem[] = scopedTasks
       .filter((t: any) => {
         const dateStr = t.due_date || t.dueDate;
@@ -82,7 +88,7 @@ export function ProjectCalendar() {
       })
       .map((t: any) => {
         const dateStr = t.due_date || t.dueDate;
-        const project = projects.find((p: any) => p.id === (t.project_id || t.projectId));
+        const project = projectsById.get(t.project_id || t.projectId);
         return {
           id: t.id,
           name: t.title,

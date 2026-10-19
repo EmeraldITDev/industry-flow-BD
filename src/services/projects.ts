@@ -336,135 +336,85 @@ export const projectsService = {
 
   // Get all projects (handles both paginated and non-paginated API responses)
   getAll: async (filters?: ProjectFilters): Promise<Project[]> => {
-    try {
-      let allProjects: any[] = [];
-      let currentPage = 1;
-      let hasMorePages = true;
+    const PER_PAGE = 100;
+    const MAX_PAGES = 50;
+    const PARALLEL_REQUESTS = 4;
 
-      while (hasMorePages) {
-        const response = await api.get('/api/projects', {
-          params: { ...filters, page: currentPage, per_page: 100, lean: 1 },
-        });
-        const data = response.data;
-
-        let projects: any[] = [];
-
-        if (Array.isArray(data)) {
-          projects = data;
-          hasMorePages = false; // Non-paginated response
-        } else if (Array.isArray(data?.data)) {
-          projects = data.data;
-          const lastPage = data.meta?.last_page ?? data.last_page;
-          const next = data.links?.next ?? data.next_page_url;
-          if (lastPage != null) {
-            hasMorePages = currentPage < lastPage;
-            currentPage++;
-          } else if (next) {
-            hasMorePages = true;
-            currentPage++;
-          } else {
-            hasMorePages = false;
-          }
-        } else if (Array.isArray(data?.data?.data)) {
-          projects = data.data.data;
-          const meta = data.data;
-          hasMorePages = currentPage < (meta.last_page ?? 1);
-          currentPage++;
-          console.warn('[Projects Service] Detected double-wrapped paginated response');
-        } else if (Array.isArray(data?.projects)) {
-          projects = data.projects;
-          hasMorePages = false;
-        } else if (Array.isArray(data?.results)) {
-          projects = data.results;
-          hasMorePages = false;
-        } else {
-          // Try to find any array value on the response object
-          for (const key of Object.keys(data || {})) {
-            if (Array.isArray((data as any)[key])) {
-              projects = (data as any)[key];
-              console.warn(`[Projects Service] Found projects array under key '${key}'`);
-              break;
-            }
-          }
-          hasMorePages = false;
+    /** Pull the rows and paging info out of whichever response shape the API returned. */
+    const readPage = (data: any): { rows: unknown[]; lastPage: number | null; hasNext: boolean } => {
+      if (Array.isArray(data)) return { rows: data, lastPage: 1, hasNext: false };
+      if (Array.isArray(data?.data)) {
+        const lastPage = data.meta?.last_page ?? data.last_page;
+        const next = data.links?.next ?? data.next_page_url;
+        return {
+          rows: data.data,
+          lastPage: lastPage != null ? Number(lastPage) : null,
+          hasNext: lastPage == null && !!next,
+        };
+      }
+      if (Array.isArray(data?.data?.data)) {
+        console.warn('[Projects Service] Detected double-wrapped paginated response');
+        return { rows: data.data.data, lastPage: Number(data.data.last_page ?? 1), hasNext: false };
+      }
+      if (Array.isArray(data?.projects)) return { rows: data.projects, lastPage: 1, hasNext: false };
+      if (Array.isArray(data?.results)) return { rows: data.results, lastPage: 1, hasNext: false };
+      for (const key of Object.keys(data || {})) {
+        if (Array.isArray((data as any)[key])) {
+          console.warn(`[Projects Service] Found projects array under key '${key}'`);
+          return { rows: (data as any)[key], lastPage: 1, hasNext: false };
         }
-
-        allProjects = allProjects.concat(projects);
-
-        // Safety: if we got 0 results, stop
-        if (projects.length === 0) hasMorePages = false;
-        if (currentPage > 50) hasMorePages = false;
       }
+      return { rows: [], lastPage: 1, hasNext: false };
+    };
 
-      const projects = allProjects;
-      if (currentPage > 2) {
-        console.log(`[Projects Service] Fetched ${currentPage - 1} pages, total ${projects.length} projects`);
-      }
+    const fetchPage = async (page: number) => {
+      const response = await api.get('/api/projects', {
+        params: { ...filters, page, per_page: PER_PAGE, lean: 1 },
+      });
+      return readPage(response.data);
+    };
 
-      // Debug: Log raw project data to see what API returns
-      if (projects.length > 0) {
-        console.log('[Projects Service] Raw project data sample:', {
-          firstProject: projects[0],
-          hasContractValueNGN: 'contractValueNGN' in projects[0],
-          hasContractValueUSD: 'contractValueUSD' in projects[0],
-          contractValueNGN: projects[0].contractValueNGN,
-          contractValueUSD: projects[0].contractValueUSD,
-        });
-      } else {
-        console.warn('[Projects Service] No projects returned from API (projects array is empty)');
-        console.debug('[Projects Service] API returned 0 projects');
+    try {
+      const first = await fetchPage(1);
+      let allProjects: any[] = [...first.rows];
+
+      if (first.rows.length > 0 && first.lastPage != null && first.lastPage > 1) {
+        // Page count is known: fetch the remaining pages in parallel batches
+        // instead of one round trip after another.
+        const lastPage = Math.min(first.lastPage, MAX_PAGES);
+        const remaining = Array.from({ length: lastPage - 1 }, (_, i) => i + 2);
+        for (let i = 0; i < remaining.length; i += PARALLEL_REQUESTS) {
+          const batch = await Promise.all(remaining.slice(i, i + PARALLEL_REQUESTS).map(fetchPage));
+          batch.forEach((page) => {
+            allProjects = allProjects.concat(page.rows);
+          });
+        }
+      } else if (first.rows.length > 0 && first.hasNext) {
+        // No page count, only a "next" link: walk the pages in order.
+        let page = 1;
+        let current = first;
+        while (current.hasNext && current.rows.length > 0 && page < MAX_PAGES) {
+          page += 1;
+          current = await fetchPage(page);
+          allProjects = allProjects.concat(current.rows);
+        }
       }
 
       // Safely normalize projects: skip items that throw during normalization
       const normalized: Project[] = [];
       const skipped: any[] = [];
 
-      for (let i = 0; i < projects.length; i++) {
+      for (let i = 0; i < allProjects.length; i++) {
         try {
-          const p = normalizeProject(projects[i]);
-          normalized.push(p);
-        } catch (err: any) {
-          console.error('[Projects Service] Failed to normalize project at index', i, { item: projects[i], error: err });
-          skipped.push({ index: i, item: projects[i], error: err?.message ?? String(err) });
-          // continue with next item
+          normalized.push(normalizeProject(allProjects[i]));
+        } catch (err) {
+          skipped.push({ index: i, item: allProjects[i], error: err instanceof Error ? err.message : String(err) });
         }
       }
 
       if (skipped.length > 0) {
         console.warn('[Projects Service] Some projects were skipped during normalization:', skipped.length, skipped.slice(0, 3));
       }
-
-      // Debug: Log normalized projects with verbose financial data report
-      const projectsWithFinancialData = normalized.filter(p => (p.contractValueNGN || 0) > 0 || (p.contractValueUSD || 0) > 0);
-      
-      console.group('[Projects Service] Financial Data Report');
-      console.log(`Total projects: ${normalized.length}`);
-      console.log(`Projects with contract values: ${projectsWithFinancialData.length}`);
-      
-      if (projectsWithFinancialData.length > 0) {
-        console.log('✅ Financial data is available:', projectsWithFinancialData.map(p => ({
-          id: p.id,
-          name: p.name,
-          contractValueNGN: p.contractValueNGN,
-          contractValueUSD: p.contractValueUSD,
-          marginValueNGN: p.marginValueNGN,
-          marginValueUSD: p.marginValueUSD,
-        })));
-      } else {
-        console.warn('⚠️  No projects have contract/PO values yet');
-        console.warn('This is expected if:');
-        console.warn('  1. Backend database wasnt seeded with sample data');
-        console.warn('  2. No projects have been created yet');
-        console.warn('  3. Projects were created before financial fields existed');
-        console.log('Sample from first project:', normalized[0] ? {
-          id: normalized[0].id,
-          name: normalized[0].name,
-          contractValueNGN: normalized[0].contractValueNGN,
-          contractValueUSD: normalized[0].contractValueUSD,
-          hasFinancialFields: !!(normalized[0].contractValueNGN || normalized[0].contractValueUSD),
-        } : 'No projects');
-      }
-      console.groupEnd();
 
       return normalized;
     } catch (err: any) {

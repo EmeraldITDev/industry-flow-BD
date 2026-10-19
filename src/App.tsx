@@ -1,3 +1,5 @@
+import { lazy, Suspense } from "react";
+import { Loader2 } from "lucide-react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -13,22 +15,30 @@ import { RestrictedExecutiveTasksGuard } from "@/components/auth/RestrictedExecu
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { UpdateAvailableBanner } from "@/components/UpdateAvailableBanner";
 import { InstallPrompt } from "@/components/pwa/InstallPrompt";
-import Index from "./pages/Index";
 import LoginPage from "./pages/LoginPage";
-import ProjectsPage from "./pages/ProjectsPage";
-import ProjectDetailPage from "./pages/ProjectDetailPage";
-import TeamPage from "./pages/TeamPage";
-import NewProjectPage from "./pages/NewProjectPage";
-import EditProjectPage from "./pages/EditProject";
-import SettingsPage from "./pages/SettingsPage";
-import CalendarPage from "./pages/CalendarPage";
-import AllTasksPage from "./pages/AllTasksPage";
-import ChairmanViewPage from "./pages/ChairmanViewPage";
-import OperationsPage from "./pages/OperationsPage";
-import DocumentRepositoryPage from "./pages/DocumentRepositoryPage";
-import PartnersPage from "./pages/PartnersPage";
-import PartnerDetailPage from "./pages/PartnerDetailPage";
-import NotFound from "./pages/NotFound";
+
+// Pages load on demand so the first paint does not parse every screen and export library.
+const Index = lazy(() => import("./pages/Index"));
+const ProjectsPage = lazy(() => import("./pages/ProjectsPage"));
+const ProjectDetailPage = lazy(() => import("./pages/ProjectDetailPage"));
+const TeamPage = lazy(() => import("./pages/TeamPage"));
+const NewProjectPage = lazy(() => import("./pages/NewProjectPage"));
+const EditProjectPage = lazy(() => import("./pages/EditProject"));
+const SettingsPage = lazy(() => import("./pages/SettingsPage"));
+const CalendarPage = lazy(() => import("./pages/CalendarPage"));
+const AllTasksPage = lazy(() => import("./pages/AllTasksPage"));
+const ChairmanViewPage = lazy(() => import("./pages/ChairmanViewPage"));
+const OperationsPage = lazy(() => import("./pages/OperationsPage"));
+const DocumentRepositoryPage = lazy(() => import("./pages/DocumentRepositoryPage"));
+const PartnersPage = lazy(() => import("./pages/PartnersPage"));
+const PartnerDetailPage = lazy(() => import("./pages/PartnerDetailPage"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+
+const RouteFallback = () => (
+  <div className="min-h-screen flex items-center justify-center bg-background">
+    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+  </div>
+);
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -53,6 +63,7 @@ const App = () => (
                   <UpdateAvailableBanner />
                   <InstallPrompt />
                   <BrowserRouter>
+                  <Suspense fallback={<RouteFallback />}>
                   <Routes>
                     <Route path="/login" element={<LoginPage />} />
                     <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
@@ -72,6 +83,7 @@ const App = () => (
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                     <Route path="*" element={<NotFound />} />
                   </Routes>
+                  </Suspense>
                   </BrowserRouter>
                 </NotificationProvider>
               </CurrencyProvider>

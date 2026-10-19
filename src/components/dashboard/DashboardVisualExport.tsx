@@ -8,7 +8,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
-import { exportElementToPdf, exportElementToPng } from '@/lib/dashboardExport';
 import { withExportFullNumbers, useDashboardExport } from '@/context/DashboardExportContext';
 import { toast } from 'sonner';
 
@@ -37,6 +36,8 @@ export function DashboardVisualExport({
     setBusy(true);
     try {
       await withExportFullNumbers(setExportFullNumbers, async () => {
+        // html2canvas + jsPDF are only needed on export, so load them on demand.
+        const { exportElementToPdf, exportElementToPng } = await import('@/lib/dashboardExport');
         if (kind === 'png') await exportElementToPng(el, filename);
         else await exportElementToPdf(el, filename);
       });

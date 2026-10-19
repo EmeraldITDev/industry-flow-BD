@@ -18,12 +18,8 @@ import {
 } from '@/services/partners';
 import { useCurrency } from '@/context/CurrencyContext';
 import { cn } from '@/lib/utils';
-import {
-  exportActiveZeroCsv,
-  exportActiveZeroPdf,
-  exportIncompleteCsv,
-  exportIncompletePdf,
-} from '@/lib/partnerTrackerExports';
+// jsPDF is only needed on export, so the helpers are loaded on demand.
+const loadPartnerExports = () => import('@/lib/partnerTrackerExports');
 import { MultiSearchableSelect } from '@/components/ui/multi-searchable-select';
 import { PIPELINE_STAGES } from '@/types';
 
@@ -540,8 +536,8 @@ function ActiveZeroCard({
           </p>
         </div>
         <ExportMenu
-          onPdf={() => exportActiveZeroPdf(data)}
-          onCsv={() => exportActiveZeroCsv(data)}
+          onPdf={() => loadPartnerExports().then((m) => m.exportActiveZeroPdf(data))}
+          onCsv={() => loadPartnerExports().then((m) => m.exportActiveZeroCsv(data))}
           disabled={data.count === 0}
         />
       </CardHeader>
@@ -629,8 +625,8 @@ function IncompleteProfilesCard({
           </p>
         </div>
         <ExportMenu
-          onPdf={() => exportIncompletePdf(incomplete, dataGaps)}
-          onCsv={() => exportIncompleteCsv(incomplete, dataGaps)}
+          onPdf={() => loadPartnerExports().then((m) => m.exportIncompletePdf(incomplete, dataGaps))}
+          onCsv={() => loadPartnerExports().then((m) => m.exportIncompleteCsv(incomplete, dataGaps))}
           disabled={incomplete.count === 0 && (dataGaps?.partnersScanned ?? 0) === 0}
         />
       </CardHeader>

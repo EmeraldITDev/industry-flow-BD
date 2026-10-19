@@ -14,6 +14,23 @@ const isAuthenticated = (): boolean => {
 };
 
 export const notificationsService = {
+  /**
+   * Most recent notifications plus the server's total unread count.
+   * `unreadCount` is null when the backend does not report it (older API),
+   * so callers can fall back to counting the returned page.
+   */
+  getRecent: async (
+    limit = 50
+  ): Promise<{ notifications: Notification[]; unreadCount: number | null }> => {
+    if (!isAuthenticated()) {
+      return { notifications: [], unreadCount: 0 };
+    }
+    const response = await api.get('/api/notifications', { params: { limit } });
+    const raw = response.data?.meta?.unread_count;
+    const unreadCount = raw == null || !Number.isFinite(Number(raw)) ? null : Number(raw);
+    return { notifications: normalizeArray(response.data), unreadCount };
+  },
+
   // Get all notifications for current user
   getAll: async (): Promise<Notification[]> => {
     if (!isAuthenticated()) {

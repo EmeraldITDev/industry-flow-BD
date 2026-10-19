@@ -20,11 +20,10 @@ const getTaskIdentifier = (task: Task, index: number) => {
   return id || `fallback-task-${index}-${normalizeComparable(task.title)}`;
 };
 
-const isTaskAssignedToMember = (task: Task, member: TeamMember) => {
-  const memberId = normalizeComparable(member.id);
-  const memberName = normalizeComparable(member.name);
-  const memberEmail = normalizeComparable(member.email);
+type TaskAssigneeKeys = { ids: Set<string>; names: Set<string>; emails: Set<string> };
 
+/** Normalised assignee identifiers for a task; computed once per task, not once per member. */
+const getTaskAssigneeKeys = (task: Task): TaskAssigneeKeys => {
   const rawTask = task as Task & {
     assignee_id?: string | number;
     assignee_name?: string;
@@ -34,30 +33,19 @@ const isTaskAssignedToMember = (task: Task, member: TeamMember) => {
     assigned_to_email?: string;
   };
 
-  const assigneeIdCandidates = [
-    task.assigneeId,
-    rawTask.assignee_id,
-    rawTask.assigned_to,
-    task.assignee,
-  ].map(normalizeComparable).filter(Boolean);
+  const toSet = (values: unknown[]) => new Set(values.map(normalizeComparable).filter(Boolean));
 
-  if (assigneeIdCandidates.some((candidate) => candidate === memberId)) return true;
-
-  const assigneeNameCandidates = [
-    task.assignee,
-    rawTask.assignee_name,
-    rawTask.assigned_to_name,
-  ].map(normalizeComparable).filter(Boolean);
-
-  if (assigneeNameCandidates.some((candidate) => candidate === memberName)) return true;
-
-  const assigneeEmailCandidates = [
-    rawTask.assignee_email,
-    rawTask.assigned_to_email,
-  ].map(normalizeComparable).filter(Boolean);
-
-  return assigneeEmailCandidates.some((candidate) => candidate === memberEmail);
+  return {
+    ids: toSet([task.assigneeId, rawTask.assignee_id, rawTask.assigned_to, task.assignee]),
+    names: toSet([task.assignee, rawTask.assignee_name, rawTask.assigned_to_name]),
+    emails: toSet([rawTask.assignee_email, rawTask.assigned_to_email]),
+  };
 };
+
+const isTaskAssignedToMember = (keys: TaskAssigneeKeys, member: TeamMember) =>
+  keys.ids.has(normalizeComparable(member.id)) ||
+  keys.names.has(normalizeComparable(member.name)) ||
+  keys.emails.has(normalizeComparable(member.email));
 
 export function TasksSummary() {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -107,8 +95,11 @@ export function TasksSummary() {
   }), [allTasks]);
 
   const tasksByMember = useMemo(() => {
+    const taskKeys = allTasks.map((task: Task) => ({ task, keys: getTaskAssigneeKeys(task) }));
     return (teamMembers || []).map((member: TeamMember) => {
-      const memberTasks = allTasks.filter((task: Task) => isTaskAssignedToMember(task, member));
+      const memberTasks = taskKeys
+        .filter(({ keys }) => isTaskAssignedToMember(keys, member))
+        .map(({ task }) => task);
       return {
         member,
         tasks: memberTasks,
