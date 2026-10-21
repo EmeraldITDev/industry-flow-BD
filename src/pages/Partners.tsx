@@ -52,6 +52,7 @@ import type { Sector } from '@/types';
 import { PIPELINE_STAGES } from '@/types';
 import { RelationshipStageBadge } from '@/components/partners/RelationshipStageBadge';
 import { PartnerFormSheet } from '@/components/partners/PartnerFormSheet';
+import { PartnerTrackerMiniDashboard } from '@/components/partners/PartnerTrackerMiniDashboard';
 import { MultiSearchableSelect } from '@/components/ui/multi-searchable-select';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -85,8 +86,9 @@ function parsePipelineStagesParam(raw: string | null): string[] {
 function exportPartnersCsv(partners: Partner[]) {
   const headers = [
     'Company',
-    'Contact',
-    'Email',
+    'Primary Contact',
+    'Primary Title',
+    'Primary Email',
     'Stage',
     'Verticals',
     'Products',
@@ -96,11 +98,16 @@ function exportPartnersCsv(partners: Partner[]) {
     'Total Value USD',
   ];
   const escape = (v: string) => `"${String(v).replace(/"/g, '""')}"`;
-  const rows = partners.map((p) =>
-    [
+  const rows = partners.map((p) => {
+    const primary =
+      p.contacts?.find((c) => c.isPrimary) ??
+      p.contacts?.[0] ??
+      null;
+    return [
       p.companyName,
-      p.contactPerson ?? '',
-      p.email ?? '',
+      primary?.name ?? p.contactPerson ?? '',
+      primary?.title ?? '',
+      primary?.email ?? p.email ?? '',
       p.relationshipStage,
       (p.verticals ?? []).join('; '),
       (p.productCategories ?? []).join('; '),
@@ -110,8 +117,8 @@ function exportPartnersCsv(partners: Partner[]) {
       String(p.totalValueUsd ?? 0),
     ]
       .map(escape)
-      .join(',')
-  );
+      .join(',');
+  });
   const csv = [headers.join(','), ...rows].join('\n');
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
@@ -345,6 +352,11 @@ export default function Partners() {
           </Button>
         </div>
       </div>
+
+      <PartnerTrackerMiniDashboard
+        onFilterIncomplete={() => setIncompleteOnly(true)}
+        onFilterZeroLinks={() => setZeroLinksOnly(true)}
+      />
 
       {selectMode && (
         <div className="flex items-center gap-3 p-3 rounded-lg bg-muted border border-border">
@@ -620,7 +632,7 @@ export default function Partners() {
                         </div>
                         <p className="text-sm text-muted-foreground">
                           {partner.contactPerson
-                            ? `Contact: ${partner.contactPerson}`
+                            ? `Primary: ${partner.contactPerson}`
                             : 'No contact person'}
                           {ownerLabel ? ` · Owners: ${ownerLabel}` : ''}
                         </p>

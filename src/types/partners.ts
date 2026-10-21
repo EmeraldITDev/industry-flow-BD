@@ -46,6 +46,16 @@ export interface PartnerOwner {
   email?: string;
 }
 
+export interface PartnerContact {
+  id: string;
+  name?: string;
+  email?: string;
+  phone?: string;
+  /** Optional designation / job title. */
+  title?: string;
+  isPrimary: boolean;
+}
+
 export interface ScmVendorData {
   vendorId?: string;
   vendorName?: string;
@@ -57,9 +67,14 @@ export interface ScmVendorData {
 export interface Partner {
   id: string;
   companyName: string;
+  /** Primary contact name (synced from contacts for reports / list views). */
   contactPerson?: string;
+  /** Primary contact email. */
   email?: string;
+  /** Primary contact phone. */
   phone?: string;
+  /** All partner contacts; exactly one should be primary when non-empty. */
+  contacts?: PartnerContact[];
   type: string[];
   agreementType?: string | null;
   /** Optional partnership agreement expiry (Valid Thru). */
@@ -110,6 +125,7 @@ export interface CreatePartnerData {
   contactPerson?: string;
   email?: string;
   phone?: string;
+  contacts?: PartnerContact[];
   type?: string[];
   agreementType?: string | null;
   validThru?: string | null;

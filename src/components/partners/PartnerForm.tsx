@@ -13,7 +13,8 @@ import {
 } from '@/components/ui/select';
 import { MultiSearchableSelect } from '@/components/ui/multi-searchable-select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Users } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Loader2, Plus, Star, Trash2, Users } from 'lucide-react';
 import { businessVerticals } from '@/data/mockData';
 import { PRODUCT_OPTIONS, getSubproductOptions } from '@/data/productCatalog';
 import { teamService } from '@/services/team';
@@ -25,14 +26,55 @@ import {
   STRATEGIC_VALUES,
   type CreatePartnerData,
   type Partner,
+  type PartnerContact,
   type RelationshipStage,
 } from '@/types/partners';
 
+const newContactId = () =>
+  typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? crypto.randomUUID()
+    : `contact-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+
+function emptyContact(isPrimary = false): PartnerContact {
+  return {
+    id: newContactId(),
+    name: '',
+    email: '',
+    phone: '',
+    title: '',
+    isPrimary,
+  };
+}
+
+function contactsFromPartner(partner: Partner): PartnerContact[] {
+  if (partner.contacts && partner.contacts.length > 0) {
+    return partner.contacts.map((c) => ({
+      id: c.id || newContactId(),
+      name: c.name ?? '',
+      email: c.email ?? '',
+      phone: c.phone ?? '',
+      title: c.title ?? '',
+      isPrimary: Boolean(c.isPrimary),
+    }));
+  }
+  if (partner.contactPerson || partner.email || partner.phone) {
+    return [
+      {
+        id: newContactId(),
+        name: partner.contactPerson ?? '',
+        email: partner.email ?? '',
+        phone: partner.phone ?? '',
+        title: '',
+        isPrimary: true,
+      },
+    ];
+  }
+  return [emptyContact(true)];
+}
+
 export type PartnerFormValues = {
   companyName: string;
-  contactPerson: string;
-  email: string;
-  phone: string;
+  contacts: PartnerContact[];
   type: string[];
   agreementType: string;
   validThru: string;
@@ -54,9 +96,7 @@ const NONE = '__none__';
 export function emptyPartnerForm(): PartnerFormValues {
   return {
     companyName: '',
-    contactPerson: '',
-    email: '',
-    phone: '',
+    contacts: [emptyContact(true)],
     type: [],
     agreementType: '',
     validThru: '',
@@ -77,9 +117,7 @@ export function emptyPartnerForm(): PartnerFormValues {
 export function partnerToFormValues(partner: Partner): PartnerFormValues {
   return {
     companyName: partner.companyName,
-    contactPerson: partner.contactPerson ?? '',
-    email: partner.email ?? '',
-    phone: partner.phone ?? '',
+    contacts: contactsFromPartner(partner),
     type: partner.type ?? [],
     agreementType: partner.agreementType ?? '',
     validThru: partner.validThru ?? '',
@@ -98,11 +136,29 @@ export function partnerToFormValues(partner: Partner): PartnerFormValues {
 }
 
 export function formValuesToPayload(values: PartnerFormValues): CreatePartnerData {
+  const contacts = values.contacts
+    .map((c) => ({
+      id: c.id,
+      name: (c.name ?? '').trim() || undefined,
+      email: (c.email ?? '').trim() || undefined,
+      phone: (c.phone ?? '').trim() || undefined,
+      title: (c.title ?? '').trim() || undefined,
+      isPrimary: Boolean(c.isPrimary),
+    }))
+    .filter((c) => c.name || c.email || c.phone || c.title);
+
+  if (contacts.length > 0 && !contacts.some((c) => c.isPrimary)) {
+    contacts[0].isPrimary = true;
+  }
+
+  const primary = contacts.find((c) => c.isPrimary) ?? contacts[0];
+
   return {
     companyName: values.companyName.trim(),
-    contactPerson: values.contactPerson.trim() || undefined,
-    email: values.email.trim() || undefined,
-    phone: values.phone.trim() || undefined,
+    contacts,
+    contactPerson: primary?.name,
+    email: primary?.email,
+    phone: primary?.phone,
     type: values.type,
     agreementType: values.agreementType.trim() || null,
     validThru: values.validThru.trim() || null,
@@ -208,44 +264,185 @@ export function PartnerForm({
         />
       </div>
 
-      <div className="grid gap-5 sm:grid-cols-2">
-        <div className="space-y-2.5">
-          <Label htmlFor="partner-contact">Contact Person</Label>
-          <Input
-            id="partner-contact"
-            value={values.contactPerson}
-            onChange={(e) =>
-              setValues((prev) => ({ ...prev, contactPerson: e.target.value }))
+      <div className="space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <Label>Contacts</Label>
+            <p className="text-xs text-muted-foreground mt-1">
+              Add multiple contacts. The primary contact is used on reports.
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              setValues((prev) => ({
+                ...prev,
+                contacts: [
+                  ...prev.contacts,
+                  emptyContact(prev.contacts.length === 0),
+                ],
+              }))
             }
-            placeholder="Primary contact"
-          />
+          >
+            <Plus className="h-4 w-4 mr-1.5" />
+            Add contact
+          </Button>
         </div>
-        <div className="space-y-2.5">
-          <Label htmlFor="partner-email">Email</Label>
-          <Input
-            id="partner-email"
-            type="email"
-            value={values.email}
-            onChange={(e) =>
-              setValues((prev) => ({ ...prev, email: e.target.value }))
-            }
-            placeholder="contact@company.com"
-          />
+
+        <div className="space-y-3">
+          {values.contacts.map((contact, index) => (
+            <div
+              key={contact.id}
+              className="rounded-lg border p-3 sm:p-4 space-y-3 bg-muted/20"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <p className="text-sm font-medium truncate">
+                    Contact {index + 1}
+                  </p>
+                  {contact.isPrimary && (
+                    <Badge variant="secondary" className="text-xs shrink-0">
+                      Primary
+                    </Badge>
+                  )}
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  {!contact.isPrimary && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 px-2 text-xs"
+                      onClick={() =>
+                        setValues((prev) => ({
+                          ...prev,
+                          contacts: prev.contacts.map((c) => ({
+                            ...c,
+                            isPrimary: c.id === contact.id,
+                          })),
+                        }))
+                      }
+                    >
+                      <Star className="h-3.5 w-3.5 mr-1" />
+                      Set primary
+                    </Button>
+                  )}
+                  {values.contacts.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                      onClick={() =>
+                        setValues((prev) => {
+                          const next = prev.contacts.filter(
+                            (c) => c.id !== contact.id,
+                          );
+                          if (next.length > 0 && !next.some((c) => c.isPrimary)) {
+                            next[0] = { ...next[0], isPrimary: true };
+                          }
+                          return { ...prev, contacts: next };
+                        })
+                      }
+                      aria-label="Remove contact"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor={`partner-contact-name-${contact.id}`}>
+                    Name
+                  </Label>
+                  <Input
+                    id={`partner-contact-name-${contact.id}`}
+                    value={contact.name ?? ''}
+                    onChange={(e) =>
+                      setValues((prev) => ({
+                        ...prev,
+                        contacts: prev.contacts.map((c) =>
+                          c.id === contact.id
+                            ? { ...c, name: e.target.value }
+                            : c,
+                        ),
+                      }))
+                    }
+                    placeholder="Contact name"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor={`partner-contact-title-${contact.id}`}>
+                    Title / designation
+                  </Label>
+                  <Input
+                    id={`partner-contact-title-${contact.id}`}
+                    value={contact.title ?? ''}
+                    onChange={(e) =>
+                      setValues((prev) => ({
+                        ...prev,
+                        contacts: prev.contacts.map((c) =>
+                          c.id === contact.id
+                            ? { ...c, title: e.target.value }
+                            : c,
+                        ),
+                      }))
+                    }
+                    placeholder="Optional (e.g. Account Manager)"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor={`partner-contact-email-${contact.id}`}>
+                    Email
+                  </Label>
+                  <Input
+                    id={`partner-contact-email-${contact.id}`}
+                    type="email"
+                    value={contact.email ?? ''}
+                    onChange={(e) =>
+                      setValues((prev) => ({
+                        ...prev,
+                        contacts: prev.contacts.map((c) =>
+                          c.id === contact.id
+                            ? { ...c, email: e.target.value }
+                            : c,
+                        ),
+                      }))
+                    }
+                    placeholder="contact@company.com"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor={`partner-contact-phone-${contact.id}`}>
+                    Phone
+                  </Label>
+                  <Input
+                    id={`partner-contact-phone-${contact.id}`}
+                    value={contact.phone ?? ''}
+                    onChange={(e) =>
+                      setValues((prev) => ({
+                        ...prev,
+                        contacts: prev.contacts.map((c) =>
+                          c.id === contact.id
+                            ? { ...c, phone: e.target.value }
+                            : c,
+                        ),
+                      }))
+                    }
+                    placeholder="+234 ..."
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
       <div className="grid gap-5 sm:grid-cols-2">
-        <div className="space-y-2.5">
-          <Label htmlFor="partner-phone">Phone</Label>
-          <Input
-            id="partner-phone"
-            value={values.phone}
-            onChange={(e) =>
-              setValues((prev) => ({ ...prev, phone: e.target.value }))
-            }
-            placeholder="+234 ..."
-          />
-        </div>
         <div className="space-y-2.5">
           <Label htmlFor="partner-website">Website</Label>
           <Input
@@ -257,18 +454,17 @@ export function PartnerForm({
             placeholder="https://example.com"
           />
         </div>
-      </div>
-
-      <div className="space-y-2.5">
-        <Label htmlFor="partner-location">Location</Label>
-        <Input
-          id="partner-location"
-          value={values.location}
-          onChange={(e) =>
-            setValues((prev) => ({ ...prev, location: e.target.value }))
-          }
-          placeholder="City, Country"
-        />
+        <div className="space-y-2.5">
+          <Label htmlFor="partner-location-inline">Location</Label>
+          <Input
+            id="partner-location-inline"
+            value={values.location}
+            onChange={(e) =>
+              setValues((prev) => ({ ...prev, location: e.target.value }))
+            }
+            placeholder="City, Country"
+          />
+        </div>
       </div>
 
       <div className="space-y-2.5">

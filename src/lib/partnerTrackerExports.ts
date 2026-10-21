@@ -265,7 +265,7 @@ export function exportIncompleteCsv(
   rows.push(['SECTION', 'Incomplete profiles (Tracker badge)']);
   rows.push(['Headline count', String(incomplete.count)]);
   rows.push([]);
-  rows.push(['Company', 'Stage', 'Missing fields', 'Contact', 'Email', 'Owners']);
+  rows.push(['Company', 'Stage', 'Missing fields', 'Primary Contact', 'Primary Email', 'Owners']);
   (incomplete.partners ?? []).forEach((p) => {
     rows.push([
       p.companyName,

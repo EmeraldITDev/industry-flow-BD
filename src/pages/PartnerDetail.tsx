@@ -36,6 +36,7 @@ import {
 } from '@/components/partners/RelationshipStageBadge';
 import { PartnerFormSheet } from '@/components/partners/PartnerFormSheet';
 import { LinkScmVendorModal } from '@/components/partners/LinkScmVendorModal';
+import { PartnerMiniDashboard } from '@/components/partners/PartnerMiniDashboard';
 import { TaskList } from '@/components/tasks/TaskList';
 import { KanbanBoard } from '@/components/tasks/KanbanBoard';
 import { AddTaskDialog } from '@/components/tasks/AddTaskDialog';
@@ -73,16 +74,25 @@ export default function PartnerDetail() {
   const [addTaskOpen, setAddTaskOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const deepLinkTaskId = searchParams.get('taskId');
+  const tabParam = searchParams.get('tab');
   const [activeTab, setActiveTab] = useState(() =>
-    deepLinkTaskId ? 'tasks' : 'profile',
+    deepLinkTaskId || tabParam === 'tasks'
+      ? 'tasks'
+      : tabParam === 'opportunities'
+        ? 'opportunities'
+        : 'profile',
   );
 
-  // Open the tasks tab when arriving from a notification / email deep link
+  // Open the requested tab when arriving from tracker / notification deep links
   useEffect(() => {
-    if (deepLinkTaskId) {
+    if (deepLinkTaskId || tabParam === 'tasks') {
       setActiveTab('tasks');
+    } else if (tabParam === 'opportunities') {
+      setActiveTab('opportunities');
+    } else if (tabParam === 'profile') {
+      setActiveTab('profile');
     }
-  }, [deepLinkTaskId]);
+  }, [deepLinkTaskId, tabParam]);
 
   const {
     data: partner,
@@ -275,15 +285,72 @@ export default function PartnerDetail() {
         </TabsList>
 
         <TabsContent value="profile" className="mt-4 space-y-5">
+          <PartnerMiniDashboard
+            partner={partner}
+            onOpenTasks={() => setActiveTab('tasks')}
+            onEditProfile={() => setEditOpen(true)}
+          />
+
           <div className="grid gap-5 lg:grid-cols-3">
             <Card className="lg:col-span-2">
               <CardHeader className="p-4 sm:p-6">
                 <CardTitle className="text-base">Partner Details</CardTitle>
               </CardHeader>
               <CardContent className="grid gap-5 sm:grid-cols-2 p-4 sm:p-6 pt-0">
-                <Field label="Contact Person">{partner.contactPerson}</Field>
-                <Field label="Email">{partner.email}</Field>
-                <Field label="Phone">{partner.phone}</Field>
+                <div className="sm:col-span-2 space-y-3">
+                  <p className="text-xs text-muted-foreground">Contacts</p>
+                  {(() => {
+                    const contacts =
+                      partner.contacts && partner.contacts.length > 0
+                        ? partner.contacts
+                        : partner.contactPerson || partner.email || partner.phone
+                          ? [
+                              {
+                                id: 'legacy',
+                                name: partner.contactPerson,
+                                email: partner.email,
+                                phone: partner.phone,
+                                isPrimary: true,
+                              },
+                            ]
+                          : [];
+
+                    if (contacts.length === 0) {
+                      return <p className="text-sm font-medium">—</p>;
+                    }
+
+                    return (
+                      <ul className="space-y-3">
+                        {contacts.map((contact) => (
+                          <li
+                            key={contact.id}
+                            className="rounded-md border px-3 py-2.5 space-y-1"
+                          >
+                            <div className="flex flex-wrap items-center gap-2">
+                              <p className="text-sm font-medium">
+                                {contact.name || '—'}
+                              </p>
+                              {contact.title && (
+                                <span className="text-xs text-muted-foreground">
+                                  {contact.title}
+                                </span>
+                              )}
+                              {contact.isPrimary && (
+                                <Badge variant="secondary" className="text-xs">
+                                  Primary
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-sm text-muted-foreground">
+                              <span>{contact.email || 'No email'}</span>
+                              <span>{contact.phone || 'No phone'}</span>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    );
+                  })()}
+                </div>
                 <Field label="Website">
                   {partner.website ? (
                     <a

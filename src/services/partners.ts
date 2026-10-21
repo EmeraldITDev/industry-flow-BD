@@ -2,6 +2,7 @@ import api from './api';
 import type {
   CreatePartnerData,
   Partner,
+  PartnerContact,
   PartnerFilters,
   PartnerOwner,
   ScmVendorData,
@@ -9,6 +10,66 @@ import type {
   UpdatePartnerData,
 } from '@/types/partners';
 import { isPartnerProfileComplete } from '@/types/partners';
+
+const newContactId = () =>
+  typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? crypto.randomUUID()
+    : `contact-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+
+function normalizeContacts(raw: unknown, fallback?: {
+  name?: string | null;
+  email?: string | null;
+  phone?: string | null;
+}): PartnerContact[] {
+  const rows = Array.isArray(raw) ? raw : [];
+  const contacts: PartnerContact[] = rows
+    .filter((row): row is Record<string, unknown> => !!row && typeof row === 'object')
+    .map((row) => {
+      const name = String(row.name ?? '').trim();
+      const email = String(row.email ?? '').trim();
+      const phone = String(row.phone ?? '').trim();
+      const title = String(row.title ?? '').trim();
+      return {
+        id: String(row.id ?? newContactId()),
+        name: name || undefined,
+        email: email || undefined,
+        phone: phone || undefined,
+        title: title || undefined,
+        isPrimary: Boolean(row.isPrimary ?? row.is_primary),
+      };
+    })
+    .filter((c) => c.name || c.email || c.phone || c.title);
+
+  if (contacts.length === 0) {
+    const name = String(fallback?.name ?? '').trim();
+    const email = String(fallback?.email ?? '').trim();
+    const phone = String(fallback?.phone ?? '').trim();
+    if (!name && !email && !phone) return [];
+    return [
+      {
+        id: newContactId(),
+        name: name || undefined,
+        email: email || undefined,
+        phone: phone || undefined,
+        isPrimary: true,
+      },
+    ];
+  }
+
+  if (!contacts.some((c) => c.isPrimary)) {
+    contacts[0].isPrimary = true;
+  } else {
+    let sawPrimary = false;
+    for (const c of contacts) {
+      if (c.isPrimary) {
+        if (sawPrimary) c.isPrimary = false;
+        else sawPrimary = true;
+      }
+    }
+  }
+
+  return contacts;
+}
 
 export type PartnerTrackerRankRow = {
   id: number | string;
@@ -428,12 +489,24 @@ export const normalizePartner = (raw: any): Partner => {
     scmData = toScmData(raw.scmData ?? raw.scm_data);
   }
 
+  const contacts = normalizeContacts(raw.contacts, {
+    name: raw.contactPerson ?? raw.contact_person,
+    email: raw.email,
+    phone: raw.phone,
+  });
+  const primary = contacts.find((c) => c.isPrimary) ?? contacts[0];
+
   return {
     id: String(raw.id),
     companyName: String(raw.companyName ?? raw.company_name ?? ''),
-    contactPerson: raw.contactPerson ?? raw.contact_person ?? '',
-    email: raw.email ?? '',
-    phone: raw.phone ?? '',
+    contactPerson:
+      primary?.name ??
+      raw.contactPerson ??
+      raw.contact_person ??
+      '',
+    email: primary?.email ?? raw.email ?? '',
+    phone: primary?.phone ?? raw.phone ?? '',
+    contacts,
     type: Array.isArray(raw.type)
       ? raw.type.map(String)
       : typeof raw.type === 'string' && raw.type.trim()
@@ -491,6 +564,7 @@ const toPayload = (data: CreatePartnerData | UpdatePartnerData): Record<string, 
     contactPerson: 'contact_person',
     email: 'email',
     phone: 'phone',
+    contacts: 'contacts',
     type: 'type',
     agreementType: 'agreement_type',
     validThru: 'valid_thru',
@@ -515,6 +589,17 @@ const toPayload = (data: CreatePartnerData | UpdatePartnerData): Record<string, 
       let value = (data as Record<string, unknown>)[camel];
       if (camel === 'relationshipOwnerIds' && Array.isArray(value)) {
         value = value.map((id) => Number(id)).filter((id) => Number.isFinite(id) && id > 0);
+      }
+      if (camel === 'contacts' && Array.isArray(value)) {
+        value = value.map((row: PartnerContact) => ({
+          id: row.id,
+          name: row.name ?? null,
+          email: row.email ?? null,
+          phone: row.phone ?? null,
+          title: row.title ?? null,
+          is_primary: Boolean(row.isPrimary),
+          isPrimary: Boolean(row.isPrimary),
+        }));
       }
       payload[camel] = value;
       payload[snake] = value;
