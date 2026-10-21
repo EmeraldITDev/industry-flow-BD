@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { tasksService } from '@/services/tasks';
 import { projectsService } from '@/services/projects';
+import { partnersService } from '@/services/partners';
 import { teamService } from '@/services/team';
 import { useAuth } from '@/context/AuthContext';
 import { TaskStatus, TaskPriority, Project } from '@/types';
+import { getTaskDeepLink } from '@/lib/taskLinks';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -49,7 +51,9 @@ const priorityConfig: Record<TaskPriority, { label: string; className: string }>
 
 export default function AllTasks() {
   const { user } = useAuth();
-  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const deepLinkTaskId = searchParams.get('taskId');
   const chairmanOnly =
     searchParams.get('requiresChairmanIntervention') === '1' ||
     searchParams.get('assignedToChairman') === '1';
@@ -67,6 +71,43 @@ export default function AllTasks() {
     const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 300);
     return () => window.clearTimeout(timer);
   }, [search]);
+
+  // Resolve /tasks?taskId=… to the real project/partner deep link (avoids 404s).
+  useEffect(() => {
+    if (!deepLinkTaskId) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const task = await tasksService.getById(String(deepLinkTaskId));
+        if (cancelled) return;
+        const link = getTaskDeepLink(task);
+        if (link) {
+          navigate(link, { replace: true });
+          return;
+        }
+        toast.error('Could not open that task');
+      } catch {
+        if (!cancelled) {
+          toast.error('Could not open that task');
+        }
+      }
+      if (!cancelled) {
+        setSearchParams(
+          (prev) => {
+            const next = new URLSearchParams(prev);
+            next.delete('taskId');
+            return next;
+          },
+          { replace: true },
+        );
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [deepLinkTaskId, navigate, setSearchParams]);
 
   const isPrivileged =
     user?.accessLevel === 'admin' || user?.accessLevel === 'bd_director';
@@ -146,6 +187,12 @@ export default function AllTasks() {
     staleTime: 5 * 60 * 1000,
   });
 
+  const { data: partners = [] } = useQuery({
+    queryKey: ['partners', 'all-tasks-map'],
+    queryFn: () => partnersService.getAll(),
+    staleTime: 5 * 60 * 1000,
+  });
+
   const { data: teamMembers = [] } = useQuery({
     queryKey: ['team'],
     queryFn: () => teamService.getAll(),
@@ -206,6 +253,14 @@ export default function AllTasks() {
     });
     return map;
   }, [projects]);
+
+  const partnerMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    partners.forEach((p) => {
+      map[String(p.id)] = p.companyName;
+    });
+    return map;
+  }, [partners]);
 
   const teamMap = useMemo(() => {
     const map: Record<string, string> = {};
@@ -443,7 +498,7 @@ export default function AllTasks() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Task</TableHead>
-                  <TableHead>Project</TableHead>
+                  <TableHead>Parent</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Priority</TableHead>
                   <TableHead>Assignee</TableHead>
@@ -452,7 +507,11 @@ export default function AllTasks() {
               </TableHeader>
               <TableBody>
                 {tasks.map((task) => {
-                  const project = projectMap[task.projectId];
+                  const project = task.projectId ? projectMap[task.projectId] : undefined;
+                  const partnerName = task.partnerId
+                    ? partnerMap[String(task.partnerId)]
+                    : undefined;
+                  const taskLink = getTaskDeepLink(task);
                   const sc = statusConfig[task.status] || statusConfig['todo'];
                   const pc = priorityConfig[task.priority] || priorityConfig['low'];
                   const assigneeIds = [
@@ -469,7 +528,16 @@ export default function AllTasks() {
                     <TableRow key={task.id} className="group">
                       <TableCell>
                         <div>
-                          <p className="font-medium text-sm">{task.title}</p>
+                          {taskLink ? (
+                            <Link
+                              to={taskLink}
+                              className="font-medium text-sm text-foreground hover:text-primary hover:underline"
+                            >
+                              {task.title}
+                            </Link>
+                          ) : (
+                            <p className="font-medium text-sm">{task.title}</p>
+                          )}
                           {task.description && (
                             <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
                               {task.description}
@@ -480,10 +548,17 @@ export default function AllTasks() {
                       <TableCell>
                         {project ? (
                           <Link
-                            to={`/projects/${project.id}`}
+                            to={taskLink || `/projects/${project.id}`}
                             className="text-sm text-primary hover:underline"
                           >
                             {project.name}
+                          </Link>
+                        ) : task.partnerId ? (
+                          <Link
+                            to={taskLink || `/partners/${task.partnerId}`}
+                            className="text-sm text-primary hover:underline"
+                          >
+                            {partnerName || 'Partner'}
                           </Link>
                         ) : (
                           <span className="text-sm text-muted-foreground">—</span>

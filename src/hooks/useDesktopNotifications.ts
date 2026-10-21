@@ -1,5 +1,7 @@
 import { useEffect, useCallback, useState } from 'react';
 import { Notification as NotificationType } from '@/types/notifications';
+import { getTaskDeepLink } from '@/lib/taskLinks';
+import { tasksService } from '@/services/tasks';
 
 export interface DesktopNotificationPermission {
   permission: NotificationPermission;
@@ -64,17 +66,46 @@ export function useDesktopNotifications() {
 
         const desktopNotification = new Notification(notification.title, notificationOptions);
 
-        desktopNotification.onclick = () => {
+        desktopNotification.onclick = async () => {
           window.focus();
           desktopNotification.close();
 
-          // Navigate to the related project, opening the task when available
-          if (notification.projectId && notification.taskId) {
-            window.location.href = `/projects/${notification.projectId}?taskId=${notification.taskId}`;
-          } else if (notification.projectId) {
+          const partnerId =
+            notification.task?.partnerId ??
+            notification.metadata?.partner_id ??
+            notification.metadata?.partnerId;
+
+          const fromPayload = getTaskDeepLink(
+            {
+              id: notification.taskId,
+              projectId: notification.task?.projectId ?? notification.projectId,
+              partnerId,
+            },
+            notification.taskId,
+          );
+
+          if (fromPayload) {
+            window.location.href = fromPayload;
+            return;
+          }
+
+          if (notification.projectId) {
             window.location.href = `/projects/${notification.projectId}`;
-          } else if (notification.taskId) {
-            window.location.href = `/tasks?taskId=${notification.taskId}`;
+            return;
+          }
+
+          if (notification.taskId) {
+            try {
+              const task = await tasksService.getById(String(notification.taskId));
+              const link = getTaskDeepLink(task);
+              if (link) {
+                window.location.href = link;
+                return;
+              }
+            } catch {
+              // Fall through to all-tasks list
+            }
+            window.location.href = '/tasks';
           }
         };
 

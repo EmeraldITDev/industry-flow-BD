@@ -14,6 +14,9 @@ import { Separator } from '@/components/ui/separator';
 import { useNotifications } from '@/context/NotificationContext';
 import { NotificationType, Notification } from '@/types/notifications';
 import { cn } from '@/lib/utils';
+import { getTaskDeepLink } from '@/lib/taskLinks';
+import { tasksService } from '@/services/tasks';
+import { toast } from 'sonner';
 
 const notificationIcons: Record<NotificationType, typeof Bell> = {
   task_assigned: UserPlus,
@@ -57,20 +60,50 @@ export function NotificationCenter() {
     }
   };
 
-  const handleNotificationClick = (notification: Notification) => {
+  const handleNotificationClick = async (notification: Notification) => {
     markAsRead(notification.id);
     setOpen(false);
 
-    // Navigate based on notification type and related data
     const projectId = notification.project?.id ?? notification.projectId;
     const taskId = notification.task?.id ?? notification.taskId;
+    const partnerId =
+      notification.task?.partnerId ??
+      notification.metadata?.partner_id ??
+      notification.metadata?.partnerId;
 
-    if (projectId && taskId) {
-      navigate(`/projects/${projectId}?taskId=${taskId}`);
-    } else if (projectId) {
+    const fromPayload = getTaskDeepLink(
+      {
+        id: taskId,
+        projectId: notification.task?.projectId ?? projectId,
+        partnerId,
+      },
+      taskId,
+    );
+
+    if (fromPayload) {
+      navigate(fromPayload);
+      return;
+    }
+
+    if (projectId) {
       navigate(`/projects/${projectId}`);
-    } else if (taskId) {
-      navigate(`/tasks?taskId=${taskId}`);
+      return;
+    }
+
+    // Partner / legacy notifications may only have taskId — resolve the parent first.
+    if (taskId) {
+      try {
+        const task = await tasksService.getById(String(taskId));
+        const link = getTaskDeepLink(task);
+        if (link) {
+          navigate(link);
+          return;
+        }
+      } catch {
+        toast.error('Could not open that task');
+        return;
+      }
+      navigate('/tasks');
     }
   };
 

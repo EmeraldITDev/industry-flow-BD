@@ -22,5 +22,9 @@ export interface Notification {
   createdAt: string;
   updatedAt: string;
   project?: Project;
-  task?: Task;
+  /** Lightweight task summary from the API (may include parent ids for deep links). */
+  task?: Pick<Task, 'id' | 'title'> & {
+    projectId?: number | string | null;
+    partnerId?: number | string | null;
+  };
 }

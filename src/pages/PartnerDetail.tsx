@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -65,13 +65,24 @@ function Field({
 export default function PartnerDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const { canAssignTasks } = usePermissions();
   const [editOpen, setEditOpen] = useState(false);
   const [linkOpen, setLinkOpen] = useState(false);
   const [addTaskOpen, setAddTaskOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
-  const [activeTab, setActiveTab] = useState('profile');
+  const deepLinkTaskId = searchParams.get('taskId');
+  const [activeTab, setActiveTab] = useState(() =>
+    deepLinkTaskId ? 'tasks' : 'profile',
+  );
+
+  // Open the tasks tab when arriving from a notification / email deep link
+  useEffect(() => {
+    if (deepLinkTaskId) {
+      setActiveTab('tasks');
+    }
+  }, [deepLinkTaskId]);
 
   const {
     data: partner,
@@ -100,8 +111,20 @@ export default function PartnerDetail() {
   } = useQuery({
     queryKey: ['partner-tasks', id],
     queryFn: () => tasksService.getByPartner(id!),
-    enabled: !!id && activeTab === 'tasks',
+    enabled: !!id && (activeTab === 'tasks' || !!deepLinkTaskId),
   });
+
+  // Open the task dialog when landing from a notification / email deep link
+  useEffect(() => {
+    if (!deepLinkTaskId || editingTask || partnerTasks.length === 0) return;
+
+    const matched = partnerTasks.find(
+      (task) => String(task.id) === String(deepLinkTaskId),
+    );
+    if (matched) {
+      setEditingTask(matched);
+    }
+  }, [deepLinkTaskId, partnerTasks, editingTask]);
 
   const deleteMutation = useMutation({
     mutationFn: () => partnersService.delete(id!),
@@ -600,7 +623,14 @@ export default function PartnerDetail() {
           <EditTaskDialog
             open={!!editingTask}
             onOpenChange={(open) => {
-              if (!open) setEditingTask(null);
+              if (!open) {
+                setEditingTask(null);
+                if (deepLinkTaskId) {
+                  const next = new URLSearchParams(searchParams);
+                  next.delete('taskId');
+                  setSearchParams(next, { replace: true });
+                }
+              }
             }}
             task={editingTask}
             onTaskUpdated={handleTaskCreated}
