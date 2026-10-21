@@ -1,5 +1,5 @@
 import React from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { sectorColors, sectorIcons } from "@/data/mockData";
@@ -74,6 +74,7 @@ import { LinkScmVendorModal } from "@/components/partners/LinkScmVendorModal";
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const [project, setProject] = useState<Project | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -85,6 +86,7 @@ export default function ProjectDetail() {
   const [scmLinkPartnerId, setScmLinkPartnerId] = useState<string | null>(null);
   const [scmLinkOpen, setScmLinkOpen] = useState(false);
   const { canEditProjects, canAssignTasks } = usePermissions();
+  const deepLinkTaskId = searchParams.get("taskId");
 
   // Fetch tasks separately for refresh capability
   const { data: projectTasks = [], refetch: refetchTasks } = useQuery({
@@ -93,6 +95,20 @@ export default function ProjectDetail() {
     enabled: !!id,
     staleTime: 60 * 1000,
   });
+
+  // Open the task dialog when landing from a notification / email deep link
+  useEffect(() => {
+    if (!deepLinkTaskId || editingTask) return;
+
+    const tasks = projectTasks.length > 0 ? projectTasks : project?.tasks || [];
+    const matched = tasks.find(
+      (task) => String(task.id) === String(deepLinkTaskId),
+    );
+
+    if (matched) {
+      setEditingTask(matched);
+    }
+  }, [deepLinkTaskId, projectTasks, project?.tasks, editingTask]);
 
   // Fetch team members for displaying project lead and team
   const { data: teamMembers = [] } = useQuery({
@@ -915,7 +931,14 @@ export default function ProjectDetail() {
           <EditTaskDialog
             open={!!editingTask}
             onOpenChange={(open) => {
-              if (!open) setEditingTask(null);
+              if (!open) {
+                setEditingTask(null);
+                if (deepLinkTaskId) {
+                  const next = new URLSearchParams(searchParams);
+                  next.delete("taskId");
+                  setSearchParams(next, { replace: true });
+                }
+              }
             }}
             task={editingTask}
             onTaskUpdated={handleTaskCreated}

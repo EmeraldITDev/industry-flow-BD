@@ -60,14 +60,17 @@ export function NotificationCenter() {
   const handleNotificationClick = (notification: Notification) => {
     markAsRead(notification.id);
     setOpen(false);
-    
+
     // Navigate based on notification type and related data
     const projectId = notification.project?.id ?? notification.projectId;
-    if (projectId) {
+    const taskId = notification.task?.id ?? notification.taskId;
+
+    if (projectId && taskId) {
+      navigate(`/projects/${projectId}?taskId=${taskId}`);
+    } else if (projectId) {
       navigate(`/projects/${projectId}`);
-    } else if (notification.task?.id) {
-      // If task has project info, navigate to that project
-      navigate('/projects');
+    } else if (taskId) {
+      navigate(`/tasks?taskId=${taskId}`);
     }
   };
 

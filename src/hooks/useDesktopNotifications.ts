@@ -67,12 +67,14 @@ export function useDesktopNotifications() {
         desktopNotification.onclick = () => {
           window.focus();
           desktopNotification.close();
-          
-          // Navigate to relevant page if needed
-          if (notification.projectId) {
+
+          // Navigate to the related project, opening the task when available
+          if (notification.projectId && notification.taskId) {
+            window.location.href = `/projects/${notification.projectId}?taskId=${notification.taskId}`;
+          } else if (notification.projectId) {
             window.location.href = `/projects/${notification.projectId}`;
-          } else if (notification.taskId && notification.projectId) {
-            window.location.href = `/projects/${notification.projectId}`;
+          } else if (notification.taskId) {
+            window.location.href = `/tasks?taskId=${notification.taskId}`;
           }
         };
 
