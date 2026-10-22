@@ -85,7 +85,7 @@ export default function ProjectDetail() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [scmLinkPartnerId, setScmLinkPartnerId] = useState<string | null>(null);
   const [scmLinkOpen, setScmLinkOpen] = useState(false);
-  const { canEditProjects, canAssignTasks } = usePermissions();
+  const { canEditProjects, canAssignTasks, canEditPartners } = usePermissions();
   const deepLinkTaskId = searchParams.get("taskId");
 
   // Fetch tasks separately for refresh capability
@@ -887,16 +887,18 @@ export default function ProjectDetail() {
                         </div>
                       </div>
                       <div className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setScmLinkPartnerId(partner.id);
-                            setScmLinkOpen(true);
-                          }}
-                        >
-                          {partner.scmVendorId ? 'Edit SCM' : 'Link SCM'}
-                        </Button>
+                        {canEditPartners && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setScmLinkPartnerId(partner.id);
+                              setScmLinkOpen(true);
+                            }}
+                          >
+                            {partner.scmVendorId ? 'Edit SCM' : 'Link SCM'}
+                          </Button>
+                        )}
                         <Button variant="ghost" size="sm" asChild>
                           <Link to={`/partners/${partner.id}`}>View profile</Link>
                         </Button>

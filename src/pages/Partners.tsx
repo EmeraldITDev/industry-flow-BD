@@ -56,6 +56,7 @@ import { PartnerTrackerMiniDashboard } from '@/components/partners/PartnerTracke
 import { MultiSearchableSelect } from '@/components/ui/multi-searchable-select';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { usePermissions } from '@/hooks/usePermissions';
 
 const ALL = 'all';
 const PER_PAGE = 50;
@@ -134,6 +135,7 @@ export default function Partners() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
+  const { canCreatePartners, canDeletePartners } = usePermissions();
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [verticalFilter, setVerticalFilter] = useState(ALL);
@@ -236,8 +238,18 @@ export default function Partners() {
       toast.success('Partner deleted');
       setDeleteTarget(null);
     },
-    onError: () => toast.error('Failed to delete partner'),
+    onError: (error: any) =>
+      toast.error(
+        error?.response?.data?.message || 'Failed to delete partner'
+      ),
   });
+
+  useEffect(() => {
+    if (!canDeletePartners && selectMode) {
+      setSelectMode(false);
+      setSelectedIds(new Set());
+    }
+  }, [canDeletePartners, selectMode]);
 
   const ownerOptions = useMemo(
     () =>
@@ -335,21 +347,24 @@ export default function Partners() {
             <Download className="mr-2 h-4 w-4" />
             Export report
           </Button>
-          {!selectMode ? (
-            <Button variant="outline" onClick={() => setSelectMode(true)}>
-              <Trash2 className="mr-2 h-4 w-4" />
-              Select
-            </Button>
-          ) : (
-            <Button variant="outline" onClick={exitSelectMode}>
-              <X className="mr-2 h-4 w-4" />
-              Cancel
+          {canDeletePartners &&
+            (!selectMode ? (
+              <Button variant="outline" onClick={() => setSelectMode(true)}>
+                <Trash2 className="mr-2 h-4 w-4" />
+                Select
+              </Button>
+            ) : (
+              <Button variant="outline" onClick={exitSelectMode}>
+                <X className="mr-2 h-4 w-4" />
+                Cancel
+              </Button>
+            ))}
+          {canCreatePartners && (
+            <Button onClick={() => setAddOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Partner
             </Button>
           )}
-          <Button onClick={() => setAddOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Partner
-          </Button>
         </div>
       </div>
 
@@ -358,7 +373,7 @@ export default function Partners() {
         onFilterZeroLinks={() => setZeroLinksOnly(true)}
       />
 
-      {selectMode && (
+      {canDeletePartners && selectMode && (
         <div className="flex items-center gap-3 p-3 rounded-lg bg-muted border border-border">
           <Checkbox
             checked={
@@ -705,19 +720,21 @@ export default function Partners() {
                           >
                             View profile
                           </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="text-destructive border-destructive/40 hover:bg-destructive/10"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setDeleteTarget(partner);
-                            }}
-                          >
-                            <Trash2 className="mr-1.5 h-3.5 w-3.5" />
-                            Delete
-                          </Button>
+                          {canDeletePartners && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="text-destructive border-destructive/40 hover:bg-destructive/10"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeleteTarget(partner);
+                              }}
+                            >
+                              <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                              Delete
+                            </Button>
+                          )}
                         </div>
                       )}
                     </div>

@@ -68,7 +68,7 @@ export default function PartnerDetail() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
-  const { canAssignTasks } = usePermissions();
+  const { canAssignTasks, canEditPartners, canDeletePartners } = usePermissions();
   const [editOpen, setEditOpen] = useState(false);
   const [linkOpen, setLinkOpen] = useState(false);
   const [addTaskOpen, setAddTaskOpen] = useState(false);
@@ -143,7 +143,10 @@ export default function PartnerDetail() {
       toast.success('Partner deleted');
       navigate('/partners');
     },
-    onError: () => toast.error('Failed to delete partner'),
+    onError: (error: any) =>
+      toast.error(
+        error?.response?.data?.message || 'Failed to delete partner'
+      ),
   });
 
   const handleTaskCreated = () => {
@@ -225,48 +228,52 @@ export default function PartnerDetail() {
           </div>
         </div>
         <div className="flex flex-wrap gap-2 shrink-0 self-start">
-          <Button variant="outline" onClick={() => setEditOpen(true)}>
-            <Pencil className="mr-2 h-4 w-4" />
-            Edit
-          </Button>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button
-                variant="outline"
-                className="text-destructive border-destructive/40 hover:bg-destructive/10"
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Delete partner?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This will permanently remove{' '}
-                  <span className="font-medium text-foreground">
-                    {partner.companyName}
-                  </span>{' '}
-                  and unlink it from any opportunities. This cannot be undone.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel disabled={deleteMutation.isPending}>
-                  Cancel
-                </AlertDialogCancel>
-                <AlertDialogAction
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  disabled={deleteMutation.isPending}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    deleteMutation.mutate();
-                  }}
+          {canEditPartners && (
+            <Button variant="outline" onClick={() => setEditOpen(true)}>
+              <Pencil className="mr-2 h-4 w-4" />
+              Edit
+            </Button>
+          )}
+          {canDeletePartners && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="text-destructive border-destructive/40 hover:bg-destructive/10"
                 >
-                  {deleteMutation.isPending ? 'Deleting…' : 'Delete partner'}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete partner?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will permanently remove{' '}
+                    <span className="font-medium text-foreground">
+                      {partner.companyName}
+                    </span>{' '}
+                    and unlink it from any opportunities. This cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={deleteMutation.isPending}>
+                    Cancel
+                  </AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    disabled={deleteMutation.isPending}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      deleteMutation.mutate();
+                    }}
+                  >
+                    {deleteMutation.isPending ? 'Deleting…' : 'Delete partner'}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
         </div>
       </div>
 
@@ -288,7 +295,9 @@ export default function PartnerDetail() {
           <PartnerMiniDashboard
             partner={partner}
             onOpenTasks={() => setActiveTab('tasks')}
-            onEditProfile={() => setEditOpen(true)}
+            onEditProfile={
+              canEditPartners ? () => setEditOpen(true) : undefined
+            }
           />
 
           <div className="grid gap-5 lg:grid-cols-3">
@@ -512,10 +521,12 @@ export default function PartnerDetail() {
                     <p className="text-sm text-muted-foreground">
                       No SCM vendor is linked to this partner yet.
                     </p>
-                    <Button onClick={() => setLinkOpen(true)} className="w-full">
-                      <Link2 className="mr-2 h-4 w-4" />
-                      Link to SCM Vendor
-                    </Button>
+                    {canEditPartners && (
+                      <Button onClick={() => setLinkOpen(true)} className="w-full">
+                        <Link2 className="mr-2 h-4 w-4" />
+                        Link to SCM Vendor
+                      </Button>
+                    )}
                   </>
                 )}
 
@@ -543,15 +554,19 @@ export default function PartnerDetail() {
                     <Field label="Category">
                       {partner.scmData.category || '—'}
                     </Field>
-                    <Separator />
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full"
-                      onClick={() => setLinkOpen(true)}
-                    >
-                      Change SCM Vendor
-                    </Button>
+                    {canEditPartners && (
+                      <>
+                        <Separator />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full"
+                          onClick={() => setLinkOpen(true)}
+                        >
+                          Change SCM Vendor
+                        </Button>
+                      </>
+                    )}
                   </div>
                 )}
 
@@ -561,14 +576,16 @@ export default function PartnerDetail() {
                     <p className="text-xs text-muted-foreground">
                       Detailed SCM fields were not included in this response.
                     </p>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full"
-                      onClick={() => setLinkOpen(true)}
-                    >
-                      Change SCM Vendor
-                    </Button>
+                    {canEditPartners && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                        onClick={() => setLinkOpen(true)}
+                      >
+                        Change SCM Vendor
+                      </Button>
+                    )}
                   </div>
                 )}
               </CardContent>

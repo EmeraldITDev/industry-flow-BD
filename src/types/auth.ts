@@ -21,6 +21,9 @@ export const SYSTEM_ROLE_CONFIG: Record<SystemRole, {
     canCreateProjects: boolean;
     canEditProjects: boolean;
     canDeleteProjects: boolean;
+    canCreatePartners: boolean;
+    canEditPartners: boolean;
+    canDeletePartners: boolean;
     canManageTeam: boolean;
     canViewReports: boolean;
     canManageSettings: boolean;
@@ -36,6 +39,9 @@ export const SYSTEM_ROLE_CONFIG: Record<SystemRole, {
       canCreateProjects: true,
       canEditProjects: true,
       canDeleteProjects: true,
+      canCreatePartners: true,
+      canEditPartners: true,
+      canDeletePartners: true,
       canManageTeam: true,
       canViewReports: true,
       canManageSettings: true,
@@ -46,11 +52,14 @@ export const SYSTEM_ROLE_CONFIG: Record<SystemRole, {
   },
   editor: {
     label: 'Editor',
-    description: 'Edit projects and tasks',
+    description: 'Edit projects, tasks, and partners (cannot delete partners)',
     permissions: {
       canCreateProjects: true,
       canEditProjects: true,
       canDeleteProjects: false,
+      canCreatePartners: true,
+      canEditPartners: true,
+      canDeletePartners: false,
       canManageTeam: false,
       canViewReports: true,
       canManageSettings: false,
@@ -66,6 +75,9 @@ export const SYSTEM_ROLE_CONFIG: Record<SystemRole, {
       canCreateProjects: false,
       canEditProjects: false,
       canDeleteProjects: false,
+      canCreatePartners: false,
+      canEditPartners: false,
+      canDeletePartners: false,
       canManageTeam: false,
       canViewReports: true,
       canManageSettings: false,

@@ -46,6 +46,7 @@ import {
 import { partnersService } from '@/services/partners';
 import type { Partner } from '@/types/partners';
 import { toast } from 'sonner';
+import { usePermissions } from '@/hooks/usePermissions';
 
 const ADD_PARTNER_FORM_ID = 'partner-multi-select-add-form';
 
@@ -66,6 +67,7 @@ export function PartnerMultiSelect({
   placeholder = 'Select partners',
 }: PartnerMultiSelectProps) {
   const queryClient = useQueryClient();
+  const { canCreatePartners } = usePermissions();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
@@ -257,22 +259,24 @@ export function PartnerMultiSelect({
                   </CommandItem>
                 ))}
               </CommandGroup>
-              <CommandGroup>
-                <CommandItem
-                  value="__add_new_partner__"
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                  }}
-                  onSelect={() => {
-                    setOpen(false);
-                    setAddOpen(true);
-                  }}
-                >
-                  <Plus className="mr-2 h-4 w-4 text-primary" />
-                  Add New Partner
-                </CommandItem>
-              </CommandGroup>
+              {canCreatePartners && (
+                <CommandGroup>
+                  <CommandItem
+                    value="__add_new_partner__"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }}
+                    onSelect={() => {
+                      setOpen(false);
+                      setAddOpen(true);
+                    }}
+                  >
+                    <Plus className="mr-2 h-4 w-4 text-primary" />
+                    Add New Partner
+                  </CommandItem>
+                </CommandGroup>
+              )}
             </CommandList>
           </Command>
         </PopoverContent>
