@@ -1,5 +1,5 @@
 import api from './api';
-import { Project, PipelineStage, Sector, BusinessSegment, RiskLevel, ProjectStats } from '@/types';
+import { Project, ProjectPartnerRef, PipelineStage, Sector, BusinessSegment, RiskLevel, ProjectStats } from '@/types';
 import { notifyAssignment } from './notificationHelper';
 import { type ProjectStatus } from '@/lib/stageStatusRules';
 
@@ -73,6 +73,39 @@ export interface ProjectFilters {
   businessSegment?: BusinessSegment;
   projectLeadId?: string;
   assigneeId?: string;
+}
+
+function normalizeProjectPartners(project: any): ProjectPartnerRef[] {
+  const raw = project?.partners;
+  if (!Array.isArray(raw)) return [];
+
+  const partners: ProjectPartnerRef[] = [];
+  const seen = new Set<string>();
+
+  for (const item of raw) {
+    if (item == null) continue;
+    const companyName = (
+      typeof item === 'string'
+        ? item
+        : String(item.companyName ?? item.company_name ?? item.name ?? '')
+    ).trim();
+    if (!companyName) continue;
+
+    const key = companyName.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+
+    partners.push({
+      id: typeof item === 'object' && item.id != null ? String(item.id) : undefined,
+      companyName,
+      relationshipStage:
+        typeof item === 'object'
+          ? (item.relationshipStage ?? item.relationship_stage ?? undefined)
+          : undefined,
+    });
+  }
+
+  return partners;
 }
 
 // Normalize project data from backend
@@ -265,6 +298,7 @@ export const normalizeProject = (project: any): Project => {
     assigneeId,
     salesLead: project.salesLead ?? project.sales_lead ?? null,
     channelPartner: project.channelPartner ?? project.channel_partner ?? '',
+    partners: normalizeProjectPartners(project),
     projectLeadComments: project.projectLeadComments ?? project.project_lead_comments ?? '',
     supportNeeded: project.supportNeeded ?? project.support_needed ?? '',
     dealProbability: project.dealProbability ?? project.deal_probability ?? project.riskLevel ?? project.risk_level ?? 'low',

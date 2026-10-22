@@ -21,6 +21,7 @@ import { toast } from 'sonner';
 import type { Project } from '@/types';
 import { PIPELINE_STAGES } from '@/types';
 import { projectsService } from '@/services/projects';
+import { projectPartnerNames } from '@/lib/reportGenerator';
 
 const PREVIEW_ROWS = 10;
 
@@ -46,7 +47,7 @@ const COLUMNS: Column[] = [
   { header: 'Deal Probability', get: (p) => p.dealProbability || '' },
   { header: 'Client Name', get: (p) => p.clientName || '' },
   { header: 'Client Contact', get: (p) => p.clientContact || '' },
-  { header: 'Channel Partner', get: (p) => p.channelPartner || '' },
+  { header: 'Channel Partner', get: (p) => projectPartnerNames(p).join(', ') },
   { header: 'OEM', get: (p) => p.oem || '' },
   { header: 'Location', get: (p) => p.location || '' },
   { header: 'Products', get: (p) => list(p.products, p.product) },
@@ -120,7 +121,10 @@ export function ExportProjectsButton({
       }
       setIsLoading(true);
       try {
-        const rows = await projectsService.getAllMatching(fetchParams);
+        const rows = await projectsService.getAllMatching({
+          ...fetchParams,
+          with_partners: 1,
+        });
         if (!cancelled) setExportProjects(rows);
       } catch (error) {
         console.error('Failed to load projects for export:', error);

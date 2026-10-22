@@ -97,6 +97,13 @@ export interface StageHistory {
   exitedAt?: string;
 }
 
+/** A partner linked to a project through partner_opportunity. */
+export interface ProjectPartnerRef {
+  id?: string;
+  companyName: string;
+  relationshipStage?: string;
+}
+
 export interface Project {
   id: string;
   name: string;
@@ -138,7 +145,10 @@ export interface Project {
   projectLeadId?: string;
   assigneeId?: string;
   salesLead?: string;
+  /** Legacy free-text partner. Create/edit no longer write this. */
   channelPartner?: string;
+  /** Partners linked on the project. One entry for a single partner, more when several are linked. */
+  partners?: ProjectPartnerRef[];
   
   // Financial fields (dual currency)
   contractValueNGN?: number;

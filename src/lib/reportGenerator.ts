@@ -223,12 +223,56 @@ const marginPercentOf = (project: Project) => {
 const listOf = (values: string[] | undefined, legacy: string | undefined) =>
   values && values.length ? values.join(', ') : legacy || '—';
 
+/**
+ * Names to print for the Partner column.
+ * Linked partners (one or many) win. The legacy channelPartner string is only
+ * used when the project has no partner_opportunity links.
+ */
+export function projectPartnerNames(project: {
+  channelPartner?: string | null;
+  partners?: unknown;
+}): string[] {
+  const names: string[] = [];
+  const seen = new Set<string>();
+
+  const push = (value: unknown) => {
+    const name = String(value ?? '').trim();
+    if (!name) return;
+    const key = name.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    names.push(name);
+  };
+
+  if (Array.isArray(project.partners)) {
+    for (const item of project.partners) {
+      if (typeof item === 'string') {
+        push(item);
+        continue;
+      }
+      if (item && typeof item === 'object') {
+        const row = item as { companyName?: string; company_name?: string; name?: string };
+        push(row.companyName ?? row.company_name ?? row.name);
+      }
+    }
+  }
+
+  if (names.length > 0) return names;
+  push(project.channelPartner);
+  return names;
+}
+
+const partnerLabelOf = (project: Project) => {
+  const names = projectPartnerNames(project);
+  return names.length ? names.join(', ') : '—';
+};
+
 export const PROJECT_REPORT_COLUMNS: ProjectReportColumn[] = [
   { key: 'name',              label: 'Project Name',        shortLabel: 'Project',     weight: 14, get: p => p.name || '—' },
   { key: 'description',       label: 'Description',         shortLabel: 'Description', weight: 18, get: p => (p.description?.trim() || '—') },
   { key: 'clientName',        label: 'Client',              shortLabel: 'Client',      weight: 9,  get: p => p.clientName || '—' },
   { key: 'clientContact',     label: 'Client Contact',      shortLabel: 'Contact',     weight: 8,  get: p => p.clientContact || '—' },
-  { key: 'channelPartner',    label: 'Partner',             shortLabel: 'Partner',     weight: 8,  get: p => p.channelPartner || '—' },
+  { key: 'channelPartner',    label: 'Partner',             shortLabel: 'Partner',     weight: 10, get: partnerLabelOf },
   { key: 'businessVertical',  label: 'Business Vertical',   shortLabel: 'Vertical',    weight: 10, get: p => p.businessVertical || '—' },
   { key: 'sector',            label: 'Sector',              shortLabel: 'Sector',      weight: 8,  get: p => p.sector || '—' },
   { key: 'businessSegment',   label: 'Business Segment',    shortLabel: 'Segment',     weight: 8,  get: p => p.businessSegment || '—' },
@@ -359,7 +403,7 @@ function fontSizesForColumnCount(colCount: number): { headerFont: number; bodyFo
 
 function maxLinesForColumn(key: string): number {
   if (key === 'description' || key === 'projectLeadComments' || key === 'supportNeeded') return 6;
-  if (key === 'products' || key === 'subproducts') return 3;
+  if (key === 'products' || key === 'subproducts' || key === 'channelPartner') return 4;
   return 2;
 }
 
@@ -996,7 +1040,7 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
     { label: 'OEM', value: project.oem },
     { label: 'Product', value: project.product },
     { label: 'Sub Product', value: project.subProduct },
-    { label: 'Channel Partner', value: project.channelPartner },
+    { label: 'Partners', value: projectPartnerNames(project).join(', ') },
     { label: 'Sales Lead', value: project.salesLead },
     { label: 'Project Lead', value: leadName },
     { label: 'Deal Probability', value: project.dealProbability },

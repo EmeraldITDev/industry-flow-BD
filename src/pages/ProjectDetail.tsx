@@ -192,6 +192,18 @@ export default function ProjectDetail() {
               ? [String(data.sub_product ?? data.subProduct)]
               : [],
         channelPartner: data.channel_partner || data.channelPartner,
+        partners: Array.isArray(data.partners)
+          ? data.partners
+              .map((partner: any) => ({
+                id: partner?.id != null ? String(partner.id) : undefined,
+                companyName: String(
+                  partner?.companyName ?? partner?.company_name ?? partner?.name ?? ''
+                ).trim(),
+                relationshipStage:
+                  partner?.relationshipStage ?? partner?.relationship_stage,
+              }))
+              .filter((partner: { companyName: string }) => partner.companyName)
+          : [],
         contractValueNGN:
           parseFloat(data.contractValueNGN ?? data.contract_value_ngn) || 0,
         contractValueUSD:
@@ -447,7 +459,23 @@ export default function ProjectDetail() {
                 teamMembers.forEach((m: any) => {
                   tMap[String(m.id)] = m.name;
                 });
-                await generateSingleProjectReport(project, tMap);
+                const linkedPartners = projectPartners
+                  .map((partner) => ({
+                    id: String(partner.id),
+                    companyName: partner.companyName,
+                    relationshipStage:
+                      typeof partner.relationshipStage === 'string'
+                        ? partner.relationshipStage
+                        : undefined,
+                  }))
+                  .filter((partner) => partner.companyName.trim());
+                await generateSingleProjectReport(
+                  {
+                    ...project,
+                    partners: linkedPartners.length ? linkedPartners : project.partners,
+                  },
+                  tMap,
+                );
                 toast.success("Project report generated");
               }}
             >

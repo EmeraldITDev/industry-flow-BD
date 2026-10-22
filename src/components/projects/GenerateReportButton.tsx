@@ -28,6 +28,7 @@ import {
   PROJECT_REPORT_COLUMNS,
   ProjectFilterSummary,
   generateProjectsReport,
+  projectPartnerNames,
 } from '@/lib/reportGenerator';
 import { projectsService } from '@/services/projects';
 import type { Project } from '@/types';
@@ -146,7 +147,7 @@ export function GenerateReportButton({
     const q = rowQuery.trim().toLowerCase();
     if (!q) return projects;
     return projects.filter((p) =>
-      [p.name, p.clientName, p.channelPartner, p.location, p.oem]
+      [p.name, p.clientName, projectPartnerNames(p).join(' '), p.location, p.oem]
         .some((field) => field?.toLowerCase().includes(q))
     );
   }, [projects, rowQuery]);
@@ -370,7 +371,12 @@ export function GenerateReportButton({
                               {selectedColumns.map((c) => (
                                 <TableCell
                                   key={c.key}
-                                  className="text-xs max-w-[220px] truncate"
+                                  className={cn(
+                                    'text-xs max-w-[240px]',
+                                    c.key === 'channelPartner'
+                                      ? 'whitespace-normal break-words'
+                                      : 'truncate'
+                                  )}
                                   title={c.get(project)}
                                 >
                                   {c.get(project)}
