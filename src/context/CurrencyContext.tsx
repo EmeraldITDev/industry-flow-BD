@@ -139,6 +139,7 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
 
   const getContractValue = useCallback(
     (project: ContractFields): number | null => {
+      if (project.currency && project.currency !== currency) return null;
       if (currency === 'NGN') {
         return positive(
           project.discountedContractValueNGN ??
@@ -158,6 +159,7 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
   );
 
   const marginFor = useCallback((project: MarginFields, cur: Currency): number | null => {
+    if (project.currency && project.currency !== cur) return null;
     if (cur === 'NGN') {
       const stored = positive(project.marginValueNGN ?? project.marginValueNgn);
       if (stored != null) return stored;

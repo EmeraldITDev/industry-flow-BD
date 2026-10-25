@@ -132,8 +132,10 @@ function hasValue(p: Project, field: FinancialCoverageField): boolean {
       if (p.currency === 'NGN') return false;
       return stored(p.discountedContractValueUSD ?? p.contractValueUSD) > 0;
     case 'margin_percent_ngn':
+      if (p.currency === 'USD') return false;
       return stored(p.marginPercentNGN) > 0;
     case 'margin_percent_usd':
+      if (p.currency === 'NGN') return false;
       return stored(p.marginPercentUSD) > 0;
   }
 }
@@ -145,23 +147,28 @@ function projectValue(
   switch (key) {
     case 'commission_ngn': {
       // Commission always uses ORIGINAL contract value.
-      const ngn = p.currency === 'USD' ? 0 : stored(p.contractValueNGN);
+      if (p.currency === 'USD') return { amount: 0, currency: 'NGN', contributing: false };
+      const ngn = stored(p.contractValueNGN);
       return { amount: ngn * COMMISSION_RATE, currency: 'NGN', contributing: ngn > 0 };
     }
     case 'commission_usd': {
-      const usd = p.currency === 'NGN' ? 0 : stored(p.contractValueUSD);
+      if (p.currency === 'NGN') return { amount: 0, currency: 'USD', contributing: false };
+      const usd = stored(p.contractValueUSD);
       return { amount: usd * COMMISSION_RATE, currency: 'USD', contributing: usd > 0 };
     }
     case 'po_ngn': {
-      const ngn = p.currency === 'USD' ? 0 : stored(p.discountedContractValueNGN ?? p.contractValueNGN);
+      if (p.currency === 'USD') return { amount: 0, currency: 'NGN', contributing: false };
+      const ngn = stored(p.discountedContractValueNGN ?? p.contractValueNGN);
       return { amount: ngn, currency: 'NGN', contributing: ngn > 0 };
     }
     case 'margin_pct_usd': {
-      const pct = p.currency === 'NGN' ? 0 : stored(p.marginPercentUSD);
+      if (p.currency === 'NGN') return { amount: 0, currency: 'USD', contributing: false };
+      const pct = stored(p.marginPercentUSD);
       return { amount: pct, currency: 'USD', contributing: pct > 0 };
     }
     case 'margin_pct_ngn': {
-      const pct = p.currency === 'USD' ? 0 : stored(p.marginPercentNGN);
+      if (p.currency === 'USD') return { amount: 0, currency: 'NGN', contributing: false };
+      const pct = stored(p.marginPercentNGN);
       return { amount: pct, currency: 'NGN', contributing: pct > 0 };
     }
   }

@@ -219,7 +219,7 @@ export default function Dashboard() {
     projects.forEach((p: Project) => {
       const client = p.clientName || 'Unknown';
       if (!client.toUpperCase().includes('BEDS')) {
-        const usdValue = Number(p.contractValueUSD ?? 0) || 0;
+        const usdValue = p.currency === 'NGN' ? 0 : Number(p.contractValueUSD ?? 0) || 0;
         clientValues[client] = (clientValues[client] || 0) + usdValue;
       }
     });
