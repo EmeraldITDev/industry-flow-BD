@@ -126,8 +126,10 @@ function coverageFieldLabel(field: FinancialCoverageField): string {
 function hasValue(p: Project, field: FinancialCoverageField): boolean {
   switch (field) {
     case 'ngn':
+      if (p.currency === 'USD') return false;
       return stored(p.discountedContractValueNGN ?? p.contractValueNGN) > 0;
     case 'usd':
+      if (p.currency === 'NGN') return false;
       return stored(p.discountedContractValueUSD ?? p.contractValueUSD) > 0;
     case 'margin_percent_ngn':
       return stored(p.marginPercentNGN) > 0;
@@ -143,23 +145,23 @@ function projectValue(
   switch (key) {
     case 'commission_ngn': {
       // Commission always uses ORIGINAL contract value.
-      const ngn = stored(p.contractValueNGN);
+      const ngn = p.currency === 'USD' ? 0 : stored(p.contractValueNGN);
       return { amount: ngn * COMMISSION_RATE, currency: 'NGN', contributing: ngn > 0 };
     }
     case 'commission_usd': {
-      const usd = stored(p.contractValueUSD);
+      const usd = p.currency === 'NGN' ? 0 : stored(p.contractValueUSD);
       return { amount: usd * COMMISSION_RATE, currency: 'USD', contributing: usd > 0 };
     }
     case 'po_ngn': {
-      const ngn = stored(p.discountedContractValueNGN ?? p.contractValueNGN);
+      const ngn = p.currency === 'USD' ? 0 : stored(p.discountedContractValueNGN ?? p.contractValueNGN);
       return { amount: ngn, currency: 'NGN', contributing: ngn > 0 };
     }
     case 'margin_pct_usd': {
-      const pct = stored(p.marginPercentUSD);
+      const pct = p.currency === 'NGN' ? 0 : stored(p.marginPercentUSD);
       return { amount: pct, currency: 'USD', contributing: pct > 0 };
     }
     case 'margin_pct_ngn': {
-      const pct = stored(p.marginPercentNGN);
+      const pct = p.currency === 'USD' ? 0 : stored(p.marginPercentNGN);
       return { amount: pct, currency: 'NGN', contributing: pct > 0 };
     }
   }

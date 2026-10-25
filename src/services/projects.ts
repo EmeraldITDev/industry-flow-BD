@@ -813,11 +813,11 @@ export const projectsService = {
           }).length,
           // Stored currency totals only — never invent via VITE_NGN_PER_USD.
           totalValueNgn: projects.reduce(
-            (sum: number, p: Project) => sum + stored(p.contractValueNGN),
+            (sum: number, p: Project) => sum + (p.currency === 'USD' ? 0 : stored(p.contractValueNGN)),
             0
           ),
           totalValueUsd: projects.reduce(
-            (sum: number, p: Project) => sum + stored(p.contractValueUSD),
+            (sum: number, p: Project) => sum + (p.currency === 'NGN' ? 0 : stored(p.contractValueUSD)),
             0
           ),
           averageProgress: projects.length > 0 
