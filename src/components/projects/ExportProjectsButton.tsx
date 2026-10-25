@@ -50,6 +50,7 @@ const COLUMNS: Column[] = [
   { header: 'Channel Partner', get: (p) => projectPartnerNames(p).join(', ') },
   { header: 'OEM', get: (p) => p.oem || '' },
   { header: 'Location', get: (p) => p.location || '' },
+  { header: 'Lead Time', get: (p) => p.leadTime || '' },
   { header: 'Products', get: (p) => list(p.products, p.product) },
   { header: 'Sub-products', get: (p) => list(p.subproducts, p.subProduct) },
   { header: 'Sales Lead', get: (p) => p.salesLead || '' },

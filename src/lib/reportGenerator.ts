@@ -289,6 +289,7 @@ export const PROJECT_REPORT_COLUMNS: ProjectReportColumn[] = [
   { key: 'progress',          label: 'Progress',            shortLabel: 'Prog.',       weight: 5,  get: p => (p.progress == null ? '—' : `${p.progress}%`) },
   { key: 'oem',               label: 'OEM',                 shortLabel: 'OEM',         weight: 7,  get: p => p.oem || '—' },
   { key: 'location',          label: 'Location',            shortLabel: 'Location',    weight: 8,  get: p => p.location || '—' },
+  { key: 'leadTime',          label: 'Lead Time',           shortLabel: 'Lead Time',   weight: 7,  get: p => (p.leadTime?.trim() || '—') },
   { key: 'products',          label: 'Products',            shortLabel: 'Products',    weight: 10, get: p => listOf(p.products, p.product) },
   { key: 'subproducts',       label: 'Sub-products',        shortLabel: 'Sub-prod.',   weight: 9,  get: p => listOf(p.subproducts, p.subProduct) },
   { key: 'salesLead',         label: 'Sales Lead',          shortLabel: 'Sales',       weight: 8,  get: p => p.salesLead || '—' },
@@ -298,6 +299,7 @@ export const PROJECT_REPORT_COLUMNS: ProjectReportColumn[] = [
   { key: 'startDate',         label: 'Start Date',          shortLabel: 'Start',       weight: 8,  get: p => fmtDateValue(p.startDate) },
   { key: 'endDate',           label: 'End Date',            shortLabel: 'End',         weight: 8,  get: p => fmtDateValue(p.endDate) },
   { key: 'expectedCloseDate', label: 'Expected Close',      shortLabel: 'Close',       weight: 8,  get: p => fmtDateValue(p.expectedCloseDate) },
+  { key: 'winDate',           label: 'PO Won Date',         shortLabel: 'PO Won',      weight: 8,  get: p => fmtDateValue(p.winDate) },
   { key: 'projectLeadComments', label: 'Lead Comments',     shortLabel: 'Comments',    weight: 14, get: p => (p.projectLeadComments?.trim() || '—') },
   { key: 'supportNeeded',     label: 'Support Needed',      shortLabel: 'Support',     weight: 12, get: p => (p.supportNeeded?.trim() || '—') },
 ];
@@ -351,11 +353,11 @@ const REPORT_COLUMN_SECTIONS: { title: string; keys: string[] }[] = [
   },
   {
     title: 'Delivery details',
-    keys: ['name', 'oem', 'location', 'products', 'subproducts', 'channelPartner', 'salesLead', 'teamSize', 'tasks'],
+    keys: ['name', 'oem', 'location', 'leadTime', 'products', 'subproducts', 'channelPartner', 'salesLead', 'teamSize', 'tasks'],
   },
   {
     title: 'Dates & notes',
-    keys: ['name', 'pipelineIntakeDate', 'startDate', 'endDate', 'expectedCloseDate', 'projectLeadComments', 'supportNeeded'],
+    keys: ['name', 'pipelineIntakeDate', 'startDate', 'endDate', 'expectedCloseDate', 'winDate', 'projectLeadComments', 'supportNeeded'],
   },
 ];
 
@@ -1038,6 +1040,7 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
     { label: 'Client Contact', value: project.clientContact },
     { label: 'Location', value: project.location },
     { label: 'OEM', value: project.oem },
+    { label: 'Lead Time', value: project.leadTime },
     { label: 'Product', value: project.product },
     { label: 'Sub Product', value: project.subProduct },
     { label: 'Partners', value: projectPartnerNames(project).join(', ') },
@@ -1066,6 +1069,7 @@ export async function generateSingleProjectReport(project: Project, teamMap?: Re
     { label: 'End Date', value: fmtDateValue(project.endDate) },
     { label: 'Duration', value: durationStr },
     { label: 'Expected Close', value: fmtDateValue(project.expectedCloseDate) },
+    { label: 'PO Won Date', value: fmtDateValue(project.winDate) },
     { label: 'Pipeline Intake', value: fmtDateValue(project.pipelineIntakeDate) },
   ], { showAll: true });
 

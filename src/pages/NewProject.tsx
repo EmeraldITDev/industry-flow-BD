@@ -29,6 +29,9 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { CalendarIcon, Plus, X, AlertTriangle, Loader2 } from "lucide-react";
 import { format } from "date-fns";
+import { addLeadTime } from "@/lib/expectedCloseDate";
+import { projectCostSummary, type ProjectCurrency } from "@/lib/projectCosts";
+import { SingleCurrencyFinancials } from "@/components/projects/SingleCurrencyFinancials";
 import { cn } from "@/lib/utils";
 import { businessVerticals, industrySectors, businessSegments } from "@/data/mockData";
 import { parseNumberInput } from "@/lib/utils";
@@ -147,9 +150,14 @@ export default function NewProject() {
     projectLeadId: "",
     assigneeId: "",
     partnerIds: [] as string[],
-    // Financial fields (independent currencies)
+    // New projects record revenue and cost in one currency.
+    currency: "NGN" as ProjectCurrency,
     contractValueNGN: "",
     contractValueUSD: "",
+    supplierDirectCostNGN: "",
+    supplierDirectCostUSD: "",
+    otherProjectCostNGN: "",
+    otherProjectCostUSD: "",
     marginPercentNGN: "",
     marginPercentUSD: "",
     projectLeadComments: "",
@@ -164,6 +172,20 @@ export default function NewProject() {
       setFormData((prev) => ({ ...prev, projectLeadId: String(adminUser.id) }));
     }
   }, [adminUser, formData.projectLeadId]);
+
+  // Expected close = Approved/Won Date + lead time.
+  useEffect(() => {
+    const computed = addLeadTime(formData.winDate, formData.leadTime);
+    if (!computed) return;
+    setFormData((prev) => {
+      const prevKey = prev.expectedCloseDate
+        ? format(prev.expectedCloseDate, "yyyy-MM-dd")
+        : "";
+      const nextKey = format(computed, "yyyy-MM-dd");
+      if (prevKey === nextKey) return prev;
+      return { ...prev, expectedCloseDate: computed };
+    });
+  }, [formData.winDate, formData.leadTime]);
 
   const [milestones, setMilestones] = useState<Omit<Milestone, "id">[]>([]);
   const [newMilestone, setNewMilestone] = useState({
@@ -265,10 +287,15 @@ export default function NewProject() {
         oem: formData.oem || undefined,
         location: formData.location || undefined,
         leadTime: formData.leadTime || undefined,
-        expectedCloseDate: formData.expectedCloseDate?.toISOString(),
+        expectedCloseDate: (() => {
+          const close =
+            addLeadTime(formData.winDate, formData.leadTime) ??
+            formData.expectedCloseDate;
+          return close ? format(close, "yyyy-MM-dd") : undefined;
+        })(),
         winDate:
           isWonStage(formData.pipelineStage) && formData.winDate
-            ? formData.winDate.toISOString().slice(0, 10)
+            ? format(formData.winDate, "yyyy-MM-dd")
             : undefined,
         discountTypeNGN: discNGN.discountType,
         discountValueNGN: discNGN.discountValue,
@@ -511,32 +538,54 @@ export default function NewProject() {
               </div>
               <div className="space-y-2">
                 <Label>Expected Close Date</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !formData.expectedCloseDate && "text-muted-foreground",
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {formData.expectedCloseDate
-                        ? format(formData.expectedCloseDate, "PPP")
-                        : "Pick a date"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      selected={formData.expectedCloseDate}
-                      onSelect={(date) =>
-                        setFormData({ ...formData, expectedCloseDate: date })
+                {addLeadTime(formData.winDate, formData.leadTime) ? (
+                  <>
+                    <Input
+                      readOnly
+                      className="bg-muted"
+                      value={
+                        formData.expectedCloseDate
+                          ? format(formData.expectedCloseDate, "PPP")
+                          : ""
                       }
-                      initialFocus
                     />
-                  </PopoverContent>
-                </Popover>
+                    <p className="text-xs text-muted-foreground">
+                      Approved/Won Date + Lead Time. A range uses the longer duration.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !formData.expectedCloseDate && "text-muted-foreground",
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {formData.expectedCloseDate
+                            ? format(formData.expectedCloseDate, "PPP")
+                            : "Pick a date"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          selected={formData.expectedCloseDate}
+                          onSelect={(date) =>
+                            setFormData({ ...formData, expectedCloseDate: date })
+                          }
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <p className="text-xs text-muted-foreground">
+                      Set an Approved/Won Date and a lead time such as 8 weeks to calculate this.
+                    </p>
+                  </>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -703,8 +752,11 @@ export default function NewProject() {
                   onChange={(e) =>
                     setFormData({ ...formData, leadTime: e.target.value })
                   }
-                  placeholder="e.g., 8–12 weeks"
+                  placeholder="e.g., 8 weeks or 8–12 weeks"
                 />
+                <p className="text-xs text-muted-foreground">
+                  Added to the Approved/Won Date to set the Expected Close Date.
+                </p>
               </div>
               <div className="space-y-2">
                 <Label>Partners</Label>
