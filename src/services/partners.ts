@@ -94,6 +94,13 @@ export type PartnerTrackerDataGapField = {
   pct: number;
 };
 
+export type PartnerTrackerBreakdownRow = {
+  key: string;
+  label: string;
+  count: number;
+  pct: number;
+};
+
 export type PartnerTrackerMetrics = {
   definition: string;
   definitionLabel: string;
@@ -132,6 +139,8 @@ export type PartnerTrackerMetrics = {
     definition?: string;
     fields: PartnerTrackerDataGapField[];
   };
+  byVertical: PartnerTrackerBreakdownRow[];
+  byProductCategory: PartnerTrackerBreakdownRow[];
   concentration: {
     totalVolumeUsd: number;
     totalVolumeNgn: number;
@@ -248,6 +257,18 @@ const normalizeTrackerMetrics = (raw: any): PartnerTrackerMetrics => ({
       pct: Number(f.pct ?? 0),
     })),
   },
+  byVertical: (raw.byVertical ?? raw.by_vertical ?? []).map((row: any) => ({
+    key: String(row.key ?? row.vertical ?? row.label ?? ''),
+    label: String(row.label ?? row.vertical ?? row.key ?? ''),
+    count: Number(row.count ?? 0),
+    pct: Number(row.pct ?? 0),
+  })),
+  byProductCategory: (raw.byProductCategory ?? raw.by_product_category ?? []).map((row: any) => ({
+    key: String(row.key ?? row.productCategory ?? row.product_category ?? row.label ?? ''),
+    label: String(row.label ?? row.productCategory ?? row.product_category ?? row.key ?? ''),
+    count: Number(row.count ?? 0),
+    pct: Number(row.pct ?? 0),
+  })),
   concentration: {
     totalVolumeUsd: Number(
       raw.concentration?.totalVolumeUsd ?? raw.concentration?.total_volume_usd ?? 0

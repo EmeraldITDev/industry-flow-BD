@@ -151,6 +151,7 @@ export interface Project {
   partners?: ProjectPartnerRef[];
   
   // Financial fields (dual currency)
+  currency?: 'NGN' | 'USD' | null;
   contractValueNGN?: number;
   contractValueUSD?: number;
   discountTypeNGN?: 'percent' | 'amount' | null;

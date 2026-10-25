@@ -126,29 +126,33 @@ export default function Dashboard() {
 
     projects.forEach((p: Project) => {
       // Value KPIs use discounted when present, else original. Commission stays on original.
-      const ngnValue = stored(
+      const ngnValue = p.currency === 'USD' ? 0 : stored(
         p.discountedContractValueNGN ?? p.contractValueNGN
       );
-      const usdValue = stored(
+      const usdValue = p.currency === 'NGN' ? 0 : stored(
         p.discountedContractValueUSD ?? p.contractValueUSD
       );
-      const originalNgn = stored(p.contractValueNGN);
-      const originalUsd = stored(p.contractValueUSD);
-      if (!usdValue) missingUsdAll += 1;
-      else withUsdValue += 1;
-      if (!ngnValue) missingNgnAll += 1;
-      else withNgnValue += 1;
+      const originalNgn = p.currency === 'USD' ? 0 : stored(p.contractValueNGN);
+      const originalUsd = p.currency === 'NGN' ? 0 : stored(p.contractValueUSD);
+      if (p.currency !== 'NGN') {
+        if (!usdValue) missingUsdAll += 1;
+        else withUsdValue += 1;
+      }
+      if (p.currency !== 'USD') {
+        if (!ngnValue) missingNgnAll += 1;
+        else withNgnValue += 1;
+      }
 
       totalNGN += ngnValue;
       totalUSD += usdValue;
       
       // Margin values (stored only — already computed from discounted base when discount set)
-      totalMarginNGN += stored(p.marginValueNGN);
-      totalMarginUSD += stored(p.marginValueUSD);
+      if (p.currency !== 'USD') totalMarginNGN += stored(p.marginValueNGN);
+      if (p.currency !== 'NGN') totalMarginUSD += stored(p.marginValueUSD);
       
       // Margin percentages - sum individual project margin %
-      const mPctUSD = stored(p.marginPercentUSD);
-      const mPctNGN = stored(p.marginPercentNGN);
+      const mPctUSD = p.currency === 'NGN' ? 0 : stored(p.marginPercentUSD);
+      const mPctNGN = p.currency === 'USD' ? 0 : stored(p.marginPercentNGN);
       if (mPctUSD > 0) { sumMarginPercentUSD += mPctUSD; countMarginPercentUSD++; withMarginPctUSD++; }
       if (mPctNGN > 0) { sumMarginPercentNGN += mPctNGN; countMarginPercentNGN++; withMarginPctNGN++; }
       
@@ -161,8 +165,8 @@ export default function Dashboard() {
       if (p.status === 'active') {
         activePipelineUSD += usdValue;
         activePipelineNGN += ngnValue;
-        if (!usdValue) missingUsdActive += 1;
-        if (!ngnValue) missingNgnActive += 1;
+        if (p.currency !== 'NGN' && !usdValue) missingUsdActive += 1;
+        if (p.currency !== 'USD' && !ngnValue) missingNgnActive += 1;
       }
       
       const commissionRate = COMMISSION_RATE;

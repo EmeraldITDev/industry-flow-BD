@@ -27,7 +27,8 @@ export function RankedList({
 }: Props) {
   const navigate = useNavigate();
   const visible = groups.slice(0, limit);
-  const max = Math.max(...visible.map((g) => g.usd + g.ngn / 1_000_000), 1);
+  const maxUsd = Math.max(...visible.map((g) => g.usd), 1);
+  const maxNgn = Math.max(...visible.map((g) => g.ngn), 1);
 
   if (!visible.length) {
     return <p className="text-sm text-muted-foreground py-6 text-center">{emptyMessage}</p>;
@@ -50,7 +51,6 @@ export function RankedList({
   return (
     <div className="space-y-3">
       {visible.map((group) => {
-        const magnitude = group.usd + group.ngn / 1_000_000;
         const href = hrefFor(group);
         const clickable = !!href;
         return (
@@ -76,7 +76,12 @@ export function RankedList({
                 )}
               </span>
             </div>
-            <Progress value={(magnitude / max) * 100} className="h-1.5 mt-1.5" />
+            {group.usd > 0 && (
+              <Progress value={(group.usd / maxUsd) * 100} className="h-1.5 mt-1.5" />
+            )}
+            {group.ngn > 0 && (
+              <Progress value={(group.ngn / maxNgn) * 100} className="h-1.5 mt-1.5 [&>div]:bg-secondary" />
+            )}
             <p className="text-xs text-muted-foreground mt-1">
               {Math.round(group.count)} opportunities
               {group.lateStage > 0 ? ` · ${group.lateStage} late-stage` : ''}

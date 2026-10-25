@@ -139,9 +139,6 @@ export const ngnOf = (p: Project) => effectiveContractNgn(p);
 /** Original quoted contract — used by Commission. */
 export const originalUsdOf = (p: Project) => originalContractUsd(p);
 export const originalNgnOf = (p: Project) => originalContractNgn(p);
-/** Magnitude used only for ranking, never displayed as a total. */
-const rankWeight = (p: Project) => usdOf(p) + ngnOf(p) / 1_000_000;
-
 const toDate = (value: any): Date | null => {
   if (!value) return null;
   const d = new Date(value);
@@ -449,14 +446,13 @@ function toRow(p: Project, ownerName: string, now: Date): OpportunityRow {
   const daysToClose = close ? Math.floor((close.getTime() - now.getTime()) / dayMs) : null;
   const band = probabilityBand(p);
 
-  // Executive priority: late stage + probability + magnitude + closeness, less staleness.
+  // Executive priority: late stage + probability + closeness, less staleness.
   let score = 0;
   if (p.pipelineStage === 'negotiation') score += 40;
   else if (p.pipelineStage === 'proposal') score += 28;
   else if (p.pipelineStage === 'approval') score += 22;
   else if (p.pipelineStage === 'qualification') score += 10;
   score += PROBABILITY_SCORE[band] * 40;
-  score += Math.min(30, Math.log10(1 + rankWeight(p)) * 6);
   if (daysToClose !== null && daysToClose >= 0 && daysToClose <= CLOSING_SOON_DAYS) score += 15;
   if (daysToClose !== null && daysToClose < 0) score += 8;
   if (idle !== null && idle > STAGNATION_DAYS) score -= 10;
@@ -484,7 +480,7 @@ function toRow(p: Project, ownerName: string, now: Date): OpportunityRow {
 
 function rank(map: Map<string, RankedGroup>): RankedGroup[] {
   return Array.from(map.values()).sort(
-    (a, b) => b.usd + b.ngn / 1_000_000 - (a.usd + a.ngn / 1_000_000)
+    (a, b) => b.usd - a.usd || b.ngn - a.ngn
   );
 }
 
@@ -868,14 +864,14 @@ export function buildExecutiveIntelligence(
         newInPeriod,
         topOpportunities: items
           .map(rowOf)
-          .sort((a, b) => b.usd + b.ngn / 1_000_000 - (a.usd + a.ngn / 1_000_000))
+          .sort((a, b) => b.usd - a.usd || b.ngn - a.ngn)
           .slice(0, 8),
         clientNames: Array.from(new Set(items.map((p) => p.clientName).filter(Boolean))) as string[],
       };
     })
     .sort((a, b) => {
       if (a.isConfiguredGroup !== b.isConfiguredGroup) return a.isConfiguredGroup ? -1 : 1;
-      return b.usd + b.ngn / 1_000_000 - (a.usd + a.ngn / 1_000_000);
+      return b.usd - a.usd || b.ngn - a.ngn;
     });
 
   /* ---------------- Movement ---------------- */
@@ -889,14 +885,14 @@ export function buildExecutiveIntelligence(
         (p) =>
           inWindow(updatedAtOf(p), window.start, window.end) &&
           !inWindow(reportingDateOf(p), window.start, window.end) &&
-          rankWeight(p) > 0
+          (usdOf(p) > 0 || ngnOf(p) > 0)
       )
       .map(rowOf)
-      .sort((a, b) => b.usd + b.ngn / 1_000_000 - (a.usd + a.ngn / 1_000_000)),
+      .sort((a, b) => b.usd - a.usd || b.ngn - a.ngn),
     won: won
       .filter((p) => inWindow(reportingDateOf(p), window.start, window.end))
       .map(rowOf)
-      .sort((a, b) => b.usd + b.ngn / 1_000_000 - (a.usd + a.ngn / 1_000_000)),
+      .sort((a, b) => b.usd - a.usd || b.ngn - a.ngn),
     overdue: overdue.map(rowOf).sort((a, b) => b.priorityScore - a.priorityScore),
   };
 

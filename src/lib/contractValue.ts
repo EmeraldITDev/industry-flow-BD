@@ -1,6 +1,7 @@
 import { Project } from '@/types';
 
 type ContractLike = {
+  currency?: 'NGN' | 'USD' | null;
   contractValueNGN?: number | null;
   contractValueUSD?: number | null;
   contractValueNgn?: number | null;
@@ -19,10 +20,12 @@ function num(v: unknown): number | null {
 
 /** Original quoted contract (never overwritten by discount). */
 export function originalContractNgn(p: ContractLike): number {
+  if (p.currency === 'USD') return 0;
   return num(p.contractValueNGN ?? p.contractValueNgn) ?? 0;
 }
 
 export function originalContractUsd(p: ContractLike): number {
+  if (p.currency === 'NGN') return 0;
   return num(p.contractValueUSD ?? p.contractValueUsd) ?? 0;
 }
 
@@ -31,6 +34,7 @@ export function originalContractUsd(p: ContractLike): number {
  * discounted when present, else original.
  */
 export function effectiveContractNgn(p: ContractLike): number {
+  if (p.currency === 'USD') return 0;
   const discounted = num(
     p.discountedContractValueNGN ?? p.discounted_contract_value_ngn
   );
@@ -39,6 +43,7 @@ export function effectiveContractNgn(p: ContractLike): number {
 }
 
 export function effectiveContractUsd(p: ContractLike): number {
+  if (p.currency === 'NGN') return 0;
   const discounted = num(
     p.discountedContractValueUSD ?? p.discounted_contract_value_usd
   );

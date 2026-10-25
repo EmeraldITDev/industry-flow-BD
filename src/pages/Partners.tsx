@@ -138,12 +138,14 @@ export default function Partners() {
   const { canCreatePartners, canDeletePartners } = usePermissions();
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [verticalFilter, setVerticalFilter] = useState(ALL);
+  const [verticalFilter, setVerticalFilter] = useState(() => searchParams.get('vertical') || ALL);
   const [stageFilter, setStageFilter] = useState(() => {
     const stage = searchParams.get('relationshipStage') || searchParams.get('stage');
     return stage && stage.trim() ? stage : ALL;
   });
-  const [productFilter, setProductFilter] = useState(ALL);
+  const [productFilter, setProductFilter] = useState(
+    () => searchParams.get('product') || searchParams.get('product_category') || ALL
+  );
   const [ownerFilter, setOwnerFilter] = useState(() => {
     const owner = searchParams.get('ownerId') || searchParams.get('relationshipOwnerId');
     return owner && owner.trim() ? owner : ALL;

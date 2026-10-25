@@ -177,6 +177,7 @@ export const normalizeProject = (project: any): Project => {
       projectName: project.name,
       contractValueNGN,
       contractValueUSD,
+      currency: project.currency ?? null,
       marginValueNGN,
       marginValueUSD,
       marginPercentNGN,
@@ -233,6 +234,7 @@ export const normalizeProject = (project: any): Project => {
     ...project,
     // Enforced status
     status,
+    currency: project.currency ?? null,
     // Ensure financial fields are always present as numbers
     contractValueNGN,
     contractValueUSD,

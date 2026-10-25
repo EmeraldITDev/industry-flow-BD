@@ -147,6 +147,7 @@ export function PartnerTrackerMiniDashboard({
           Loading overview…
         </div>
       ) : (
+        <>
         <div className="grid gap-3 md:grid-cols-3">
           <Card>
             <CardHeader className="p-4 pb-2 space-y-1">
@@ -287,6 +288,57 @@ export function PartnerTrackerMiniDashboard({
             </CardContent>
           </Card>
         </div>
+        <div className="grid gap-3 md:grid-cols-2">
+          <Card>
+            <CardHeader className="p-4 pb-2 space-y-1">
+              <CardTitle className="text-sm font-medium">Partners by business vertical</CardTitle>
+              <p className="text-xs text-muted-foreground">
+                Each partner is counted once per assigned vertical.
+              </p>
+            </CardHeader>
+            <CardContent className="p-4 pt-2 space-y-1">
+              {(metrics?.byVertical ?? []).length === 0 ? (
+                <p className="text-sm text-muted-foreground py-2">No vertical data recorded.</p>
+              ) : (
+                metrics?.byVertical.slice(0, 8).map((row) => (
+                  <Link
+                    key={row.key}
+                    to={`/partners?vertical=${encodeURIComponent(row.key)}`}
+                    className="flex items-center justify-between gap-2 rounded-md px-1.5 py-1.5 text-sm hover:bg-accent/60 transition-colors"
+                  >
+                    <span className="truncate font-medium">{row.label}</span>
+                    <Badge variant="secondary" className="tabular-nums text-xs">{row.count}</Badge>
+                  </Link>
+                ))
+              )}
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="p-4 pb-2 space-y-1">
+              <CardTitle className="text-sm font-medium">Partners by product category</CardTitle>
+              <p className="text-xs text-muted-foreground">
+                Each partner is counted once per assigned category.
+              </p>
+            </CardHeader>
+            <CardContent className="p-4 pt-2 space-y-1">
+              {(metrics?.byProductCategory ?? []).length === 0 ? (
+                <p className="text-sm text-muted-foreground py-2">No product category data recorded.</p>
+              ) : (
+                metrics?.byProductCategory.slice(0, 8).map((row) => (
+                  <Link
+                    key={row.key}
+                    to={`/partners?product=${encodeURIComponent(row.key)}`}
+                    className="flex items-center justify-between gap-2 rounded-md px-1.5 py-1.5 text-sm hover:bg-accent/60 transition-colors"
+                  >
+                    <span className="truncate font-medium">{row.label}</span>
+                    <Badge variant="secondary" className="tabular-nums text-xs">{row.count}</Badge>
+                  </Link>
+                ))
+              )}
+            </CardContent>
+          </Card>
+        </div>
+        </>
       )}
     </div>
   );

@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useCallback, useMemo, React
 export type Currency = 'USD' | 'NGN';
 
 type ContractFields = {
+  currency?: 'NGN' | 'USD' | null;
   contractValueUSD?: number | null;
   contractValueNGN?: number | null;
   /** API ProjectResource camelCase variants */
@@ -196,6 +197,7 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     (project: ContractFields): CurrencyAmount | null => {
       const preferred = getContractValue(project);
       if (preferred != null) return { value: preferred, currency };
+      if (project.currency === 'NGN' || project.currency === 'USD') return null;
       const other: Currency = currency === 'USD' ? 'NGN' : 'USD';
       const fallback =
         other === 'NGN'
@@ -220,6 +222,7 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     (project: MarginFields): CurrencyAmount | null => {
       const preferred = marginFor(project, currency);
       if (preferred != null) return { value: preferred, currency };
+      if (project.currency === 'NGN' || project.currency === 'USD') return null;
       const other: Currency = currency === 'USD' ? 'NGN' : 'USD';
       const fallback = marginFor(project, other);
       return fallback != null ? { value: fallback, currency: other } : null;
