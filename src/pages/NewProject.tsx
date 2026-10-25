@@ -56,13 +56,11 @@ import { MultiSearchableSelect } from "@/components/ui/multi-searchable-select";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { PartnerMultiSelect } from "@/components/partners/PartnerMultiSelect";
 import {
-  DiscountControls,
   buildDiscountPayload,
   type DiscountType,
 } from "@/components/projects/DiscountControls";
 import { canSetProjectDiscount } from "@/lib/permissions/projectDiscount";
 import { WON_STAGES } from "@/lib/executive/analytics";
-import { computeMarginValue } from "@/lib/contractValue";
 import { PRODUCT_OPTIONS, getSubproductOptions } from "@/data/productCatalog";
 import { partnersService } from "@/services/partners";
 
@@ -236,41 +234,47 @@ export default function NewProject() {
     setIsSubmitting(true);
     try {
       // Calculate margin values from contract values and margin percentages (sanitized)
-      const contractValueNGN = parseNumberInput(formData.contractValueNGN);
-      const contractValueUSD = parseNumberInput(formData.contractValueUSD);
-      const marginPercentNGN = parseNumberInput(formData.marginPercentNGN);
-      const marginPercentUSD = parseNumberInput(formData.marginPercentUSD);
-
-      const discNGN = canEditDiscount
+      const currency = formData.currency;
+      const activeContract =
+        currency === "USD" ? formData.contractValueUSD : formData.contractValueNGN;
+      const activeSupplier =
+        currency === "USD"
+          ? formData.supplierDirectCostUSD
+          : formData.supplierDirectCostNGN;
+      const activeOther =
+        currency === "USD" ? formData.otherProjectCostUSD : formData.otherProjectCostNGN;
+      const contractAmount = parseNumberInput(activeContract);
+      const supplierAmount = parseNumberInput(activeSupplier);
+      const otherAmount = parseNumberInput(activeOther);
+      const activeDiscount = canEditDiscount
         ? buildDiscountPayload(
-            formData.contractValueNGN,
-            formData.discountTypeNGN,
-            formData.discountValueNGN,
+            activeContract,
+            currency === "USD" ? formData.discountTypeUSD : formData.discountTypeNGN,
+            currency === "USD" ? formData.discountValueUSD : formData.discountValueNGN,
           )
         : {
             discountType: null,
             discountValue: null,
             discountedContractValue: null,
           };
-      const discUSD = canEditDiscount
-        ? buildDiscountPayload(
-            formData.contractValueUSD,
-            formData.discountTypeUSD,
-            formData.discountValueUSD,
-          )
-        : {
-            discountType: null,
-            discountValue: null,
-            discountedContractValue: null,
-          };
-
-      const marginBaseNGN =
-        discNGN.discountedContractValue ?? contractValueNGN ?? undefined;
-      const marginBaseUSD =
-        discUSD.discountedContractValue ?? contractValueUSD ?? undefined;
-
-      const marginValueNGN = computeMarginValue(marginBaseNGN, marginPercentNGN);
-      const marginValueUSD = computeMarginValue(marginBaseUSD, marginPercentUSD);
+      const costs = projectCostSummary(
+        activeDiscount.discountedContractValue ?? contractAmount ?? null,
+        supplierAmount ?? null,
+        otherAmount ?? null,
+      );
+      const emptyDiscount = {
+        discountType: null as "percent" | "amount" | null,
+        discountValue: null as number | null,
+        discountedContractValue: null as number | null,
+      };
+      const discNGN = currency === "NGN" ? activeDiscount : emptyDiscount;
+      const discUSD = currency === "USD" ? activeDiscount : emptyDiscount;
+      const contractValueNGN = currency === "NGN" ? contractAmount : null;
+      const contractValueUSD = currency === "USD" ? contractAmount : null;
+      const marginPercentNGN = currency === "NGN" ? costs.marginPercent : null;
+      const marginPercentUSD = currency === "USD" ? costs.marginPercent : null;
+      const marginValueNGN = currency === "NGN" ? costs.marginValue : null;
+      const marginValueUSD = currency === "USD" ? costs.marginValue : null;
 
       const created = await projectsService.create({
         name: formData.name,
@@ -310,8 +314,13 @@ export default function NewProject() {
         assigneeId: formData.assigneeId || undefined,
         partnerIds: formData.partnerIds,
         partner_ids: formData.partnerIds,
+        currency,
         contractValueNGN,
         contractValueUSD,
+        supplierDirectCostNGN: currency === "NGN" ? supplierAmount : null,
+        supplierDirectCostUSD: currency === "USD" ? supplierAmount : null,
+        otherProjectCostNGN: currency === "NGN" ? otherAmount : null,
+        otherProjectCostUSD: currency === "USD" ? otherAmount : null,
         marginPercentNGN,
         marginPercentUSD,
         marginValueNGN,
@@ -803,153 +812,111 @@ export default function NewProject() {
           </CardContent>
         </Card>
 
-        {/* Financial Details - Dual Currency */}
         <Card>
           <CardHeader>
             <CardTitle>Financial Details</CardTitle>
             <CardDescription>
-              Contract value and margin in both Naira and USD
+              Record this project in Naira or US dollars
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-4 p-4 rounded-lg bg-muted/30">
-                <h4 className="font-medium">Nigerian Naira (₦)</h4>
-                <div className="space-y-2">
-                  <Label>Contract/PO Value (₦)</Label>
-                  <Input
-                    type="number"
-                    value={formData.contractValueNGN}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        contractValueNGN: e.target.value,
-                      })
-                    }
-                    placeholder="0"
-                  />
-                </div>
-                <DiscountControls
-                  currency="NGN"
-                  contractValue={formData.contractValueNGN}
-                  discountType={formData.discountTypeNGN}
-                  discountValue={formData.discountValueNGN}
-                  canEdit={canEditDiscount}
-                  onTypeChange={(type) =>
-                    setFormData({ ...formData, discountTypeNGN: type })
-                  }
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, discountValueNGN: value })
-                  }
-                />
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="space-y-2">
-                    <Label>Margin %</Label>
-                    <Input
-                      type="number"
-                      value={formData.marginPercentNGN}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          marginPercentNGN: e.target.value,
-                        })
-                      }
-                      placeholder="0"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Margin Value (₦)</Label>
-                    <Input
-                      type="number"
-                      value={(() => {
-                        const disc = buildDiscountPayload(
-                          formData.contractValueNGN,
-                          formData.discountTypeNGN,
-                          formData.discountValueNGN,
-                        ).discountedContractValue;
-                        const base =
-                          disc ?? parseFloat(formData.contractValueNGN);
-                        const pct = parseFloat(formData.marginPercentNGN);
-                        if (!Number.isFinite(base) || !Number.isFinite(pct))
-                          return "";
-                        return ((base * pct) / 100).toFixed(2);
-                      })()}
-                      readOnly
-                      className="bg-muted cursor-not-allowed"
-                      placeholder="Auto-calculated"
-                    />
-                  </div>
-                </div>
-              </div>
-              <div className="space-y-4 p-4 rounded-lg bg-muted/30">
-                <h4 className="font-medium">US Dollar ($)</h4>
-                <div className="space-y-2">
-                  <Label>Contract/PO Value ($)</Label>
-                  <Input
-                    type="number"
-                    value={formData.contractValueUSD}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        contractValueUSD: e.target.value,
-                      })
-                    }
-                    placeholder="0"
-                  />
-                </div>
-                <DiscountControls
-                  currency="USD"
-                  contractValue={formData.contractValueUSD}
-                  discountType={formData.discountTypeUSD}
-                  discountValue={formData.discountValueUSD}
-                  canEdit={canEditDiscount}
-                  onTypeChange={(type) =>
-                    setFormData({ ...formData, discountTypeUSD: type })
-                  }
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, discountValueUSD: value })
-                  }
-                />
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="space-y-2">
-                    <Label>Margin %</Label>
-                    <Input
-                      type="number"
-                      value={formData.marginPercentUSD}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          marginPercentUSD: e.target.value,
-                        })
-                      }
-                      placeholder="0"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Margin Value ($)</Label>
-                    <Input
-                      type="number"
-                      value={(() => {
-                        const disc = buildDiscountPayload(
-                          formData.contractValueUSD,
-                          formData.discountTypeUSD,
-                          formData.discountValueUSD,
-                        ).discountedContractValue;
-                        const base =
-                          disc ?? parseFloat(formData.contractValueUSD);
-                        const pct = parseFloat(formData.marginPercentUSD);
-                        if (!Number.isFinite(base) || !Number.isFinite(pct))
-                          return "";
-                        return ((base * pct) / 100).toFixed(2);
-                      })()}
-                      readOnly
-                      className="bg-muted cursor-not-allowed"
-                      placeholder="Auto-calculated"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
+            <SingleCurrencyFinancials
+              currency={formData.currency}
+              onCurrencyChange={(next) =>
+                setFormData((prev) => {
+                  if (prev.currency === next) return prev;
+                  const contract =
+                    prev.currency === "USD" ? prev.contractValueUSD : prev.contractValueNGN;
+                  const supplier =
+                    prev.currency === "USD"
+                      ? prev.supplierDirectCostUSD
+                      : prev.supplierDirectCostNGN;
+                  const other =
+                    prev.currency === "USD"
+                      ? prev.otherProjectCostUSD
+                      : prev.otherProjectCostNGN;
+                  const discountType =
+                    prev.currency === "USD" ? prev.discountTypeUSD : prev.discountTypeNGN;
+                  const discountValue =
+                    prev.currency === "USD" ? prev.discountValueUSD : prev.discountValueNGN;
+                  return {
+                    ...prev,
+                    currency: next,
+                    contractValueNGN: next === "NGN" ? contract : "",
+                    contractValueUSD: next === "USD" ? contract : "",
+                    supplierDirectCostNGN: next === "NGN" ? supplier : "",
+                    supplierDirectCostUSD: next === "USD" ? supplier : "",
+                    otherProjectCostNGN: next === "NGN" ? other : "",
+                    otherProjectCostUSD: next === "USD" ? other : "",
+                    discountTypeNGN: next === "NGN" ? discountType : "",
+                    discountTypeUSD: next === "USD" ? discountType : "",
+                    discountValueNGN: next === "NGN" ? discountValue : "",
+                    discountValueUSD: next === "USD" ? discountValue : "",
+                  };
+                })
+              }
+              contractValue={
+                formData.currency === "USD"
+                  ? formData.contractValueUSD
+                  : formData.contractValueNGN
+              }
+              onContractValueChange={(value) =>
+                setFormData((prev) =>
+                  prev.currency === "USD"
+                    ? { ...prev, contractValueUSD: value }
+                    : { ...prev, contractValueNGN: value }
+                )
+              }
+              discountType={
+                formData.currency === "USD"
+                  ? formData.discountTypeUSD
+                  : formData.discountTypeNGN
+              }
+              discountValue={
+                formData.currency === "USD"
+                  ? formData.discountValueUSD
+                  : formData.discountValueNGN
+              }
+              canEditDiscount={canEditDiscount}
+              onDiscountTypeChange={(type) =>
+                setFormData((prev) =>
+                  prev.currency === "USD"
+                    ? { ...prev, discountTypeUSD: type }
+                    : { ...prev, discountTypeNGN: type }
+                )
+              }
+              onDiscountValueChange={(value) =>
+                setFormData((prev) =>
+                  prev.currency === "USD"
+                    ? { ...prev, discountValueUSD: value }
+                    : { ...prev, discountValueNGN: value }
+                )
+              }
+              supplierDirectCost={
+                formData.currency === "USD"
+                  ? formData.supplierDirectCostUSD
+                  : formData.supplierDirectCostNGN
+              }
+              onSupplierDirectCostChange={(value) =>
+                setFormData((prev) =>
+                  prev.currency === "USD"
+                    ? { ...prev, supplierDirectCostUSD: value }
+                    : { ...prev, supplierDirectCostNGN: value }
+                )
+              }
+              otherProjectCost={
+                formData.currency === "USD"
+                  ? formData.otherProjectCostUSD
+                  : formData.otherProjectCostNGN
+              }
+              onOtherProjectCostChange={(value) =>
+                setFormData((prev) =>
+                  prev.currency === "USD"
+                    ? { ...prev, otherProjectCostUSD: value }
+                    : { ...prev, otherProjectCostNGN: value }
+                )
+              }
+            />
             <div className="space-y-2">
               <Label>Deal Probability</Label>
               <Select
