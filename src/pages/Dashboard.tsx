@@ -8,8 +8,6 @@ import { SegmentBreakdown } from '@/components/dashboard/SegmentBreakdown';
 import { TopClientsByValue } from '@/components/dashboard/TopClientsByValue';
 import { ProbabilityMixDonut } from '@/components/dashboard/ProbabilityMixDonut';
 import { ProductCategoryMixDonut } from '@/components/dashboard/ProductCategoryMixDonut';
-import PipelineBySalesLead from '@/components/dashboard/PipelineBySalesLead';
-import TeamOpportunityLoad from '@/components/dashboard/TeamOpportunityLoad';
 import { SectorOverview } from '@/components/dashboard/SectorOverview';
 import { RecentProjects } from '@/components/dashboard/RecentProjects';
 import { TasksSummary } from '@/components/dashboard/TasksSummary';
@@ -42,7 +40,6 @@ import {
 import { ExecutiveSnapshotSheet } from '@/components/executive/ExecutiveSnapshotSheet';
 import {
   projectsDrillHref,
-  resolveLeadIds,
 } from '@/lib/dashboard/projectsDrillHref';
 import { businessVerticals } from '@/data/mockData';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -85,16 +82,6 @@ export default function Dashboard() {
       return Number.isFinite(n) && n > 0 ? n : 0;
     };
 
-    // Build team name lookup
-    const teamNameMap = new Map<string, string>();
-    teamMembers.forEach((m: any) => teamNameMap.set(String(m.id), m.name));
-    const resolveLeadName = (p: Project) => {
-      if (p.salesLead && typeof p.salesLead === 'string' && p.salesLead.trim()) return p.salesLead.trim();
-      const leadId = p.projectLeadId || p.assigneeId;
-      if (leadId) return teamNameMap.get(String(leadId)) || 'Unassigned';
-      return 'Unassigned';
-    };
-    
     let totalNGN = 0;
     let totalUSD = 0;
     let wonPOValueUSD = 0;
@@ -242,44 +229,6 @@ export default function Dashboard() {
       byProductCategory[product] = (byProductCategory[product] || 0) + 1;
     });
 
-    // Pipeline by sales lead: one row per account + owner so the opportunity
-    // count matches the clientNames ∩ projectLeads drill-down filter.
-    const accountTableMap: Record<string, { account: string; location: string; owner: string; count: number }> = {};
-    projects.forEach((p: Project) => {
-      const client = p.clientName?.trim() || 'Unknown';
-      const lead = resolveLeadName(p);
-      const loc = p.location?.trim() || '';
-      const key = `${client}::${lead}`;
-      if (!accountTableMap[key]) {
-        accountTableMap[key] = { account: client, location: loc, owner: lead, count: 0 };
-      }
-      accountTableMap[key].count++;
-      if (!accountTableMap[key].location && loc) accountTableMap[key].location = loc;
-    });
-
-    const accountTableData = Object.values(accountTableMap).map((info) => ({
-      account: info.account,
-      location: info.location,
-      accountOwner: info.owner,
-      totalOpportunities: info.count,
-    }));
-
-    // Team load
-    const teamLoadMap: Record<string, { total: number; won: number; active: number }> = {};
-    projects.forEach((p: Project) => {
-      const lead = resolveLeadName(p);
-      if (!teamLoadMap[lead]) teamLoadMap[lead] = { total: 0, won: 0, active: 0 };
-      teamLoadMap[lead].total++;
-      if (isWon(p)) {
-        teamLoadMap[lead].won++;
-      }
-      if (p.status === 'active') teamLoadMap[lead].active++;
-    });
-
-    const teamLoad = Object.entries(teamLoadMap).map(([lead, stats]) => ({
-      lead, totalDeals: stats.total, won: stats.won, active: stats.active, loadPercentage: stats.total,
-    }));
-
     return {
       total: projects.length, active, completed, won, highRisk,
       completedTasks, overdueTasks,
@@ -292,7 +241,7 @@ export default function Dashboard() {
       withNgnValue, withUsdValue, withMarginPctUSD, withMarginPctNGN,
       winRate, segments, pipelineByStage, lostDeals,
       bySector, topClients, byPipelineStage, byProductCategory,
-      accountTableData, teamLoad, averageProgress: avgProgress, recent,
+      averageProgress: avgProgress, recent,
     };
   }, [filteredProjects, teamMembers]);
 
@@ -300,9 +249,6 @@ export default function Dashboard() {
   const drill = useMemo(() => {
     const base = (overrides: Parameters<typeof projectsDrillHref>[1] = {}) =>
       projectsDrillHref(dashboardFilters, overrides, teamMembers);
-
-    const leadIdsFor = (leadName: string) =>
-      resolveLeadIds([leadName], teamMembers);
 
     return {
       won: base({ metric: 'won' }),
@@ -315,17 +261,6 @@ export default function Dashboard() {
           : base({ sectors: [sector] }),
       client: (client: string) => base({ clientNames: [client] }),
       product: (product: string) => base({ products: [product] }),
-      accountOwner: (account: string, owner: string) =>
-        base({
-          clientNames: [account],
-          projectLeads: leadIdsFor(owner),
-        }),
-      leadProjects: (lead: string) =>
-        base({ projectLeads: leadIdsFor(lead) }),
-      leadWon: (lead: string) =>
-        base({ metric: 'won', projectLeads: leadIdsFor(lead) }),
-      leadActive: (lead: string) =>
-        base({ statuses: ['active'], projectLeads: leadIdsFor(lead) }),
     };
   }, [dashboardFilters, teamMembers]);
 
@@ -344,26 +279,6 @@ export default function Dashboard() {
         href: drill.stage(s.value),
       })),
     [computedStats.pipelineByStage, drill]
-  );
-
-  const accountTableWithHrefs = useMemo(
-    () =>
-      computedStats.accountTableData.map((row) => ({
-        ...row,
-        href: drill.accountOwner(row.account, row.accountOwner),
-      })),
-    [computedStats.accountTableData, drill]
-  );
-
-  const teamLoadWithHrefs = useMemo(
-    () =>
-      computedStats.teamLoad.map((row) => ({
-        ...row,
-        projectsHref: drill.leadProjects(row.lead),
-        wonHref: drill.leadWon(row.lead),
-        activeHref: drill.leadActive(row.lead),
-      })),
-    [computedStats.teamLoad, drill]
   );
 
   const financialPanelModel = useMemo(() => {
@@ -586,21 +501,6 @@ export default function Dashboard() {
                 data={computedStats.byProductCategory}
                 hrefFor={drill.product}
               />
-            </DashboardVisualExport>
-          </div>
-
-          {/* Team Performance & Lead Analysis */}
-          <div className="flex items-center gap-2 text-[10px] font-bold tracking-[0.2em] uppercase text-emerald-accent mt-8">
-            <span>Team Performance &amp; Lead Analysis</span>
-            <div className="flex-1 h-px bg-border" />
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 min-w-0">
-            <DashboardVisualExport filename="pipeline-by-sales-lead" contentClassName="p-0 bg-transparent border-0 shadow-none min-w-0">
-              <PipelineBySalesLead data={accountTableWithHrefs} />
-            </DashboardVisualExport>
-            <DashboardVisualExport filename="team-opportunity-load" contentClassName="p-0 bg-transparent border-0 shadow-none min-w-0">
-              <TeamOpportunityLoad data={teamLoadWithHrefs} />
             </DashboardVisualExport>
           </div>
 

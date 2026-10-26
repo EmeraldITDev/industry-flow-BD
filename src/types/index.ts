@@ -62,6 +62,10 @@ export interface TeamMember {
   department: string;
   assignedProjects: string[];
   createdAt: string;
+  systemRole?: string;
+  accessLevel?: string;
+  position?: string;
+  isActive?: boolean;
 }
 
 export interface Task {
@@ -112,6 +116,26 @@ export interface ProjectPartnerRef {
   relationshipStage?: string;
 }
 
+export type ProjectContactRole =
+  | 'procurement'
+  | 'technical'
+  | 'commercial'
+  | 'finance'
+  | 'project_coordinator'
+  | 'other';
+
+export interface ProjectContact {
+  id?: number;
+  name: string;
+  jobTitle: string;
+  department: string;
+  email: string;
+  phone: string;
+  contactRole: ProjectContactRole;
+  isPrimary: boolean;
+  notes: string;
+}
+
 export interface Project {
   id: string;
   name: string;
@@ -129,6 +153,7 @@ export interface Project {
   dealProbability?: RiskLevel;
   clientName?: string;
   clientContact?: string;
+  projectContacts?: ProjectContact[];
   milestones?: Milestone[];
   documents?: ProjectDocument[];
   
@@ -177,6 +202,7 @@ export interface Project {
   supportNeeded?: string;
   projectImage?: string;
   teamMemberIds?: string[];
+  projectAssignmentIds?: string[];
   projectLead?: { id?: string; name?: string; email?: string } | null;
   teamMembers?: Array<{ id?: string; name?: string; email?: string }>;
   tasksCount?: number;

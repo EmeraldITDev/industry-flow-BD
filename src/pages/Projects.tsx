@@ -155,6 +155,9 @@ export default function Projects() {
   const metricStatuses = searchParams.get('statuses') || '';
   const missingParam = searchParams.get('missing') || '';
   const hasParam = searchParams.get('has') || '';
+  const teamMembersParam = searchParams.get('teamMembers') || '';
+  const missingProjectLeadParam = searchParams.get('missingProjectLead') || '';
+  const projectIdsParam = searchParams.get('projectIds') || '';
   const partnerIdParam =
     searchParams.get('partner_id') || searchParams.get('partnerId') || '';
   const pageParam = Math.max(1, Number(searchParams.get('page') || '1') || 1);
@@ -213,6 +216,9 @@ export default function Projects() {
       'partnerId',
       'missing',
       'has',
+      'teamMembers',
+      'missingProjectLead',
+      'projectIds',
     ];
     for (const key of preserveKeys) {
       const value = searchParams.get(key);
@@ -349,9 +355,12 @@ export default function Projects() {
     if (partnerIdParam) params.partner_id = partnerIdParam;
     if (missingParam) params.missing = missingParam;
     if (hasParam) params.has = hasParam;
+    if (teamMembersParam) params.teamMembers = teamMembersParam;
+    if (missingProjectLeadParam) params.missingProjectLead = missingProjectLeadParam;
+    if (projectIdsParam) params.projectIds = projectIdsParam;
     params.page = pageParam;
     return params;
-  }, [filters, partnerIdParam, missingParam, hasParam, pageParam]);
+  }, [filters, partnerIdParam, missingParam, hasParam, teamMembersParam, missingProjectLeadParam, projectIdsParam, pageParam]);
 
   /** Filter params without page — used so export/report cover every matching row. */
   const exportFetchParams = useMemo(() => {

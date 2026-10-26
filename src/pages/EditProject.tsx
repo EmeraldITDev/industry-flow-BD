@@ -37,6 +37,7 @@ import {
   PipelineStage,
   BusinessSegment,
   PIPELINE_STAGES,
+  ProjectContact,
 } from "@/types";
 import { toast } from "sonner";
 import { parseNumberInput } from "@/lib/utils";
@@ -59,6 +60,8 @@ import { canSetProjectDiscount } from "@/lib/permissions/projectDiscount";
 import { WON_STAGES } from "@/lib/executive/analytics";
 import { useAuth } from "@/context/AuthContext";
 import type { Partner } from "@/types/partners";
+import { ProjectContactsEditor } from "@/components/projects/ProjectContactsEditor";
+import { validateProjectContacts } from "@/lib/projectContacts";
 
 const dealProbabilities: { value: RiskLevel; label: string; color: string }[] =
   [
@@ -138,6 +141,7 @@ export default function EditProject() {
     pipelineIntakeDate: undefined as Date | undefined,
     clientName: "",
     clientContact: "",
+    projectContacts: [] as ProjectContact[],
     oem: "",
     location: "",
     leadTime: "",
@@ -231,6 +235,20 @@ export default function EditProject() {
 
       clientName: data.clientName ?? data.client_name ?? "",
       clientContact: data.clientContact ?? data.client_contact ?? "",
+      projectContacts: Array.isArray(data.projectContacts)
+        ? data.projectContacts.map((contact: ProjectContact) => ({
+            ...contact,
+            id: contact.id == null ? undefined : Number(contact.id),
+            name: contact.name ?? "",
+            jobTitle: contact.jobTitle ?? "",
+            department: contact.department ?? "",
+            email: contact.email ?? "",
+            phone: contact.phone ?? "",
+            contactRole: contact.contactRole ?? "other",
+            isPrimary: Boolean(contact.isPrimary),
+            notes: contact.notes ?? "",
+          }))
+        : [],
       oem: data.oem ?? "",
       location: data.location ?? "",
       leadTime: data.leadTime ?? data.lead_time ?? "",
@@ -363,6 +381,12 @@ export default function EditProject() {
       return;
     }
 
+    const contactsError = validateProjectContacts(formData.projectContacts);
+    if (contactsError) {
+      toast.error(contactsError);
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const contractNGN = parseNumberInput(formData.contractValueNGN);
@@ -416,6 +440,7 @@ export default function EditProject() {
         endDate: formData.endDate?.toISOString(),
         clientName: formData.clientName || undefined,
         clientContact: formData.clientContact || undefined,
+        contacts: formData.projectContacts,
         pipelineStage: formData.pipelineStage,
         pipelineIntakeDate: formData.pipelineIntakeDate?.toISOString(),
         oem: formData.oem || undefined,
@@ -471,7 +496,10 @@ export default function EditProject() {
       queryClient.invalidateQueries({ queryKey: ["project-partners", id] });
       navigate(`/projects/${id}`);
     } catch (error: any) {
-      console.error("Failed to update project:", error);
+      console.error(
+        "Failed to update project:",
+        error instanceof Error ? error.message : "Unknown error",
+      );
       toast.error(
         error.response?.data?.message ||
           "Failed to update project. Please try again.",
@@ -865,7 +893,7 @@ export default function EditProject() {
             <CardTitle>Client Information</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="clientName">Client Name</Label>
                 <Input
@@ -878,18 +906,13 @@ export default function EditProject() {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="clientContact">Client Contact</Label>
-                <Input
-                  id="clientContact"
-                  value={formData.clientContact}
-                  onChange={(e) =>
-                    setFormData({ ...formData, clientContact: e.target.value })
-                  }
-                  placeholder="Email or phone"
-                />
-              </div>
             </div>
+            <ProjectContactsEditor
+              contacts={formData.projectContacts}
+              onChange={(projectContacts) =>
+                setFormData((previous) => ({ ...previous, projectContacts }))
+              }
+            />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">

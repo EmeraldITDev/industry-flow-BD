@@ -17,6 +17,9 @@ export type ProjectsDrillOverrides = {
   /** Prefer team member IDs (Projects AdvancedFilters). */
   projectLeads?: string[];
   assignees?: string[];
+  teamMembers?: string[];
+  missingProjectLead?: boolean;
+  projectIds?: string[];
   channelPartners?: string[];
   partner_id?: string;
   /** When set, skip mapping dashboard startDates → dateFrom/dateTo. */
@@ -103,6 +106,9 @@ export function projectsDrillHref(
   setJsonArray(params, 'sectors', overrides.sectors);
   setJsonArray(params, 'businessVerticals', overrides.businessVerticals);
   setJsonArray(params, 'assignees', overrides.assignees);
+  setJsonArray(params, 'teamMembers', overrides.teamMembers);
+  if (overrides.projectIds) params.set('projectIds', JSON.stringify(overrides.projectIds));
+  if (overrides.missingProjectLead) params.set('missingProjectLead', '1');
 
   if (overrides.partner_id) {
     params.set('partner_id', overrides.partner_id);

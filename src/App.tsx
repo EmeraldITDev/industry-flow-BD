@@ -22,6 +22,7 @@ const Index = lazy(() => import("./pages/Index"));
 const ProjectsPage = lazy(() => import("./pages/ProjectsPage"));
 const ProjectDetailPage = lazy(() => import("./pages/ProjectDetailPage"));
 const TeamPage = lazy(() => import("./pages/TeamPage"));
+const EmployeePerformancePage = lazy(() => import("./pages/EmployeePerformancePage"));
 const NewProjectPage = lazy(() => import("./pages/NewProjectPage"));
 const EditProjectPage = lazy(() => import("./pages/EditProject"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage"));
@@ -74,6 +75,7 @@ const App = () => (
                     <Route path="/projects/:id/edit" element={<ProtectedRoute><EditProjectPage /></ProtectedRoute>} />
                     <Route path="/projects/:id" element={<ProtectedRoute><ProjectDetailPage /></ProtectedRoute>} />
                     <Route path="/team" element={<ProtectedRoute><TeamPage /></ProtectedRoute>} />
+                    <Route path="/team/:id" element={<ProtectedRoute><EmployeePerformancePage /></ProtectedRoute>} />
                     <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
                     <Route path="/calendar" element={<ProtectedRoute><CalendarPage /></ProtectedRoute>} />
                     <Route path="/tasks" element={<ProtectedRoute><RestrictedExecutiveTasksGuard><AllTasksPage /></RestrictedExecutiveTasksGuard></ProtectedRoute>} />

@@ -16,6 +16,7 @@ interface TeamMember {
   projectsHref?: string;
   wonHref?: string;
   activeHref?: string;
+  profileHref?: string;
 }
 
 interface TeamOpportunityLoadProps {
@@ -58,13 +59,17 @@ export default function TeamOpportunityLoad({ data }: TeamOpportunityLoadProps) 
               className="grid grid-cols-[120px,60px,1fr,60px,60px] gap-3 items-center text-sm"
             >
               <div className="font-medium text-card-foreground truncate">
-                {member.lead}
+                {member.profileHref
+                  ? <Link to={member.profileHref} target="_blank" rel="noopener noreferrer" className="hover:text-primary hover:underline">{member.lead}</Link>
+                  : member.lead}
               </div>
 
               <div className="text-right font-mono">
-                {member.projectsHref ? (
+                {member.projectsHref && member.totalDeals > 0 ? (
                   <Link
                     to={member.projectsHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="text-primary underline-offset-2 hover:underline tabular-nums"
                   >
                     {member.totalDeals}
@@ -82,9 +87,11 @@ export default function TeamOpportunityLoad({ data }: TeamOpportunityLoadProps) 
               </div>
 
               <div className="flex justify-center">
-                {member.wonHref ? (
+                {member.wonHref && member.won > 0 ? (
                   <Link
                     to={member.wonHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className={cn(
                       'inline-flex items-center justify-center w-7 h-7 rounded-full',
                       'bg-emerald-won/20 text-emerald-won text-xs font-semibold',
@@ -101,9 +108,11 @@ export default function TeamOpportunityLoad({ data }: TeamOpportunityLoadProps) 
               </div>
 
               <div className="flex justify-center">
-                {member.activeHref ? (
+                {member.activeHref && member.active > 0 ? (
                   <Link
                     to={member.activeHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className={cn(
                       'inline-flex items-center justify-center w-7 h-7 rounded-full',
                       'bg-emerald-accent/20 text-emerald-accent text-xs font-semibold',

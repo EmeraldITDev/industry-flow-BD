@@ -22,6 +22,7 @@ export interface AccountRow {
   accountOwner: string;
   totalOpportunities: number;
   href?: string;
+  projectIds?: string[];
 }
 
 interface PipelineBySalesLeadProps {
@@ -65,13 +66,17 @@ export default function PipelineBySalesLead({ data }: PipelineBySalesLeadProps) 
               const idx = pagination.start - 1 + i;
               return (
               <TableRow key={`${row.account}-${idx}`} className={idx % 2 === 0 ? 'bg-background' : 'bg-muted/20'}>
-                <TableCell className="text-xs font-medium py-2 max-w-[140px] truncate">{row.account}</TableCell>
+                <TableCell className="text-xs font-medium py-2 max-w-[140px] truncate">
+                  {row.href ? <Link to={row.href} target="_blank" rel="noopener noreferrer" className="hover:text-primary hover:underline">{row.account}</Link> : row.account}
+                </TableCell>
                 <TableCell className="text-xs py-2 text-muted-foreground max-w-[100px] truncate">{row.location || '—'}</TableCell>
                 <TableCell className="text-xs py-2 max-w-[120px] truncate">{row.accountOwner}</TableCell>
                 <TableCell className="text-xs py-2 text-right font-semibold">
                   {row.href ? (
                     <Link
                       to={row.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className={cn(
                         'tabular-nums text-primary underline-offset-2 hover:underline'
                       )}

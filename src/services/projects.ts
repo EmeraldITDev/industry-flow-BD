@@ -1,5 +1,5 @@
 import api from './api';
-import { Project, ProjectPartnerRef, PipelineStage, Sector, BusinessSegment, RiskLevel, ProjectStats } from '@/types';
+import { Project, ProjectContact, ProjectContactRole, ProjectPartnerRef, PipelineStage, Sector, BusinessSegment, RiskLevel, ProjectStats } from '@/types';
 import { notifyAssignment } from './notificationHelper';
 import { type ProjectStatus } from '@/lib/stageStatusRules';
 
@@ -14,6 +14,7 @@ export interface CreateProjectData {
   budget?: number;
   clientName?: string;
   clientContact?: string;
+  contacts?: ProjectContact[];
   pipelineStage?: PipelineStage;
   pipelineIntakeDate?: string;
   oem?: string;
@@ -108,6 +109,49 @@ function normalizeProjectPartners(project: any): ProjectPartnerRef[] {
   return partners;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function normalizeProjectContacts(project: Record<string, unknown>): ProjectContact[] {
+  const rows = project?.projectContacts ?? project?.project_contacts ?? project?.contacts;
+  if (!Array.isArray(rows)) return [];
+
+  const stringValue = (value: unknown) =>
+    typeof value === 'string' || typeof value === 'number' ? String(value) : '';
+
+  return rows.filter(isRecord).map((contact) => {
+    const id = contact.id;
+    const role = stringValue(contact.contactRole ?? contact.contact_role ?? 'other');
+
+    return {
+      id: id == null ? undefined : Number(id),
+      name: stringValue(contact.name),
+      jobTitle: stringValue(contact.jobTitle ?? contact.job_title),
+      department: stringValue(contact.department),
+      email: stringValue(contact.email),
+      phone: stringValue(contact.phone),
+      contactRole: role as ProjectContactRole,
+      isPrimary: Boolean(contact.isPrimary ?? contact.is_primary),
+      notes: stringValue(contact.notes),
+    };
+  });
+}
+
+function serializeProjectContacts(contacts: ProjectContact[]): Record<string, unknown>[] {
+  return contacts.map((contact) => ({
+    ...(contact.id == null ? {} : { id: contact.id }),
+    name: contact.name,
+    job_title: contact.jobTitle,
+    department: contact.department,
+    email: contact.email,
+    phone: contact.phone,
+    contact_role: contact.contactRole,
+    is_primary: contact.isPrimary,
+    notes: contact.notes,
+  }));
+}
+
 // Normalize project data from backend
 // API may return camelCase OR snake_case format - handle both
 export const normalizeProject = (project: any): Project => {
@@ -199,6 +243,7 @@ export const normalizeProject = (project: any): Project => {
     project.team_member_ids ??
     (project.teamMembers ?? project.team_members ?? []).map((m: any) => m?.id)
   ).map((id: any) => String(id));
+  const projectAssignmentIds = teamMemberIds;
   
   // Compute teamSize from unique people (lead + assignee + members)
   const projectLeadId = project.projectLeadId ?? project.project_lead_id ?? null;
@@ -246,6 +291,7 @@ export const normalizeProject = (project: any): Project => {
     description: project.description ?? project.Description ?? '',
     clientName: project.clientName ?? project.client_name ?? '',
     clientContact: project.clientContact ?? project.client_contact ?? '',
+    projectContacts: normalizeProjectContacts(project),
     startDate: project.startDate ?? project.start_date ?? '',
     endDate: project.endDate ?? project.end_date ?? '',
     pipelineStage,
@@ -306,6 +352,7 @@ export const normalizeProject = (project: any): Project => {
     dealProbability: project.dealProbability ?? project.deal_probability ?? project.riskLevel ?? project.risk_level ?? 'low',
     projectImage: project.projectImage ?? project.project_image ?? undefined,
     teamMemberIds,
+    projectAssignmentIds,
     teamSize: computedTeamSize || project.teamSize || project.team_size || 0,
     tasks,
     tasksCount: finalTasksCount,
@@ -510,6 +557,9 @@ export const projectsService = {
     if (Array.isArray(requestData.subproducts)) {
       requestData.subProduct = requestData.subproducts[0] ?? null;
     }
+    if (Array.isArray(requestData.contacts)) {
+      requestData.contacts = serializeProjectContacts(requestData.contacts);
+    }
 
     // Add snake_case aliases for Laravel backend
     const snakeCaseMap: Record<string, string> = {
@@ -624,6 +674,9 @@ export const projectsService = {
     if (Array.isArray(requestData.subproducts)) {
       requestData.subProduct = requestData.subproducts[0] ?? null;
     }
+    if (Array.isArray(requestData.contacts)) {
+      requestData.contacts = serializeProjectContacts(requestData.contacts);
+    }
 
     // Add snake_case aliases for backends expecting snake_case keys
     const snakeCaseMap: Record<string, string> = {
@@ -669,9 +722,9 @@ export const projectsService = {
     });
 
     // Log full payload being sent for debugging
-    console.log('[Projects Service] Update request payload:', {
+    console.log('[Projects Service] Update request sent:', {
       projectId: id,
-      ...requestData,
+      projectContactsCount: Array.isArray(requestData.contacts) ? requestData.contacts.length : undefined,
     });
 
     const response = await api.put(`/api/projects/${id}`, requestData);

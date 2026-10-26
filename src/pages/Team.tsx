@@ -56,6 +56,9 @@ import { projectsService } from '@/services/projects';
 import { tasksService } from '@/services/tasks';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Link, useNavigate } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { TeamInsights } from '@/components/team/TeamInsights';
 
 const SYSTEM_ROLES: { value: SystemRole; label: string; description: string }[] = [
   { value: 'admin', label: 'Admin', description: 'Full system access' },
@@ -94,6 +97,7 @@ function generatePassword(length = 12): string {
 export default function Team() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isCredentialsDialogOpen, setIsCredentialsDialogOpen] = useState(false);
   const [newUserCredentials, setNewUserCredentials] = useState<{ email: string; password: string } | null>(null);
@@ -302,9 +306,12 @@ export default function Team() {
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
   };
 
-  const adminCount = members.filter(m => m.role === 'admin').length;
-  const editorCount = members.filter(m => m.role === 'editor').length;
-  const viewerCount = members.filter(m => m.role === 'viewer').length;
+  const adminCount = members.filter((member) =>
+    member.systemRole === 'admin' || member.role === 'admin' ||
+    member.accessLevel === 'admin',
+  ).length;
+  const editorCount = members.filter((member) => member.systemRole === 'editor' || member.role === 'editor').length;
+  const viewerCount = members.filter((member) => member.systemRole === 'viewer' || member.role === 'viewer').length;
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 overflow-x-hidden">
@@ -459,6 +466,22 @@ export default function Team() {
         </DialogContent>
       </Dialog>
 
+      <Tabs
+        value={searchParams.get('tab') || 'members'}
+        onValueChange={(tab) => {
+          const next = new URLSearchParams(searchParams);
+          next.set('tab', tab);
+          setSearchParams(next, { replace: true });
+        }}
+        className="space-y-5"
+      >
+        <TabsList className="h-auto flex-wrap">
+          <TabsTrigger value="members">Team Members</TabsTrigger>
+          <TabsTrigger value="verticals">Teams by Business Vertical</TabsTrigger>
+          <TabsTrigger value="leads">Project Leads &amp; Account Managers</TabsTrigger>
+          <TabsTrigger value="performance">Team Performance</TabsTrigger>
+        </TabsList>
+        <TabsContent value="members" className="space-y-5">
       {/* Stats Cards */}
       <div className="grid grid-cols-2 gap-2 sm:gap-4 md:grid-cols-4">
         <Card>
@@ -518,7 +541,9 @@ export default function Team() {
               <TableRow>
                 <TableHead className="text-xs sm:text-sm">Member</TableHead>
                 <TableHead className="text-xs sm:text-sm">Department</TableHead>
-                <TableHead className="text-xs sm:text-sm">Role</TableHead>
+                <TableHead className="text-xs sm:text-sm">System Role / Access</TableHead>
+                <TableHead className="text-xs sm:text-sm">Projects Led</TableHead>
+                <TableHead className="text-xs sm:text-sm">Projects Assigned</TableHead>
                 <TableHead className="text-xs sm:text-sm">Assigned Projects</TableHead>
                 {canManageTeam && <TableHead className="w-[50px]"></TableHead>}
               </TableRow>
@@ -543,15 +568,14 @@ export default function Team() {
                           </Avatar>
                         </button>
                         <div>
-                          <button
-                            onClick={() => {
-                              setSelectedMember(member);
-                              setIsProfileDialogOpen(true);
-                            }}
-                            className="font-medium hover:underline cursor-pointer text-left"
+                          <a
+                            href={`/team/${member.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="font-medium hover:underline"
                           >
                             {member.name}
-                          </button>
+                          </a>
                           <div className="text-sm text-muted-foreground">{member.email}</div>
                         </div>
                       </div>
@@ -560,9 +584,12 @@ export default function Team() {
                     <TableCell>
                       <Badge className={roleColor}>
                         <RoleIcon className="mr-1 h-3 w-3" />
-                        <span className="capitalize">{member.role}</span>
+                        <span className="capitalize">{member.systemRole || member.role}</span>
                       </Badge>
+                      <div className="mt-1 text-xs text-muted-foreground">{member.accessLevel || '—'}</div>
                     </TableCell>
+                    <TableCell>{allProjects.filter((project) => String(project.projectLeadId ?? '') === String(member.id)).length}</TableCell>
+                    <TableCell>{allProjects.filter((project) => String(project.assigneeId ?? '') === String(member.id) || project.projectAssignmentIds?.map(String).includes(String(member.id))).length}</TableCell>
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -700,6 +727,17 @@ export default function Team() {
           </div>
         </CardContent>
       </Card>
+        </TabsContent>
+        <TabsContent value="verticals">
+          <TeamInsights view="verticals" members={members} projects={allProjects} />
+        </TabsContent>
+        <TabsContent value="leads">
+          <TeamInsights view="leads" members={members} projects={allProjects} />
+        </TabsContent>
+        <TabsContent value="performance">
+          <TeamInsights view="performance" members={members} projects={allProjects} />
+        </TabsContent>
+      </Tabs>
 
       {/* Profile Dialog */}
       <Dialog open={isProfileDialogOpen} onOpenChange={setIsProfileDialogOpen}>

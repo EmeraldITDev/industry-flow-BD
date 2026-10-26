@@ -43,6 +43,7 @@ import {
   BusinessSegment,
   PIPELINE_STAGES,
   ProjectDocument,
+  ProjectContact,
   TeamMember,
 } from "@/types";
 import { toast } from "sonner";
@@ -63,6 +64,8 @@ import { canSetProjectDiscount } from "@/lib/permissions/projectDiscount";
 import { WON_STAGES } from "@/lib/executive/analytics";
 import { PRODUCT_OPTIONS, getSubproductOptions } from "@/data/productCatalog";
 import { partnersService } from "@/services/partners";
+import { ProjectContactsEditor } from "@/components/projects/ProjectContactsEditor";
+import { validateProjectContacts } from "@/lib/projectContacts";
 
 const dealProbabilities: { value: RiskLevel; label: string; color: string }[] =
   [
@@ -131,7 +134,7 @@ export default function NewProject() {
     pipelineIntakeDate: new Date() as Date | undefined,
     // Client fields
     clientName: "",
-    clientContact: "",
+    projectContacts: [] as ProjectContact[],
     // Extended fields
     oem: "",
     location: "",
@@ -231,6 +234,12 @@ export default function NewProject() {
       return;
     }
 
+    const contactsError = validateProjectContacts(formData.projectContacts);
+    if (contactsError) {
+      toast.error(contactsError);
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       // Calculate margin values from contract values and margin percentages (sanitized)
@@ -285,7 +294,7 @@ export default function NewProject() {
         startDate: formData.startDate?.toISOString(),
         endDate: formData.endDate?.toISOString(),
         clientName: formData.clientName || undefined,
-        clientContact: formData.clientContact || undefined,
+        contacts: formData.projectContacts,
         pipelineStage: formData.pipelineStage,
         pipelineIntakeDate: formData.pipelineIntakeDate?.toISOString(),
         oem: formData.oem || undefined,
@@ -345,7 +354,10 @@ export default function NewProject() {
       toast.success("Project created successfully!");
       navigate("/projects");
     } catch (error: any) {
-      console.error("Failed to create project:", error);
+      console.error(
+        "Failed to create project:",
+        error instanceof Error ? error.message : "Unknown error",
+      );
       toast.error(
         error.response?.data?.message ||
           "Failed to create project. Please try again.",
@@ -787,7 +799,7 @@ export default function NewProject() {
             <CardTitle>Client Information</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4">
               <div className="space-y-2">
                 <Label>Client Name</Label>
                 <Input
@@ -798,17 +810,13 @@ export default function NewProject() {
                   placeholder="Client company name"
                 />
               </div>
-              <div className="space-y-2">
-                <Label>Client Contact</Label>
-                <Input
-                  value={formData.clientContact}
-                  onChange={(e) =>
-                    setFormData({ ...formData, clientContact: e.target.value })
-                  }
-                  placeholder="Email or phone"
-                />
-              </div>
             </div>
+            <ProjectContactsEditor
+              contacts={formData.projectContacts}
+              onChange={(projectContacts) =>
+                setFormData((previous) => ({ ...previous, projectContacts }))
+              }
+            />
           </CardContent>
         </Card>
 

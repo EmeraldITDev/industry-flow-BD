@@ -157,6 +157,7 @@ export default function ProjectDetail() {
         teamSize: data.team_size || data.teamSize || 0,
         clientName: data.client_name || data.clientName,
         clientContact: data.client_contact || data.clientContact,
+        projectContacts: data.projectContacts ?? data.project_contacts ?? [],
         oem: data.oem,
         location: data.location,
         leadTime: data.leadTime || data.lead_time,
@@ -596,16 +597,6 @@ export default function ProjectDetail() {
                     <p className="font-medium text-sm">{project.clientName}</p>
                   </div>
                 )}
-                {project.clientContact && (
-                  <div>
-                    <p className="text-xs text-muted-foreground">
-                      Client Contact
-                    </p>
-                    <p className="font-medium text-sm">
-                      {project.clientContact}
-                    </p>
-                  </div>
-                )}
                 {project.oem && (
                   <div>
                     <p className="text-xs text-muted-foreground">OEM</p>
@@ -842,6 +833,78 @@ export default function ProjectDetail() {
                   </p>
                   <p className="text-sm">{project.supportNeeded}</p>
                 </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="p-3 sm:p-6 pb-2">
+              <div className="flex items-center justify-between gap-3">
+                <CardTitle className="text-base">Client Contacts</CardTitle>
+                {canEditProjects && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate(`/projects/${project.id}/edit`)}
+                  >
+                    <Pencil className="mr-2 h-4 w-4" />
+                    Edit contacts
+                  </Button>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent className="p-3 sm:p-6 pt-0">
+              {(project.projectContacts ?? []).length > 0 ? (
+                <ul className="space-y-3">
+                  {project.projectContacts?.map((contact, index) => (
+                    <li
+                      key={contact.id ?? `${contact.email}-${index}`}
+                      className={`rounded-md border p-3 ${contact.isPrimary ? "border-primary bg-primary/5" : ""}`}
+                    >
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-medium text-sm">
+                          {contact.name || "Name not recorded"}
+                        </p>
+                        {contact.isPrimary && <Badge variant="default">Primary contact</Badge>}
+                        <Badge variant="secondary" className="capitalize">
+                          {contact.contactRole.replaceAll("_", " ")}
+                        </Badge>
+                      </div>
+                      {(contact.jobTitle || contact.department) && (
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          {[contact.jobTitle, contact.department].filter(Boolean).join(" · ")}
+                        </p>
+                      )}
+                      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                        {contact.email && (
+                          <a className="text-primary hover:underline" href={`mailto:${contact.email}`}>
+                            {contact.email}
+                          </a>
+                        )}
+                        {contact.phone && (
+                          <a className="text-primary hover:underline" href={`tel:${contact.phone}`}>
+                            {contact.phone}
+                          </a>
+                        )}
+                      </div>
+                      {contact.notes && (
+                        <p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">
+                          {contact.notes}
+                        </p>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              ) : project.clientContact ? (
+                <div>
+                  <p className="text-sm text-muted-foreground">
+                    Legacy client contact (not yet structured)
+                  </p>
+                  <p className="mt-1 text-sm">{project.clientContact}</p>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">No client contacts recorded.</p>
               )}
             </CardContent>
           </Card>
