@@ -51,14 +51,14 @@ export interface OpportunityCardPreferences {
 export const opportunityCardPreferencesService = {
   async get(): Promise<OpportunityCardPreferences> {
     const response = await api.get<OpportunityCardPreferences>(
-      '/me/opportunity-card-preferences',
+      '/api/me/opportunity-card-preferences',
     );
     return response.data;
   },
 
   async saveGlobal(fields: string[]): Promise<OpportunityCardPreferences> {
     const response = await api.put<OpportunityCardPreferences>(
-      '/me/opportunity-card-preferences',
+      '/api/me/opportunity-card-preferences',
       { fields },
     );
     return response.data;
@@ -69,7 +69,7 @@ export const opportunityCardPreferencesService = {
     fields: string[],
   ): Promise<OpportunityCardPreferences> {
     const response = await api.put<OpportunityCardPreferences>(
-      `/me/opportunity-card-preferences/${encodeURIComponent(projectId)}`,
+      `/api/me/opportunity-card-preferences/${encodeURIComponent(projectId)}`,
       { fields },
     );
     return response.data;
@@ -77,7 +77,7 @@ export const opportunityCardPreferencesService = {
 
   async resetProject(projectId: string): Promise<OpportunityCardPreferences> {
     const response = await api.delete<OpportunityCardPreferences>(
-      `/me/opportunity-card-preferences/${encodeURIComponent(projectId)}`,
+      `/api/me/opportunity-card-preferences/${encodeURIComponent(projectId)}`,
     );
     return response.data;
   },

@@ -24,6 +24,7 @@ import {
   opportunityCardPreferencesService,
 } from '@/services/opportunityCardPreferences';
 import { OpportunityCardSettingsDialog } from '@/components/projects/OpportunityCardSettingsDialog';
+import { useAuth } from '@/context/AuthContext';
 
 // Mapping for sector display names
 const sectorDisplayNames: Record<string, string> = {
@@ -268,10 +269,13 @@ export default function Projects() {
         ? sectorDisplayNames[sectorParam]
         : 'Projects';
   const { canCreateProjects, canViewFinancialFields } = usePermissions();
+  const { user } = useAuth();
+  const cardPreferencesKey = ['opportunity-card-preferences', user?.id] as const;
   const cardPreferencesQuery = useQuery({
-    queryKey: ['opportunity-card-preferences'],
+    queryKey: cardPreferencesKey,
     queryFn: () => opportunityCardPreferencesService.get(),
     staleTime: 5 * 60 * 1000,
+    enabled: Boolean(user?.id),
   });
   const cardPreferences = cardPreferencesQuery.data;
   const globalCardFields = cardPreferences?.fields ?? [...DEFAULT_OPPORTUNITY_CARD_FIELDS];
@@ -280,7 +284,7 @@ export default function Projects() {
     mutationFn: (fields: string[]) =>
       opportunityCardPreferencesService.saveGlobal(fields),
     onSuccess: (preferences) => {
-      queryClient.setQueryData(['opportunity-card-preferences'], preferences);
+      queryClient.setQueryData(cardPreferencesKey, preferences);
       toast.success('Card display settings saved');
     },
     onError: () => toast.error('Unable to save card display settings'),
@@ -289,7 +293,7 @@ export default function Projects() {
     mutationFn: ({ projectId, fields }: { projectId: string; fields: string[] }) =>
       opportunityCardPreferencesService.saveForProject(projectId, fields),
     onSuccess: (preferences) => {
-      queryClient.setQueryData(['opportunity-card-preferences'], preferences);
+      queryClient.setQueryData(cardPreferencesKey, preferences);
       toast.success('Opportunity card settings saved');
     },
     onError: () => toast.error('Unable to save opportunity card settings'),
@@ -298,7 +302,7 @@ export default function Projects() {
     mutationFn: (projectId: string) =>
       opportunityCardPreferencesService.resetProject(projectId),
     onSuccess: (preferences) => {
-      queryClient.setQueryData(['opportunity-card-preferences'], preferences);
+      queryClient.setQueryData(cardPreferencesKey, preferences);
       toast.success('Card reset to global settings');
     },
     onError: () => toast.error('Unable to reset opportunity card settings'),
@@ -753,9 +757,9 @@ export default function Projects() {
         </div>
       ) : (
         <>
-          <div className={viewMode === 'grid' ? "grid grid-cols-1 lg:grid-cols-2 gap-6" : "space-y-4"}>
+          <div className={viewMode === 'grid' ? "grid auto-rows-fr grid-cols-1 items-stretch gap-6 md:grid-cols-2" : "space-y-4"}>
             {visibleProjects.map((project, idx) => (
-              <div key={project.id}>
+              <div key={project.id} className={viewMode === 'grid' ? "h-full min-w-0" : ""}>
                 <ProjectCard
                   project={project}
                   selectable={selectMode}

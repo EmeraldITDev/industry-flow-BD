@@ -3,8 +3,8 @@ import { Project, Sector, PIPELINE_STAGES } from "@/types";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { sectorIcons, stageColors } from "@/data/mockData";
-import { MoreHorizontal } from "lucide-react";
+import { sectorColors, sectorIcons, stageColors } from "@/data/mockData";
+import { Calendar, CheckSquare, ChevronDown, MoreHorizontal, Users } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Link } from "react-router-dom";
 import { differenceInCalendarDays, format, isValid, parseISO, startOfToday } from "date-fns";
@@ -66,7 +66,7 @@ function MetaRow({
   children: ReactNode;
 }) {
   return (
-    <div className="min-w-0 flex items-baseline gap-1.5 text-[10px] sm:text-xs">
+    <div className="min-w-0 flex items-baseline gap-2 text-xs sm:text-sm">
       <span className="shrink-0 text-muted-foreground">{label}</span>
       <span className="min-w-0 truncate font-medium text-foreground/90">
         {children}
@@ -88,6 +88,7 @@ function ProjectCardComponent({
   onResetCardFields,
 }: ProjectCardProps) {
   const [customizeOpen, setCustomizeOpen] = useState(false);
+  const [detailsExpanded, setDetailsExpanded] = useState(false);
   const { formatCurrencyFor, getContractDisplay, getMarginDisplay } = useCurrency();
 
   const tasks = Array.isArray(project.tasks) ? project.tasks : [];
@@ -104,6 +105,28 @@ function ProjectCardComponent({
     OPPORTUNITY_CARD_FIELD_OPTIONS.some(
       (option) => option.key === field && (canViewFinancialFields || !('financial' in option)),
     ),
+  );
+  const headerFieldKeys = ["businessVertical", "projectStatus", "pipelineStage", "dealProbability"];
+  const financialFieldKeys = ["contractValue", "expectedMargin"];
+  const footerFieldKeys = [
+    "progress",
+    "taskSummary",
+    "teamMembers",
+    "pipelineIntakeDate",
+    "expectedCloseDate",
+    "daysRemaining",
+    "lastUpdated",
+    "startDate",
+  ];
+  const headerFields = selectedFields.filter((field) => headerFieldKeys.includes(field));
+  const financialFields = selectedFields.filter((field) => financialFieldKeys.includes(field));
+  const footerFields = selectedFields.filter((field) => footerFieldKeys.includes(field));
+  const informationFields = selectedFields.filter(
+    (field) =>
+      field !== "projectName" &&
+      !headerFieldKeys.includes(field) &&
+      !financialFieldKeys.includes(field) &&
+      !footerFieldKeys.includes(field),
   );
   const products = [
     ...(project.products?.length ? project.products : project.product ? [project.product] : []),
@@ -203,8 +226,8 @@ function ProjectCardComponent({
     if (field === "progress") {
       const progress = getStageProgress(project.pipelineStage, project.progress);
       return (
-        <div key={field} className="col-span-full space-y-1">
-          <div className="flex items-center justify-between gap-2 text-[10px] sm:text-xs">
+        <div key={field} className="col-span-full space-y-1.5">
+          <div className="flex items-center justify-between gap-2 text-xs sm:text-sm">
             <span className="text-muted-foreground">{option.label}</span>
             <span className="font-medium">{progress}%</span>
           </div>
@@ -215,8 +238,41 @@ function ProjectCardComponent({
 
     if (field === "taskSummary") {
       return (
-        <MetaRow key={field} label="Tasks">
+        <MetaRow key={field} label="">
+          <span className="inline-flex min-w-0 items-center gap-1">
+            <CheckSquare className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            <span className="truncate">Tasks: {value}</span>
+          </span>
+        </MetaRow>
+      );
+    }
+
+    if (field === "teamMembers") {
+      return (
+        <MetaRow key={field} label="">
+          <span className="inline-flex min-w-0 items-center gap-1">
+            <Users className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            <span className="truncate">Team: {value}</span>
+          </span>
+        </MetaRow>
+      );
+    }
+
+    if (field === "progress") {
+      return (
+        <MetaRow key={field} label="Progress">
           {value}
+        </MetaRow>
+      );
+    }
+
+    if (["pipelineIntakeDate", "expectedCloseDate", "daysRemaining", "lastUpdated", "startDate"].includes(field)) {
+      return (
+        <MetaRow key={field} label={option.label}>
+          <span className="inline-flex min-w-0 items-center gap-1">
+            <Calendar className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            <span className="truncate">{value}</span>
+          </span>
         </MetaRow>
       );
     }
@@ -224,8 +280,8 @@ function ProjectCardComponent({
     if (field === "description") {
       return (
         <div key={field} className="col-span-full min-w-0">
-          <p className="text-[10px] text-muted-foreground">{option.label}</p>
-          <p className="text-xs text-foreground/90 line-clamp-2 break-words">{value}</p>
+          <p className="text-xs font-medium text-muted-foreground">{option.label}</p>
+          <p className="mt-1 text-sm text-foreground/90 line-clamp-3 break-words">{value}</p>
         </div>
       );
     }
@@ -288,7 +344,7 @@ function ProjectCardComponent({
 
   const card = (
     <Card
-      className={`hover:border-primary/50 hover:shadow-md transition-all cursor-pointer group relative overflow-hidden ${selected ? "border-primary ring-2 ring-primary/20" : ""}`}
+      className={`flex h-[450px] flex-col hover:border-primary/50 hover:shadow-md transition-all cursor-pointer group relative overflow-hidden sm:h-[470px] ${selected ? "border-primary ring-2 ring-primary/20" : ""}`}
     >
       {selectable && (
         <div
@@ -303,26 +359,103 @@ function ProjectCardComponent({
         </div>
       )}
       <CardHeader
-        className={`p-3 sm:p-4 pb-2 ${selectable ? "pl-9" : ""} ${onSaveCardFields ? "pr-12" : ""}`}
+        className={`shrink-0 p-5 pb-3 ${selectable ? "pl-10" : ""} ${onSaveCardFields ? "pr-14" : ""}`}
       >
-        <div className="flex items-start justify-between gap-2 min-w-0">
-          <div className="min-w-0" />
+        <div className="flex items-start justify-between gap-3 min-w-0">
+          <div className="min-w-0 flex flex-wrap items-center gap-2">
+            {selectedFields.includes("businessVertical") && (
+              <span
+                className={`max-w-full truncate rounded-md px-2.5 py-1 text-xs font-medium ${sectorColors[project.businessVertical as Sector] || "bg-muted text-muted-foreground"}`}
+                title={project.businessVertical || "Unassigned"}
+              >
+                {sectorIcons[project.businessVertical as Sector] || "📁"}{" "}
+                {project.businessVertical || "Unassigned"}
+              </span>
+            )}
+            {selectedFields.includes("projectStatus") && (
+              <Badge variant="outline" className={`text-xs capitalize ${statusColors[project.status] || ""}`}>
+                {String(project.status || "").replace(/_/g, "-") || "—"}
+              </Badge>
+            )}
+          </div>
           {project.projectImage && (
             <img
               src={project.projectImage}
               alt=""
-              className="w-8 h-8 sm:w-9 sm:h-9 rounded object-contain border border-border shrink-0"
+              className="h-10 w-10 rounded-md object-contain border border-border shrink-0"
             />
           )}
         </div>
-        <h3 className="font-semibold text-sm sm:text-base mt-1.5 group-hover:text-primary transition-colors line-clamp-2 break-words">
+        <h3 className="mt-2 min-h-[3.5rem] font-semibold text-lg leading-7 group-hover:text-primary transition-colors line-clamp-2 break-words">
           {project.name}
         </h3>
+        {headerFields.some((field) => field === "pipelineStage" || field === "dealProbability") && (
+          <div className="mt-2 flex min-h-7 flex-wrap items-center gap-2">
+            {selectedFields.includes("pipelineStage") && (
+              <Badge variant="outline" className={`text-xs ${stageColors[project.pipelineStage] || ""}`}>
+                {stageLabel || "—"}
+              </Badge>
+            )}
+            {selectedFields.includes("dealProbability") && (
+              <Badge
+                variant="outline"
+                className={`text-xs capitalize ${probabilityColors[String(project.dealProbability || "").toLowerCase()] || ""}`}
+              >
+                {project.dealProbability || "—"} probability
+              </Badge>
+            )}
+          </div>
+        )}
       </CardHeader>
-      <CardContent className="p-3 sm:p-4 pt-0 space-y-2.5 sm:space-y-3 min-w-0">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-1 min-w-0">
-          {selectedFields.map(renderField)}
+      <CardContent className="flex min-h-0 flex-1 flex-col p-5 pt-0 min-w-0">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1">
+          {informationFields.length > 0 && (
+            <section className="space-y-3">
+              <div className="flex items-center justify-between gap-2 border-b pb-2">
+                <h4 className="text-sm font-semibold">Project Details</h4>
+                {informationFields.length > 3 && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2 text-xs"
+                    aria-expanded={detailsExpanded}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      setDetailsExpanded((expanded) => !expanded);
+                    }}
+                  >
+                    {detailsExpanded ? "Show less" : "Show all"}
+                    <ChevronDown className={`ml-1 h-3.5 w-3.5 transition-transform ${detailsExpanded ? "rotate-180" : ""}`} />
+                  </Button>
+                )}
+              </div>
+              <div className={`grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2 ${!detailsExpanded && informationFields.length > 3 ? "max-h-28 overflow-hidden" : ""}`}>
+                {informationFields.map(renderField)}
+              </div>
+            </section>
+          )}
+          {financialFields.length > 0 && (
+            <section className="mt-4 space-y-3">
+              <h4 className="border-b pb-2 text-sm font-semibold">Financial Information</h4>
+              <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
+                {financialFields.map(renderField)}
+              </div>
+            </section>
+          )}
         </div>
+
+        {footerFields.length > 0 && (
+          <div className="mt-3 shrink-0 space-y-3 border-t pt-3">
+            {footerFields.includes("progress") && renderField("progress")}
+            <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+              {footerFields
+                .filter((field) => field !== "progress")
+                .map((field) => renderField(field))}
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -357,12 +490,12 @@ function ProjectCardComponent({
   const cardLink = selectable ? (
     <div
       onClick={() => onSelectToggle?.(project.id)}
-      className="cursor-pointer min-w-0"
+      className="h-full cursor-pointer min-w-0"
     >
       {card}
     </div>
   ) : (
-    <Link to={`/projects/${project.id}`} className="min-w-0 block">
+    <Link to={`/projects/${project.id}`} className="block h-full min-w-0">
       {card}
     </Link>
   );
@@ -370,7 +503,7 @@ function ProjectCardComponent({
   if (selectable) {
     return (
       <>
-        <div className="relative min-w-0">
+        <div className="relative h-full min-w-0">
           {cardLink}
           {settings}
         </div>
@@ -397,7 +530,7 @@ function ProjectCardComponent({
 
   return (
     <>
-      <div className="relative min-w-0">
+      <div className="relative h-full min-w-0">
         {cardLink}
         {settings}
       </div>
