@@ -1,14 +1,14 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ProjectCard } from '@/components/projects/ProjectCard';
 import { AdvancedFilters, FilterState, defaultFilters } from '@/components/projects/AdvancedFilters';
 import { projectsService } from '@/services/projects';
 import { partnersService } from '@/services/partners';
 import { teamService } from '@/services/team';
 import { Button } from '@/components/ui/button';
-import { Plus, Grid3X3, List, Loader2, Upload, Trash2, X, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Grid3X3, List, Loader2, Upload, Trash2, X, RefreshCw, ChevronLeft, ChevronRight, SlidersHorizontal } from 'lucide-react';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Project, Sector } from '@/types';
 import { ProjectImportDialog } from '@/components/projects/ProjectImportDialog';
@@ -19,6 +19,11 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { toast } from 'sonner';
 import { ProjectFilterSummary } from '@/lib/reportGenerator';
 import { metricLabel, metricsService } from '@/services/metrics';
+import {
+  DEFAULT_OPPORTUNITY_CARD_FIELDS,
+  opportunityCardPreferencesService,
+} from '@/services/opportunityCardPreferences';
+import { OpportunityCardSettingsDialog } from '@/components/projects/OpportunityCardSettingsDialog';
 
 // Mapping for sector display names
 const sectorDisplayNames: Record<string, string> = {
@@ -27,6 +32,9 @@ const sectorDisplayNames: Record<string, string> = {
   'EMR_Special Projects': 'EMR_Special Projects',
   'EMR_Trading': 'EMR_Trading Projects',
   'EMR_Manufacturing': 'EMR_Manufacturing Projects',
+  BEDS: 'BEDS Projects',
+  'Emerald Kenya FZE': 'Emerald Kenya FZE Projects',
+  'Emerald Lekki FZE': 'Emerald Lekki FZE Projects',
 };
 
 // How many cards to mount per batch as the user scrolls
@@ -236,6 +244,7 @@ export default function Projects() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [importOpen, setImportOpen] = useState(false);
   const [selectMode, setSelectMode] = useState(false);
+  const [cardSettingsOpen, setCardSettingsOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isDeleting, setIsDeleting] = useState(false);
   
@@ -252,7 +261,42 @@ export default function Projects() {
       : sectorParam && sectorDisplayNames[sectorParam]
         ? sectorDisplayNames[sectorParam]
         : 'Projects';
-  const { canCreateProjects } = usePermissions();
+  const { canCreateProjects, canViewFinancialFields } = usePermissions();
+  const cardPreferencesQuery = useQuery({
+    queryKey: ['opportunity-card-preferences'],
+    queryFn: () => opportunityCardPreferencesService.get(),
+    staleTime: 5 * 60 * 1000,
+  });
+  const cardPreferences = cardPreferencesQuery.data;
+  const globalCardFields = cardPreferences?.fields ?? [...DEFAULT_OPPORTUNITY_CARD_FIELDS];
+
+  const saveGlobalCardPreferences = useMutation({
+    mutationFn: (fields: string[]) =>
+      opportunityCardPreferencesService.saveGlobal(fields),
+    onSuccess: (preferences) => {
+      queryClient.setQueryData(['opportunity-card-preferences'], preferences);
+      toast.success('Card display settings saved');
+    },
+    onError: () => toast.error('Unable to save card display settings'),
+  });
+  const saveProjectCardPreferences = useMutation({
+    mutationFn: ({ projectId, fields }: { projectId: string; fields: string[] }) =>
+      opportunityCardPreferencesService.saveForProject(projectId, fields),
+    onSuccess: (preferences) => {
+      queryClient.setQueryData(['opportunity-card-preferences'], preferences);
+      toast.success('Opportunity card settings saved');
+    },
+    onError: () => toast.error('Unable to save opportunity card settings'),
+  });
+  const resetProjectCardPreferences = useMutation({
+    mutationFn: (projectId: string) =>
+      opportunityCardPreferencesService.resetProject(projectId),
+    onSuccess: (preferences) => {
+      queryClient.setQueryData(['opportunity-card-preferences'], preferences);
+      toast.success('Card reset to global settings');
+    },
+    onError: () => toast.error('Unable to reset opportunity card settings'),
+  });
 
   const {
     data: metricResult,
@@ -499,6 +543,14 @@ export default function Projects() {
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCardSettingsOpen(true)}
+          >
+            <SlidersHorizontal className="w-4 h-4 mr-2" />
+            Customize Cards
+          </Button>
           <div className="flex items-center border border-border rounded-md">
             <Button variant={viewMode === 'grid' ? 'default' : 'ghost'} size="sm" onClick={() => setViewMode('grid')} className="rounded-r-none">
               <Grid3X3 className="w-4 h-4" />
@@ -591,6 +643,24 @@ export default function Projects() {
       )}
 
       <ProjectImportDialog open={importOpen} onOpenChange={setImportOpen} />
+      {cardPreferencesQuery.isError && (
+        <p role="alert" className="text-sm text-destructive">
+          Card preferences could not be loaded. Defaults are shown; saving requires a working connection.
+        </p>
+      )}
+      <OpportunityCardSettingsDialog
+        open={cardSettingsOpen}
+        onOpenChange={setCardSettingsOpen}
+        fields={globalCardFields}
+        canViewFinancialFields={canViewFinancialFields}
+        title="Customize Opportunity Cards"
+        description="Choose and reorder the information shown on opportunity cards. These settings apply to your account."
+        saving={saveGlobalCardPreferences.isPending}
+        onSave={async (fields) => {
+          await saveGlobalCardPreferences.mutateAsync(fields);
+        }}
+        onRestoreDefaults={() => undefined}
+      />
 
       {partnerIdParam && !isMetricDrill && (
         <div className="flex items-center justify-between gap-3 rounded-lg border border-border px-4 py-3">
@@ -682,6 +752,24 @@ export default function Projects() {
                   selectable={selectMode}
                   selected={selectedIds.has(project.id)}
                   onSelectToggle={toggleSelect}
+                  cardFields={
+                    cardPreferences?.overrides[String(project.id)] ?? globalCardFields
+                  }
+                  isCardOverride={Object.prototype.hasOwnProperty.call(
+                    cardPreferences?.overrides ?? {},
+                    String(project.id),
+                  )}
+                  canViewFinancialFields={canViewFinancialFields}
+                  cardPreferenceSaving={
+                    saveProjectCardPreferences.isPending ||
+                    resetProjectCardPreferences.isPending
+                  }
+                  onSaveCardFields={async (projectId, fields) => {
+                    await saveProjectCardPreferences.mutateAsync({ projectId, fields });
+                  }}
+                  onResetCardFields={async (projectId) => {
+                    await resetProjectCardPreferences.mutateAsync(projectId);
+                  }}
                 />
                 {viewMode === 'list' && idx < visibleProjects.length - 1 && (
                   <div className="border-b border-border mt-4" />

@@ -54,6 +54,8 @@ import { RelationshipStageBadge } from '@/components/partners/RelationshipStageB
 import { PartnerFormSheet } from '@/components/partners/PartnerFormSheet';
 import { PartnerTrackerMiniDashboard } from '@/components/partners/PartnerTrackerMiniDashboard';
 import { MultiSearchableSelect } from '@/components/ui/multi-searchable-select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { PartnerTrackerInsights } from '@/components/partners/PartnerTrackerInsights';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -84,7 +86,7 @@ function parsePipelineStagesParam(raw: string | null): string[] {
     .filter((v) => allowed.has(v));
 }
 
-function exportPartnersCsv(partners: Partner[]) {
+function exportPartnersCsv(partners: Partner[], includeFinancialValues: boolean) {
   const headers = [
     'Company',
     'Primary Contact',
@@ -95,8 +97,7 @@ function exportPartnersCsv(partners: Partner[]) {
     'Products',
     'SCM Linked',
     'Linked Opportunities',
-    'Total Value NGN',
-    'Total Value USD',
+    ...(includeFinancialValues ? ['Total Value NGN', 'Total Value USD'] : []),
   ];
   const escape = (v: string) => `"${String(v).replace(/"/g, '""')}"`;
   const rows = partners.map((p) => {
@@ -114,8 +115,9 @@ function exportPartnersCsv(partners: Partner[]) {
       (p.productCategories ?? []).join('; '),
       p.isScmLinked || p.scmVendorId ? 'Yes' : 'No',
       String(p.linkedOpportunitiesCount ?? 0),
-      String(p.totalValueNgn ?? 0),
-      String(p.totalValueUsd ?? 0),
+      ...(includeFinancialValues
+        ? [String(p.totalValueNgn ?? 0), String(p.totalValueUsd ?? 0)]
+        : []),
     ]
       .map(escape)
       .join(',');
@@ -133,9 +135,9 @@ function exportPartnersCsv(partners: Partner[]) {
 
 export default function Partners() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
-  const { canCreatePartners, canDeletePartners } = usePermissions();
+  const { canCreatePartners, canDeletePartners, canViewFinancialFields } = usePermissions();
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [verticalFilter, setVerticalFilter] = useState(() => searchParams.get('vertical') || ALL);
@@ -343,7 +345,7 @@ export default function Partners() {
         <div className="flex flex-wrap items-center gap-2 shrink-0">
           <Button
             variant="outline"
-            onClick={() => exportPartnersCsv(partners)}
+            onClick={() => exportPartnersCsv(partners, canViewFinancialFields)}
             disabled={partners.length === 0}
           >
             <Download className="mr-2 h-4 w-4" />
@@ -370,10 +372,25 @@ export default function Partners() {
         </div>
       </div>
 
-      <PartnerTrackerMiniDashboard
-        onFilterIncomplete={() => setIncompleteOnly(true)}
-        onFilterZeroLinks={() => setZeroLinksOnly(true)}
-      />
+      <Tabs
+        value={searchParams.get('tab') === 'partnership' ? 'partnership' : 'partners'}
+        onValueChange={(tab) => {
+          const params = new URLSearchParams(searchParams);
+          if (tab === 'partnership') params.set('tab', tab);
+          else params.delete('tab');
+          setSearchParams(params, { replace: true });
+        }}
+        className="space-y-4"
+      >
+        <TabsList>
+          <TabsTrigger value="partners">Partners</TabsTrigger>
+          <TabsTrigger value="partnership">Partnership</TabsTrigger>
+        </TabsList>
+        <TabsContent value="partners" className="mt-0 space-y-6">
+          <PartnerTrackerMiniDashboard
+            onFilterIncomplete={() => setIncompleteOnly(true)}
+            onFilterZeroLinks={() => setZeroLinksOnly(true)}
+          />
 
       {canDeletePartners && selectMode && (
         <div className="flex items-center gap-3 p-3 rounded-lg bg-muted border border-border">
@@ -697,17 +714,19 @@ export default function Partners() {
                             {partner.linkedOpportunitiesCount ?? 0}
                           </button>
                         </p>
-                        <p className="text-muted-foreground">
-                          Volume:{' '}
-                          <span className="text-foreground tabular-nums">
-                            {(partner.totalValueUsd ?? 0) > 0
-                              ? `$${(partner.totalValueUsd ?? 0).toLocaleString()}`
-                              : '—'}
-                            {(partner.totalValueNgn ?? 0) > 0
-                              ? ` · ₦${(partner.totalValueNgn ?? 0).toLocaleString()}`
-                              : ''}
-                          </span>
-                        </p>
+                        {canViewFinancialFields && (
+                          <p className="text-muted-foreground">
+                            Volume:{' '}
+                            <span className="text-foreground tabular-nums">
+                              {(partner.totalValueUsd ?? 0) > 0
+                                ? `$${(partner.totalValueUsd ?? 0).toLocaleString()}`
+                                : '—'}
+                              {(partner.totalValueNgn ?? 0) > 0
+                                ? ` · ₦${(partner.totalValueNgn ?? 0).toLocaleString()}`
+                                : ''}
+                            </span>
+                          </p>
+                        )}
                       </div>
                       {!selectMode && (
                         <div className="flex flex-wrap gap-2 sm:justify-end">
@@ -825,6 +844,11 @@ export default function Partners() {
           )}
         </CardContent>
       </Card>
+        </TabsContent>
+        <TabsContent value="partnership" className="mt-0">
+          <PartnerTrackerInsights rankingsOnly />
+        </TabsContent>
+      </Tabs>
 
       <PartnerFormSheet open={addOpen} onOpenChange={setAddOpen} />
 

@@ -11,9 +11,12 @@ export function usePermissions() {
   // delete even when System Role is Editor.
   const isAdminOrBdDirector =
     user?.accessLevel === 'admin' || user?.accessLevel === 'bd_director';
+  const canViewFinancialFields =
+    isAdminOrBdDirector || systemRole === 'admin' || systemRole === 'editor';
   
   return {
     systemRole,
+    canViewFinancialFields,
     ...config.permissions,
     canDeleteProjects: config.permissions.canDeleteProjects || isAdminOrBdDirector,
     canDeletePartners: config.permissions.canDeletePartners || isAdminOrBdDirector,

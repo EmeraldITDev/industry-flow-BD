@@ -1,11 +1,20 @@
 import { Project, Task, Sector, TeamMember, PipelineStage, BusinessSegment, ProjectDocument } from '@/types';
 
-export const businessVerticals: Sector[] = ['EMR_Aftermarket Services', 'EMR_O&M', 'EMR_Special Projects', 'EMR_Trading', 'EMR_Manufacturing'];
+export const businessVerticals: Sector[] = [
+  'EMR_Aftermarket Services',
+  'EMR_O&M',
+  'EMR_Special Projects',
+  'EMR_Trading',
+  'EMR_Manufacturing',
+  'BEDS',
+  'Emerald Kenya FZE',
+  'Emerald Lekki FZE',
+];
 
 // Industry classification (independent of Business Vertical)
 export const industrySectors: string[] = ['Oil & Gas', 'Petrochemicals', 'Power', 'Other'];
 
-export const businessSegments: BusinessSegment[] = ['EMR_Aftermarket Services', 'EMR_O&M', 'EMR_Special Projects', 'EMR_Trading', 'EMR_Manufacturing'];
+export const businessSegments: BusinessSegment[] = businessVerticals;
 
 export const sectorColors: Record<Sector, string> = {
   'EMR_Aftermarket Services': 'bg-chart-1/20 text-chart-1',
@@ -13,6 +22,9 @@ export const sectorColors: Record<Sector, string> = {
   'EMR_Special Projects': 'bg-chart-3/20 text-chart-3',
   'EMR_Trading': 'bg-chart-4/20 text-chart-4',
   'EMR_Manufacturing': 'bg-chart-5/20 text-chart-5',
+  BEDS: 'bg-chart-1/20 text-chart-1',
+  'Emerald Kenya FZE': 'bg-chart-2/20 text-chart-2',
+  'Emerald Lekki FZE': 'bg-chart-3/20 text-chart-3',
 };
 
 export const sectorIcons: Record<Sector, string> = {
@@ -21,6 +33,9 @@ export const sectorIcons: Record<Sector, string> = {
   'EMR_Special Projects': '🏗️',
   'EMR_Trading': '📈',
   'EMR_Manufacturing': '🏭',
+  BEDS: '🧰',
+  'Emerald Kenya FZE': '🌍',
+  'Emerald Lekki FZE': '🏢',
 };
 
 export const stageColors: Record<PipelineStage, string> = {

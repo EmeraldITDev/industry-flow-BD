@@ -22,6 +22,7 @@ import { cn } from '@/lib/utils';
 const loadPartnerExports = () => import('@/lib/partnerTrackerExports');
 import { MultiSearchableSelect } from '@/components/ui/multi-searchable-select';
 import { PIPELINE_STAGES } from '@/types';
+import { usePermissions } from '@/hooks/usePermissions';
 
 /** Same options as Partner Tracker list filter (incl. composite Won). */
 const PIPELINE_STAGE_FILTER_OPTIONS = [
@@ -72,7 +73,9 @@ function RankTable({
         <Link
           key={row.id}
           to={partnerProjectsHref(row.id, pipelineStages)}
-          className="flex items-center justify-between gap-3 rounded-md px-2 py-1.5 text-sm hover:bg-accent/60 transition-colors"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-between gap-3 rounded-md px-2 py-1.5 text-sm hover:bg-accent/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors"
         >
           <div className="min-w-0 flex items-center gap-2">
             <span className="text-xs tabular-nums text-muted-foreground w-5">{idx + 1}.</span>
@@ -170,12 +173,15 @@ function ExportMenu({
 export function PartnerTrackerInsights({
   className,
   variant = 'dashboard',
+  rankingsOnly = false,
 }: {
   className?: string;
   variant?: 'dashboard' | 'chairman';
+  rankingsOnly?: boolean;
 }) {
   const navigate = useNavigate();
   const { currency } = useCurrency();
+  const { canViewFinancialFields } = usePermissions();
   const preferUsd = currency === 'USD';
   const isChairman = variant === 'chairman';
   const [countStages, setCountStages] = useState<string[]>([]);
@@ -194,6 +200,7 @@ export function PartnerTrackerInsights({
     queryKey: ['partners-tracker-metrics'],
     queryFn: () => partnersService.getTrackerMetrics(),
     staleTime: 60_000,
+    enabled: !rankingsOnly,
   });
 
   const {
@@ -208,6 +215,7 @@ export function PartnerTrackerInsights({
         pipelineStages: countStages.length ? countStages : undefined,
       }),
     staleTime: 60_000,
+      enabled: rankingsOnly,
   });
 
   const {
@@ -222,7 +230,106 @@ export function PartnerTrackerInsights({
         pipelineStages: volumeStages.length ? volumeStages : undefined,
       }),
     staleTime: 60_000,
+      enabled: rankingsOnly && canViewFinancialFields,
   });
+
+  if (rankingsOnly) {
+      return (
+        <section className={cn('space-y-4', className)} aria-labelledby="partnership-analytics-title">
+          <div>
+            <h2 id="partnership-analytics-title" className="text-lg font-semibold">
+              Partnership analytics
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Linked opportunity counts and contract volumes use the Partner Tracker relationship.
+            </p>
+          </div>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Card>
+              <CardHeader className="pb-2 space-y-3">
+                <div>
+                  <CardTitle className="text-sm">Top partners by opportunity count</CardTitle>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Open a row in a new tab to see its linked opportunities.
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">Pipeline stage</p>
+                  <MultiSearchableSelect
+                    values={countStages}
+                    onValuesChange={setCountStages}
+                    options={PIPELINE_STAGE_FILTER_OPTIONS}
+                    placeholder="Any pipeline stage"
+                    searchPlaceholder="Search pipeline stages..."
+                    emptyText="No stages found."
+                  />
+                </div>
+              </CardHeader>
+              <CardContent>
+                {(countLoading || countFetching) && countRows.length === 0 ? (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Updating ranking…
+                  </div>
+                ) : (
+                  <RankTable
+                    rows={countRows}
+                    mode="count"
+                    empty={
+                      countStages.length > 0
+                        ? 'No partners have linked opportunities in the selected stage(s).'
+                        : 'No partners with linked opportunities yet.'
+                    }
+                    pipelineStages={countStages}
+                  />
+                )}
+              </CardContent>
+            </Card>
+            {canViewFinancialFields && <Card>
+              <CardHeader className="pb-2 space-y-3">
+                <div>
+                  <CardTitle className="text-sm">Top partners by linked volume</CardTitle>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Contract value by currency ({preferUsd ? 'USD' : 'NGN'} preferred). No currencies
+                    are combined. Open a row in a new tab to see its linked opportunities.
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">Pipeline stage</p>
+                  <MultiSearchableSelect
+                    values={volumeStages}
+                    onValuesChange={setVolumeStages}
+                    options={PIPELINE_STAGE_FILTER_OPTIONS}
+                    placeholder="Any pipeline stage"
+                    searchPlaceholder="Search pipeline stages..."
+                    emptyText="No stages found."
+                  />
+                </div>
+              </CardHeader>
+              <CardContent>
+                {(volumeLoading || volumeFetching) && volumeRows.length === 0 ? (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Updating ranking…
+                  </div>
+                ) : (
+                  <RankTable
+                    rows={volumeRows}
+                    mode="volume"
+                    empty={
+                      volumeStages.length > 0
+                        ? 'No partners have linked volume in the selected stage(s).'
+                        : 'No linked opportunity volume recorded yet.'
+                    }
+                    pipelineStages={volumeStages}
+                  />
+                )}
+              </CardContent>
+            </Card>}
+          </div>
+        </section>
+      );
+  }
 
   return (
     <div className={cn('space-y-4', className)}>
@@ -299,16 +406,20 @@ export function PartnerTrackerInsights({
                 onClick={() => navigate('/partners?incomplete=1')}
               />
             )}
-            <MetricTile
-              label="Top-1 volume share"
-              value={`${data.concentration.top1Pct}%`}
-              hint="Largest partner / all linked volume (USD)"
-            />
-            <MetricTile
-              label="Top-3 volume share"
-              value={`${data.concentration.top3Pct}%`}
-              hint="Top 3 partners / all linked volume (USD)"
-            />
+            {canViewFinancialFields && (
+              <>
+                <MetricTile
+                  label="Top-1 volume share"
+                  value={`${data.concentration.top1Pct}%`}
+                  hint="Largest partner / all linked volume (USD)"
+                />
+                <MetricTile
+                  label="Top-3 volume share"
+                  value={`${data.concentration.top3Pct}%`}
+                  hint="Top 3 partners / all linked volume (USD)"
+                />
+              </>
+            )}
             {!isChairman && (
               <MetricTile
                 label="Valid Thru ≤ 90 days"
@@ -331,89 +442,6 @@ export function PartnerTrackerInsights({
             </div>
           )}
 
-          <div className="grid gap-4 lg:grid-cols-2">
-            <Card>
-              <CardHeader className="pb-2 space-y-3">
-                <div>
-                  <CardTitle className="text-sm">Top partners by opportunity count</CardTitle>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Click a row to open linked opportunities (same pivot query).
-                  </p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground">Pipeline stage</p>
-                  <MultiSearchableSelect
-                    values={countStages}
-                    onValuesChange={setCountStages}
-                    options={PIPELINE_STAGE_FILTER_OPTIONS}
-                    placeholder="Any pipeline stage"
-                    searchPlaceholder="Search pipeline stages..."
-                    emptyText="No stages found."
-                  />
-                </div>
-              </CardHeader>
-              <CardContent>
-                {(countLoading || countFetching) && countRows.length === 0 ? (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    Updating ranking…
-                  </div>
-                ) : (
-                  <RankTable
-                    rows={countRows}
-                    mode="count"
-                    empty={
-                      countStages.length > 0
-                        ? 'No partners have linked opportunities in the selected stage(s).'
-                        : 'No partners with linked opportunities yet.'
-                    }
-                    pipelineStages={countStages}
-                  />
-                )}
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2 space-y-3">
-                <div>
-                  <CardTitle className="text-sm">Top partners by linked volume</CardTitle>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Contract value sum on pivot-linked opportunities ({preferUsd ? 'USD' : 'NGN'}{' '}
-                    preferred). Click a row to open linked opportunities (same pivot query).
-                  </p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground">Pipeline stage</p>
-                  <MultiSearchableSelect
-                    values={volumeStages}
-                    onValuesChange={setVolumeStages}
-                    options={PIPELINE_STAGE_FILTER_OPTIONS}
-                    placeholder="Any pipeline stage"
-                    searchPlaceholder="Search pipeline stages..."
-                    emptyText="No stages found."
-                  />
-                </div>
-              </CardHeader>
-              <CardContent>
-                {(volumeLoading || volumeFetching) && volumeRows.length === 0 ? (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    Updating ranking…
-                  </div>
-                ) : (
-                  <RankTable
-                    rows={volumeRows}
-                    mode="volume"
-                    empty={
-                      volumeStages.length > 0
-                        ? 'No partners have linked volume in the selected stage(s).'
-                        : 'No linked opportunity volume recorded yet.'
-                    }
-                    pipelineStages={volumeStages}
-                  />
-                )}
-              </CardContent>
-            </Card>
-          </div>
         </>
       )}
     </div>

@@ -85,7 +85,12 @@ export default function ProjectDetail() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [scmLinkPartnerId, setScmLinkPartnerId] = useState<string | null>(null);
   const [scmLinkOpen, setScmLinkOpen] = useState(false);
-  const { canEditProjects, canAssignTasks, canEditPartners } = usePermissions();
+  const {
+    canEditProjects,
+    canAssignTasks,
+    canEditPartners,
+    canViewFinancialFields,
+  } = usePermissions();
   const deepLinkTaskId = searchParams.get("taskId");
 
   // Fetch tasks separately for refresh capability
@@ -693,7 +698,7 @@ export default function ProjectDetail() {
                     <p className="font-medium text-sm">{project.salesLead}</p>
                   </div>
                 )}
-                {(project.contractValueNGN ||
+                {canViewFinancialFields && (project.contractValueNGN ||
                   project.discountedContractValueNGN != null) && (
                   <div>
                     <p className="text-xs text-muted-foreground">
@@ -719,7 +724,7 @@ export default function ProjectDetail() {
                     )}
                   </div>
                 )}
-                {(project.contractValueUSD ||
+                {canViewFinancialFields && (project.contractValueUSD ||
                   project.discountedContractValueUSD != null) && (
                   <div>
                     <p className="text-xs text-muted-foreground">
@@ -746,7 +751,7 @@ export default function ProjectDetail() {
                   </div>
                 )}
                 {/* Margin: show both percent and value for NGN and USD, compute percent if missing */}
-                {(project.marginPercentNGN !== undefined ||
+                {canViewFinancialFields && (project.marginPercentNGN !== undefined ||
                   project.marginValueNGN !== undefined) && (
                   <div>
                     <p className="text-xs text-muted-foreground">
@@ -775,7 +780,7 @@ export default function ProjectDetail() {
                   </div>
                 )}
 
-                {(project.marginPercentUSD !== undefined ||
+                {canViewFinancialFields && (project.marginPercentUSD !== undefined ||
                   project.marginValueUSD !== undefined) && (
                   <div>
                     <p className="text-xs text-muted-foreground">

@@ -176,7 +176,9 @@ export function PartnerTrackerMiniDashboard({
                   <Link
                     key={row.partnerId}
                     to={`/partners/${row.partnerId}?tab=tasks`}
-                    className="flex items-center justify-between gap-2 rounded-md px-1.5 py-1.5 text-sm hover:bg-accent/60 transition-colors"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-between gap-2 rounded-md px-1.5 py-1.5 text-sm hover:bg-accent/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors"
                   >
                     <span className="truncate font-medium">
                       {partnerNameById[row.partnerId] || `Partner #${row.partnerId}`}
@@ -273,7 +275,9 @@ export function PartnerTrackerMiniDashboard({
                   <Link
                     key={p.id}
                     to={`/partners/${p.id}`}
-                    className="flex items-center justify-between gap-2 rounded-md px-1.5 py-1.5 text-sm hover:bg-accent/60 transition-colors"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-between gap-2 rounded-md px-1.5 py-1.5 text-sm hover:bg-accent/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors"
                   >
                     <span className="truncate font-medium">{p.companyName}</span>
                     <span className="shrink-0 text-xs text-muted-foreground">
@@ -304,7 +308,9 @@ export function PartnerTrackerMiniDashboard({
                   <Link
                     key={row.key}
                     to={`/partners?vertical=${encodeURIComponent(row.key)}`}
-                    className="flex items-center justify-between gap-2 rounded-md px-1.5 py-1.5 text-sm hover:bg-accent/60 transition-colors"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-between gap-2 rounded-md px-1.5 py-1.5 text-sm hover:bg-accent/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors"
                   >
                     <span className="truncate font-medium">{row.label}</span>
                     <Badge variant="secondary" className="tabular-nums text-xs">{row.count}</Badge>
@@ -328,7 +334,9 @@ export function PartnerTrackerMiniDashboard({
                   <Link
                     key={row.key}
                     to={`/partners?product=${encodeURIComponent(row.key)}`}
-                    className="flex items-center justify-between gap-2 rounded-md px-1.5 py-1.5 text-sm hover:bg-accent/60 transition-colors"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-between gap-2 rounded-md px-1.5 py-1.5 text-sm hover:bg-accent/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors"
                   >
                     <span className="truncate font-medium">{row.label}</span>
                     <Badge variant="secondary" className="tabular-nums text-xs">{row.count}</Badge>

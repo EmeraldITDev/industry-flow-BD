@@ -1,21 +1,39 @@
-import { memo, type ReactNode } from "react";
+import { memo, useState, type ReactNode } from "react";
 import { Project, Sector, PIPELINE_STAGES } from "@/types";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { sectorColors, sectorIcons, stageColors } from "@/data/mockData";
-import { Calendar, MapPin, Users, CheckSquare } from "lucide-react";
+import { sectorIcons, stageColors } from "@/data/mockData";
+import { MoreHorizontal } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Link } from "react-router-dom";
-import { format, isValid } from "date-fns";
+import { differenceInCalendarDays, format, isValid, parseISO, startOfToday } from "date-fns";
 import { useCurrency } from "@/context/CurrencyContext";
 import { getStageProgress } from "@/lib/stageProgress";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  DEFAULT_OPPORTUNITY_CARD_FIELDS,
+  OPPORTUNITY_CARD_FIELD_OPTIONS,
+} from "@/services/opportunityCardPreferences";
+import { OpportunityCardSettingsDialog } from "./OpportunityCardSettingsDialog";
 
 interface ProjectCardProps {
   project: Project;
   selectable?: boolean;
   selected?: boolean;
   onSelectToggle?: (id: string) => void;
+  cardFields?: string[];
+  isCardOverride?: boolean;
+  canViewFinancialFields?: boolean;
+  cardPreferenceSaving?: boolean;
+  onSaveCardFields?: (projectId: string, fields: string[]) => void | Promise<void>;
+  onResetCardFields?: (projectId: string) => void | Promise<void>;
 }
 
 function safeFormatDate(
@@ -62,7 +80,14 @@ function ProjectCardComponent({
   selectable,
   selected,
   onSelectToggle,
+  cardFields = [...DEFAULT_OPPORTUNITY_CARD_FIELDS],
+  isCardOverride = false,
+  canViewFinancialFields = false,
+  cardPreferenceSaving = false,
+  onSaveCardFields,
+  onResetCardFields,
 }: ProjectCardProps) {
+  const [customizeOpen, setCustomizeOpen] = useState(false);
   const { formatCurrencyFor, getContractDisplay, getMarginDisplay } = useCurrency();
 
   const tasks = Array.isArray(project.tasks) ? project.tasks : [];
@@ -75,30 +100,191 @@ function ProjectCardComponent({
     PIPELINE_STAGES.find((s) => s.value === project.pipelineStage)?.label ||
     project.pipelineStage;
 
-  const contractDisplay = getContractDisplay(project);
-  const marginDisplay = getMarginDisplay(project);
+  const selectedFields = cardFields.filter((field) =>
+    OPPORTUNITY_CARD_FIELD_OPTIONS.some(
+      (option) => option.key === field && (canViewFinancialFields || !('financial' in option)),
+    ),
+  );
+  const products = [
+    ...(project.products?.length ? project.products : project.product ? [project.product] : []),
+    ...(project.subproducts?.length
+      ? project.subproducts
+      : project.subProduct
+        ? [project.subProduct]
+        : []),
+  ].filter(Boolean);
+  const contractDisplay = canViewFinancialFields ? getContractDisplay(project) : null;
+  const marginDisplay = canViewFinancialFields ? getMarginDisplay(project) : null;
+  const closed =
+    project.status === "completed" ||
+    project.status === "cancelled" ||
+    project.pipelineStage === "closure" ||
+    project.pipelineStage === "lost";
 
-  const products = (project.products?.length
-    ? project.products
-    : project.product
-      ? [project.product]
-      : []
-  ).filter(Boolean);
+  const valueFor = (field: string): string => {
+    switch (field) {
+      case "businessVertical":
+        return project.businessVertical || "Unassigned";
+      case "projectStatus":
+        return String(project.status || "").replace(/_/g, "-") || "—";
+      case "pipelineStage":
+        return stageLabel || "—";
+      case "teamLead":
+        return project.projectLead?.name || "Unassigned";
+      case "teamMembers": {
+        const names = project.teamMembers?.map((member) => member.name).filter(Boolean) ?? [];
+        return names.length ? names.join(", ") : `${project.teamMemberIds?.length ?? project.teamSize ?? 0} assigned`;
+      }
+      case "leadTime":
+        return project.leadTime?.trim() || "—";
+      case "pipelineIntakeDate":
+        return safeFormatDate(project.pipelineIntakeDate, "MMM d, yyyy");
+      case "expectedCloseDate":
+        return safeFormatDate(project.expectedCloseDate, "MMM d, yyyy");
+      case "daysRemaining": {
+        if (!project.expectedCloseDate || closed) return "—";
+        const closeDate = parseISO(project.expectedCloseDate);
+        if (!isValid(closeDate)) return "—";
+        const days = differenceInCalendarDays(closeDate, startOfToday());
+        if (days < 0) return `Overdue by ${Math.abs(days)} day${Math.abs(days) === 1 ? "" : "s"}`;
+        if (days === 0) return "Due today";
+        return `${days} day${days === 1 ? "" : "s"} remaining`;
+      }
+      case "clientName":
+        return project.clientName || "—";
+      case "sector":
+        return project.sector || "—";
+      case "oem":
+        return project.oem && project.oem.toLowerCase() !== "n/a" ? project.oem : "—";
+      case "channelPartner":
+        return project.partners?.map((partner) => partner.companyName).filter(Boolean).join(", ")
+          || project.channelPartner
+          || "—";
+      case "products":
+        return products.join(", ") || "—";
+      case "contractValue":
+        return contractDisplay
+          ? formatCurrencyFor(contractDisplay.value, contractDisplay.currency)
+          : "—";
+      case "expectedMargin": {
+        if (marginDisplay) {
+          return formatCurrencyFor(marginDisplay.value, marginDisplay.currency);
+        }
+        const percentage = project.marginPercentNGN ?? project.marginPercentUSD;
+        return typeof percentage === "number" && Number.isFinite(percentage)
+          ? `${percentage}%`
+          : "—";
+      }
+      case "dealProbability":
+        return project.dealProbability || "—";
+      case "progress":
+        return `${getStageProgress(project.pipelineStage, project.progress)}%`;
+      case "location":
+        return project.location || "—";
+      case "taskSummary":
+        return `${completedTasks}/${tasksTotal} completed`;
+      case "lastUpdated":
+        return safeFormatDate(project.updatedAt, "MMM d, yyyy");
+      case "startDate":
+        return safeFormatDate(project.startDate, "MMM d, yyyy");
+      case "description":
+        return project.description?.trim() || "—";
+      default:
+        return "—";
+    }
+  };
 
-  const subproducts = (project.subproducts?.length
-    ? project.subproducts
-    : project.subProduct
-      ? [project.subProduct]
-      : []
-  ).filter(Boolean);
+  const renderField = (field: string) => {
+    const option = OPPORTUNITY_CARD_FIELD_OPTIONS.find((item) => item.key === field);
+    if (!option) return null;
+    if (field === "projectName") return null;
+    const value = valueFor(field);
 
-  const oem =
-    project.oem && project.oem.toLowerCase() !== "n/a" ? project.oem : null;
-  const description = project.description?.trim() || "";
-  const deal =
-    typeof project.dealProbability === "string"
-      ? project.dealProbability.toLowerCase()
-      : "";
+    if (field === "progress") {
+      const progress = getStageProgress(project.pipelineStage, project.progress);
+      return (
+        <div key={field} className="col-span-full space-y-1">
+          <div className="flex items-center justify-between gap-2 text-[10px] sm:text-xs">
+            <span className="text-muted-foreground">{option.label}</span>
+            <span className="font-medium">{progress}%</span>
+          </div>
+          <Progress value={progress} className="h-1.5" />
+        </div>
+      );
+    }
+
+    if (field === "taskSummary") {
+      return (
+        <MetaRow key={field} label="Tasks">
+          {value}
+        </MetaRow>
+      );
+    }
+
+    if (field === "description") {
+      return (
+        <div key={field} className="col-span-full min-w-0">
+          <p className="text-[10px] text-muted-foreground">{option.label}</p>
+          <p className="text-xs text-foreground/90 line-clamp-2 break-words">{value}</p>
+        </div>
+      );
+    }
+
+    if (field === "businessVertical") {
+      return (
+        <MetaRow key={field} label={option.label}>
+          <span className="truncate">
+            {sectorIcons[project.businessVertical as Sector] || "📁"} {value}
+          </span>
+        </MetaRow>
+      );
+    }
+
+    if (field === "projectStatus") {
+      return (
+        <MetaRow key={field} label={option.label}>
+          <Badge
+            variant="outline"
+            className={`text-[10px] sm:text-xs capitalize ${statusColors[project.status] || ""}`}
+          >
+            {value}
+          </Badge>
+        </MetaRow>
+      );
+    }
+
+    if (field === "pipelineStage") {
+      return (
+        <MetaRow key={field} label={option.label}>
+          <Badge
+            variant="outline"
+            className={`text-[10px] sm:text-xs ${stageColors[project.pipelineStage] || ""}`}
+          >
+            {value}
+          </Badge>
+        </MetaRow>
+      );
+    }
+
+    if (field === "dealProbability") {
+      return (
+        <MetaRow key={field} label={option.label}>
+          <Badge
+            variant="outline"
+            className={`text-[10px] sm:text-xs capitalize ${probabilityColors[value.toLowerCase()] || ""}`}
+          >
+            {value}
+          </Badge>
+        </MetaRow>
+      );
+    }
+
+    return (
+      <MetaRow key={field} label={option.label}>
+        {value}
+      </MetaRow>
+    );
+  };
 
   const card = (
     <Card
@@ -117,26 +303,10 @@ function ProjectCardComponent({
         </div>
       )}
       <CardHeader
-        className={`p-3 sm:p-4 pb-2 ${selectable ? "pl-9" : ""}`}
+        className={`p-3 sm:p-4 pb-2 ${selectable ? "pl-9" : ""} ${onSaveCardFields ? "pr-12" : ""}`}
       >
         <div className="flex items-start justify-between gap-2 min-w-0">
-          <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-            <span
-              className={`text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-md font-medium truncate max-w-[10rem] sm:max-w-[14rem] ${sectorColors[project.businessVertical as Sector] || "bg-muted text-muted-foreground"}`}
-            >
-              {sectorIcons[project.businessVertical as Sector] || "📁"}{" "}
-              <span className="hidden sm:inline">
-                {project.businessVertical || "Unassigned"}
-              </span>
-            </span>
-
-            <Badge
-              variant="outline"
-              className={`text-[10px] sm:text-xs capitalize ${statusColors[project.status] || ""}`}
-            >
-              {String(project.status || "").replace(/_/g, "-")}
-            </Badge>
-          </div>
+          <div className="min-w-0" />
           {project.projectImage && (
             <img
               src={project.projectImage}
@@ -148,164 +318,107 @@ function ProjectCardComponent({
         <h3 className="font-semibold text-sm sm:text-base mt-1.5 group-hover:text-primary transition-colors line-clamp-2 break-words">
           {project.name}
         </h3>
-        <div className="flex flex-wrap items-center gap-1.5 mt-1">
-          <Badge
-            variant="outline"
-            className={`text-[10px] sm:text-xs ${stageColors[project.pipelineStage] || ""}`}
-          >
-            {stageLabel}
-          </Badge>
-          {deal && (
-            <Badge
-              variant="outline"
-              className={`text-[10px] sm:text-xs capitalize ${probabilityColors[deal] || ""}`}
-            >
-              {deal} prob.
-            </Badge>
-          )}
-        </div>
       </CardHeader>
       <CardContent className="p-3 sm:p-4 pt-0 space-y-2.5 sm:space-y-3 min-w-0">
-        {(project.clientName || project.clientContact) && (
-          <div className="min-w-0 space-y-0.5">
-            {project.clientName && (
-              <p className="text-xs sm:text-sm font-medium truncate">
-                {project.clientName}
-              </p>
-            )}
-            {project.clientContact && (
-              <p className="text-[10px] sm:text-xs text-muted-foreground truncate">
-                Contact: {project.clientContact}
-              </p>
-            )}
-          </div>
-        )}
-
-        {description && (
-          <p className="text-[10px] sm:text-xs text-muted-foreground line-clamp-2 break-words">
-            {description}
-          </p>
-        )}
-
-        {/* Compact opportunity facts — only render rows that have values */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-1 min-w-0">
-          {project.location && (
-            <MetaRow label="Location">
-              <span className="inline-flex items-center gap-1 min-w-0">
-                <MapPin className="w-3 h-3 shrink-0 text-muted-foreground" />
-                <span className="truncate">{project.location}</span>
-              </span>
-            </MetaRow>
-          )}
-          {project.sector && (
-            <MetaRow label="Sector">{project.sector}</MetaRow>
-          )}
-          {oem && <MetaRow label="OEM">{oem}</MetaRow>}
-          {project.salesLead && (
-            <MetaRow label="Sales">{project.salesLead}</MetaRow>
-          )}
-          {project.channelPartner && (
-            <MetaRow label="Partner">{project.channelPartner}</MetaRow>
-          )}
-        </div>
-
-        {(products.length > 0 || subproducts.length > 0) && (
-          <div className="flex flex-wrap gap-1 min-w-0 overflow-hidden max-h-[3.25rem]">
-            {products.slice(0, 3).map((p) => (
-              <Badge
-                key={`p-${p}`}
-                variant="secondary"
-                className="text-[10px] font-normal max-w-[9rem] truncate"
-              >
-                {p}
-              </Badge>
-            ))}
-            {products.length > 3 && (
-              <Badge variant="outline" className="text-[10px] font-normal">
-                +{products.length - 3}
-              </Badge>
-            )}
-            {subproducts.slice(0, 2).map((p) => (
-              <Badge
-                key={`s-${p}`}
-                variant="outline"
-                className="text-[10px] font-normal max-w-[9rem] truncate"
-              >
-                {p}
-              </Badge>
-            ))}
-          </div>
-        )}
-
-        <div className="flex flex-col gap-0.5 text-[10px] sm:text-xs min-w-0">
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-muted-foreground shrink-0">Contract</span>
-            <span className="font-medium truncate">
-              {contractDisplay
-                ? formatCurrencyFor(contractDisplay.value, contractDisplay.currency)
-                : '—'}
-            </span>
-          </div>
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-muted-foreground shrink-0">Margin</span>
-            <span className="font-medium text-chart-2 truncate">
-              {marginDisplay
-                ? formatCurrencyFor(marginDisplay.value, marginDisplay.currency)
-                : '—'}
-            </span>
-          </div>
-        </div>
-
-        <div className="space-y-1">
-          <div className="flex items-center justify-between text-[10px] sm:text-xs">
-            <span className="text-muted-foreground">Progress</span>
-            <span className="font-medium">
-              {getStageProgress(project.pipelineStage, project.progress)}%
-            </span>
-          </div>
-          <Progress
-            value={getStageProgress(project.pipelineStage, project.progress)}
-            className="h-1.5"
-          />
-        </div>
-
-        <div className="flex items-center justify-between text-[10px] sm:text-xs text-muted-foreground pt-2 border-t border-border gap-2 min-w-0">
-          <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
-            <Users className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-            <span>{project.teamSize || 0}</span>
-          </div>
-          <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
-            <CheckSquare className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-            <span>
-              {completedTasks}/{tasksTotal}
-            </span>
-          </div>
-          <div className="flex items-center gap-0.5 sm:gap-1 min-w-0 truncate">
-            <Calendar className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
-            <span className="truncate">
-              {safeFormatDate(project.startDate, "MMM d")}
-            </span>
-          </div>
+          {selectedFields.map(renderField)}
         </div>
       </CardContent>
     </Card>
   );
 
+  const settings = onSaveCardFields ? (
+    <div
+      className="absolute right-2 top-2 z-20"
+      onClick={(event) => event.stopPropagation()}
+    >
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="h-8 w-8 bg-background/95"
+            aria-label={`Customize card for ${project.name}`}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <MoreHorizontal className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onSelect={() => setCustomizeOpen(true)}>
+            Customize This Card
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  ) : null;
+
+  const cardLink = selectable ? (
+    <div
+      onClick={() => onSelectToggle?.(project.id)}
+      className="cursor-pointer min-w-0"
+    >
+      {card}
+    </div>
+  ) : (
+    <Link to={`/projects/${project.id}`} className="min-w-0 block">
+      {card}
+    </Link>
+  );
+
   if (selectable) {
     return (
-      <div
-        onClick={() => onSelectToggle?.(project.id)}
-        className="cursor-pointer min-w-0"
-      >
-        {card}
-      </div>
+      <>
+        <div className="relative min-w-0">
+          {cardLink}
+          {settings}
+        </div>
+        {onSaveCardFields && (
+          <OpportunityCardSettingsDialog
+            open={customizeOpen}
+            onOpenChange={setCustomizeOpen}
+            fields={cardFields}
+            canViewFinancialFields={canViewFinancialFields}
+            title="Customize This Card"
+            description="Choose and reorder fields for this opportunity only."
+            saving={cardPreferenceSaving}
+            onSave={(fields) => onSaveCardFields(project.id, fields)}
+            onResetToGlobal={
+              isCardOverride && onResetCardFields
+                ? () => onResetCardFields(project.id)
+                : undefined
+            }
+          />
+        )}
+      </>
     );
   }
 
   return (
-    <Link to={`/projects/${project.id}`} className="min-w-0 block">
-      {card}
-    </Link>
+    <>
+      <div className="relative min-w-0">
+        {cardLink}
+        {settings}
+      </div>
+      {onSaveCardFields && (
+        <OpportunityCardSettingsDialog
+          open={customizeOpen}
+          onOpenChange={setCustomizeOpen}
+          fields={cardFields}
+          canViewFinancialFields={canViewFinancialFields}
+          title="Customize This Card"
+          description="Choose and reorder fields for this opportunity only."
+          saving={cardPreferenceSaving}
+          onSave={(fields) => onSaveCardFields(project.id, fields)}
+          onResetToGlobal={
+            isCardOverride && onResetCardFields
+              ? () => onResetCardFields(project.id)
+              : undefined
+          }
+        />
+      )}
+    </>
   );
 }
 

@@ -1,4 +1,12 @@
-export type Sector = 'EMR_Aftermarket Services' | 'EMR_O&M' | 'EMR_Special Projects' | 'EMR_Trading' | 'EMR_Manufacturing';
+export type Sector =
+  | 'EMR_Aftermarket Services'
+  | 'EMR_O&M'
+  | 'EMR_Special Projects'
+  | 'EMR_Trading'
+  | 'EMR_Manufacturing'
+  | 'BEDS'
+  | 'Emerald Kenya FZE'
+  | 'Emerald Lekki FZE';
 
 export type TaskStatus = 'todo' | 'in-progress' | 'review' | 'completed';
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
@@ -30,7 +38,7 @@ export const PIPELINE_STAGES: { value: PipelineStage; label: string; order: numb
   { value: 'lost', label: 'Lost', order: 8 },
 ];
 
-export type BusinessSegment = 'EMR_Aftermarket Services' | 'EMR_O&M' | 'EMR_Special Projects' | 'EMR_Trading' | 'EMR_Manufacturing';
+export type BusinessSegment = Sector;
 
 export type DocumentType = 'rfq' | 'proposal' | 'contract' | 'supporting';
 
@@ -169,8 +177,11 @@ export interface Project {
   supportNeeded?: string;
   projectImage?: string;
   teamMemberIds?: string[];
+  projectLead?: { id?: string; name?: string; email?: string } | null;
+  teamMembers?: Array<{ id?: string; name?: string; email?: string }>;
   tasksCount?: number;
   completedTasksCount?: number;
+  updatedAt?: string;
 }
 
 export interface ProjectStats {

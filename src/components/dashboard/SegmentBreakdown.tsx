@@ -34,6 +34,9 @@ export function SegmentBreakdown({
       case 'EMR_Special Projects': return '#8b5cf6';
       case 'EMR_Trading': return '#f0a500';
       case 'EMR_Manufacturing': return '#e84393';
+      case 'BEDS': return '#0077ff';
+      case 'Emerald Kenya FZE': return '#00c2a8';
+      case 'Emerald Lekki FZE': return '#8b5cf6';
       case 'Petrochemicals': return '#0077ff';
       case 'Power': return '#00c2a8';
       case 'Oil & Gas': return '#8b5cf6';

@@ -45,9 +45,11 @@ import {
   resolveLeadIds,
 } from '@/lib/dashboard/projectsDrillHref';
 import { businessVerticals } from '@/data/mockData';
+import { usePermissions } from '@/hooks/usePermissions';
 
 export default function Dashboard() {
   const { formatCurrencyFor } = useDashboardCurrencyFormat();
+  const { canViewFinancialFields } = usePermissions();
   const { user } = useAuth();
   const isRestrictedExecutive = isRestrictedExecutiveUser(user);
   const [dashboardFilters, setDashboardFilters] = useState<DashboardFilterState>(defaultDashboardFilters);
@@ -424,46 +426,50 @@ export default function Dashboard() {
             <div className="flex-1 h-px bg-border" />
           </div>
 
-          <div className="grid grid-cols-1 gap-2 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3 min-w-0">
-            <EmeraldStatCard
-              label="Total PO Value (USD)"
-              value={formatCurrencyFor(computedStats.wonPOValueUSD, 'USD')}
-              subtitle={`${computedStats.won} won opportunities`}
-              subtitleHref={drill.won}
-              colorScheme="won"
-              delta="Active"
-              note={
-                computedStats.missingUsdWon > 0
-                  ? `${computedStats.missingUsdWon} project${computedStats.missingUsdWon === 1 ? '' : 's'} have no USD value and are excluded`
-                  : undefined
-              }
-            />
-            <EmeraldStatCard
-              label="Active Pipeline (USD)"
-              value={formatCurrencyFor(computedStats.activePipelineUSD, 'USD')}
-              subtitle={`${computedStats.active} open opportunities`}
-              subtitleHref={drill.active}
-              colorScheme="pipeline"
-              note={
-                computedStats.missingUsdActive > 0
-                  ? `${computedStats.missingUsdActive} project${computedStats.missingUsdActive === 1 ? '' : 's'} have no USD value and are excluded`
-                  : undefined
-              }
-            />
-            <EmeraldStatCard
-              label="Total Commission (NGN)"
-              value={formatCurrencyFor(computedStats.totalCommissionNGN, 'NGN')}
-              subtitle={coverageLine(computedStats.withNgnValue, computedStats.total)}
-              colorScheme="commission"
-              onActivate={() => setFinancialPanelKey('commission_ngn')}
-            />
-            <EmeraldStatCard
-              label="Total Commission (USD)"
-              value={formatCurrencyFor(computedStats.totalCommissionUSD, 'USD')}
-              subtitle={coverageLine(computedStats.withUsdValue, computedStats.total)}
-              colorScheme="commission_usd"
-              onActivate={() => setFinancialPanelKey('commission_usd')}
-            />
+          <div className={`grid grid-cols-1 gap-2 sm:gap-4 sm:grid-cols-2 ${canViewFinancialFields ? 'lg:grid-cols-3' : 'lg:grid-cols-2'} min-w-0`}>
+            {canViewFinancialFields && (
+              <>
+                <EmeraldStatCard
+                  label="Total PO Value (USD)"
+                  value={formatCurrencyFor(computedStats.wonPOValueUSD, 'USD')}
+                  subtitle={`${computedStats.won} won opportunities`}
+                  subtitleHref={drill.won}
+                  colorScheme="won"
+                  delta="Active"
+                  note={
+                    computedStats.missingUsdWon > 0
+                      ? `${computedStats.missingUsdWon} project${computedStats.missingUsdWon === 1 ? '' : 's'} have no USD value and are excluded`
+                      : undefined
+                  }
+                />
+                <EmeraldStatCard
+                  label="Active Pipeline (USD)"
+                  value={formatCurrencyFor(computedStats.activePipelineUSD, 'USD')}
+                  subtitle={`${computedStats.active} open opportunities`}
+                  subtitleHref={drill.active}
+                  colorScheme="pipeline"
+                  note={
+                    computedStats.missingUsdActive > 0
+                      ? `${computedStats.missingUsdActive} project${computedStats.missingUsdActive === 1 ? '' : 's'} have no USD value and are excluded`
+                      : undefined
+                  }
+                />
+                <EmeraldStatCard
+                  label="Total Commission (NGN)"
+                  value={formatCurrencyFor(computedStats.totalCommissionNGN, 'NGN')}
+                  subtitle={coverageLine(computedStats.withNgnValue, computedStats.total)}
+                  colorScheme="commission"
+                  onActivate={() => setFinancialPanelKey('commission_ngn')}
+                />
+                <EmeraldStatCard
+                  label="Total Commission (USD)"
+                  value={formatCurrencyFor(computedStats.totalCommissionUSD, 'USD')}
+                  subtitle={coverageLine(computedStats.withUsdValue, computedStats.total)}
+                  colorScheme="commission_usd"
+                  onActivate={() => setFinancialPanelKey('commission_usd')}
+                />
+              </>
+            )}
             <EmeraldStatCard
               label="Total Opportunities"
               value={computedStats.total.toLocaleString()}
@@ -481,52 +487,56 @@ export default function Dashboard() {
           </div>
 
           {/* New Summary Cards: Total PO Value NGN, Total Margin USD, Total Margin NGN */}
-          <div className="grid grid-cols-1 gap-2 sm:gap-4 sm:grid-cols-2 md:grid-cols-4 min-w-0">
+          <div className={`grid grid-cols-1 gap-2 sm:gap-4 sm:grid-cols-2 ${canViewFinancialFields ? 'md:grid-cols-4' : ''} min-w-0`}>
             <StatCard 
               title="Total Projects" 
               value={computedStats.total.toLocaleString()} 
               icon={FolderKanban}
               href={drill.all}
             />
-            <StatCard 
-              title="Total PO Value (₦)" 
-              value={formatCurrencyFor(computedStats.totalNGN, 'NGN')} 
-              icon={DollarSign}
-              iconSymbol="₦"
-              className="bg-primary/5 border-primary/20"
-              description={coverageLine(computedStats.withNgnValue, computedStats.total)}
-              onActivate={() => setFinancialPanelKey('po_ngn')}
-            />
-            <StatCard 
-              title="Margin % (USD)" 
-              value={`${computedStats.avgMarginPercentUSD.toFixed(2)}%`} 
-              icon={DollarSign}
-              className="bg-chart-2/5 border-chart-2/20"
-              description={
-                computedStats.withMarginPctUSD > 0
-                  ? coverageLine(computedStats.withMarginPctUSD, computedStats.total)
-                  : undefined
-              }
-              onActivate={() => setFinancialPanelKey('margin_pct_usd')}
-            />
-            <StatCard 
-              title="Margin % (NGN)" 
-              value={`${computedStats.avgMarginPercentNGN.toFixed(2)}%`} 
-              icon={DollarSign}
-              iconSymbol="₦"
-              className="bg-chart-3/5 border-chart-3/20"
-              description={
-                computedStats.withMarginPctNGN > 0
-                  ? coverageLine(computedStats.withMarginPctNGN, computedStats.total)
-                  : undefined
-              }
-              onActivate={() => setFinancialPanelKey('margin_pct_ngn')}
-            />
+            {canViewFinancialFields && (
+              <>
+                <StatCard
+                  title="Total PO Value (₦)"
+                  value={formatCurrencyFor(computedStats.totalNGN, 'NGN')}
+                  icon={DollarSign}
+                  iconSymbol="₦"
+                  className="bg-primary/5 border-primary/20"
+                  description={coverageLine(computedStats.withNgnValue, computedStats.total)}
+                  onActivate={() => setFinancialPanelKey('po_ngn')}
+                />
+                <StatCard
+                  title="Margin % (USD)"
+                  value={`${computedStats.avgMarginPercentUSD.toFixed(2)}%`}
+                  icon={DollarSign}
+                  className="bg-chart-2/5 border-chart-2/20"
+                  description={
+                    computedStats.withMarginPctUSD > 0
+                      ? coverageLine(computedStats.withMarginPctUSD, computedStats.total)
+                      : undefined
+                  }
+                  onActivate={() => setFinancialPanelKey('margin_pct_usd')}
+                />
+                <StatCard
+                  title="Margin % (NGN)"
+                  value={`${computedStats.avgMarginPercentNGN.toFixed(2)}%`}
+                  icon={DollarSign}
+                  iconSymbol="₦"
+                  className="bg-chart-3/5 border-chart-3/20"
+                  description={
+                    computedStats.withMarginPctNGN > 0
+                      ? coverageLine(computedStats.withMarginPctNGN, computedStats.total)
+                      : undefined
+                  }
+                  onActivate={() => setFinancialPanelKey('margin_pct_ngn')}
+                />
+              </>
+            )}
           </div>
 
           {/* Pipeline & Revenue Analysis Section */}
           <div className="flex items-center gap-2 text-[10px] font-bold tracking-[0.2em] uppercase text-emerald-accent mt-8">
-            <span>Pipeline &amp; Revenue Analysis</span>
+            <span>{canViewFinancialFields ? 'Pipeline & Revenue Analysis' : 'Pipeline Overview'}</span>
             <div className="flex-1 h-px bg-border" />
           </div>
 
@@ -556,13 +566,15 @@ export default function Dashboard() {
             <div className="flex-1 h-px bg-border" />
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 min-w-0">
-            <DashboardVisualExport filename="top-clients-by-value" contentClassName="p-0 bg-transparent border-0 shadow-none min-w-0">
-              <TopClientsByValue
-                data={computedStats.topClients}
-                hrefFor={drill.client}
-              />
-            </DashboardVisualExport>
+          <div className={`grid grid-cols-1 ${canViewFinancialFields ? 'lg:grid-cols-3' : 'lg:grid-cols-2'} gap-4 min-w-0`}>
+            {canViewFinancialFields && (
+              <DashboardVisualExport filename="top-clients-by-value" contentClassName="p-0 bg-transparent border-0 shadow-none min-w-0">
+                <TopClientsByValue
+                  data={computedStats.topClients}
+                  hrefFor={drill.client}
+                />
+              </DashboardVisualExport>
+            )}
             <DashboardVisualExport filename="pipeline-stage-distribution" contentClassName="p-0 bg-transparent border-0 shadow-none min-w-0">
               <ProbabilityMixDonut
                 data={computedStats.byPipelineStage}
@@ -593,21 +605,23 @@ export default function Dashboard() {
           </div>
 
           {/* Financial Overview */}
-          <div className="grid grid-cols-1 gap-2 sm:gap-4 md:grid-cols-2 min-w-0">
-            <StatCard 
-              title="Total Revenue (NGN)"
-              value={formatCurrencyFor(computedStats.totalNGN, 'NGN')}
-              icon={DollarSign}
-              iconSymbol="₦"
-              className="bg-primary/5 border-primary/20"
-            />
-            <StatCard 
-              title="Total Revenue (USD)"
-              value={formatCurrencyFor(computedStats.totalUSD, 'USD')}
-              icon={DollarSign}
-              className="bg-chart-2/5 border-chart-2/20"
-            />
-          </div>
+          {canViewFinancialFields && (
+            <div className="grid grid-cols-1 gap-2 sm:gap-4 md:grid-cols-2 min-w-0">
+              <StatCard
+                title="Total Revenue (NGN)"
+                value={formatCurrencyFor(computedStats.totalNGN, 'NGN')}
+                icon={DollarSign}
+                iconSymbol="₦"
+                className="bg-primary/5 border-primary/20"
+              />
+              <StatCard
+                title="Total Revenue (USD)"
+                value={formatCurrencyFor(computedStats.totalUSD, 'USD')}
+                icon={DollarSign}
+                className="bg-chart-2/5 border-chart-2/20"
+              />
+            </div>
+          )}
 
           {/* Average Progress */}
           {computedStats.averageProgress !== undefined && computedStats.averageProgress !== null && (
@@ -623,7 +637,7 @@ export default function Dashboard() {
         </>
       )}
 
-      <RevenueAnalytics />
+      {canViewFinancialFields && <RevenueAnalytics />}
 
       {/* Partner Tracker (pivot) — distinct from channel_partner text drivers */}
       <div className="flex items-center gap-2 text-[10px] font-bold tracking-[0.2em] uppercase text-emerald-accent mt-2">
@@ -648,7 +662,7 @@ export default function Dashboard() {
       </div>
 
       <ExecutiveSnapshotSheet
-        open={financialPanelKey !== null}
+        open={canViewFinancialFields && financialPanelKey !== null}
         onOpenChange={(open) => {
           if (!open) setFinancialPanelKey(null);
         }}

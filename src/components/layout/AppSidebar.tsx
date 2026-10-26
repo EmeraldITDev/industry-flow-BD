@@ -14,6 +14,9 @@ import {
   Landmark,
   FileStack,
   Handshake,
+  Boxes,
+  Globe2,
+  MapPin,
 } from 'lucide-react';
 import emeraldLogo from '@/assets/emerald-logo.png';
 import { NavLink, useLocation } from 'react-router-dom';
@@ -85,6 +88,9 @@ const businessVerticalNavItems = [
   { title: 'EMR_Special Projects', businessVertical: 'EMR_Special Projects', icon: Building2 },
   { title: 'EMR_Trading', businessVertical: 'EMR_Trading', icon: TrendingUp },
   { title: 'EMR_Manufacturing', businessVertical: 'EMR_Manufacturing', icon: Factory },
+  { title: 'BEDS', businessVertical: 'BEDS', icon: Boxes },
+  { title: 'Emerald Kenya FZE', businessVertical: 'Emerald Kenya FZE', icon: Globe2 },
+  { title: 'Emerald Lekki FZE', businessVertical: 'Emerald Lekki FZE', icon: MapPin },
 ];
 
 const partnersNavItems = [
