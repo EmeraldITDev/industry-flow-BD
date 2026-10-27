@@ -656,11 +656,6 @@ export default function Projects() {
       )}
 
       <ProjectImportDialog open={importOpen} onOpenChange={setImportOpen} />
-      {cardPreferencesQuery.isError && (
-        <p role="alert" className="text-sm text-destructive">
-          Card preferences could not be loaded. Defaults are shown; saving requires a working connection.
-        </p>
-      )}
       <OpportunityCardSettingsDialog
         open={cardSettingsOpen}
         onOpenChange={setCardSettingsOpen}

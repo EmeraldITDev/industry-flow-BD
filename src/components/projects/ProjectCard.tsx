@@ -344,7 +344,7 @@ function ProjectCardComponent({
 
   const card = (
     <Card
-      className={`flex h-[450px] flex-col hover:border-primary/50 hover:shadow-md transition-all cursor-pointer group relative overflow-hidden sm:h-[470px] ${selected ? "border-primary ring-2 ring-primary/20" : ""}`}
+      className={`flex h-[520px] flex-col hover:border-primary/50 hover:shadow-md transition-all cursor-pointer group relative overflow-hidden sm:h-[540px] ${selected ? "border-primary ring-2 ring-primary/20" : ""}`}
     >
       {selectable && (
         <div
