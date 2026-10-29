@@ -30,7 +30,11 @@ import { Badge } from "@/components/ui/badge";
 import { format, parseISO } from "date-fns";
 import { addLeadTime } from "@/lib/expectedCloseDate";
 import { cn } from "@/lib/utils";
-import { businessVerticals, industrySectors, businessSegments } from "@/data/mockData";
+import {
+  businessVerticals,
+  industrySectors,
+  businessSegments,
+} from "@/data/mockData";
 import {
   Sector,
   RiskLevel,
@@ -294,7 +298,9 @@ export default function EditProject() {
       projectLeadId: String(data.projectLeadId ?? data.project_lead_id ?? ""),
       assigneeId: String(data.assigneeId ?? data.assignee_id ?? ""),
       teamMemberIds: Array.isArray(data.teamMemberIds ?? data.team_member_ids)
-        ? (data.teamMemberIds ?? data.team_member_ids).map((id: any) => String(id))
+        ? (data.teamMemberIds ?? data.team_member_ids).map((id: any) =>
+            String(id),
+          )
         : Array.isArray(data.teamMembers)
           ? data.teamMembers.map((m: any) => String(m.id)).filter(Boolean)
           : prev.teamMemberIds,
@@ -436,13 +442,17 @@ export default function EditProject() {
         sector: (formData.sector || undefined) as Sector | undefined,
         businessVertical: formData.businessVertical || undefined,
         status: formData.status,
-        startDate: formData.startDate.toISOString(),
-        endDate: formData.endDate?.toISOString(),
+        startDate: format(formData.startDate, "yyyy-MM-dd"),
+        endDate: formData.endDate
+          ? format(formData.endDate, "yyyy-MM-dd")
+          : undefined,
         clientName: formData.clientName || undefined,
         clientContact: formData.clientContact || undefined,
         contacts: formData.projectContacts,
         pipelineStage: formData.pipelineStage,
-        pipelineIntakeDate: formData.pipelineIntakeDate?.toISOString(),
+        pipelineIntakeDate: formData.pipelineIntakeDate
+          ? format(formData.pipelineIntakeDate, "yyyy-MM-dd")
+          : undefined,
         oem: formData.oem || undefined,
         location: formData.location || undefined,
         leadTime: formData.leadTime || undefined,
@@ -467,7 +477,8 @@ export default function EditProject() {
               discountedContractValueUSD: discUSD.discountedContractValue,
             }
           : {}),
-        businessSegment: (formData.businessVertical as BusinessSegment) || undefined,
+        businessSegment:
+          (formData.businessVertical as BusinessSegment) || undefined,
         products: formData.products,
         subproducts: formData.subproducts,
         projectLeadId: formData.projectLeadId || undefined,
@@ -774,7 +785,8 @@ export default function EditProject() {
                       }
                     />
                     <p className="text-xs text-muted-foreground">
-                      Approved/Won Date + Lead Time. A range uses the longer duration.
+                      Approved/Won Date + Lead Time. A range uses the longer
+                      duration.
                     </p>
                   </>
                 ) : (
@@ -785,7 +797,8 @@ export default function EditProject() {
                           variant="outline"
                           className={cn(
                             "w-full justify-start text-left font-normal",
-                            !formData.expectedCloseDate && "text-muted-foreground",
+                            !formData.expectedCloseDate &&
+                              "text-muted-foreground",
                           )}
                         >
                           <CalendarIcon className="mr-2 h-4 w-4" />
@@ -799,14 +812,18 @@ export default function EditProject() {
                           mode="single"
                           selected={formData.expectedCloseDate}
                           onSelect={(date) =>
-                            setFormData({ ...formData, expectedCloseDate: date })
+                            setFormData({
+                              ...formData,
+                              expectedCloseDate: date,
+                            })
                           }
                           initialFocus
                         />
                       </PopoverContent>
                     </Popover>
                     <p className="text-xs text-muted-foreground">
-                      Set an Approved/Won Date and a lead time such as 8 weeks to calculate this.
+                      Set an Approved/Won Date and a lead time such as 8 weeks
+                      to calculate this.
                     </p>
                   </>
                 )}
@@ -905,7 +922,6 @@ export default function EditProject() {
                   placeholder="Enter client name"
                 />
               </div>
-
             </div>
             <ProjectContactsEditor
               contacts={formData.projectContacts}
@@ -1200,7 +1216,8 @@ export default function EditProject() {
                       placeholder="Auto-calculated"
                     />
                     <p className="text-[10px] text-muted-foreground">
-                      Requires both Contract and Margin %. If either is empty on save, the stored margin value is cleared.
+                      Requires both Contract and Margin %. If either is empty on
+                      save, the stored margin value is cleared.
                     </p>
                   </div>
                 </div>
@@ -1271,7 +1288,8 @@ export default function EditProject() {
                       placeholder="Auto-calculated"
                     />
                     <p className="text-[10px] text-muted-foreground">
-                      Requires both Contract and Margin %. If either is empty on save, the stored margin value is cleared.
+                      Requires both Contract and Margin %. If either is empty on
+                      save, the stored margin value is cleared.
                     </p>
                   </div>
                 </div>
