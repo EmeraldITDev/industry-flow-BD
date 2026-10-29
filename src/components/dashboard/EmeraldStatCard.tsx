@@ -1,13 +1,20 @@
-import { LucideIcon } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { Link } from 'react-router-dom';
+import { LucideIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Link } from "react-router-dom";
 
 interface EmeraldStatCardProps {
   label: string;
   value: string | number;
   subtitle?: string;
+  note?: string;
   delta?: string;
-  colorScheme?: 'won' | 'pipeline' | 'commission' | 'commission_usd' | 'leads' | 'rate';
+  colorScheme?:
+    | "won"
+    | "pipeline"
+    | "commission"
+    | "commission_usd"
+    | "leads"
+    | "rate";
   icon?: LucideIcon;
   className?: string;
   /** Navigate to filtered Projects list (same query the number was computed from). */
@@ -20,34 +27,34 @@ interface EmeraldStatCardProps {
 
 const colorSchemes = {
   won: {
-    gradient: 'from-emerald-won to-emerald-accent',
-    bgAccent: 'bg-emerald-won/15',
-    textAccent: 'text-emerald-won',
+    gradient: "from-emerald-won to-emerald-accent",
+    bgAccent: "bg-emerald-won/15",
+    textAccent: "text-emerald-won",
   },
   pipeline: {
-    gradient: 'from-emerald-accent2 to-blue-400',
-    bgAccent: 'bg-emerald-accent2/15',
-    textAccent: 'text-emerald-accent2',
+    gradient: "from-emerald-accent2 to-blue-400",
+    bgAccent: "bg-emerald-accent2/15",
+    textAccent: "text-emerald-accent2",
   },
   commission: {
-    gradient: 'from-emerald-accent3 to-yellow-400',
-    bgAccent: 'bg-emerald-accent3/15',
-    textAccent: 'text-emerald-accent3',
+    gradient: "from-emerald-accent3 to-yellow-400",
+    bgAccent: "bg-emerald-accent3/15",
+    textAccent: "text-emerald-accent3",
   },
   commission_usd: {
-    gradient: 'from-blue-400 to-cyan-400',
-    bgAccent: 'bg-blue-400/15',
-    textAccent: 'text-blue-400',
+    gradient: "from-blue-400 to-cyan-400",
+    bgAccent: "bg-blue-400/15",
+    textAccent: "text-blue-400",
   },
   leads: {
-    gradient: 'from-emerald-accent4 to-pink-300',
-    bgAccent: 'bg-emerald-accent4/15',
-    textAccent: 'text-emerald-accent4',
+    gradient: "from-emerald-accent4 to-pink-300",
+    bgAccent: "bg-emerald-accent4/15",
+    textAccent: "text-emerald-accent4",
   },
   rate: {
-    gradient: 'from-emerald-initiation to-purple-300',
-    bgAccent: 'bg-emerald-initiation/15',
-    textAccent: 'text-emerald-initiation',
+    gradient: "from-emerald-initiation to-purple-300",
+    bgAccent: "bg-emerald-initiation/15",
+    textAccent: "text-emerald-initiation",
   },
 };
 
@@ -55,8 +62,9 @@ export function EmeraldStatCard({
   label,
   value,
   subtitle,
+  note,
   delta,
-  colorScheme = 'won',
+  colorScheme = "won",
   icon: Icon,
   className,
   href,
@@ -69,20 +77,20 @@ export function EmeraldStatCard({
   const body = (
     <div
       className={cn(
-        'relative overflow-hidden rounded-xl bg-card border border-border min-w-0',
-        'p-4 sm:p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-accent',
-        'animate-fade-up',
-        (cardClickable || subtitleHref) && 'hover:border-primary/50',
-        cardClickable && 'cursor-pointer',
-        className
+        "relative overflow-hidden rounded-xl bg-card border border-border min-w-0",
+        "p-4 sm:p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-accent",
+        "animate-fade-up",
+        (cardClickable || subtitleHref) && "hover:border-primary/50",
+        cardClickable && "cursor-pointer",
+        className,
       )}
-      role={onActivate ? 'button' : undefined}
+      role={onActivate ? "button" : undefined}
       tabIndex={onActivate ? 0 : undefined}
       onClick={onActivate}
       onKeyDown={
         onActivate
           ? (e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
+              if (e.key === "Enter" || e.key === " ") {
                 e.preventDefault();
                 onActivate();
               }
@@ -93,8 +101,8 @@ export function EmeraldStatCard({
       {/* Top gradient border */}
       <div
         className={cn(
-          'absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r',
-          scheme.gradient
+          "absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r",
+          scheme.gradient,
         )}
       />
 
@@ -107,8 +115,8 @@ export function EmeraldStatCard({
             </div>
             <div
               className={cn(
-                'text-xl sm:text-[26px] font-extrabold leading-tight font-sans break-words',
-                scheme.textAccent
+                "text-xl sm:text-[26px] font-extrabold leading-tight font-sans break-words",
+                scheme.textAccent,
               )}
             >
               {value}
@@ -123,13 +131,26 @@ export function EmeraldStatCard({
                   {subtitle}
                 </Link>
               ) : (
-                <div className="text-[11px] text-muted-foreground mt-1.5 break-words">{subtitle}</div>
+                <div className="text-[11px] text-muted-foreground mt-1.5 break-words">
+                  {subtitle}
+                </div>
               ))}
+            {note && (
+              <p className="mt-2 text-[10px] leading-relaxed text-muted-foreground/80 break-words">
+                {note}
+              </p>
+            )}
           </div>
 
           {/* Delta badge */}
           {delta && (
-            <div className={cn('text-[11px] px-2 py-0.5 rounded-xl shrink-0', scheme.bgAccent, scheme.textAccent)}>
+            <div
+              className={cn(
+                "text-[11px] px-2 py-0.5 rounded-xl shrink-0",
+                scheme.bgAccent,
+                scheme.textAccent,
+              )}
+            >
               ▲ {delta}
             </div>
           )}
@@ -137,7 +158,7 @@ export function EmeraldStatCard({
           {/* Icon */}
           {Icon && (
             <div className="ml-2 shrink-0">
-              <Icon className={cn('w-5 h-5', scheme.textAccent)} />
+              <Icon className={cn("w-5 h-5", scheme.textAccent)} />
             </div>
           )}
         </div>
@@ -146,7 +167,11 @@ export function EmeraldStatCard({
   );
 
   if (!onActivate && cardClickable && href) {
-    return <Link to={href} className="block min-w-0">{body}</Link>;
+    return (
+      <Link to={href} className="block min-w-0">
+        {body}
+      </Link>
+    );
   }
 
   return body;
