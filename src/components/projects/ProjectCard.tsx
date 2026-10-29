@@ -33,6 +33,7 @@ interface ProjectCardProps {
   canViewFinancialFields?: boolean;
   cardPreferenceSaving?: boolean;
   onSaveCardFields?: (projectId: string, fields: string[]) => void | Promise<void>;
+  onApplyCardFieldsToAll?: (fields: string[]) => void | Promise<void>;
   onResetCardFields?: (projectId: string) => void | Promise<void>;
 }
 
@@ -85,6 +86,7 @@ function ProjectCardComponent({
   canViewFinancialFields = false,
   cardPreferenceSaving = false,
   onSaveCardFields,
+  onApplyCardFieldsToAll,
   onResetCardFields,
 }: ProjectCardProps) {
   const [customizeOpen, setCustomizeOpen] = useState(false);
@@ -517,6 +519,7 @@ function ProjectCardComponent({
             description="Choose and reorder fields for this opportunity only."
             saving={cardPreferenceSaving}
             onSave={(fields) => onSaveCardFields(project.id, fields)}
+            onApplyToAll={onApplyCardFieldsToAll}
             onResetToGlobal={
               isCardOverride && onResetCardFields
                 ? () => onResetCardFields(project.id)
@@ -544,6 +547,7 @@ function ProjectCardComponent({
           description="Choose and reorder fields for this opportunity only."
           saving={cardPreferenceSaving}
           onSave={(fields) => onSaveCardFields(project.id, fields)}
+          onApplyToAll={onApplyCardFieldsToAll}
           onResetToGlobal={
             isCardOverride && onResetCardFields
               ? () => onResetCardFields(project.id)

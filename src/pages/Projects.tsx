@@ -1,41 +1,67 @@
-import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
-import { cn } from '@/lib/utils';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ProjectCard } from '@/components/projects/ProjectCard';
-import { AdvancedFilters, FilterState, defaultFilters } from '@/components/projects/AdvancedFilters';
-import { projectsService } from '@/services/projects';
-import { partnersService } from '@/services/partners';
-import { teamService } from '@/services/team';
-import { Button } from '@/components/ui/button';
-import { Plus, Grid3X3, List, Loader2, Upload, Trash2, X, RefreshCw, ChevronLeft, ChevronRight, SlidersHorizontal } from 'lucide-react';
-import { usePermissions } from '@/hooks/usePermissions';
-import { Project, Sector } from '@/types';
-import { ProjectImportDialog } from '@/components/projects/ProjectImportDialog';
-import { ExportProjectsButton } from '@/components/projects/ExportProjectsButton';
-import { GenerateReportButton } from '@/components/projects/GenerateReportButton';
-import { Checkbox } from '@/components/ui/checkbox';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { toast } from 'sonner';
-import { ProjectFilterSummary } from '@/lib/reportGenerator';
-import { metricLabel, metricsService } from '@/services/metrics';
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import { cn } from "@/lib/utils";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ProjectCard } from "@/components/projects/ProjectCard";
+import {
+  AdvancedFilters,
+  FilterState,
+  defaultFilters,
+} from "@/components/projects/AdvancedFilters";
+import { projectsService } from "@/services/projects";
+import { partnersService } from "@/services/partners";
+import { teamService } from "@/services/team";
+import { Button } from "@/components/ui/button";
+import {
+  Plus,
+  Grid3X3,
+  List,
+  Loader2,
+  Upload,
+  Trash2,
+  X,
+  RefreshCw,
+  ChevronLeft,
+  ChevronRight,
+  SlidersHorizontal,
+} from "lucide-react";
+import { usePermissions } from "@/hooks/usePermissions";
+import { Project, Sector } from "@/types";
+import { ProjectImportDialog } from "@/components/projects/ProjectImportDialog";
+import { ExportProjectsButton } from "@/components/projects/ExportProjectsButton";
+import { GenerateReportButton } from "@/components/projects/GenerateReportButton";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
+import { ProjectFilterSummary } from "@/lib/reportGenerator";
+import { metricLabel, metricsService } from "@/services/metrics";
 import {
   DEFAULT_OPPORTUNITY_CARD_FIELDS,
   opportunityCardPreferencesService,
-} from '@/services/opportunityCardPreferences';
-import { OpportunityCardSettingsDialog } from '@/components/projects/OpportunityCardSettingsDialog';
-import { useAuth } from '@/context/AuthContext';
+} from "@/services/opportunityCardPreferences";
+import { OpportunityCardSettingsDialog } from "@/components/projects/OpportunityCardSettingsDialog";
+import { useAuth } from "@/context/AuthContext";
 
 // Mapping for sector display names
 const sectorDisplayNames: Record<string, string> = {
-  'EMR_Aftermarket Services': 'EMR_Aftermarket Services Projects',
-  'EMR_O&M': 'EMR_O&M Projects',
-  'EMR_Special Projects': 'EMR_Special Projects',
-  'EMR_Trading': 'EMR_Trading Projects',
-  'EMR_Manufacturing': 'EMR_Manufacturing Projects',
-  BEDS: 'BEDS Projects',
-  'Emerald Kenya FZE': 'Emerald Kenya FZE Projects',
-  'Emerald Lekki FZE': 'Emerald Lekki FZE Projects',
+  "EMR_Aftermarket Services": "EMR_Aftermarket Services Projects",
+  "EMR_O&M": "EMR_O&M Projects",
+  "EMR_Special Projects": "EMR_Special Projects",
+  EMR_Trading: "EMR_Trading Projects",
+  EMR_Manufacturing: "EMR_Manufacturing Projects",
+  BEDS: "BEDS Projects",
+  "Emerald Kenya FZE": "Emerald Kenya FZE Projects",
+  "Emerald Lekki FZE": "Emerald Lekki FZE Projects",
 };
 
 // How many cards to mount per batch as the user scrolls
@@ -43,15 +69,25 @@ const PAGE_SIZE = 24;
 
 // Array filter keys that map to URL params (comma-separated)
 const ARRAY_FILTER_KEYS: (keyof FilterState)[] = [
-  'businessVerticals', 'sectors', 'statuses', 'pipelineStages', 'businessSegments',
-  'products', 'subproducts',
-  'projectLeads', 'assignees', 'clientNames', 'oems',
-  'locations', 'channelPartners', 'dealProbabilities',
+  "businessVerticals",
+  "sectors",
+  "statuses",
+  "pipelineStages",
+  "businessSegments",
+  "products",
+  "subproducts",
+  "projectLeads",
+  "assignees",
+  "clientNames",
+  "oems",
+  "locations",
+  "channelPartners",
+  "dealProbabilities",
 ];
 
 function filtersFromParams(params: URLSearchParams): FilterState {
   const f: FilterState = { ...defaultFilters };
-  const search = params.get('search');
+  const search = params.get("search");
   if (search) f.search = search;
 
   for (const key of ARRAY_FILTER_KEYS) {
@@ -59,11 +95,14 @@ function filtersFromParams(params: URLSearchParams): FilterState {
     if (!raw) continue;
 
     const trimmed = raw.trim();
-    if (trimmed.startsWith('[')) {
+    if (trimmed.startsWith("[")) {
       try {
         const parsed = JSON.parse(trimmed);
         if (Array.isArray(parsed)) {
-          (f as any)[key] = parsed.filter((value): value is string => typeof value === 'string' && value.length > 0);
+          (f as any)[key] = parsed.filter(
+            (value): value is string =>
+              typeof value === "string" && value.length > 0,
+          );
           continue;
         }
       } catch {
@@ -71,21 +110,24 @@ function filtersFromParams(params: URLSearchParams): FilterState {
       }
     }
 
-    (f as any)[key] = raw.split(',').filter(Boolean);
+    (f as any)[key] = raw.split(",").filter(Boolean);
   }
 
   // Legacy single-value params (from dashboard deep links)
-  if (f.businessVerticals.length === 0 && params.get('businessVertical')) f.businessVerticals = [params.get('businessVertical')!];
-  if (f.statuses.length === 0 && params.get('status')) f.statuses = [params.get('status')!];
-  if (f.dealProbabilities.length === 0 && params.get('dealProbability')) f.dealProbabilities = [params.get('dealProbability')!];
+  if (f.businessVerticals.length === 0 && params.get("businessVertical"))
+    f.businessVerticals = [params.get("businessVertical")!];
+  if (f.statuses.length === 0 && params.get("status"))
+    f.statuses = [params.get("status")!];
+  if (f.dealProbabilities.length === 0 && params.get("dealProbability"))
+    f.dealProbabilities = [params.get("dealProbability")!];
 
-  const dateFrom = params.get('dateFrom');
-  const dateTo = params.get('dateTo');
+  const dateFrom = params.get("dateFrom");
+  const dateTo = params.get("dateTo");
   if (dateFrom) f.dateFrom = new Date(dateFrom);
   if (dateTo) f.dateTo = new Date(dateTo);
 
-  const minVal = params.get('minContractValue');
-  const maxVal = params.get('maxContractValue');
+  const minVal = params.get("minContractValue");
+  const maxVal = params.get("maxContractValue");
   if (minVal) f.minContractValue = Number(minVal);
   if (maxVal) f.maxContractValue = Number(maxVal);
 
@@ -95,29 +137,33 @@ function filtersFromParams(params: URLSearchParams): FilterState {
 function filtersToParams(filters: FilterState): URLSearchParams {
   const params = new URLSearchParams();
 
-  if (filters.search) params.set('search', filters.search);
+  if (filters.search) params.set("search", filters.search);
 
   for (const key of ARRAY_FILTER_KEYS) {
     const arr = (filters as any)[key] as string[];
     if (arr && arr.length > 0) params.set(key, JSON.stringify(arr));
   }
 
-  if (filters.dateFrom) params.set('dateFrom', filters.dateFrom.toISOString());
-  if (filters.dateTo) params.set('dateTo', filters.dateTo.toISOString());
-  if (filters.minContractValue) params.set('minContractValue', String(filters.minContractValue));
-  if (filters.maxContractValue) params.set('maxContractValue', String(filters.maxContractValue));
+  if (filters.dateFrom) params.set("dateFrom", filters.dateFrom.toISOString());
+  if (filters.dateTo) params.set("dateTo", filters.dateTo.toISOString());
+  if (filters.minContractValue)
+    params.set("minContractValue", String(filters.minContractValue));
+  if (filters.maxContractValue)
+    params.set("maxContractValue", String(filters.maxContractValue));
 
   return params;
 }
 
 function toDateParam(d: Date): string {
   const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
 }
 
-function filterStateToApiParams(filters: FilterState): Record<string, string | number> {
+function filterStateToApiParams(
+  filters: FilterState,
+): Record<string, string | number> {
   const params: Record<string, string | number> = { lean: 1, per_page: 50 };
   if (filters.search) params.search = filters.search;
   for (const key of ARRAY_FILTER_KEYS) {
@@ -126,8 +172,10 @@ function filterStateToApiParams(filters: FilterState): Record<string, string | n
   }
   if (filters.dateFrom) params.from = toDateParam(filters.dateFrom);
   if (filters.dateTo) params.to = toDateParam(filters.dateTo);
-  if (filters.minContractValue != null) params.minContractValue = filters.minContractValue;
-  if (filters.maxContractValue != null) params.maxContractValue = filters.maxContractValue;
+  if (filters.minContractValue != null)
+    params.minContractValue = filters.minContractValue;
+  if (filters.maxContractValue != null)
+    params.maxContractValue = filters.maxContractValue;
   return params;
 }
 
@@ -136,32 +184,35 @@ export default function Projects() {
   const queryClient = useQueryClient();
 
   // Derive filters from URL — single source of truth
-  const filters = useMemo(() => filtersFromParams(searchParams), [searchParams]);
-  const metric = searchParams.get('metric') || '';
-  const isMetricDrill = metric !== '';
-  const metricFrom = searchParams.get('from') || '';
-  const metricTo = searchParams.get('to') || '';
-  const metricPeriod = searchParams.get('period') || '';
-  const metricClientNames = searchParams.get('clientNames') || '';
-  const metricPipelineStages = searchParams.get('pipelineStages') || '';
-  const metricDealProbabilities = searchParams.get('dealProbabilities') || '';
-  const metricBusinessVerticals = searchParams.get('businessVerticals') || '';
-  const metricSectors = searchParams.get('sectors') || '';
-  const metricChannelPartners = searchParams.get('channelPartners') || '';
-  const metricProducts = searchParams.get('products') || '';
-  const metricSubproducts = searchParams.get('subproducts') || '';
-  const metricProjectLeads = searchParams.get('projectLeads') || '';
-  const metricAssignees = searchParams.get('assignees') || '';
-  const metricBusinessSegments = searchParams.get('businessSegments') || '';
-  const metricStatuses = searchParams.get('statuses') || '';
-  const missingParam = searchParams.get('missing') || '';
-  const hasParam = searchParams.get('has') || '';
-  const teamMembersParam = searchParams.get('teamMembers') || '';
-  const missingProjectLeadParam = searchParams.get('missingProjectLead') || '';
-  const projectIdsParam = searchParams.get('projectIds') || '';
+  const filters = useMemo(
+    () => filtersFromParams(searchParams),
+    [searchParams],
+  );
+  const metric = searchParams.get("metric") || "";
+  const isMetricDrill = metric !== "";
+  const metricFrom = searchParams.get("from") || "";
+  const metricTo = searchParams.get("to") || "";
+  const metricPeriod = searchParams.get("period") || "";
+  const metricClientNames = searchParams.get("clientNames") || "";
+  const metricPipelineStages = searchParams.get("pipelineStages") || "";
+  const metricDealProbabilities = searchParams.get("dealProbabilities") || "";
+  const metricBusinessVerticals = searchParams.get("businessVerticals") || "";
+  const metricSectors = searchParams.get("sectors") || "";
+  const metricChannelPartners = searchParams.get("channelPartners") || "";
+  const metricProducts = searchParams.get("products") || "";
+  const metricSubproducts = searchParams.get("subproducts") || "";
+  const metricProjectLeads = searchParams.get("projectLeads") || "";
+  const metricAssignees = searchParams.get("assignees") || "";
+  const metricBusinessSegments = searchParams.get("businessSegments") || "";
+  const metricStatuses = searchParams.get("statuses") || "";
+  const missingParam = searchParams.get("missing") || "";
+  const hasParam = searchParams.get("has") || "";
+  const teamMembersParam = searchParams.get("teamMembers") || "";
+  const missingProjectLeadParam = searchParams.get("missingProjectLead") || "";
+  const projectIdsParam = searchParams.get("projectIds") || "";
   const partnerIdParam =
-    searchParams.get('partner_id') || searchParams.get('partnerId') || '';
-  const pageParam = Math.max(1, Number(searchParams.get('page') || '1') || 1);
+    searchParams.get("partner_id") || searchParams.get("partnerId") || "";
+  const pageParam = Math.max(1, Number(searchParams.get("page") || "1") || 1);
 
   const metricExtra = useMemo(() => {
     const extra: Record<string, string> = {};
@@ -170,8 +221,10 @@ export default function Projects() {
     if (metricPeriod) extra.period = metricPeriod;
     if (metricClientNames) extra.clientNames = metricClientNames;
     if (metricPipelineStages) extra.pipelineStages = metricPipelineStages;
-    if (metricDealProbabilities) extra.dealProbabilities = metricDealProbabilities;
-    if (metricBusinessVerticals) extra.businessVerticals = metricBusinessVerticals;
+    if (metricDealProbabilities)
+      extra.dealProbabilities = metricDealProbabilities;
+    if (metricBusinessVerticals)
+      extra.businessVerticals = metricBusinessVerticals;
     if (metricSectors) extra.sectors = metricSectors;
     if (metricChannelPartners) extra.channelPartners = metricChannelPartners;
     if (metricProducts) extra.products = metricProducts;
@@ -203,63 +256,69 @@ export default function Projects() {
     hasParam,
   ]);
 
-  const handleFiltersChange = useCallback((newFilters: FilterState) => {
-    const params = filtersToParams(newFilters);
-    // Only preserve drill-down / partner-scope keys that AdvancedFilters does not own.
-    // Re-applying FilterState keys (products, stages, …) from the old URL overwrote
-    // multi-select updates — blocking second selections and chip removal.
-    const preserveKeys = [
-      'metric',
-      'from',
-      'to',
-      'period',
-      'partner_id',
-      'partnerId',
-      'missing',
-      'has',
-      'teamMembers',
-      'missingProjectLead',
-      'projectIds',
-    ];
-    for (const key of preserveKeys) {
-      const value = searchParams.get(key);
-      if (value) params.set(key, value);
-    }
-    params.delete('page');
-    setSearchParams(params, { replace: true });
-  }, [searchParams, setSearchParams]);
+  const handleFiltersChange = useCallback(
+    (newFilters: FilterState) => {
+      const params = filtersToParams(newFilters);
+      // Only preserve drill-down / partner-scope keys that AdvancedFilters does not own.
+      // Re-applying FilterState keys (products, stages, …) from the old URL overwrote
+      // multi-select updates — blocking second selections and chip removal.
+      const preserveKeys = [
+        "metric",
+        "from",
+        "to",
+        "period",
+        "partner_id",
+        "partnerId",
+        "missing",
+        "has",
+        "teamMembers",
+        "missingProjectLead",
+        "projectIds",
+      ];
+      for (const key of preserveKeys) {
+        const value = searchParams.get(key);
+        if (value) params.set(key, value);
+      }
+      params.delete("page");
+      setSearchParams(params, { replace: true });
+    },
+    [searchParams, setSearchParams],
+  );
 
   const setPage = useCallback(
     (nextPage: number) => {
       const params = new URLSearchParams(searchParams);
-      if (nextPage <= 1) params.delete('page');
-      else params.set('page', String(nextPage));
+      if (nextPage <= 1) params.delete("page");
+      else params.set("page", String(nextPage));
       setSearchParams(params, { replace: true });
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo({ top: 0, behavior: "smooth" });
     },
-    [searchParams, setSearchParams]
+    [searchParams, setSearchParams],
   );
 
   const clearPartnerFilter = useCallback(() => {
     const params = new URLSearchParams(searchParams);
-    params.delete('partner_id');
-    params.delete('partnerId');
-    params.delete('page');
+    params.delete("partner_id");
+    params.delete("partnerId");
+    params.delete("page");
     setSearchParams(params, { replace: true });
   }, [searchParams, setSearchParams]);
 
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [importOpen, setImportOpen] = useState(false);
   const [selectMode, setSelectMode] = useState(false);
   const [cardSettingsOpen, setCardSettingsOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isDeleting, setIsDeleting] = useState(false);
-  
+
   // Calculate page title based on sector filter
-  const sectorParam = filters.businessVerticals.length === 1 ? filters.businessVerticals[0] : null;
+  const sectorParam =
+    filters.businessVerticals.length === 1
+      ? filters.businessVerticals[0]
+      : null;
   const coverageTitle =
     missingParam || hasParam
-      ? `${missingParam ? 'Missing' : 'With'} ${missingParam || hasParam} value`
+      ? `${missingParam ? "Missing" : "With"} ${missingParam || hasParam} value`
       : null;
   const pageTitle = isMetricDrill
     ? metricLabel(metric)
@@ -267,10 +326,13 @@ export default function Projects() {
       ? coverageTitle
       : sectorParam && sectorDisplayNames[sectorParam]
         ? sectorDisplayNames[sectorParam]
-        : 'Projects';
+        : "Projects";
   const { canCreateProjects, canViewFinancialFields } = usePermissions();
   const { user } = useAuth();
-  const cardPreferencesKey = ['opportunity-card-preferences', user?.id] as const;
+  const cardPreferencesKey = [
+    "opportunity-card-preferences",
+    user?.id,
+  ] as const;
   const cardPreferencesQuery = useQuery({
     queryKey: cardPreferencesKey,
     queryFn: () => opportunityCardPreferencesService.get(),
@@ -278,34 +340,54 @@ export default function Projects() {
     enabled: Boolean(user?.id),
   });
   const cardPreferences = cardPreferencesQuery.data;
-  const globalCardFields = cardPreferences?.fields ?? [...DEFAULT_OPPORTUNITY_CARD_FIELDS];
+  const globalCardFields = cardPreferences?.fields ?? [
+    ...DEFAULT_OPPORTUNITY_CARD_FIELDS,
+  ];
 
   const saveGlobalCardPreferences = useMutation({
     mutationFn: (fields: string[]) =>
       opportunityCardPreferencesService.saveGlobal(fields),
     onSuccess: (preferences) => {
       queryClient.setQueryData(cardPreferencesKey, preferences);
-      toast.success('Card display settings saved');
+      toast.success("Card display settings saved");
     },
-    onError: () => toast.error('Unable to save card display settings'),
+    onError: () => toast.error("Unable to save card display settings"),
   });
-  const saveProjectCardPreferences = useMutation({
-    mutationFn: ({ projectId, fields }: { projectId: string; fields: string[] }) =>
-      opportunityCardPreferencesService.saveForProject(projectId, fields),
+  const applyToAllCardPreferences = useMutation({
+    mutationFn: (fields: string[]) =>
+      opportunityCardPreferencesService.saveGlobal(fields, true),
+
     onSuccess: (preferences) => {
       queryClient.setQueryData(cardPreferencesKey, preferences);
-      toast.success('Opportunity card settings saved');
+      toast.success("Card layout applied to all opportunities");
     },
-    onError: () => toast.error('Unable to save opportunity card settings'),
+
+    onError: () => {
+      toast.error("Unable to apply card settings to all opportunities");
+    },
+  });
+  const saveProjectCardPreferences = useMutation({
+    mutationFn: ({
+      projectId,
+      fields,
+    }: {
+      projectId: string;
+      fields: string[];
+    }) => opportunityCardPreferencesService.saveForProject(projectId, fields),
+    onSuccess: (preferences) => {
+      queryClient.setQueryData(cardPreferencesKey, preferences);
+      toast.success("Opportunity card settings saved");
+    },
+    onError: () => toast.error("Unable to save opportunity card settings"),
   });
   const resetProjectCardPreferences = useMutation({
     mutationFn: (projectId: string) =>
       opportunityCardPreferencesService.resetProject(projectId),
     onSuccess: (preferences) => {
       queryClient.setQueryData(cardPreferencesKey, preferences);
-      toast.success('Card reset to global settings');
+      toast.success("Card reset to global settings");
     },
-    onError: () => toast.error('Unable to reset opportunity card settings'),
+    onError: () => toast.error("Unable to reset opportunity card settings"),
   });
 
   const {
@@ -315,17 +397,14 @@ export default function Projects() {
     isFetching: metricFetching,
     isError: metricRecordsError,
   } = useQuery({
-    queryKey: ['metric-records', metric, metricExtra],
+    queryKey: ["metric-records", metric, metricExtra],
     enabled: isMetricDrill,
     queryFn: () => metricsService.getAllRecords(metric, metricExtra),
     staleTime: 60 * 1000,
   });
 
-  const {
-    data: metricAggregate,
-    isError: metricAggregateError,
-  } = useQuery({
-    queryKey: ['metric-aggregate', metric, metricExtra],
+  const { data: metricAggregate, isError: metricAggregateError } = useQuery({
+    queryKey: ["metric-aggregate", metric, metricExtra],
     enabled: isMetricDrill,
     queryFn: () => metricsService.aggregate(metric, metricExtra),
     staleTime: 60 * 1000,
@@ -334,15 +413,20 @@ export default function Projects() {
   const metricParity = useMemo(() => {
     if (!isMetricDrill) return null;
     if (metricRecordsError || metricAggregateError) {
-      return { status: 'unverified' as const, listCount: null, cardCount: null };
+      return {
+        status: "unverified" as const,
+        listCount: null,
+        cardCount: null,
+      };
     }
     if (!metricResult || !metricAggregate) {
-      return { status: 'pending' as const, listCount: null, cardCount: null };
+      return { status: "pending" as const, listCount: null, cardCount: null };
     }
     const listCount = metricResult.totals.count;
     const cardCount = metricAggregate.count;
     return {
-      status: listCount === cardCount ? ('matched' as const) : ('mismatch' as const),
+      status:
+        listCount === cardCount ? ("matched" as const) : ("mismatch" as const),
       listCount,
       cardCount,
     };
@@ -360,11 +444,21 @@ export default function Projects() {
     if (missingParam) params.missing = missingParam;
     if (hasParam) params.has = hasParam;
     if (teamMembersParam) params.teamMembers = teamMembersParam;
-    if (missingProjectLeadParam) params.missingProjectLead = missingProjectLeadParam;
+    if (missingProjectLeadParam)
+      params.missingProjectLead = missingProjectLeadParam;
     if (projectIdsParam) params.projectIds = projectIdsParam;
     params.page = pageParam;
     return params;
-  }, [filters, partnerIdParam, missingParam, hasParam, teamMembersParam, missingProjectLeadParam, projectIdsParam, pageParam]);
+  }, [
+    filters,
+    partnerIdParam,
+    missingParam,
+    hasParam,
+    teamMembersParam,
+    missingProjectLeadParam,
+    projectIdsParam,
+    pageParam,
+  ]);
 
   /** Filter params without page — used so export/report cover every matching row. */
   const exportFetchParams = useMemo(() => {
@@ -379,7 +473,7 @@ export default function Projects() {
     refetch: refetchList,
     isFetching: listFetching,
   } = useQuery({
-    queryKey: ['projects-list', apiParams],
+    queryKey: ["projects-list", apiParams],
     queryFn: () => projectsService.list(apiParams),
     staleTime: 60 * 1000,
     enabled: !isMetricDrill,
@@ -387,22 +481,22 @@ export default function Projects() {
   });
 
   const { data: filterPartner } = useQuery({
-    queryKey: ['partner', partnerIdParam],
+    queryKey: ["partner", partnerIdParam],
     queryFn: () => partnersService.getById(partnerIdParam),
     enabled: !!partnerIdParam && !isMetricDrill,
     staleTime: 5 * 60 * 1000,
   });
 
   const { data: facets = {} } = useQuery({
-    queryKey: ['project-facets'],
+    queryKey: ["project-facets"],
     queryFn: () => projectsService.getFacets(),
     staleTime: 5 * 60 * 1000,
-    enabled: !isMetricDrill || metric === 'stagnant',
+    enabled: !isMetricDrill || metric === "stagnant",
   });
 
   // Fetch team members for filter dropdowns
   const { data: teamMembersList = [] } = useQuery({
-    queryKey: ['team'],
+    queryKey: ["team"],
     queryFn: () => teamService.getAll(),
     staleTime: 5 * 60 * 1000,
   });
@@ -417,10 +511,10 @@ export default function Projects() {
   const projects: Project[] = useMemo(() => {
     if (isMetricDrill) {
       let rows = metricResult?.projects ?? [];
-      if (metric === 'stagnant') {
+      if (metric === "stagnant") {
         if (filters.businessVerticals.length > 0) {
           rows = rows.filter((p) =>
-            filters.businessVerticals.includes(p.businessVertical || '')
+            filters.businessVerticals.includes(p.businessVertical || ""),
           );
         }
         if (filters.products.length > 0) {
@@ -436,7 +530,14 @@ export default function Projects() {
       return rows;
     }
     return listData?.projects ?? [];
-  }, [isMetricDrill, metricResult, listData, metric, filters.businessVerticals, filters.products]);
+  }, [
+    isMetricDrill,
+    metricResult,
+    listData,
+    metric,
+    filters.businessVerticals,
+    filters.products,
+  ]);
 
   const filteredProjects = projects;
 
@@ -460,15 +561,18 @@ export default function Projects() {
     return pages;
   }, [currentPage, lastPage]);
 
-  const reportFilterSummary = useMemo<ProjectFilterSummary>(() => ({
-    search: filters.search || undefined,
-    businessVerticals: filters.businessVerticals,
-    sectors: filters.sectors,
-    statuses: filters.statuses,
-    pipelineStages: filters.pipelineStages,
-    clientNames: filters.clientNames,
-    projectLeads: filters.projectLeads,
-  }), [filters]);
+  const reportFilterSummary = useMemo<ProjectFilterSummary>(
+    () => ({
+      search: filters.search || undefined,
+      businessVerticals: filters.businessVerticals,
+      sectors: filters.sectors,
+      statuses: filters.statuses,
+      pipelineStages: filters.pipelineStages,
+      clientNames: filters.clientNames,
+      projectLeads: filters.projectLeads,
+    }),
+    [filters],
+  );
 
   useEffect(() => {
     const node = sentinelRef.current;
@@ -478,10 +582,10 @@ export default function Projects() {
       (entries) => {
         if (!entries[0]?.isIntersecting) return;
         setVisibleCount((current) =>
-          Math.min(current + PAGE_SIZE, filteredProjects.length)
+          Math.min(current + PAGE_SIZE, filteredProjects.length),
         );
       },
-      { rootMargin: '800px' }
+      { rootMargin: "800px" },
     );
 
     observer.observe(node);
@@ -489,22 +593,28 @@ export default function Projects() {
   }, [isMetricDrill, filteredProjects.length, visibleCount]);
 
   const visibleProjects = useMemo(
-    () => (isMetricDrill ? filteredProjects.slice(0, visibleCount) : filteredProjects),
-    [filteredProjects, visibleCount, isMetricDrill]
+    () =>
+      isMetricDrill
+        ? filteredProjects.slice(0, visibleCount)
+        : filteredProjects,
+    [filteredProjects, visibleCount, isMetricDrill],
   );
 
   // Selection helpers
   const toggleSelect = useCallback((id: string) => {
-    setSelectedIds(prev => {
+    setSelectedIds((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   }, []);
 
   const toggleSelectAll = useCallback(() => {
-    setSelectedIds(prev =>
-      prev.size === filteredProjects.length ? new Set() : new Set(filteredProjects.map(p => p.id))
+    setSelectedIds((prev) =>
+      prev.size === filteredProjects.length
+        ? new Set()
+        : new Set(filteredProjects.map((p) => p.id)),
     );
   }, [filteredProjects]);
 
@@ -522,14 +632,16 @@ export default function Projects() {
     const BATCH = 10;
     for (let i = 0; i < ids.length; i += BATCH) {
       const batch = ids.slice(i, i + BATCH);
-      const results = await Promise.allSettled(batch.map(id => projectsService.delete(id)));
-      results.forEach(r => r.status === 'fulfilled' ? success++ : failed++);
+      const results = await Promise.allSettled(
+        batch.map((id) => projectsService.delete(id)),
+      );
+      results.forEach((r) => (r.status === "fulfilled" ? success++ : failed++));
     }
 
-    queryClient.invalidateQueries({ queryKey: ['projects'] });
-    queryClient.invalidateQueries({ queryKey: ['projects-list'] });
-    queryClient.invalidateQueries({ queryKey: ['project-facets'] });
-    queryClient.invalidateQueries({ queryKey: ['projectStats'] });
+    queryClient.invalidateQueries({ queryKey: ["projects"] });
+    queryClient.invalidateQueries({ queryKey: ["projects-list"] });
+    queryClient.invalidateQueries({ queryKey: ["project-facets"] });
+    queryClient.invalidateQueries({ queryKey: ["projectStats"] });
     setIsDeleting(false);
     exitSelectMode();
 
@@ -547,11 +659,11 @@ export default function Projects() {
           <h1 className="text-2xl lg:text-3xl font-bold">{pageTitle}</h1>
           <p className="text-muted-foreground mt-1">
             {isLoading
-              ? 'Loading...'
+              ? "Loading..."
               : `${headerCount} projects found${
                   !isMetricDrill && lastPage > 1
                     ? ` · Page ${currentPage} of ${lastPage}`
-                    : ''
+                    : ""
                 }`}
           </p>
         </div>
@@ -565,15 +677,32 @@ export default function Projects() {
             Customize Cards
           </Button>
           <div className="flex items-center border border-border rounded-md">
-            <Button variant={viewMode === 'grid' ? 'default' : 'ghost'} size="sm" onClick={() => setViewMode('grid')} className="rounded-r-none">
+            <Button
+              variant={viewMode === "grid" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("grid")}
+              className="rounded-r-none"
+            >
               <Grid3X3 className="w-4 h-4" />
             </Button>
-            <Button variant={viewMode === 'list' ? 'default' : 'ghost'} size="sm" onClick={() => setViewMode('list')} className="rounded-l-none">
+            <Button
+              variant={viewMode === "list" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("list")}
+              className="rounded-l-none"
+            >
               <List className="w-4 h-4" />
             </Button>
           </div>
-          <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
-            <RefreshCw className={cn("w-4 h-4 mr-2", isFetching && "animate-spin")} />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => refetch()}
+            disabled={isFetching}
+          >
+            <RefreshCw
+              className={cn("w-4 h-4 mr-2", isFetching && "animate-spin")}
+            />
             Refresh
           </Button>
           <GenerateReportButton
@@ -581,7 +710,7 @@ export default function Projects() {
             fetchParams={exportFetchParams}
             totalHint={headerCount}
             filters={reportFilterSummary}
-            defaultTitle={pageTitle + ' Report'}
+            defaultTitle={pageTitle + " Report"}
             preselectedProjectIds={
               selectMode && selectedIds.size > 0 ? selectedIds : undefined
             }
@@ -594,7 +723,11 @@ export default function Projects() {
           {canCreateProjects && (
             <>
               {!selectMode ? (
-                <Button variant="outline" size="sm" onClick={() => setSelectMode(true)}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSelectMode(true)}
+                >
                   <Trash2 className="w-4 h-4 mr-2" />
                   Select
                 </Button>
@@ -623,7 +756,10 @@ export default function Projects() {
       {selectMode && (
         <div className="flex items-center gap-3 p-3 rounded-lg bg-muted border border-border">
           <Checkbox
-            checked={filteredProjects.length > 0 && selectedIds.size === filteredProjects.length}
+            checked={
+              filteredProjects.length > 0 &&
+              selectedIds.size === filteredProjects.length
+            }
             onCheckedChange={toggleSelectAll}
           />
           <span className="text-sm text-muted-foreground">
@@ -632,21 +768,35 @@ export default function Projects() {
           <div className="flex-1" />
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="destructive" size="sm" disabled={selectedIds.size === 0 || isDeleting}>
-                {isDeleting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
-                Delete {selectedIds.size > 0 ? `(${selectedIds.size})` : ''}
+              <Button
+                variant="destructive"
+                size="sm"
+                disabled={selectedIds.size === 0 || isDeleting}
+              >
+                {isDeleting ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Trash2 className="w-4 h-4 mr-2" />
+                )}
+                Delete {selectedIds.size > 0 ? `(${selectedIds.size})` : ""}
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Delete {selectedIds.size} project(s)?</AlertDialogTitle>
+                <AlertDialogTitle>
+                  Delete {selectedIds.size} project(s)?
+                </AlertDialogTitle>
                 <AlertDialogDescription>
-                  This action cannot be undone. All selected projects and their associated data will be permanently removed.
+                  This action cannot be undone. All selected projects and their
+                  associated data will be permanently removed.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleBulkDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                <AlertDialogAction
+                  onClick={handleBulkDelete}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
                   Delete
                 </AlertDialogAction>
               </AlertDialogFooter>
@@ -673,22 +823,24 @@ export default function Projects() {
       {partnerIdParam && !isMetricDrill && (
         <div className="flex items-center justify-between gap-3 rounded-lg border border-border px-4 py-3">
           <p className="text-sm text-muted-foreground">
-            Showing opportunities linked to{' '}
+            Showing opportunities linked to{" "}
             <span className="font-medium text-foreground">
               {filterPartner?.companyName || `partner #${partnerIdParam}`}
             </span>
-            {typeof filterPartner?.linkedOpportunitiesCount === 'number' && (
+            {typeof filterPartner?.linkedOpportunitiesCount === "number" && (
               <>
-                {' '}
-                · partner card count:{' '}
+                {" "}
+                · partner card count:{" "}
                 <span className="tabular-nums text-foreground">
                   {filterPartner.linkedOpportunitiesCount}
                 </span>
-                {' · list total: '}
-                <span className="tabular-nums text-foreground">{headerCount}</span>
+                {" · list total: "}
+                <span className="tabular-nums text-foreground">
+                  {headerCount}
+                </span>
                 {filterPartner.linkedOpportunitiesCount === headerCount
-                  ? ' · matched'
-                  : ' · mismatch'}
+                  ? " · matched"
+                  : " · mismatch"}
               </>
             )}
           </p>
@@ -702,37 +854,46 @@ export default function Projects() {
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-3 rounded-lg border border-border px-4 py-3">
             <p className="text-sm text-muted-foreground">
-              {metricParity?.status === 'matched' && (
+              {metricParity?.status === "matched" && (
                 <>
                   Metric list matches the shared metrics query
                   {` · ${metricParity.listCount} records`}
-                  {metric ? ` · metric=${metric}` : ''}.
+                  {metric ? ` · metric=${metric}` : ""}.
                 </>
               )}
-              {metricParity?.status === 'mismatch' && (
+              {metricParity?.status === "mismatch" && (
                 <>
-                  Metrics aggregate ({metricParity.cardCount}) does not match this
-                  list ({metricParity.listCount}). Not claiming query parity.
+                  Metrics aggregate ({metricParity.cardCount}) does not match
+                  this list ({metricParity.listCount}). Not claiming query
+                  parity.
                 </>
               )}
-              {metricParity?.status === 'unverified' && (
+              {metricParity?.status === "unverified" && (
                 <>
                   Unable to verify metrics list/aggregate parity
-                  {metricResult ? ` · ${metricResult.totals.count} records loaded` : ''}.
+                  {metricResult
+                    ? ` · ${metricResult.totals.count} records loaded`
+                    : ""}
+                  .
                 </>
               )}
-              {metricParity?.status === 'pending' && (
+              {metricParity?.status === "pending" && (
                 <>Verifying metrics list/aggregate parity…</>
               )}
-              {metric === 'stagnant'
-                ? ' Use Business Vertical / Product filters below to see which areas are most affected.'
-                : ''}
+              {metric === "stagnant"
+                ? " Use Business Vertical / Product filters below to see which areas are most affected."
+                : ""}
             </p>
-            <Button variant="link" onClick={() => setSearchParams(new URLSearchParams(), { replace: true })}>
+            <Button
+              variant="link"
+              onClick={() =>
+                setSearchParams(new URLSearchParams(), { replace: true })
+              }
+            >
               Clear
             </Button>
           </div>
-          {metric === 'stagnant' && (
+          {metric === "stagnant" && (
             <AdvancedFilters
               filters={filters}
               onFiltersChange={handleFiltersChange}
@@ -743,7 +904,13 @@ export default function Projects() {
           )}
         </div>
       ) : (
-        <AdvancedFilters filters={filters} onFiltersChange={handleFiltersChange} projects={projects} teamMembers={teamMembersList} facets={facets} />
+        <AdvancedFilters
+          filters={filters}
+          onFiltersChange={handleFiltersChange}
+          projects={projects}
+          teamMembers={teamMembersList}
+          facets={facets}
+        />
       )}
 
       {isLoading ? (
@@ -752,16 +919,26 @@ export default function Projects() {
         </div>
       ) : (
         <>
-          <div className={viewMode === 'grid' ? "grid auto-rows-fr grid-cols-1 items-stretch gap-6 md:grid-cols-2" : "space-y-4"}>
+          <div
+            className={
+              viewMode === "grid"
+                ? "grid auto-rows-fr grid-cols-1 items-stretch gap-6 md:grid-cols-2"
+                : "space-y-4"
+            }
+          >
             {visibleProjects.map((project, idx) => (
-              <div key={project.id} className={viewMode === 'grid' ? "h-full min-w-0" : ""}>
+              <div
+                key={project.id}
+                className={viewMode === "grid" ? "h-full min-w-0" : ""}
+              >
                 <ProjectCard
                   project={project}
                   selectable={selectMode}
                   selected={selectedIds.has(project.id)}
                   onSelectToggle={toggleSelect}
                   cardFields={
-                    cardPreferences?.overrides[String(project.id)] ?? globalCardFields
+                    cardPreferences?.overrides[String(project.id)] ??
+                    globalCardFields
                   }
                   isCardOverride={Object.prototype.hasOwnProperty.call(
                     cardPreferences?.overrides ?? {},
@@ -770,23 +947,33 @@ export default function Projects() {
                   canViewFinancialFields={canViewFinancialFields}
                   cardPreferenceSaving={
                     saveProjectCardPreferences.isPending ||
-                    resetProjectCardPreferences.isPending
+                    resetProjectCardPreferences.isPending ||
+                    applyToAllCardPreferences.isPending
                   }
                   onSaveCardFields={async (projectId, fields) => {
-                    await saveProjectCardPreferences.mutateAsync({ projectId, fields });
+                    await saveProjectCardPreferences.mutateAsync({
+                      projectId,
+                      fields,
+                    });
+                  }}
+                  onApplyCardFieldsToAll={async (fields) => {
+                    await applyToAllCardPreferences.mutateAsync(fields);
                   }}
                   onResetCardFields={async (projectId) => {
                     await resetProjectCardPreferences.mutateAsync(projectId);
                   }}
                 />
-                {viewMode === 'list' && idx < visibleProjects.length - 1 && (
+                {viewMode === "list" && idx < visibleProjects.length - 1 && (
                   <div className="border-b border-border mt-4" />
                 )}
               </div>
             ))}
           </div>
           {(isMetricDrill ? visibleCount < filteredProjects.length : false) && (
-            <div ref={sentinelRef} className="flex items-center justify-center py-6">
+            <div
+              ref={sentinelRef}
+              className="flex items-center justify-center py-6"
+            >
               <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
             </div>
           )}
@@ -796,8 +983,8 @@ export default function Projects() {
                 Page {currentPage} of {lastPage}
                 {headerCount > 0
                   ? ` · showing ${filteredProjects.length} of ${headerCount}`
-                  : ''}
-                {isFetching ? ' · updating…' : ''}
+                  : ""}
+                {isFetching ? " · updating…" : ""}
               </p>
               <div className="flex flex-wrap items-center gap-1">
                 <Button
@@ -814,7 +1001,7 @@ export default function Projects() {
                   <>
                     <Button
                       type="button"
-                      variant={currentPage === 1 ? 'default' : 'outline'}
+                      variant={currentPage === 1 ? "default" : "outline"}
                       size="sm"
                       className="min-w-9"
                       onClick={() => setPage(1)}
@@ -830,7 +1017,7 @@ export default function Projects() {
                   <Button
                     key={p}
                     type="button"
-                    variant={p === currentPage ? 'default' : 'outline'}
+                    variant={p === currentPage ? "default" : "outline"}
                     size="sm"
                     className="min-w-9"
                     disabled={isFetching}
@@ -846,7 +1033,7 @@ export default function Projects() {
                     )}
                     <Button
                       type="button"
-                      variant={currentPage === lastPage ? 'default' : 'outline'}
+                      variant={currentPage === lastPage ? "default" : "outline"}
                       size="sm"
                       className="min-w-9"
                       onClick={() => setPage(lastPage)}
@@ -873,8 +1060,15 @@ export default function Projects() {
 
       {!isLoading && filteredProjects.length === 0 && (
         <div className="text-center py-12">
-          <p className="text-muted-foreground">No projects match your filters.</p>
-          <Button variant="link" onClick={() => handleFiltersChange(defaultFilters)}>Clear filters</Button>
+          <p className="text-muted-foreground">
+            No projects match your filters.
+          </p>
+          <Button
+            variant="link"
+            onClick={() => handleFiltersChange(defaultFilters)}
+          >
+            Clear filters
+          </Button>
         </div>
       )}
     </div>

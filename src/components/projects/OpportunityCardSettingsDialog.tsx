@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
-import { ChevronDown, ChevronUp } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
+import { useEffect, useMemo, useState } from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -9,11 +9,11 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
+} from "@/components/ui/dialog";
 import {
   DEFAULT_OPPORTUNITY_CARD_FIELDS,
   OPPORTUNITY_CARD_FIELD_OPTIONS,
-} from '@/services/opportunityCardPreferences';
+} from "@/services/opportunityCardPreferences";
 
 type Props = {
   open: boolean;
@@ -26,6 +26,7 @@ type Props = {
   onSave: (fields: string[]) => void | Promise<void>;
   onRestoreDefaults?: () => void;
   onResetToGlobal?: () => void | Promise<void>;
+  onApplyToAll?: (fields: string[]) => void | Promise<void>;
 };
 
 export function OpportunityCardSettingsDialog({
@@ -37,6 +38,7 @@ export function OpportunityCardSettingsDialog({
   description,
   saving = false,
   onSave,
+  onApplyToAll,
   onRestoreDefaults,
   onResetToGlobal,
 }: Props) {
@@ -46,12 +48,13 @@ export function OpportunityCardSettingsDialog({
   const options = useMemo(
     () =>
       OPPORTUNITY_CARD_FIELD_OPTIONS.filter(
-        (field) => canViewFinancialFields || !('financial' in field),
+        (field) => canViewFinancialFields || !("financial" in field),
       ),
     [canViewFinancialFields],
   );
   const labels = useMemo(
-    () => new Map(options.map((field) => [field.key, field.label])),
+    () =>
+      new Map<string, string>(options.map((field) => [field.key, field.label])),
     [options],
   );
 
@@ -64,9 +67,7 @@ export function OpportunityCardSettingsDialog({
 
   const toggle = (key: string, checked: boolean) => {
     setSelected((current) =>
-      checked
-        ? [...current, key]
-        : current.filter((field) => field !== key),
+      checked ? [...current, key] : current.filter((field) => field !== key),
     );
   };
 
@@ -86,7 +87,22 @@ export function OpportunityCardSettingsDialog({
       await onSave(selected);
       onOpenChange(false);
     } catch {
-      setError('Unable to save these card settings. Please try again.');
+      setError("Unable to save these card settings. Please try again.");
+    }
+  };
+
+  const applyToAll = async () => {
+    if (!onApplyToAll) return;
+
+    setError(null);
+
+    try {
+      await onApplyToAll(selected);
+      onOpenChange(false);
+    } catch {
+      setError(
+        "Unable to apply these settings to all cards. Please try again.",
+      );
     }
   };
 
@@ -97,7 +113,7 @@ export function OpportunityCardSettingsDialog({
       await onResetToGlobal();
       onOpenChange(false);
     } catch {
-      setError('Unable to reset this card. Please try again.');
+      setError("Unable to reset this card. Please try again.");
     }
   };
 
@@ -121,7 +137,7 @@ export function OpportunityCardSettingsDialog({
                   >
                     <Checkbox
                       checked={checked}
-                      disabled={'required' in field}
+                      disabled={"required" in field}
                       onCheckedChange={(value) =>
                         toggle(field.key, value === true)
                       }
@@ -138,7 +154,9 @@ export function OpportunityCardSettingsDialog({
                 size="sm"
                 onClick={() => {
                   setSelected(
-                    DEFAULT_OPPORTUNITY_CARD_FIELDS.filter((field) => labels.has(field)),
+                    DEFAULT_OPPORTUNITY_CARD_FIELDS.filter((field) =>
+                      labels.has(field),
+                    ),
                   );
                   setError(null);
                   onRestoreDefaults?.();
@@ -199,7 +217,10 @@ export function OpportunityCardSettingsDialog({
               <p className="truncate text-sm font-semibold">Opportunity name</p>
               <div className="mt-2 grid grid-cols-1 gap-x-3 gap-y-1 sm:grid-cols-2">
                 {selected.map((field) => (
-                  <span key={field} className="truncate text-xs text-muted-foreground">
+                  <span
+                    key={field}
+                    className="truncate text-xs text-muted-foreground"
+                  >
                     {labels.get(field) ?? field}: —
                   </span>
                 ))}
@@ -234,8 +255,19 @@ export function OpportunityCardSettingsDialog({
             >
               Cancel
             </Button>
+            {onApplyToAll && (
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => void applyToAll()}
+                disabled={saving}
+              >
+                Apply to All
+              </Button>
+            )}
+
             <Button type="button" onClick={() => void save()} disabled={saving}>
-              {saving ? 'Saving…' : 'Save settings'}
+              {saving ? "Saving…" : "Save settings"}
             </Button>
           </div>
         </DialogFooter>
