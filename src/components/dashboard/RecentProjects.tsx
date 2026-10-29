@@ -103,17 +103,20 @@ export function RecentProjects({ recentProjects: propRecentProjects }: RecentPro
               to={`/projects/${project.id}`}
               className="block p-2.5 sm:p-4 rounded-lg border border-border hover:border-primary/50 hover:bg-accent/50 transition-all"
             >
-              <div className="flex items-start justify-between mb-1.5 sm:mb-3">
-                <div className="flex-1 min-w-0">
-                  <div className="flex flex-wrap items-center gap-1 sm:gap-2 mb-0.5 sm:mb-1">
-                    <span className={`text-[10px] sm:text-xs px-1 sm:px-2 py-0.5 rounded ${sectorColors[project.sector as Sector] || 'bg-muted text-muted-foreground'}`}>
-                      {sectorIcons[project.sector as Sector] || '📁'}
-                    </span>
-                    <Badge variant="outline" className={`text-[10px] sm:text-xs h-4 sm:h-5 px-1 sm:px-2 ${statusColors[project.status]}`}>
-                      {project.status}
-                    </Badge>
+              <div className="flex items-start justify-between mb-1.5 sm:mb-3 gap-3">
+                <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
+                  <ProjectLogo src={project.projectImage} alt={project.name} />
+                  <div className="flex min-w-0 flex-1 flex-col">
+                    <div className="flex flex-wrap items-center gap-1 sm:gap-2 mb-0.5 sm:mb-1">
+                      <span className={`text-[10px] sm:text-xs px-1 sm:px-2 py-0.5 rounded ${sectorColors[project.sector as Sector] || 'bg-muted text-muted-foreground'}`}>
+                        {sectorIcons[project.sector as Sector] || '📁'}
+                      </span>
+                      <Badge variant="outline" className={`text-[10px] sm:text-xs h-4 sm:h-5 px-1 sm:px-2 ${statusColors[project.status]}`}>
+                        {project.status}
+                      </Badge>
+                    </div>
+                    <h4 className="font-semibold text-foreground text-xs sm:text-base break-words line-clamp-2">{project.name}</h4>
                   </div>
-                  <h4 className="font-semibold text-foreground text-xs sm:text-base truncate">{project.name}</h4>
                 </div>
               </div>
               <p className="text-[10px] sm:text-sm text-muted-foreground line-clamp-1 mb-1.5 sm:mb-3">
