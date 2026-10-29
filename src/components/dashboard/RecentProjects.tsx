@@ -35,8 +35,6 @@ function ProjectLogo({ src, alt }: { src?: string; alt: string }) {
     />
   );
 }
-import { useCurrency } from '@/context/CurrencyContext';
-import { getStageProgress } from '@/lib/stageProgress';
 
 interface RecentProjectsProps {
   recentProjects?: Project[];
