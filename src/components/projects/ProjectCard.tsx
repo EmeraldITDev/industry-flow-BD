@@ -4,10 +4,22 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { sectorColors, sectorIcons, stageColors } from "@/data/mockData";
-import { Calendar, CheckSquare, ChevronDown, MoreHorizontal, Users } from "lucide-react";
+import {
+  Calendar,
+  CheckSquare,
+  ChevronDown,
+  MoreHorizontal,
+  Users,
+} from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Link } from "react-router-dom";
-import { differenceInCalendarDays, format, isValid, parseISO, startOfToday } from "date-fns";
+import {
+  differenceInCalendarDays,
+  format,
+  isValid,
+  parseISO,
+  startOfToday,
+} from "date-fns";
 import { useCurrency } from "@/context/CurrencyContext";
 import { getStageProgress } from "@/lib/stageProgress";
 import { Button } from "@/components/ui/button";
@@ -32,7 +44,10 @@ interface ProjectCardProps {
   isCardOverride?: boolean;
   canViewFinancialFields?: boolean;
   cardPreferenceSaving?: boolean;
-  onSaveCardFields?: (projectId: string, fields: string[]) => void | Promise<void>;
+  onSaveCardFields?: (
+    projectId: string,
+    fields: string[],
+  ) => void | Promise<void>;
   onApplyCardFieldsToAll?: (fields: string[]) => void | Promise<void>;
   onResetCardFields?: (projectId: string) => void | Promise<void>;
 }
@@ -59,13 +74,7 @@ const probabilityColors: Record<string, string> = {
   low: "bg-muted text-muted-foreground border-border",
 };
 
-function MetaRow({
-  label,
-  children,
-}: {
-  label: string;
-  children: ReactNode;
-}) {
+function MetaRow({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="min-w-0 flex items-baseline gap-2 text-xs sm:text-sm">
       <span className="shrink-0 text-muted-foreground">{label}</span>
@@ -91,7 +100,8 @@ function ProjectCardComponent({
 }: ProjectCardProps) {
   const [customizeOpen, setCustomizeOpen] = useState(false);
   const [detailsExpanded, setDetailsExpanded] = useState(false);
-  const { formatCurrencyFor, getContractDisplay, getMarginDisplay } = useCurrency();
+  const { formatCurrencyFor, getContractDisplay, getMarginDisplay } =
+    useCurrency();
 
   const tasks = Array.isArray(project.tasks) ? project.tasks : [];
   const completedTasks =
@@ -105,10 +115,17 @@ function ProjectCardComponent({
 
   const selectedFields = cardFields.filter((field) =>
     OPPORTUNITY_CARD_FIELD_OPTIONS.some(
-      (option) => option.key === field && (canViewFinancialFields || !('financial' in option)),
+      (option) =>
+        option.key === field &&
+        (canViewFinancialFields || !("financial" in option)),
     ),
   );
-  const headerFieldKeys = ["businessVertical", "projectStatus", "pipelineStage", "dealProbability"];
+  const headerFieldKeys = [
+    "businessVertical",
+    "projectStatus",
+    "pipelineStage",
+    "dealProbability",
+  ];
   const financialFieldKeys = ["contractValue", "expectedMargin"];
   const footerFieldKeys = [
     "progress",
@@ -120,9 +137,15 @@ function ProjectCardComponent({
     "lastUpdated",
     "startDate",
   ];
-  const headerFields = selectedFields.filter((field) => headerFieldKeys.includes(field));
-  const financialFields = selectedFields.filter((field) => financialFieldKeys.includes(field));
-  const footerFields = selectedFields.filter((field) => footerFieldKeys.includes(field));
+  const headerFields = selectedFields.filter((field) =>
+    headerFieldKeys.includes(field),
+  );
+  const financialFields = selectedFields.filter((field) =>
+    financialFieldKeys.includes(field),
+  );
+  const footerFields = selectedFields.filter((field) =>
+    footerFieldKeys.includes(field),
+  );
   const informationFields = selectedFields.filter(
     (field) =>
       field !== "projectName" &&
@@ -131,15 +154,23 @@ function ProjectCardComponent({
       !footerFieldKeys.includes(field),
   );
   const products = [
-    ...(project.products?.length ? project.products : project.product ? [project.product] : []),
+    ...(project.products?.length
+      ? project.products
+      : project.product
+        ? [project.product]
+        : []),
     ...(project.subproducts?.length
       ? project.subproducts
       : project.subProduct
         ? [project.subProduct]
         : []),
   ].filter(Boolean);
-  const contractDisplay = canViewFinancialFields ? getContractDisplay(project) : null;
-  const marginDisplay = canViewFinancialFields ? getMarginDisplay(project) : null;
+  const contractDisplay = canViewFinancialFields
+    ? getContractDisplay(project)
+    : null;
+  const marginDisplay = canViewFinancialFields
+    ? getMarginDisplay(project)
+    : null;
   const closed =
     project.status === "completed" ||
     project.status === "cancelled" ||
@@ -157,8 +188,12 @@ function ProjectCardComponent({
       case "teamLead":
         return project.projectLead?.name || "Unassigned";
       case "teamMembers": {
-        const names = project.teamMembers?.map((member) => member.name).filter(Boolean) ?? [];
-        return names.length ? names.join(", ") : `${project.teamMemberIds?.length ?? project.teamSize ?? 0} assigned`;
+        const names =
+          project.teamMembers?.map((member) => member.name).filter(Boolean) ??
+          [];
+        return names.length
+          ? names.join(", ")
+          : `${project.teamMemberIds?.length ?? project.teamSize ?? 0} assigned`;
       }
       case "leadTime":
         return project.leadTime?.trim() || "—";
@@ -171,7 +206,8 @@ function ProjectCardComponent({
         const closeDate = parseISO(project.expectedCloseDate);
         if (!isValid(closeDate)) return "—";
         const days = differenceInCalendarDays(closeDate, startOfToday());
-        if (days < 0) return `Overdue by ${Math.abs(days)} day${Math.abs(days) === 1 ? "" : "s"}`;
+        if (days < 0)
+          return `Overdue by ${Math.abs(days)} day${Math.abs(days) === 1 ? "" : "s"}`;
         if (days === 0) return "Due today";
         return `${days} day${days === 1 ? "" : "s"} remaining`;
       }
@@ -180,11 +216,18 @@ function ProjectCardComponent({
       case "sector":
         return project.sector || "—";
       case "oem":
-        return project.oem && project.oem.toLowerCase() !== "n/a" ? project.oem : "—";
+        return project.oem && project.oem.toLowerCase() !== "n/a"
+          ? project.oem
+          : "—";
       case "channelPartner":
-        return project.partners?.map((partner) => partner.companyName).filter(Boolean).join(", ")
-          || project.channelPartner
-          || "—";
+        return (
+          project.partners
+            ?.map((partner) => partner.companyName)
+            .filter(Boolean)
+            .join(", ") ||
+          project.channelPartner ||
+          "—"
+        );
       case "products":
         return products.join(", ") || "—";
       case "contractValue":
@@ -220,13 +263,18 @@ function ProjectCardComponent({
   };
 
   const renderField = (field: string) => {
-    const option = OPPORTUNITY_CARD_FIELD_OPTIONS.find((item) => item.key === field);
+    const option = OPPORTUNITY_CARD_FIELD_OPTIONS.find(
+      (item) => item.key === field,
+    );
     if (!option) return null;
     if (field === "projectName") return null;
     const value = valueFor(field);
 
     if (field === "progress") {
-      const progress = getStageProgress(project.pipelineStage, project.progress);
+      const progress = getStageProgress(
+        project.pipelineStage,
+        project.progress,
+      );
       return (
         <div key={field} className="col-span-full space-y-1.5">
           <div className="flex items-center justify-between gap-2 text-xs sm:text-sm">
@@ -268,7 +316,15 @@ function ProjectCardComponent({
       );
     }
 
-    if (["pipelineIntakeDate", "expectedCloseDate", "daysRemaining", "lastUpdated", "startDate"].includes(field)) {
+    if (
+      [
+        "pipelineIntakeDate",
+        "expectedCloseDate",
+        "daysRemaining",
+        "lastUpdated",
+        "startDate",
+      ].includes(field)
+    ) {
       return (
         <MetaRow key={field} label={option.label}>
           <span className="inline-flex min-w-0 items-center gap-1">
@@ -282,8 +338,12 @@ function ProjectCardComponent({
     if (field === "description") {
       return (
         <div key={field} className="col-span-full min-w-0">
-          <p className="text-xs font-medium text-muted-foreground">{option.label}</p>
-          <p className="mt-1 text-sm text-foreground/90 line-clamp-3 break-words">{value}</p>
+          <p className="text-xs font-medium text-muted-foreground">
+            {option.label}
+          </p>
+          <p className="mt-1 text-sm text-foreground/90 line-clamp-3 break-words">
+            {value}
+          </p>
         </div>
       );
     }
@@ -338,9 +398,12 @@ function ProjectCardComponent({
     }
 
     return (
-      <MetaRow key={field} label={option.label}>
-        {value}
-      </MetaRow>
+      <div key={field} className="min-w-0">
+        <p className="text-xs text-muted-foreground">{option.label}</p>
+        <p className="mt-1 text-sm font-medium whitespace-normal break-words [overflow-wrap:anywhere]">
+          {value}
+        </p>
+      </div>
     );
   };
 
@@ -375,7 +438,10 @@ function ProjectCardComponent({
               </span>
             )}
             {selectedFields.includes("projectStatus") && (
-              <Badge variant="outline" className={`text-xs capitalize ${statusColors[project.status] || ""}`}>
+              <Badge
+                variant="outline"
+                className={`text-xs capitalize ${statusColors[project.status] || ""}`}
+              >
                 {String(project.status || "").replace(/_/g, "-") || "—"}
               </Badge>
             )}
@@ -391,10 +457,15 @@ function ProjectCardComponent({
         <h3 className="mt-2 min-h-[3.5rem] font-semibold text-lg leading-7 group-hover:text-primary transition-colors line-clamp-2 break-words">
           {project.name}
         </h3>
-        {headerFields.some((field) => field === "pipelineStage" || field === "dealProbability") && (
+        {headerFields.some(
+          (field) => field === "pipelineStage" || field === "dealProbability",
+        ) && (
           <div className="mt-2 flex min-h-7 flex-wrap items-center gap-2">
             {selectedFields.includes("pipelineStage") && (
-              <Badge variant="outline" className={`text-xs ${stageColors[project.pipelineStage] || ""}`}>
+              <Badge
+                variant="outline"
+                className={`text-xs ${stageColors[project.pipelineStage] || ""}`}
+              >
                 {stageLabel || "—"}
               </Badge>
             )}
@@ -429,18 +500,24 @@ function ProjectCardComponent({
                     }}
                   >
                     {detailsExpanded ? "Show less" : "Show all"}
-                    <ChevronDown className={`ml-1 h-3.5 w-3.5 transition-transform ${detailsExpanded ? "rotate-180" : ""}`} />
+                    <ChevronDown
+                      className={`ml-1 h-3.5 w-3.5 transition-transform ${detailsExpanded ? "rotate-180" : ""}`}
+                    />
                   </Button>
                 )}
               </div>
-              <div className={`grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2 ${!detailsExpanded && informationFields.length > 3 ? "max-h-28 overflow-hidden" : ""}`}>
+              <div
+                className={`grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2 ${!detailsExpanded && informationFields.length > 3 ? "max-h-28 overflow-hidden" : ""}`}
+              >
                 {informationFields.map(renderField)}
               </div>
             </section>
           )}
           {financialFields.length > 0 && (
             <section className="mt-4 space-y-3">
-              <h4 className="border-b pb-2 text-sm font-semibold">Financial Information</h4>
+              <h4 className="border-b pb-2 text-sm font-semibold">
+                Financial Information
+              </h4>
               <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
                 {financialFields.map(renderField)}
               </div>
