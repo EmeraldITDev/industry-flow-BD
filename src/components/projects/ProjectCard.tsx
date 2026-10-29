@@ -269,6 +269,21 @@ function ProjectCardComponent({
     if (!option) return null;
     if (field === "projectName") return null;
     const value = valueFor(field);
+    if (field === "projectImage") {
+      return project.projectImage ? (
+        <div key={field} className="min-w-0">
+          <p className="mb-2 text-xs text-muted-foreground">
+            Project Image / Logo
+          </p>
+          <img
+            src={project.projectImage}
+            alt={`${project.name} project image`}
+            loading="lazy"
+            className="h-16 w-24 max-w-full rounded-md border border-border bg-white object-contain p-1"
+          />
+        </div>
+      ) : null;
+    }
 
     if (field === "progress") {
       const progress = getStageProgress(
