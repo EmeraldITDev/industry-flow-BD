@@ -9,6 +9,8 @@ export const DEFAULT_OPPORTUNITY_CARD_FIELDS = [
   "teamLead",
   "leadTime",
   "clientName",
+  'contractValue',
+  'expectedMargin',
   "dealProbability",
   "progress",
   "taskSummary",
