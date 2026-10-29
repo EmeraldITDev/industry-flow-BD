@@ -7,8 +7,34 @@ import { sectorColors, sectorIcons } from '@/data/mockData';
 import { Sector, Project } from '@/types';
 import { projectsService } from '@/services/projects';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Users, FolderOpen } from 'lucide-react';
+import { ArrowRight, Users, FolderOpen, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useCurrency } from '@/context/CurrencyContext';
+import { getStageProgress } from '@/lib/stageProgress';
+import { useState } from 'react';
+
+// Compact project logo with graceful placeholder fallback.
+function ProjectLogo({ src, alt }: { src?: string; alt: string }) {
+  const [failed, setFailed] = useState(false);
+
+  if (!src || failed) {
+    return (
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-border bg-muted">
+        <ImageIcon className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={src}
+      alt={`${alt} project logo`}
+      loading="lazy"
+      onError={() => setFailed(true)}
+      className="h-10 w-10 shrink-0 rounded-md border border-border bg-muted object-contain"
+    />
+  );
+}
 import { useCurrency } from '@/context/CurrencyContext';
 import { getStageProgress } from '@/lib/stageProgress';
 
