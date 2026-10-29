@@ -2,6 +2,7 @@ import api from "./api";
 
 export const DEFAULT_OPPORTUNITY_CARD_FIELDS = [
   "projectName",
+  'projectImage',
   "businessVertical",
   "projectStatus",
   "pipelineStage",
@@ -15,6 +16,7 @@ export const DEFAULT_OPPORTUNITY_CARD_FIELDS = [
 
 export const OPPORTUNITY_CARD_FIELD_OPTIONS = [
   { key: "projectName", label: "Opportunity / RFQ Reference", required: true },
+  { key: 'projectImage', label: 'Project Image / Logo' },
   { key: "businessVertical", label: "Business Vertical" },
   { key: "projectStatus", label: "Project Status" },
   { key: "pipelineStage", label: "Pipeline Stage" },

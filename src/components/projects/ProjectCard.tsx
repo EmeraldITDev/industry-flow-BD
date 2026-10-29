@@ -446,11 +446,12 @@ function ProjectCardComponent({
               </Badge>
             )}
           </div>
-          {project.projectImage && (
+          {selectedFields.includes("projectImage") && project.projectImage && (
             <img
               src={project.projectImage}
-              alt=""
-              className="h-10 w-10 rounded-md object-contain border border-border shrink-0"
+              alt={`${project.name} project image`}
+              loading="lazy"
+              className="h-12 w-12 rounded-md object-contain border border-border shrink-0"
             />
           )}
         </div>
