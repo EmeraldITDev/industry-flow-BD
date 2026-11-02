@@ -443,15 +443,21 @@ export default function ChairmanView() {
             onActivate={() => openPanel('highProbability')}
           />
           <ExecutiveMetric
-            label="New this period"
+            label="New by reporting date"
             value={String(t.newInPeriod)}
             movement={data.window.prevStart ? fmtDelta(t.newInPeriod, t.newPrevPeriod) : undefined}
+            sub="Start Date; Intake Date if Start Date is blank"
             drillTo={periodQs ? `metric=all&${periodQs}` : 'metric=all'}
           />
           <ExecutiveMetric
             label="Won this period"
             value={String(t.wonInPeriod)}
             movement={data.window.prevStart ? fmtDelta(t.wonInPeriod, t.wonPrevPeriod) : undefined}
+            sub={
+              t.wonEventConfirmedInPeriod !== undefined
+                ? `${t.wonEventConfirmedInPeriod} event-confirmed · ${t.wonDateOnlyInPeriod ?? 0} date-only (not event-confirmed; may be estimated)`
+                : 'Uses recorded win dates; older dates may be estimates'
+            }
             drillTo={periodQs ? `metric=won&${periodQs}` : 'metric=won'}
           />
           <ExecutiveMetric

@@ -44,6 +44,10 @@ export function ConversionPanel({ data }: { data: ExecutiveIntelligence }) {
         : preset === 'ytd'
           ? 'Won year to date'
           : 'Won in range';
+  const winCoverage =
+    conversion?.wonEventConfirmed != null && conversion?.wonDateOnly != null
+      ? `${conversion.wonEventConfirmed} event-confirmed · ${conversion.wonDateOnly} date-only (not event-confirmed; may be estimated)`
+      : 'Counts use recorded win dates; older dates may be estimates.';
 
   return (
     <Card>
@@ -51,9 +55,9 @@ export function ConversionPanel({ data }: { data: ExecutiveIntelligence }) {
         <div>
           <CardTitle className="text-base">Commercial Performance — Deals Won</CardTitle>
           <p className="text-xs text-muted-foreground mt-1">
-            "Won" covers opportunities at Approval, Execution or Closure. Dates are the project's
-            Start Date (Intake Date if Start Date is blank) — the same field the cards and
-            drill-downs query together.
+            "Won" covers opportunities at Approval, Execution or Closure. Reporting uses the first
+            recorded won-event timestamp where available, otherwise the project win date. Values
+            use current recorded contract values, not historical values at the time of winning.
           </p>
         </div>
         <ReportingRangeFilter
@@ -69,6 +73,7 @@ export function ConversionPanel({ data }: { data: ExecutiveIntelligence }) {
             setCustomTo(to);
           }}
         />
+        <p className="text-xs text-muted-foreground">{winCoverage}</p>
       </CardHeader>
       <CardContent className="space-y-5">
         <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
