@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -40,28 +40,85 @@ import { OpportunityTable } from '@/components/executive/OpportunityTable';
 import { PartnerTrackerInsights } from '@/components/partners/PartnerTrackerInsights';
 import { Project } from '@/types';
 
+function formatLocalDate(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function dateOnly(value: Date | string | null | undefined): string {
+  if (!value) return '';
+  if (value instanceof Date) return formatLocalDate(value);
+  const match = value.match(/^\d{4}-\d{2}-\d{2}/);
+  return match?.[0] ?? formatLocalDate(new Date(value));
+}
+
 export default function ChairmanView() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const [period, setPeriod] = useState<ReviewPeriodKey>('last14');
+  const [customFrom, setCustomFrom] = useState('');
+  const [customTo, setCustomTo] = useState('');
   const [groupManagerOpen, setGroupManagerOpen] = useState(false);
   const [accountGroups, setAccountGroups] = useState<AccountGroup[]>(() => loadAccountGroups());
   const [panelKey, setPanelKey] = useState<MetricPanelKey | null>(null);
   const [pipelineCurrency, setPipelineCurrency] = useState<'USD' | 'NGN'>('USD');
 
   const allowed = canViewExecutive(user);
+  const [today] = useState(() => new Date());
+  const isCustomPeriod = period === 'custom';
+  const customRangeError = isCustomPeriod
+    ? !customFrom || !customTo
+      ? 'Select both a start date and an end date.'
+      : customFrom > customTo
+        ? 'The start date must be on or before the end date.'
+        : customTo > formatLocalDate(today)
+          ? 'The end date cannot be in the future.'
+          : ''
+    : '';
+  const reviewWindow = resolveReviewWindow(
+    period,
+    period === 'custom'
+      ? { from: customFrom, to: customTo }
+      : period === 'allTime'
+        ? { to: today }
+        : undefined,
+    today
+  );
+  const rangeFrom = reviewWindow.start ? formatLocalDate(reviewWindow.start) : undefined;
+  const rangeTo = formatLocalDate(reviewWindow.end);
+  const usesCustomApiPeriod =
+    period === 'last12' ||
+    period === 'last24' ||
+    period === 'last3Years' ||
+    period === 'allTime' ||
+    period === 'custom';
 
   const {
     data: serverData,
     isLoading: serverLoading,
     isFetching: serverFetching,
     isError: serverError,
+    refetch: refetchIntelligence,
   } = useQuery({
-    queryKey: ['executive-intelligence', period, accountGroups],
-    queryFn: () => executiveService.getIntelligence(period, accountGroups),
+    queryKey: [
+      'executive-intelligence',
+      period,
+      customFrom,
+      customTo,
+      rangeFrom,
+      rangeTo,
+      accountGroups,
+    ],
+    queryFn: () =>
+      executiveService.getIntelligence(
+        period,
+        accountGroups,
+        usesCustomApiPeriod ? { from: rangeFrom, to: rangeTo } : undefined
+      ),
     staleTime: 60 * 1000,
-    enabled: allowed,
+    enabled: allowed && !customRangeError,
     retry: 1,
   });
 
@@ -92,9 +149,17 @@ export default function ChairmanView() {
 
   const fallbackData = useMemo(() => {
     if (!serverError) return null;
-    const win = resolveReviewWindow(period);
+    const win = resolveReviewWindow(
+      period,
+      period === 'custom'
+        ? { from: customFrom, to: customTo }
+        : period === 'allTime'
+          ? { to: today }
+          : undefined,
+      today
+    );
     return buildExecutiveIntelligence(projects as Project[], win, accountGroups, ownerNameFor);
-  }, [serverError, projects, period, accountGroups, ownerNameFor]);
+  }, [serverError, projects, period, customFrom, customTo, accountGroups, ownerNameFor, today]);
 
   // Prefer live intelligence for panel summary figures (Issue 1 source).
   const liveData = serverData ?? null;
@@ -156,6 +221,55 @@ export default function ChairmanView() {
     );
   }
 
+  if (isCustomPeriod && customRangeError) {
+    return (
+      <div className="w-full px-5 py-6 sm:px-8 sm:py-8 lg:px-10 lg:py-10">
+        <Card className="mx-auto w-full max-w-3xl">
+          <CardHeader>
+            <CardTitle>Custom Date Range</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Select value={period} onValueChange={(value) => setPeriod(value as ReviewPeriodKey)}>
+              <SelectTrigger className="w-full sm:w-[240px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {REVIEW_PERIODS.map((option) => (
+                  <SelectItem key={option.key} value={option.key}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+              <label className="flex flex-col gap-1 text-sm">
+                Start date
+                <input
+                  type="date"
+                  value={customFrom}
+                  max={formatLocalDate(today)}
+                  onChange={(event) => setCustomFrom(event.target.value)}
+                  className="h-9 rounded-md border border-input bg-background px-3"
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-sm">
+                End date
+                <input
+                  type="date"
+                  value={customTo}
+                  max={formatLocalDate(today)}
+                  onChange={(event) => setCustomTo(event.target.value)}
+                  className="h-9 rounded-md border border-input bg-background px-3"
+                />
+              </label>
+            </div>
+            <p role="alert" className="text-sm text-destructive">{customRangeError}</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   if (isLoading || !data) {
     return (
       <div className="flex items-center justify-center py-24">
@@ -167,17 +281,18 @@ export default function ChairmanView() {
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
   const t = data.totals;
-  const periodFrom = data.window.start
-    ? (data.window.start instanceof Date
-        ? data.window.start.toISOString().slice(0, 10)
-        : String(data.window.start).slice(0, 10))
-    : '';
-  const periodTo = data.window.end
-    ? (data.window.end instanceof Date
-        ? data.window.end.toISOString().slice(0, 10)
-        : String(data.window.end).slice(0, 10))
-    : '';
-  const periodQs = periodFrom ? `from=${encodeURIComponent(periodFrom)}&to=${encodeURIComponent(periodTo)}` : '';
+  const periodFrom = dateOnly(data.window.start);
+  const periodTo = dateOnly(data.window.end);
+  const periodQs = periodFrom
+    ? `from=${encodeURIComponent(periodFrom)}&to=${encodeURIComponent(periodTo)}`
+    : period === 'allTime'
+      ? `to=${encodeURIComponent(periodTo)}`
+      : '';
+  const reviewPeriodDescription = period === 'allTime'
+    ? `All available records through ${periodTo}`
+    : periodFrom
+      ? `${data.window.label}: ${periodFrom} – ${periodTo}`
+      : data.window.label;
 
   return (
     <div className="w-full px-5 py-6 sm:px-8 sm:py-8 lg:px-10 lg:py-10">
@@ -196,11 +311,14 @@ export default function ChairmanView() {
               year: 'numeric',
             })}
             {' · '}
-            Review period: {data.window.label}
+            Review period: {reviewPeriodDescription}
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <Select value={period} onValueChange={(v) => setPeriod(v as ReviewPeriodKey)}>
+          <Select
+            value={period}
+            onValueChange={(value) => setPeriod(value as ReviewPeriodKey)}
+          >
             <SelectTrigger className="w-[180px] sm:w-[200px]">
               <SelectValue />
             </SelectTrigger>
@@ -212,17 +330,43 @@ export default function ChairmanView() {
               ))}
             </SelectContent>
           </Select>
+          {isCustomPeriod && (
+            <div className="flex flex-wrap items-center gap-2">
+              <label className="sr-only" htmlFor="chairman-period-from">Start date</label>
+              <input
+                id="chairman-period-from"
+                type="date"
+                value={customFrom}
+                max={formatLocalDate(today)}
+                onChange={(event) => setCustomFrom(event.target.value)}
+                className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+              />
+              <span className="text-sm text-muted-foreground">to</span>
+              <label className="sr-only" htmlFor="chairman-period-to">End date</label>
+              <input
+                id="chairman-period-to"
+                type="date"
+                value={customTo}
+                max={formatLocalDate(today)}
+                onChange={(event) => setCustomTo(event.target.value)}
+                className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+              />
+            </div>
+          )}
           <Button
             variant="outline"
             size="icon"
-            onClick={() =>
-              queryClient.invalidateQueries({ queryKey: ['executive-intelligence'] })
-            }
+            onClick={() => refetchIntelligence()}
             aria-label="Refresh"
           >
             <RefreshCw className={isFetching ? 'w-4 h-4 animate-spin' : 'w-4 h-4'} />
           </Button>
         </div>
+        {isCustomPeriod && customRangeError && (
+          <p role="alert" className="w-full text-sm text-destructive">
+            {customRangeError}
+          </p>
+        )}
       </div>
 
       {serverError && (
@@ -241,6 +385,15 @@ export default function ChairmanView() {
 
       {/* 1. Commercial position */}
       <section id="exec-overview" className="space-y-6">
+        <p className="text-sm text-muted-foreground">
+          Active opportunities, pipeline values, and stage distribution are current-position
+          snapshots, not historical snapshots for the selected reporting period.
+        </p>
+        {t.all === 0 && (
+          <p role="status" className="text-sm text-muted-foreground">
+            No opportunities are available to report.
+          </p>
+        )}
         <div className="grid gap-4 sm:gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           <ExecutiveMetric
             label="Active opportunities"

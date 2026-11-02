@@ -49,6 +49,11 @@ export type ReviewPeriodKey =
   | 'snapshot'
   | 'last7'
   | 'last14'
+  | 'last12'
+  | 'last24'
+  | 'last3Years'
+  | 'allTime'
+  | 'custom'
   | 'month'
   | 'prevMonth'
   | 'quarter'
@@ -58,6 +63,11 @@ export const REVIEW_PERIODS: { key: ReviewPeriodKey; label: string }[] = [
   { key: 'snapshot', label: 'Current Snapshot' },
   { key: 'last7', label: 'Last 7 Days' },
   { key: 'last14', label: 'Last 14 Days' },
+  { key: 'last12', label: 'Last 12 Months' },
+  { key: 'last24', label: 'Last 24 Months' },
+  { key: 'last3Years', label: 'Last 3 Years' },
+  { key: 'allTime', label: 'All Time' },
+  { key: 'custom', label: 'Custom Date Range' },
   { key: 'month', label: 'Current Month' },
   { key: 'prevMonth', label: 'Previous Month' },
   { key: 'quarter', label: 'Current Quarter' },
@@ -77,13 +87,31 @@ export interface ReviewWindow {
 
 const dayMs = 86_400_000;
 
+function subtractCalendarMonths(date: Date, months: number): Date {
+  const result = new Date(date.getFullYear(), date.getMonth(), 1);
+  result.setMonth(result.getMonth() - months);
+  const lastDay = new Date(result.getFullYear(), result.getMonth() + 1, 0).getDate();
+  result.setDate(Math.min(date.getDate(), lastDay));
+  return result;
+}
+
+function parseLocalDate(value?: string): Date | undefined {
+  if (!value) return undefined;
+  const [year, month, day] = value.split('-').map(Number);
+  if (!year || !month || !day) return undefined;
+  const date = new Date(year, month - 1, day);
+  return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day
+    ? date
+    : undefined;
+}
+
 export function resolveReviewWindow(
   key: ReviewPeriodKey,
-  custom?: { from?: Date; to?: Date },
+  custom?: { from?: Date | string; to?: Date | string },
   now: Date = new Date()
 ): ReviewWindow {
   const label = REVIEW_PERIODS.find((p) => p.key === key)?.label ?? 'Current Snapshot';
-  const end = custom?.to ?? now;
+  const end = (typeof custom?.to === 'string' ? parseLocalDate(custom.to) : custom?.to) ?? now;
   const back = (days: number) => new Date(end.getTime() - days * dayMs);
 
   let start: Date | null = null;
@@ -94,6 +122,22 @@ export function resolveReviewWindow(
     case 'last14':
       start = back(14);
       break;
+    case 'last12':
+      start = subtractCalendarMonths(end, 12);
+      break;
+    case 'last24':
+      start = subtractCalendarMonths(end, 24);
+      break;
+    case 'last3Years':
+      start = subtractCalendarMonths(end, 36);
+      break;
+    case 'custom': {
+      const customStart = typeof custom?.from === 'string'
+        ? parseLocalDate(custom.from)
+        : custom?.from;
+      start = customStart ?? null;
+      break;
+    }
     case 'month':
       start = new Date(now.getFullYear(), now.getMonth(), 1);
       break;
@@ -111,6 +155,9 @@ export function resolveReviewWindow(
       break;
     case 'ytd':
       start = new Date(now.getFullYear(), 0, 1);
+      break;
+    case 'allTime':
+      start = null;
       break;
     default:
       start = null;

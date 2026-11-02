@@ -46,9 +46,16 @@ export const executiveService = {
     accountGroups?: AccountGroup[],
     custom?: { from?: string; to?: string }
   ): Promise<ExecutiveIntelligence> {
+    const apiPeriod: ReviewPeriodKey =
+      period === 'last12' ||
+      period === 'last24' ||
+      period === 'last3Years' ||
+      period === 'allTime'
+        ? 'custom'
+        : period;
     const response = await api.get('/api/executive/intelligence', {
       params: {
-        period,
+        period: apiPeriod,
         from: custom?.from,
         to: custom?.to,
         groups: accountGroups ? JSON.stringify(accountGroups) : undefined,
