@@ -103,6 +103,8 @@ export interface Milestone {
   completed: boolean;
 }
 
+export type MilestoneInput = Omit<Milestone, 'id'> & { id?: string };
+
 export interface StageHistory {
   stage: PipelineStage;
   enteredAt: string;

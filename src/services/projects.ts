@@ -1,5 +1,5 @@
 import api from './api';
-import { Project, ProjectContact, ProjectContactRole, ProjectPartnerRef, PipelineStage, Sector, BusinessSegment, RiskLevel, ProjectStats } from '@/types';
+import { Project, ProjectContact, ProjectContactRole, ProjectPartnerRef, PipelineStage, Sector, BusinessSegment, RiskLevel, ProjectStats, Milestone, MilestoneInput } from '@/types';
 import { notifyAssignment } from './notificationHelper';
 import { type ProjectStatus } from '@/lib/stageStatusRules';
 
@@ -49,6 +49,7 @@ export interface CreateProjectData {
   dealProbability?: RiskLevel;
   projectImage?: string;
   teamMemberIds?: string[];
+  milestones?: MilestoneInput[];
 }
 
 export interface UpdateProjectData extends Partial<CreateProjectData> {
@@ -149,6 +150,27 @@ function serializeProjectContacts(contacts: ProjectContact[]): Record<string, un
     contact_role: contact.contactRole,
     is_primary: contact.isPrimary,
     notes: contact.notes,
+  }));
+}
+
+function normalizeProjectMilestones(project: Record<string, unknown>): Milestone[] {
+  const rows = project.milestones;
+  if (!Array.isArray(rows)) return [];
+
+  return rows.filter(isRecord).map((milestone) => ({
+    id: String(milestone.id),
+    title: String(milestone.title ?? ''),
+    dueDate: String(milestone.dueDate ?? milestone.due_date ?? ''),
+    completed: Boolean(milestone.completed),
+  }));
+}
+
+function serializeMilestones(milestones: MilestoneInput[]): Record<string, unknown>[] {
+  return milestones.map((milestone) => ({
+    ...(milestone.id == null ? {} : { id: Number(milestone.id) }),
+    title: milestone.title.trim(),
+    due_date: milestone.dueDate,
+    completed: milestone.completed,
   }));
 }
 
@@ -292,6 +314,7 @@ export const normalizeProject = (project: any): Project => {
     clientName: project.clientName ?? project.client_name ?? '',
     clientContact: project.clientContact ?? project.client_contact ?? '',
     projectContacts: normalizeProjectContacts(project),
+    milestones: normalizeProjectMilestones(project),
     startDate: project.startDate ?? project.start_date ?? '',
     endDate: project.endDate ?? project.end_date ?? '',
     pipelineStage,
@@ -560,6 +583,9 @@ export const projectsService = {
     if (Array.isArray(requestData.contacts)) {
       requestData.contacts = serializeProjectContacts(requestData.contacts);
     }
+    if (Array.isArray(requestData.milestones)) {
+      requestData.milestones = serializeMilestones(requestData.milestones);
+    }
 
     // Add snake_case aliases for Laravel backend
     const snakeCaseMap: Record<string, string> = {
@@ -676,6 +702,9 @@ export const projectsService = {
     }
     if (Array.isArray(requestData.contacts)) {
       requestData.contacts = serializeProjectContacts(requestData.contacts);
+    }
+    if (Array.isArray(requestData.milestones)) {
+      requestData.milestones = serializeMilestones(requestData.milestones);
     }
 
     // Add snake_case aliases for backends expecting snake_case keys

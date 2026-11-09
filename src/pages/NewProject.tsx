@@ -27,7 +27,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
-import { CalendarIcon, Plus, X, AlertTriangle, Loader2 } from "lucide-react";
+import { CalendarIcon, X, AlertTriangle, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { addLeadTime } from "@/lib/expectedCloseDate";
 import { projectCostSummary, type ProjectCurrency } from "@/lib/projectCosts";
@@ -38,7 +38,7 @@ import { parseNumberInput } from "@/lib/utils";
 import {
   Sector,
   RiskLevel,
-  Milestone,
+  MilestoneInput,
   PipelineStage,
   BusinessSegment,
   PIPELINE_STAGES,
@@ -66,6 +66,8 @@ import { PRODUCT_OPTIONS, getSubproductOptions } from "@/data/productCatalog";
 import { partnersService } from "@/services/partners";
 import { ProjectContactsEditor } from "@/components/projects/ProjectContactsEditor";
 import { validateProjectContacts } from "@/lib/projectContacts";
+import { MilestoneEditor } from "@/components/projects/MilestoneEditor";
+import { validateMilestones } from "@/lib/milestones";
 
 const dealProbabilities: { value: RiskLevel; label: string; color: string }[] =
   [
@@ -188,32 +190,8 @@ export default function NewProject() {
     });
   }, [formData.winDate, formData.leadTime]);
 
-  const [milestones, setMilestones] = useState<Omit<Milestone, "id">[]>([]);
-  const [newMilestone, setNewMilestone] = useState({
-    title: "",
-    dueDate: undefined as Date | undefined,
-  });
+  const [milestones, setMilestones] = useState<MilestoneInput[]>([]);
   const [documents, setDocuments] = useState<ProjectDocument[]>([]);
-
-  const handleAddMilestone = () => {
-    if (!newMilestone.title || !newMilestone.dueDate) {
-      toast.error("Please provide milestone title and due date");
-      return;
-    }
-    setMilestones([
-      ...milestones,
-      {
-        ...newMilestone,
-        dueDate: newMilestone.dueDate.toISOString(),
-        completed: false,
-      },
-    ]);
-    setNewMilestone({ title: "", dueDate: undefined });
-  };
-
-  const handleRemoveMilestone = (index: number) => {
-    setMilestones(milestones.filter((_, i) => i !== index));
-  };
 
   const handleTeamMemberToggle = (memberId: string) => {
     setFormData((prev) => ({
@@ -237,6 +215,12 @@ export default function NewProject() {
     const contactsError = validateProjectContacts(formData.projectContacts);
     if (contactsError) {
       toast.error(contactsError);
+      return;
+    }
+
+    const milestonesError = validateMilestones(milestones);
+    if (milestonesError) {
+      toast.error(milestonesError);
       return;
     }
 
@@ -342,6 +326,7 @@ export default function NewProject() {
           formData.teamMemberIds.length > 0
             ? formData.teamMemberIds
             : undefined,
+        milestones,
       } as any);
 
       const newProjectId = String(
@@ -1114,83 +1099,7 @@ export default function NewProject() {
           </CardContent>
         </Card>
 
-        {/* Milestones */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Milestones</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex flex-col sm:flex-row gap-4 items-end">
-              <div className="flex-1 space-y-2 w-full">
-                <Label>Milestone Title</Label>
-                <Input
-                  value={newMilestone.title}
-                  onChange={(e) =>
-                    setNewMilestone({ ...newMilestone, title: e.target.value })
-                  }
-                  placeholder="e.g., Phase 1 Completion"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Due Date</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full sm:w-[180px] justify-start text-left font-normal",
-                        !newMilestone.dueDate && "text-muted-foreground",
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {newMilestone.dueDate
-                        ? format(newMilestone.dueDate, "PPP")
-                        : "Pick date"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      selected={newMilestone.dueDate}
-                      onSelect={(date) =>
-                        setNewMilestone({ ...newMilestone, dueDate: date })
-                      }
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-              <Button type="button" onClick={handleAddMilestone}>
-                <Plus className="h-4 w-4" />
-              </Button>
-            </div>
-            {milestones.length > 0 && (
-              <div className="space-y-2">
-                {milestones.map((milestone, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between p-3 bg-muted rounded-lg"
-                  >
-                    <div>
-                      <p className="font-medium">{milestone.title}</p>
-                      <p className="text-sm text-muted-foreground">
-                        Due: {format(new Date(milestone.dueDate), "PPP")}
-                      </p>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleRemoveMilestone(index)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <MilestoneEditor milestones={milestones} onChange={setMilestones} />
 
         {/* Project Image */}
         <Card>

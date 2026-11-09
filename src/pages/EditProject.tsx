@@ -42,6 +42,8 @@ import {
   BusinessSegment,
   PIPELINE_STAGES,
   ProjectContact,
+  MilestoneInput,
+  Milestone,
 } from "@/types";
 import { toast } from "sonner";
 import { parseNumberInput } from "@/lib/utils";
@@ -66,6 +68,8 @@ import { useAuth } from "@/context/AuthContext";
 import type { Partner } from "@/types/partners";
 import { ProjectContactsEditor } from "@/components/projects/ProjectContactsEditor";
 import { validateProjectContacts } from "@/lib/projectContacts";
+import { MilestoneEditor } from "@/components/projects/MilestoneEditor";
+import { validateMilestones } from "@/lib/milestones";
 
 const dealProbabilities: { value: RiskLevel; label: string; color: string }[] =
   [
@@ -170,6 +174,8 @@ export default function EditProject() {
     supportNeeded: "",
     projectImage: undefined as string | undefined,
   });
+  const [milestones, setMilestones] = useState<MilestoneInput[]>([]);
+  const [milestonesDirty, setMilestonesDirty] = useState(false);
 
   // Helper to safely parse dates
   const parseDate = (dateStr: string | null | undefined): Date | undefined => {
@@ -198,6 +204,18 @@ export default function EditProject() {
 
     // Handle both raw project object and wrapped { data: project } responses
     const data = (projectData as any)?.data ?? (projectData as any);
+
+    setMilestones(
+      Array.isArray(data.milestones)
+        ? data.milestones.map((milestone: Milestone) => ({
+            id: milestone.id == null ? undefined : String(milestone.id),
+            title: String(milestone.title ?? ""),
+            dueDate: String(milestone.dueDate ?? ""),
+            completed: Boolean(milestone.completed),
+          }))
+        : [],
+    );
+    setMilestonesDirty(false);
 
     setFormData((prev) => ({
       ...prev,
@@ -393,6 +411,14 @@ export default function EditProject() {
       return;
     }
 
+    if (milestonesDirty) {
+      const milestonesError = validateMilestones(milestones);
+      if (milestonesError) {
+        toast.error(milestonesError);
+        return;
+      }
+    }
+
     setIsSubmitting(true);
     try {
       const contractNGN = parseNumberInput(formData.contractValueNGN);
@@ -496,6 +522,7 @@ export default function EditProject() {
         supportNeeded: formData.supportNeeded || undefined,
         projectImage: formData.projectImage ?? null,
         dealProbability: formData.dealProbability,
+        ...(milestonesDirty ? { milestones } : {}),
       } as any);
 
       await partnersService.syncForProject(id, formData.partnerIds);
@@ -1358,6 +1385,14 @@ export default function EditProject() {
             />
           </CardContent>
         </Card>
+
+        <MilestoneEditor
+          milestones={milestones}
+          onChange={(nextMilestones) => {
+            setMilestones(nextMilestones);
+            setMilestonesDirty(true);
+          }}
+        />
 
         {/* Submit Button */}
         <div className="flex gap-4">
