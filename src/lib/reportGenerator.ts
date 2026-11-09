@@ -1125,37 +1125,62 @@ function buildTaskFilterString(filters: TaskFilterSummary): string {
   return parts.length ? parts.join(' | ') : 'No filters applied';
 }
 
+/** Title from normalized Task / TaskResource (`title`). */
+function resolveTaskTitle(task: Task): string {
+  const title = typeof task.title === 'string' ? task.title.trim() : '';
+  return title || '—';
+}
+
+/**
+ * Project label from All Tasks maps keyed by Task.projectId / partnerId
+ * (TaskResource does not embed project/partner names).
+ */
 function resolveTaskProjectName(
   task: Task,
   projectMap: Record<string, { name: string }>,
   partnerMap?: Record<string, string>,
 ): string {
-  if (task.projectId) {
+  if (task.projectId != null && String(task.projectId) !== '') {
     return projectMap[String(task.projectId)]?.name || 'No project';
   }
-  if (task.partnerId && partnerMap) {
+  if (task.partnerId != null && String(task.partnerId) !== '' && partnerMap) {
     return partnerMap[String(task.partnerId)] || 'No project';
   }
   return 'No project';
 }
 
+/**
+ * Assignee display name from teamMap[assigneeId], else Task.assignee string /
+ * assignees[].name from TaskResource when relationships are loaded.
+ */
 function resolveTaskAssigneeName(
   task: Task,
   teamMap: Record<string, string>,
 ): string {
   const assigneeIds = [
     ...(task.assigneeIds ?? []),
-    ...(task.assigneeId ? [String(task.assigneeId)] : []),
+    ...(task.assigneeId != null && String(task.assigneeId) !== ''
+      ? [String(task.assigneeId)]
+      : []),
   ].filter((id, index, arr) => id && arr.indexOf(id) === index);
 
-  if (assigneeIds.length === 0) return 'Unassigned';
+  if (assigneeIds.length > 0) {
+    const names = assigneeIds
+      .map((id) => teamMap[String(id)])
+      .filter((name): name is string => Boolean(name && name.trim()));
+    if (names.length > 0) return names.join(', ');
+  }
 
-  const names = assigneeIds
-    .map((id) => teamMap[String(id)])
-    .filter(Boolean);
+  if (typeof task.assignee === 'string' && task.assignee.trim()) {
+    return task.assignee.trim();
+  }
 
-  if (names.length > 0) return names.join(', ');
-  if (typeof task.assignee === 'string' && task.assignee.trim()) return task.assignee;
+  const fromAssignees = (task.assignees ?? [])
+    .map((entry) => (typeof entry === 'string' ? entry : entry?.name))
+    .filter((name): name is string => Boolean(name && String(name).trim()))
+    .map((name) => String(name).trim());
+  if (fromAssignees.length > 0) return fromAssignees.join(', ');
+
   return 'Unassigned';
 }
 
@@ -1189,8 +1214,10 @@ export function generateTasksReport(
     pdf.setFont('helvetica', 'normal');
     pdf.setTextColor(30, 41, 59);
 
+    // Draw ALL six columns. A prior refactor computed title/project/assignee but
+    // only called pdf.text for status/priority/dueDate — leaving those cells blank.
     const cellValues = [
-      t.title?.trim() || '—',
+      resolveTaskTitle(t),
       resolveTaskProjectName(t, projectMap, partnerMap),
       t.status || '—',
       t.priority || '—',
