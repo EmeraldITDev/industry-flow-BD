@@ -203,6 +203,9 @@ export default function NewProject() {
   };
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [contactFieldErrors, setContactFieldErrors] = useState<
+    Record<string, string>
+  >({});
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -214,6 +217,7 @@ export default function NewProject() {
 
     const contactsError = validateProjectContacts(formData.projectContacts);
     if (contactsError) {
+      setContactFieldErrors({ contacts: contactsError });
       toast.error(contactsError);
       return;
     }
@@ -225,6 +229,7 @@ export default function NewProject() {
     }
 
     setIsSubmitting(true);
+    setContactFieldErrors({});
     try {
       // Calculate margin values from contract values and margin percentages (sanitized)
       const currency = formData.currency;
@@ -343,6 +348,28 @@ export default function NewProject() {
         "Failed to create project:",
         error instanceof Error ? error.message : "Unknown error",
       );
+
+      const apiErrors = error?.response?.data?.errors;
+      if (apiErrors && typeof apiErrors === "object") {
+        const nextContactErrors: Record<string, string> = {};
+        Object.entries(apiErrors).forEach(([key, value]) => {
+          if (!key.startsWith("contacts")) return;
+          const message = Array.isArray(value) ? value[0] : value;
+          if (typeof message === "string" && message.trim()) {
+            nextContactErrors[key] = message;
+          }
+        });
+        if (Object.keys(nextContactErrors).length > 0) {
+          setContactFieldErrors(nextContactErrors);
+          const firstContactMessage =
+            nextContactErrors.contacts ||
+            Object.values(nextContactErrors)[0] ||
+            "Please fix the contact errors.";
+          toast.error(firstContactMessage);
+          return;
+        }
+      }
+
       toast.error(
         error.response?.data?.message ||
           "Failed to create project. Please try again.",
@@ -798,9 +825,11 @@ export default function NewProject() {
             </div>
             <ProjectContactsEditor
               contacts={formData.projectContacts}
-              onChange={(projectContacts) =>
-                setFormData((previous) => ({ ...previous, projectContacts }))
-              }
+              errors={contactFieldErrors}
+              onChange={(projectContacts) => {
+                setContactFieldErrors({});
+                setFormData((previous) => ({ ...previous, projectContacts }));
+              }}
             />
           </CardContent>
         </Card>

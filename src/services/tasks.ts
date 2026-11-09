@@ -29,6 +29,7 @@ export interface TaskFilters {
   status?: TaskStatus;
   priority?: TaskPriority;
   assigneeId?: string;
+  search?: string;
   requiresChairmanIntervention?: boolean;
   assignedToChairman?: boolean;
 }
@@ -146,6 +147,7 @@ export const tasksService = {
     if (filters?.status) params.status = statusToBackend(filters.status);
     if (filters?.priority) params.priority = filters.priority;
     if (filters?.assigneeId) params.assignee_id = filters.assigneeId;
+    if (filters?.search) params.search = filters.search;
     if (filters?.requiresChairmanIntervention) {
       params.requires_chairman_intervention = 1;
     }

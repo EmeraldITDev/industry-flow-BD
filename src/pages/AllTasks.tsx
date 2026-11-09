@@ -65,6 +65,7 @@ export default function AllTasks() {
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
   const [projectFilter, setProjectFilter] = useState<string>('all');
   const [assigneeFilter, setAssigneeFilter] = useState<string>('all');
+  const [isExporting, setIsExporting] = useState(false);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -318,7 +319,7 @@ export default function AllTasks() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => {
+            onClick={async () => {
               const filterSummary: TaskFilterSummary = {
                 search: search || undefined,
                 status: statusFilter !== 'all' ? statusFilter : undefined,
@@ -336,12 +337,36 @@ export default function AllTasks() {
               projects.forEach((p) => {
                 pMap[p.id] = { name: p.name };
               });
-              generateTasksReport(tasks, filterSummary, pMap, teamMap);
-              toast.success('PDF report generated');
+
+              setIsExporting(true);
+              try {
+                // Fetch the full filtered set so export is not limited to loaded pages.
+                const exportTasks = await tasksService.getAll({
+                  search: debouncedSearch || undefined,
+                  status: statusFilter !== 'all' ? (statusFilter as TaskStatus) : undefined,
+                  priority:
+                    priorityFilter !== 'all' ? (priorityFilter as TaskPriority) : undefined,
+                  projectId: projectFilter !== 'all' ? projectFilter : undefined,
+                  assigneeId: scopedAssigneeId,
+                  requiresChairmanIntervention: chairmanOnly ? true : undefined,
+                });
+                generateTasksReport(exportTasks, filterSummary, pMap, teamMap, partnerMap);
+                toast.success(
+                  `PDF report generated (${exportTasks.length} task${exportTasks.length === 1 ? '' : 's'})`
+                );
+              } catch {
+                toast.error('Failed to generate tasks report');
+              } finally {
+                setIsExporting(false);
+              }
             }}
-            disabled={tasks.length === 0}
+            disabled={tasks.length === 0 || isExporting}
           >
-            <FileText className="w-4 h-4 mr-2" />
+            {isExporting ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <FileText className="w-4 h-4 mr-2" />
+            )}
             Generate Report
           </Button>
         </div>

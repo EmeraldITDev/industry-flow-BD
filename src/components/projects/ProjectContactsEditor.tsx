@@ -19,6 +19,8 @@ const roles: { value: ProjectContactRole; label: string }[] = [
 interface Props {
   contacts: ProjectContact[];
   onChange: (contacts: ProjectContact[]) => void;
+  /** Server or client field errors keyed like contacts.0.email or contacts */
+  errors?: Record<string, string>;
 }
 
 const newContact = (isPrimary: boolean): ProjectContact => ({
@@ -32,7 +34,10 @@ const newContact = (isPrimary: boolean): ProjectContact => ({
   notes: "",
 });
 
-export function ProjectContactsEditor({ contacts, onChange }: Props) {
+export function ProjectContactsEditor({ contacts, onChange, errors = {} }: Props) {
+  const fieldError = (...keys: string[]) =>
+    keys.map((key) => errors[key]).find(Boolean);
+
   const updateContact = (index: number, patch: Partial<ProjectContact>) => {
     onChange(contacts.map((contact, i) => i === index ? { ...contact, ...patch } : contact));
   };
@@ -49,6 +54,8 @@ export function ProjectContactsEditor({ contacts, onChange }: Props) {
     onChange(remaining);
   };
 
+  const generalError = fieldError('contacts');
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -64,6 +71,12 @@ export function ProjectContactsEditor({ contacts, onChange }: Props) {
         </Button>
       </div>
 
+      {generalError && (
+        <p className="text-sm text-destructive" role="alert">
+          {generalError}
+        </p>
+      )}
+
       {contacts.length === 0 ? (
         <p className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
           No project contacts added.
@@ -71,6 +84,11 @@ export function ProjectContactsEditor({ contacts, onChange }: Props) {
       ) : (
         contacts.map((contact, index) => {
           const isLegacyWithoutName = Boolean(contact.id && !contact.name.trim() && (contact.email || contact.phone));
+          const rowError = fieldError(`contacts.${index}`, `contacts.${index}.id`);
+          const nameError = fieldError(`contacts.${index}.name`);
+          const emailError = fieldError(`contacts.${index}.email`);
+          const phoneError = fieldError(`contacts.${index}.phone`);
+
           return (
             <Card key={contact.id ?? `new-${index}`} className="bg-muted/20">
               <CardContent className="space-y-4 p-4">
@@ -95,6 +113,12 @@ export function ProjectContactsEditor({ contacts, onChange }: Props) {
                   </div>
                 </div>
 
+                {rowError && (
+                  <p className="text-sm text-destructive" role="alert">
+                    {rowError}
+                  </p>
+                )}
+
                 {isLegacyWithoutName && (
                   <p className="text-xs text-muted-foreground">
                     This contact was migrated from the legacy contact field; the original record did not include a name.
@@ -110,7 +134,9 @@ export function ProjectContactsEditor({ contacts, onChange }: Props) {
                       required={!isLegacyWithoutName}
                       onChange={(event) => updateContact(index, { name: event.target.value })}
                       placeholder="Full name"
+                      aria-invalid={Boolean(nameError)}
                     />
+                    {nameError && <p className="text-sm text-destructive">{nameError}</p>}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor={`contact-title-${index}`}>Job Title / Position</Label>
@@ -122,11 +148,13 @@ export function ProjectContactsEditor({ contacts, onChange }: Props) {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor={`contact-email-${index}`}>Email Address</Label>
-                    <Input id={`contact-email-${index}`} type="email" value={contact.email} onChange={(event) => updateContact(index, { email: event.target.value })} placeholder="name@company.com" />
+                    <Input id={`contact-email-${index}`} type="email" value={contact.email} onChange={(event) => updateContact(index, { email: event.target.value })} placeholder="name@company.com" aria-invalid={Boolean(emailError)} />
+                    {emailError && <p className="text-sm text-destructive">{emailError}</p>}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor={`contact-phone-${index}`}>Phone Number</Label>
-                    <Input id={`contact-phone-${index}`} type="tel" pattern="^[+0-9\s().-]{7,25}$" value={contact.phone} onChange={(event) => updateContact(index, { phone: event.target.value })} placeholder="+234 800 000 0000" />
+                    <Input id={`contact-phone-${index}`} type="tel" pattern="^[+0-9\s().-]{7,25}$" value={contact.phone} onChange={(event) => updateContact(index, { phone: event.target.value })} placeholder="+234 800 000 0000" aria-invalid={Boolean(phoneError)} />
+                    {phoneError && <p className="text-sm text-destructive">{phoneError}</p>}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor={`contact-role-${index}`}>Contact Role</Label>

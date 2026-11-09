@@ -176,6 +176,10 @@ export default function EditProject() {
   });
   const [milestones, setMilestones] = useState<MilestoneInput[]>([]);
   const [milestonesDirty, setMilestonesDirty] = useState(false);
+  const [contactsDirty, setContactsDirty] = useState(false);
+  const [contactFieldErrors, setContactFieldErrors] = useState<
+    Record<string, string>
+  >({});
 
   // Helper to safely parse dates
   const parseDate = (dateStr: string | null | undefined): Date | undefined => {
@@ -216,6 +220,8 @@ export default function EditProject() {
         : [],
     );
     setMilestonesDirty(false);
+    setContactsDirty(false);
+    setContactFieldErrors({});
 
     setFormData((prev) => ({
       ...prev,
@@ -405,10 +411,13 @@ export default function EditProject() {
       return;
     }
 
-    const contactsError = validateProjectContacts(formData.projectContacts);
-    if (contactsError) {
-      toast.error(contactsError);
-      return;
+    if (contactsDirty) {
+      const contactsError = validateProjectContacts(formData.projectContacts);
+      if (contactsError) {
+        setContactFieldErrors({ contacts: contactsError });
+        toast.error(contactsError);
+        return;
+      }
     }
 
     if (milestonesDirty) {
@@ -420,6 +429,7 @@ export default function EditProject() {
     }
 
     setIsSubmitting(true);
+    setContactFieldErrors({});
     try {
       const contractNGN = parseNumberInput(formData.contractValueNGN);
       const contractUSD = parseNumberInput(formData.contractValueUSD);
@@ -474,7 +484,7 @@ export default function EditProject() {
           : undefined,
         clientName: formData.clientName || undefined,
         clientContact: formData.clientContact || undefined,
-        contacts: formData.projectContacts,
+        ...(contactsDirty ? { contacts: formData.projectContacts } : {}),
         pipelineStage: formData.pipelineStage,
         pipelineIntakeDate: formData.pipelineIntakeDate
           ? format(formData.pipelineIntakeDate, "yyyy-MM-dd")
@@ -538,6 +548,28 @@ export default function EditProject() {
         "Failed to update project:",
         error instanceof Error ? error.message : "Unknown error",
       );
+
+      const apiErrors = error?.response?.data?.errors;
+      if (apiErrors && typeof apiErrors === "object") {
+        const nextContactErrors: Record<string, string> = {};
+        Object.entries(apiErrors).forEach(([key, value]) => {
+          if (!key.startsWith("contacts")) return;
+          const message = Array.isArray(value) ? value[0] : value;
+          if (typeof message === "string" && message.trim()) {
+            nextContactErrors[key] = message;
+          }
+        });
+        if (Object.keys(nextContactErrors).length > 0) {
+          setContactFieldErrors(nextContactErrors);
+          const firstContactMessage =
+            nextContactErrors.contacts ||
+            Object.values(nextContactErrors)[0] ||
+            "Please fix the contact errors.";
+          toast.error(firstContactMessage);
+          return;
+        }
+      }
+
       toast.error(
         error.response?.data?.message ||
           "Failed to update project. Please try again.",
@@ -952,9 +984,12 @@ export default function EditProject() {
             </div>
             <ProjectContactsEditor
               contacts={formData.projectContacts}
-              onChange={(projectContacts) =>
-                setFormData((previous) => ({ ...previous, projectContacts }))
-              }
+              errors={contactFieldErrors}
+              onChange={(projectContacts) => {
+                setContactsDirty(true);
+                setContactFieldErrors({});
+                setFormData((previous) => ({ ...previous, projectContacts }));
+              }}
             />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

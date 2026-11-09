@@ -1125,11 +1125,46 @@ function buildTaskFilterString(filters: TaskFilterSummary): string {
   return parts.length ? parts.join(' | ') : 'No filters applied';
 }
 
+function resolveTaskProjectName(
+  task: Task,
+  projectMap: Record<string, { name: string }>,
+  partnerMap?: Record<string, string>,
+): string {
+  if (task.projectId) {
+    return projectMap[String(task.projectId)]?.name || 'No project';
+  }
+  if (task.partnerId && partnerMap) {
+    return partnerMap[String(task.partnerId)] || 'No project';
+  }
+  return 'No project';
+}
+
+function resolveTaskAssigneeName(
+  task: Task,
+  teamMap: Record<string, string>,
+): string {
+  const assigneeIds = [
+    ...(task.assigneeIds ?? []),
+    ...(task.assigneeId ? [String(task.assigneeId)] : []),
+  ].filter((id, index, arr) => id && arr.indexOf(id) === index);
+
+  if (assigneeIds.length === 0) return 'Unassigned';
+
+  const names = assigneeIds
+    .map((id) => teamMap[String(id)])
+    .filter(Boolean);
+
+  if (names.length > 0) return names.join(', ');
+  if (typeof task.assignee === 'string' && task.assignee.trim()) return task.assignee;
+  return 'Unassigned';
+}
+
 export function generateTasksReport(
   tasks: Task[],
   filters: TaskFilterSummary,
   projectMap: Record<string, { name: string }>,
   teamMap: Record<string, string>,
+  partnerMap: Record<string, string> = {},
 ): void {
   const pdf = new jsPDF({ orientation: 'landscape', unit: 'px', format: [PAGE_W, PAGE_H] });
 
@@ -1137,39 +1172,55 @@ export function generateTasksReport(
   let y = addReportHeader(pdf, 'Tasks Report', filterStr, tasks.length, MARGIN + 10);
 
   const cols = [
-    { label: 'Task Title', x: MARGIN, w: 300 },
-    { label: 'Project', x: MARGIN + 300, w: 240 },
-    { label: 'Status', x: MARGIN + 540, w: 90 },
-    { label: 'Priority', x: MARGIN + 630, w: 80 },
-    { label: 'Assignee', x: MARGIN + 710, w: 180 },
-    { label: 'Due Date', x: MARGIN + 890, w: 100 },
+    { label: 'Task Title', x: MARGIN, w: 280 },
+    { label: 'Project', x: MARGIN + 280, w: 220 },
+    { label: 'Status', x: MARGIN + 500, w: 100 },
+    { label: 'Priority', x: MARGIN + 600, w: 90 },
+    { label: 'Assignee', x: MARGIN + 690, w: 200 },
+    { label: 'Due Date', x: MARGIN + 890, w: 110 },
   ];
+  const bodyFont = 11;
+  const lineH = bodyFont * 1.3;
 
   y = drawTableHeader(pdf, cols, y);
 
   tasks.forEach((t, idx) => {
-    y = checkPageBreak(pdf, y, ROW_H + 4);
-    if (y < MARGIN + 20) y = drawTableHeader(pdf, cols, y);
-
-    if (idx % 2 === 0) {
-      pdf.setFillColor(248, 250, 252);
-      pdf.rect(MARGIN, y - 4, CONTENT_W, ROW_H, 'F');
-    }
-
-    pdf.setFontSize(11);
+    pdf.setFontSize(bodyFont);
     pdf.setFont('helvetica', 'normal');
     pdf.setTextColor(30, 41, 59);
 
-    const projName = projectMap[t.projectId]?.name || '—';
-    const assignee = t.assigneeId ? (teamMap[String(t.assigneeId)] || (typeof t.assignee === 'string' ? t.assignee : 'Unassigned')) : 'Unassigned';
-    const dueDate = t.dueDate ? new Date(t.dueDate).toLocaleDateString() : '—';
+    const cellValues = [
+      t.title?.trim() || '—',
+      resolveTaskProjectName(t, projectMap, partnerMap),
+      t.status || '—',
+      t.priority || '—',
+      resolveTaskAssigneeName(t, teamMap),
+      t.dueDate ? fmtDateValue(t.dueDate) : '—',
+    ];
+    const wrappedCells = cellValues.map((value, i) =>
+      wrapCellText(pdf, value, cellTextWidth(cols[i].w), i === 0 || i === 1 || i === 4 ? 3 : 2)
+    );
+    const maxLines = Math.max(1, ...wrappedCells.map((lines) => lines.length));
+    const rowH = Math.max(ROW_H, maxLines * lineH + 10);
 
-    
-    pdf.text(t.status || '—', cols[2].x, y + 14);
-    pdf.text(t.priority || '—', cols[3].x, y + 14);
-    pdf.text(dueDate, cols[5].x, y + 14);
+    y = checkPageBreak(pdf, y, rowH + 4);
+    if (y < MARGIN + 20) {
+      y = drawTableHeader(pdf, cols, y);
+      pdf.setFontSize(bodyFont);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(30, 41, 59);
+    }
 
-    y += ROW_H;
+    if (idx % 2 === 0) {
+      pdf.setFillColor(248, 250, 252);
+      pdf.rect(MARGIN, y - 4, CONTENT_W, rowH, 'F');
+    }
+
+    wrappedCells.forEach((lines, i) => {
+      drawCellLines(pdf, lines, cols[i].x, y, lineH, bodyFont + 3);
+    });
+
+    y += rowH;
   });
 
   // Summary

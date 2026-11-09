@@ -140,17 +140,24 @@ function normalizeProjectContacts(project: Record<string, unknown>): ProjectCont
 }
 
 function serializeProjectContacts(contacts: ProjectContact[]): Record<string, unknown>[] {
-  return contacts.map((contact) => ({
-    ...(contact.id == null ? {} : { id: contact.id }),
-    name: contact.name,
-    job_title: contact.jobTitle,
-    department: contact.department,
-    email: contact.email,
-    phone: contact.phone,
-    contact_role: contact.contactRole,
-    is_primary: contact.isPrimary,
-    notes: contact.notes,
-  }));
+  return contacts.map((contact) => {
+    const id =
+      typeof contact.id === 'number' && Number.isFinite(contact.id) && contact.id > 0
+        ? contact.id
+        : undefined;
+
+    return {
+      ...(id == null ? {} : { id }),
+      name: contact.name,
+      job_title: contact.jobTitle,
+      department: contact.department,
+      email: contact.email,
+      phone: contact.phone,
+      contact_role: contact.contactRole,
+      is_primary: contact.isPrimary,
+      notes: contact.notes,
+    };
+  });
 }
 
 function normalizeProjectMilestones(project: Record<string, unknown>): Milestone[] {
