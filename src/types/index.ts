@@ -187,6 +187,11 @@ export interface Project {
   
   // Financial fields (dual currency)
   currency?: 'NGN' | 'USD' | null;
+  /** Single-currency projects only; null when not recorded. */
+  supplierDirectCostNGN?: number | null;
+  supplierDirectCostUSD?: number | null;
+  otherProjectCostNGN?: number | null;
+  otherProjectCostUSD?: number | null;
   contractValueNGN?: number;
   contractValueUSD?: number;
   discountTypeNGN?: 'percent' | 'amount' | null;

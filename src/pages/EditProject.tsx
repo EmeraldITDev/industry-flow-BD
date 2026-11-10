@@ -63,6 +63,12 @@ import {
   type DiscountType,
 } from "@/components/projects/DiscountControls";
 import { canSetProjectDiscount } from "@/lib/permissions/projectDiscount";
+import { SingleCurrencyFinancials } from "@/components/projects/SingleCurrencyFinancials";
+import {
+  isProjectCurrency,
+  projectCostSummary,
+  type ProjectCurrency,
+} from "@/lib/projectCosts";
 import { WON_STAGES } from "@/lib/executive/analytics";
 import { useAuth } from "@/context/AuthContext";
 import type { Partner } from "@/types/partners";
@@ -108,6 +114,12 @@ export default function EditProject() {
     },
     enabled: !!id,
   });
+  // The API omits financial fields for users who may not see them (and ignores
+  // any they send). Follow the response rather than re-deriving the role rules.
+  const canViewFinancialFields =
+    !!projectData &&
+    (Object.prototype.hasOwnProperty.call(projectData, "contract_value_ngn") ||
+      Object.prototype.hasOwnProperty.call(projectData, "contractValueNgn"));
 
   // Fetch team members
   const { data: teamMembers = [], isLoading: isLoadingTeam } = useQuery({
@@ -166,8 +178,14 @@ export default function EditProject() {
     assigneeId: "",
     teamMemberIds: [] as string[],
     partnerIds: [] as string[],
+    // null = older project recorded in both currencies (no cost fields).
+    currency: null as ProjectCurrency | null,
     contractValueNGN: "",
     contractValueUSD: "",
+    supplierDirectCostNGN: "",
+    supplierDirectCostUSD: "",
+    otherProjectCostNGN: "",
+    otherProjectCostUSD: "",
     marginPercentNGN: "",
     marginPercentUSD: "",
     projectLeadComments: "",
@@ -334,6 +352,15 @@ export default function EditProject() {
           ? (data.partnerIds ?? data.partner_ids).map((id: any) => String(id))
           : prev.partnerIds,
 
+      currency: isProjectCurrency(data.currency) ? data.currency : null,
+      supplierDirectCostNGN:
+        data.supplierDirectCostNGN != null ? String(data.supplierDirectCostNGN) : "",
+      supplierDirectCostUSD:
+        data.supplierDirectCostUSD != null ? String(data.supplierDirectCostUSD) : "",
+      otherProjectCostNGN:
+        data.otherProjectCostNGN != null ? String(data.otherProjectCostNGN) : "",
+      otherProjectCostUSD:
+        data.otherProjectCostUSD != null ? String(data.otherProjectCostUSD) : "",
       contractValueNGN:
         data.contractValueNGN != null
           ? String(data.contractValueNGN)
@@ -397,6 +424,50 @@ export default function EditProject() {
     }));
   };
 
+  // Move entered values when the project's single currency changes.
+  const switchCurrency = (next: ProjectCurrency) =>
+    setFormData((prev) => {
+      if (prev.currency === next) return prev;
+      const fromUSD = prev.currency === "USD";
+      const pick = (ngn: string, usd: string) => (fromUSD ? usd : ngn);
+      const contract = pick(prev.contractValueNGN, prev.contractValueUSD);
+      const supplier = pick(prev.supplierDirectCostNGN, prev.supplierDirectCostUSD);
+      const other = pick(prev.otherProjectCostNGN, prev.otherProjectCostUSD);
+      const marginPct = pick(prev.marginPercentNGN, prev.marginPercentUSD);
+      const discountType = fromUSD ? prev.discountTypeUSD : prev.discountTypeNGN;
+      const discountValue = pick(prev.discountValueNGN, prev.discountValueUSD);
+      const toNGN = next === "NGN";
+      return {
+        ...prev,
+        currency: next,
+        contractValueNGN: toNGN ? contract : "",
+        contractValueUSD: toNGN ? "" : contract,
+        supplierDirectCostNGN: toNGN ? supplier : "",
+        supplierDirectCostUSD: toNGN ? "" : supplier,
+        otherProjectCostNGN: toNGN ? other : "",
+        otherProjectCostUSD: toNGN ? "" : other,
+        marginPercentNGN: toNGN ? marginPct : "",
+        marginPercentUSD: toNGN ? "" : marginPct,
+        discountTypeNGN: toNGN ? discountType : ("" as DiscountType),
+        discountValueNGN: toNGN ? discountValue : "",
+        discountTypeUSD: toNGN ? ("" as DiscountType) : discountType,
+        discountValueUSD: toNGN ? "" : discountValue,
+      };
+    });
+
+  const hasAmount = (value: string) => {
+    const n = parseFloat(value);
+    return Number.isFinite(n) && n !== 0;
+  };
+  const legacyHasNGN =
+    hasAmount(formData.contractValueNGN) ||
+    hasAmount(formData.marginPercentNGN) ||
+    hasAmount(formData.discountValueNGN);
+  const legacyHasUSD =
+    hasAmount(formData.contractValueUSD) ||
+    hasAmount(formData.marginPercentUSD) ||
+    hasAmount(formData.discountValueUSD);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -459,6 +530,72 @@ export default function EditProject() {
             discountedContractValue: null,
           };
 
+      // Single-currency projects: costs drive margin; with no costs, keep the
+      // hand-entered Margin %. The inactive currency is always cleared.
+      const singleCurrencyPayload = (() => {
+        const currency = formData.currency;
+        if (!currency) return null;
+        const isUSD = currency === "USD";
+        const contractText = isUSD ? formData.contractValueUSD : formData.contractValueNGN;
+        const contract = parseNumberInput(contractText) ?? null;
+        const supplier =
+          parseNumberInput(isUSD ? formData.supplierDirectCostUSD : formData.supplierDirectCostNGN) ?? null;
+        const other =
+          parseNumberInput(isUSD ? formData.otherProjectCostUSD : formData.otherProjectCostNGN) ?? null;
+        // Margin base always reflects the discount on the form, even for users who
+        // may not change it (the backend falls back to the stored discount too).
+        const discountForMargin = buildDiscountPayload(
+          contractText,
+          isUSD ? formData.discountTypeUSD : formData.discountTypeNGN,
+          isUSD ? formData.discountValueUSD : formData.discountValueNGN,
+        );
+        const base = discountForMargin.discountedContractValue ?? contract;
+        const costs = projectCostSummary(base, supplier, other);
+        const manualPct =
+          parseNumberInput(isUSD ? formData.marginPercentUSD : formData.marginPercentNGN) ?? null;
+        const marginPercent =
+          costs.totalProjectCost != null ? costs.marginPercent : manualPct;
+        const marginValue =
+          costs.totalProjectCost != null
+            ? costs.marginValue
+            : base != null && manualPct != null
+              ? (base * manualPct) / 100
+              : null;
+        const active = <T,>(value: T) => ({
+          NGN: isUSD ? null : value,
+          USD: isUSD ? value : null,
+        });
+        const disc = isUSD ? discUSD : discNGN;
+        const emptyDisc = { discountType: null, discountValue: null, discountedContractValue: null };
+        const discByCurrency = {
+          NGN: isUSD ? emptyDisc : disc,
+          USD: isUSD ? disc : emptyDisc,
+        };
+        return {
+          currency,
+          contractValueNGN: active(contract).NGN,
+          contractValueUSD: active(contract).USD,
+          supplierDirectCostNGN: active(supplier).NGN,
+          supplierDirectCostUSD: active(supplier).USD,
+          otherProjectCostNGN: active(other).NGN,
+          otherProjectCostUSD: active(other).USD,
+          marginPercentNGN: active(marginPercent).NGN,
+          marginPercentUSD: active(marginPercent).USD,
+          marginValueNGN: active(marginValue).NGN,
+          marginValueUSD: active(marginValue).USD,
+          ...(canEditDiscount
+            ? {
+                discountTypeNGN: discByCurrency.NGN.discountType,
+                discountValueNGN: discByCurrency.NGN.discountValue,
+                discountedContractValueNGN: discByCurrency.NGN.discountedContractValue,
+                discountTypeUSD: discByCurrency.USD.discountType,
+                discountValueUSD: discByCurrency.USD.discountValue,
+                discountedContractValueUSD: discByCurrency.USD.discountedContractValue,
+              }
+            : {}),
+        };
+      })();
+
       const marginBaseNGN =
         discNGN.discountedContractValue ?? contractNGN ?? null;
       const marginBaseUSD =
@@ -471,6 +608,27 @@ export default function EditProject() {
         marginBaseUSD != null && marginPctUSD != null
           ? (marginBaseUSD * marginPctUSD) / 100
           : null;
+
+      const financialPayload = {
+        ...(canEditDiscount
+          ? {
+              discountTypeNGN: discNGN.discountType,
+              discountValueNGN: discNGN.discountValue,
+              discountedContractValueNGN: discNGN.discountedContractValue,
+              discountTypeUSD: discUSD.discountType,
+              discountValueUSD: discUSD.discountValue,
+              discountedContractValueUSD: discUSD.discountedContractValue,
+            }
+          : {}),
+        contractValueNGN: contractNGN ?? null,
+        contractValueUSD: contractUSD ?? null,
+        marginPercentNGN: marginPctNGN ?? null,
+        marginPercentUSD: marginPctUSD ?? null,
+        marginValueNGN,
+        marginValueUSD,
+        // Overrides the two-currency fields above for single-currency projects.
+        ...(singleCurrencyPayload ?? {}),
+      };
 
       await projectsService.update(id, {
         name: formData.name,
@@ -503,16 +661,6 @@ export default function EditProject() {
             ? format(formData.winDate, "yyyy-MM-dd")
             : null
           : undefined,
-        ...(canEditDiscount
-          ? {
-              discountTypeNGN: discNGN.discountType,
-              discountValueNGN: discNGN.discountValue,
-              discountedContractValueNGN: discNGN.discountedContractValue,
-              discountTypeUSD: discUSD.discountType,
-              discountValueUSD: discUSD.discountValue,
-              discountedContractValueUSD: discUSD.discountedContractValue,
-            }
-          : {}),
         businessSegment:
           (formData.businessVertical as BusinessSegment) || undefined,
         products: formData.products,
@@ -522,12 +670,8 @@ export default function EditProject() {
         teamMemberIds: formData.teamMemberIds,
         partnerIds: formData.partnerIds,
         partner_ids: formData.partnerIds,
-        contractValueNGN: contractNGN ?? null,
-        contractValueUSD: contractUSD ?? null,
-        marginPercentNGN: marginPctNGN ?? null,
-        marginPercentUSD: marginPctUSD ?? null,
-        marginValueNGN,
-        marginValueUSD,
+        // Users who cannot see financials load them blank; never send those back.
+        ...(canViewFinancialFields ? financialPayload : {}),
         projectLeadComments: formData.projectLeadComments || undefined,
         supportNeeded: formData.supportNeeded || undefined,
         projectImage: formData.projectImage ?? null,
@@ -1205,12 +1349,128 @@ export default function EditProject() {
         </Card>
 
         {/* Financial Information */}
+        {canViewFinancialFields && (
         <Card>
           <CardHeader>
             <CardTitle>Financial Information</CardTitle>
-            <CardDescription>Contract values and margins</CardDescription>
+            <CardDescription>Contract values, project costs and margins</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {formData.currency ? (
+              <SingleCurrencyFinancials
+                currency={formData.currency}
+                onCurrencyChange={switchCurrency}
+                contractValue={
+                  formData.currency === "USD"
+                    ? formData.contractValueUSD
+                    : formData.contractValueNGN
+                }
+                onContractValueChange={(value) =>
+                  setFormData((prev) =>
+                    prev.currency === "USD"
+                      ? { ...prev, contractValueUSD: value }
+                      : { ...prev, contractValueNGN: value },
+                  )
+                }
+                discountType={
+                  formData.currency === "USD"
+                    ? formData.discountTypeUSD
+                    : formData.discountTypeNGN
+                }
+                discountValue={
+                  formData.currency === "USD"
+                    ? formData.discountValueUSD
+                    : formData.discountValueNGN
+                }
+                canEditDiscount={canEditDiscount}
+                onDiscountTypeChange={(type) =>
+                  setFormData((prev) =>
+                    prev.currency === "USD"
+                      ? { ...prev, discountTypeUSD: type }
+                      : { ...prev, discountTypeNGN: type },
+                  )
+                }
+                onDiscountValueChange={(value) =>
+                  setFormData((prev) =>
+                    prev.currency === "USD"
+                      ? { ...prev, discountValueUSD: value }
+                      : { ...prev, discountValueNGN: value },
+                  )
+                }
+                supplierDirectCost={
+                  formData.currency === "USD"
+                    ? formData.supplierDirectCostUSD
+                    : formData.supplierDirectCostNGN
+                }
+                onSupplierDirectCostChange={(value) =>
+                  setFormData((prev) =>
+                    prev.currency === "USD"
+                      ? { ...prev, supplierDirectCostUSD: value }
+                      : { ...prev, supplierDirectCostNGN: value },
+                  )
+                }
+                otherProjectCost={
+                  formData.currency === "USD"
+                    ? formData.otherProjectCostUSD
+                    : formData.otherProjectCostNGN
+                }
+                onOtherProjectCostChange={(value) =>
+                  setFormData((prev) =>
+                    prev.currency === "USD"
+                      ? { ...prev, otherProjectCostUSD: value }
+                      : { ...prev, otherProjectCostNGN: value },
+                  )
+                }
+                manualMarginPercent={
+                  formData.currency === "USD"
+                    ? formData.marginPercentUSD
+                    : formData.marginPercentNGN
+                }
+                onManualMarginPercentChange={(value) =>
+                  setFormData((prev) =>
+                    prev.currency === "USD"
+                      ? { ...prev, marginPercentUSD: value }
+                      : { ...prev, marginPercentNGN: value },
+                  )
+                }
+              />
+            ) : (
+            <>
+            <div className="rounded-lg border border-dashed p-3 text-sm space-y-2">
+              <p className="text-muted-foreground">
+                This project was created before project costs were added and
+                is recorded in both currencies. Costs are recorded in one
+                currency.
+              </p>
+              {legacyHasNGN && legacyHasUSD ? (
+                <p className="text-xs text-muted-foreground">
+                  It has values in both Naira and US Dollar, so costs can't be
+                  added without clearing one of them first.
+                </p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {(["NGN", "USD"] as const).map((code) => {
+                    const blocked =
+                      (code === "NGN" && legacyHasUSD) ||
+                      (code === "USD" && legacyHasNGN);
+                    if (blocked) return null;
+                    return (
+                      <Button
+                        key={code}
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() =>
+                          setFormData((prev) => ({ ...prev, currency: code }))
+                        }
+                      >
+                        Record costs in {code === "NGN" ? "₦ NGN" : "$ USD"}
+                      </Button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-4 p-4 rounded-lg bg-muted/30">
                 <h4 className="font-medium">Naira (₦)</h4>
@@ -1357,8 +1617,11 @@ export default function EditProject() {
                 </div>
               </div>
             </div>
+            </>
+            )}
           </CardContent>
         </Card>
+        )}
 
         {/* Project Image */}
         <Card>

@@ -38,6 +38,11 @@ export interface CreateProjectData {
   salesLead?: string;
   channelPartner?: string;
   partnerIds?: string[];
+  currency?: 'NGN' | 'USD' | null;
+  supplierDirectCostNGN?: number | null;
+  supplierDirectCostUSD?: number | null;
+  otherProjectCostNGN?: number | null;
+  otherProjectCostUSD?: number | null;
   contractValueNGN?: number;
   contractValueUSD?: number;
   marginPercentNGN?: number;
@@ -207,6 +212,21 @@ export const normalizeProject = (project: any): Project => {
     return 0;
   };
 
+  // Costs keep null distinct from 0: null means "not recorded".
+  const getNullableValue = (...keys: string[]): number | null => {
+    for (const key of keys) {
+      const value = project[key];
+      if (value == null || value === '') continue;
+      const parsed = typeof value === 'number' ? value : parseFloat(String(value).replace(/[^0-9.-]+/g, ''));
+      if (Number.isFinite(parsed)) return parsed;
+    }
+    return null;
+  };
+  const supplierDirectCostNGN = getNullableValue('supplierDirectCostNGN', 'supplierDirectCostNgn', 'supplier_direct_cost_ngn');
+  const supplierDirectCostUSD = getNullableValue('supplierDirectCostUSD', 'supplierDirectCostUsd', 'supplier_direct_cost_usd');
+  const otherProjectCostNGN = getNullableValue('otherProjectCostNGN', 'otherProjectCostNgn', 'other_project_cost_ngn');
+  const otherProjectCostUSD = getNullableValue('otherProjectCostUSD', 'otherProjectCostUsd', 'other_project_cost_usd');
+
   // Get financial values from either format (API may send contractValueUsd or contractValueUSD)
   const contractValueNGN = getValue('contractValueNGN', 'contract_value_ngn')
     || getValue('contractValueNgn', 'contract_value_ngn');
@@ -309,6 +329,10 @@ export const normalizeProject = (project: any): Project => {
     // Enforced status
     status,
     currency: project.currency ?? null,
+    supplierDirectCostNGN,
+    supplierDirectCostUSD,
+    otherProjectCostNGN,
+    otherProjectCostUSD,
     // Ensure financial fields are always present as numbers
     contractValueNGN,
     contractValueUSD,
@@ -598,6 +622,10 @@ export const projectsService = {
     const snakeCaseMap: Record<string, string> = {
       contractValueNGN: 'contract_value_ngn',
       contractValueUSD: 'contract_value_usd',
+      supplierDirectCostNGN: 'supplier_direct_cost_ngn',
+      supplierDirectCostUSD: 'supplier_direct_cost_usd',
+      otherProjectCostNGN: 'other_project_cost_ngn',
+      otherProjectCostUSD: 'other_project_cost_usd',
       marginPercentNGN: 'margin_percent_ngn',
       marginPercentUSD: 'margin_percent_usd',
       marginValueNGN: 'margin_value_ngn',
@@ -669,19 +697,27 @@ export const projectsService = {
     // Build request: keep contract/margin fields explicit (no filtering) so backend can overwrite previous values
     const requestData: Record<string, any> = { ...data };
 
-    // Explicitly include financial fields even if undefined (backend should treat as null/clear)
-    const financialKeys = [
-      'contractValueNGN',
-      'contractValueUSD',
-      'discountValueNGN',
-      'discountedContractValueNGN',
-      'discountValueUSD',
-      'discountedContractValueUSD',
-      'marginPercentNGN',
-      'marginPercentUSD',
-      'marginValueNGN',
-      'marginValueUSD',
+    // Financial fields, grouped. A group is sent explicitly (null = clear) only when
+    // the caller includes at least one of its keys. Discounts are their own group:
+    // only allowlisted users send them, and the backend rejects (403) any request
+    // that would change a discount from anyone else, including clearing it to null.
+    const financialKeyGroups = [
+      [
+        'contractValueNGN',
+        'contractValueUSD',
+        'marginPercentNGN',
+        'marginPercentUSD',
+        'marginValueNGN',
+        'marginValueUSD',
+      ],
+      [
+        'discountValueNGN',
+        'discountedContractValueNGN',
+        'discountValueUSD',
+        'discountedContractValueUSD',
+      ],
     ];
+    const financialKeys = financialKeyGroups.flat();
 
     // Remove undefined from non-financial fields, but keep financials explicit
     Object.keys(requestData).forEach(key => {
@@ -690,13 +726,22 @@ export const projectsService = {
       }
     });
 
-    // Ensure financial fields are always sent as number or null (never omitted).
-    // JSON.stringify drops `undefined`, which left stale margin_value_usd in the DB
-    // when Margin % was empty while Contract was edited.
-    financialKeys.forEach(key => {
-      if (!(key in requestData) || requestData[key] === undefined) {
-        requestData[key] = null;
-      }
+    // Within a group the caller edits, send every field as number or null (never
+    // omitted): JSON.stringify drops `undefined`, which left stale margin_value_usd
+    // in the DB when Margin % was emptied while Contract was edited. Groups the
+    // caller does not touch (e.g. a status change) are not sent at all; filling
+    // them with null would wipe the project's contract and margin.
+    financialKeyGroups.forEach(group => {
+      const editsGroup = group.some(key => key in data);
+      group.forEach(key => {
+        if (editsGroup) {
+          if (!(key in requestData) || requestData[key] === undefined) {
+            requestData[key] = null;
+          }
+        } else if (requestData[key] === undefined) {
+          delete requestData[key];
+        }
+      });
     });
 
     // Dual-write: populate legacy product/sub_product strings from the new array fields
@@ -718,6 +763,10 @@ export const projectsService = {
     const snakeCaseMap: Record<string, string> = {
       contractValueNGN: 'contract_value_ngn',
       contractValueUSD: 'contract_value_usd',
+      supplierDirectCostNGN: 'supplier_direct_cost_ngn',
+      supplierDirectCostUSD: 'supplier_direct_cost_usd',
+      otherProjectCostNGN: 'other_project_cost_ngn',
+      otherProjectCostUSD: 'other_project_cost_usd',
       marginPercentNGN: 'margin_percent_ngn',
       marginPercentUSD: 'margin_percent_usd',
       marginValueNGN: 'margin_value_ngn',

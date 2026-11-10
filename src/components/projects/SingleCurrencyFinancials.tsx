@@ -18,6 +18,13 @@ type Props = {
   onSupplierDirectCostChange: (value: string) => void;
   otherProjectCost: string;
   onOtherProjectCostChange: (value: string) => void;
+  /**
+   * When provided, Margin % can be typed by hand while no costs are entered
+   * (projects whose margin was recorded without costs). Entering a cost
+   * switches margin back to being calculated from costs.
+   */
+  manualMarginPercent?: string;
+  onManualMarginPercentChange?: (value: string) => void;
 };
 
 function parseAmount(value: string): number | null {
@@ -40,6 +47,8 @@ export function SingleCurrencyFinancials({
   onSupplierDirectCostChange,
   otherProjectCost,
   onOtherProjectCostChange,
+  manualMarginPercent,
+  onManualMarginPercentChange,
 }: Props) {
   const symbol = currency === 'NGN' ? '₦' : '$';
   const discount = buildDiscountPayload(contractValue, discountType, discountValue);
@@ -50,6 +59,14 @@ export function SingleCurrencyFinancials({
     parseAmount(supplierDirectCost),
     parseAmount(otherProjectCost)
   );
+
+  const manualMargin = onManualMarginPercentChange != null && summary.totalProjectCost == null;
+  const manualPct = manualMargin ? parseAmount(manualMarginPercent ?? '') : null;
+  const marginValue = manualMargin
+    ? base != null && manualPct != null
+      ? (base * manualPct) / 100
+      : null
+    : summary.marginValue;
 
   const money = (value: number | null) =>
     value == null ? '' : value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -131,20 +148,31 @@ export function SingleCurrencyFinancials({
         </div>
         <div className="space-y-2">
           <Label>Margin Value ({symbol})</Label>
-          <Input readOnly className="bg-muted" value={money(summary.marginValue)} placeholder="Auto-calculated" />
+          <Input readOnly className="bg-muted" value={money(marginValue)} placeholder="Auto-calculated" />
         </div>
         <div className="space-y-2">
           <Label>Margin %</Label>
-          <Input
-            readOnly
-            className="bg-muted"
-            value={summary.marginPercent == null ? '' : summary.marginPercent.toFixed(2)}
-            placeholder="Auto-calculated"
-          />
+          {manualMargin ? (
+            <Input
+              type="number"
+              value={manualMarginPercent ?? ''}
+              onChange={(e) => onManualMarginPercentChange?.(e.target.value)}
+              placeholder="0"
+            />
+          ) : (
+            <Input
+              readOnly
+              className="bg-muted"
+              value={summary.marginPercent == null ? '' : summary.marginPercent.toFixed(2)}
+              placeholder="Auto-calculated"
+            />
+          )}
         </div>
       </div>
       <p className="text-[10px] text-muted-foreground">
-        Margin value is the contract (after discount, when set) minus total project cost. Margin % is that value divided by the contract.
+        {manualMargin
+          ? 'No costs entered, so Margin % is entered by hand. Add a cost to calculate margin from costs instead.'
+          : 'Margin value is the contract (after discount, when set) minus total project cost. Margin % is that value divided by the contract.'}
       </p>
     </div>
   );

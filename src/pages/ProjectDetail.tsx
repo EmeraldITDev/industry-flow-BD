@@ -210,6 +210,11 @@ export default function ProjectDetail() {
               }))
               .filter((partner: { companyName: string }) => partner.companyName)
           : [],
+        currency: data.currency ?? null,
+        supplierDirectCostNGN: data.supplierDirectCostNGN ?? null,
+        supplierDirectCostUSD: data.supplierDirectCostUSD ?? null,
+        otherProjectCostNGN: data.otherProjectCostNGN ?? null,
+        otherProjectCostUSD: data.otherProjectCostUSD ?? null,
         contractValueNGN:
           parseFloat(data.contractValueNGN ?? data.contract_value_ngn) || 0,
         contractValueUSD:
@@ -799,6 +804,49 @@ export default function ProjectDetail() {
                       )}
                   </div>
                 )}
+                {canViewFinancialFields &&
+                  (() => {
+                    const usd = project.currency === "USD";
+                    const symbol = usd ? "$" : "₦";
+                    const supplier = usd
+                      ? project.supplierDirectCostUSD
+                      : project.supplierDirectCostNGN;
+                    const other = usd
+                      ? project.otherProjectCostUSD
+                      : project.otherProjectCostNGN;
+                    if (!project.currency || (supplier == null && other == null))
+                      return null;
+                    const money = (value: number) =>
+                      `${symbol}${Number(value).toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+                    return (
+                      <>
+                        {supplier != null && (
+                          <div>
+                            <p className="text-xs text-muted-foreground">
+                              Supplier Direct Cost ({project.currency})
+                            </p>
+                            <p className="font-medium text-sm">{money(supplier)}</p>
+                          </div>
+                        )}
+                        {other != null && (
+                          <div>
+                            <p className="text-xs text-muted-foreground">
+                              Other Project Cost ({project.currency})
+                            </p>
+                            <p className="font-medium text-sm">{money(other)}</p>
+                          </div>
+                        )}
+                        <div>
+                          <p className="text-xs text-muted-foreground">
+                            Total Project Cost ({project.currency})
+                          </p>
+                          <p className="font-medium text-sm">
+                            {money((supplier ?? 0) + (other ?? 0))}
+                          </p>
+                        </div>
+                      </>
+                    );
+                  })()}
                 {project.dealProbability && (
                   <div>
                     <p className="text-xs text-muted-foreground">
