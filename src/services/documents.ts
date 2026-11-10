@@ -18,9 +18,9 @@ export interface RepositoryDocument {
   uploader?: { id: string; name: string; email?: string } | null;
 }
 
-export interface OpportunityDocument {
+/** Fields shared by documents attached to a single owner (opportunity, partner). */
+export interface ScopedDocument {
   id: string;
-  projectId: string;
   title: string;
   documentType: string;
   fileName: string;
@@ -32,6 +32,14 @@ export interface OpportunityDocument {
   createdAt: string;
   updatedAt: string;
   uploader?: { id: string; name: string; email?: string } | null;
+}
+
+export interface OpportunityDocument extends ScopedDocument {
+  projectId: string;
+}
+
+export interface PartnerDocument extends ScopedDocument {
+  partnerId: string;
 }
 
 export type RepositoryFilters = {
@@ -74,10 +82,9 @@ function normalizeRepoDoc(raw: any): RepositoryDocument {
   };
 }
 
-function normalizeOppDoc(raw: any): OpportunityDocument {
+function normalizeScopedDoc(raw: any): ScopedDocument {
   return {
     id: String(raw.id),
-    projectId: String(raw.projectId ?? raw.project_id ?? ''),
     title: raw.title ?? '',
     documentType: raw.documentType ?? raw.document_type ?? '',
     fileName: raw.fileName ?? raw.file_name ?? '',
@@ -100,6 +107,20 @@ function normalizeOppDoc(raw: any): OpportunityDocument {
           email: raw.uploader.email,
         }
       : null,
+  };
+}
+
+function normalizeOppDoc(raw: Record<string, unknown>): OpportunityDocument {
+  return {
+    ...normalizeScopedDoc(raw),
+    projectId: String(raw.projectId ?? raw.project_id ?? ''),
+  };
+}
+
+function normalizePartnerDoc(raw: Record<string, unknown>): PartnerDocument {
+  return {
+    ...normalizeScopedDoc(raw),
+    partnerId: String(raw.partnerId ?? raw.partner_id ?? ''),
   };
 }
 
@@ -220,45 +241,72 @@ export const repositoryDocumentsService = {
   },
 };
 
-export const opportunityDocumentsService = {
-  getAll: async (projectId: string): Promise<OpportunityDocument[]> => {
-    const response = await api.get(`/api/projects/${projectId}/documents`);
-    return unwrapList(response.data).map(normalizeOppDoc);
-  },
+export type ScopedDocumentUpload = { title: string; documentType: string; file: File };
 
-  getById: async (projectId: string, docId: string): Promise<OpportunityDocument> => {
-    const response = await api.get(`/api/projects/${projectId}/documents/${docId}`);
-    return normalizeOppDoc(unwrapOne(response.data));
-  },
-
-  fetchContent: async (projectId: string, docId: string): Promise<Blob> => {
-    const response = await api.get(
-      `/api/projects/${projectId}/documents/${docId}/content`,
-      { responseType: 'blob' }
-    );
-    return response.data as Blob;
-  },
-
-  upload: async (
-    projectId: string,
-    payload: { title: string; documentType: string; file: File },
+export interface ScopedDocumentsService<T extends ScopedDocument = ScopedDocument> {
+  getAll: (ownerId: string) => Promise<T[]>;
+  getById: (ownerId: string, docId: string) => Promise<T>;
+  fetchContent: (ownerId: string, docId: string) => Promise<Blob>;
+  upload: (
+    ownerId: string,
+    payload: ScopedDocumentUpload,
     onProgress?: UploadProgressHandler
-  ): Promise<OpportunityDocument> => {
-    const form = new FormData();
-    form.append('title', payload.title);
-    form.append('document_type', payload.documentType);
-    form.append('file', payload.file);
+  ) => Promise<T>;
+  delete: (ownerId: string, docId: string) => Promise<void>;
+}
 
-    const response = await api.post(`/api/projects/${projectId}/documents`, form, {
-      onUploadProgress: (event) => {
-        if (!onProgress || !event.total) return;
-        onProgress(Math.round((event.loaded * 100) / event.total));
-      },
-    });
-    return normalizeOppDoc(unwrapOne(response.data));
-  },
+/** CRUD for `/api/{resource}/{ownerId}/documents`. */
+function createScopedDocumentsService<T extends ScopedDocument>(
+  resource: 'projects' | 'partners',
+  normalize: (raw: Record<string, unknown>) => T
+): ScopedDocumentsService<T> {
+  const base = (ownerId: string) => `/api/${resource}/${ownerId}/documents`;
 
-  delete: async (projectId: string, docId: string): Promise<void> => {
-    await api.delete(`/api/projects/${projectId}/documents/${docId}`);
-  },
-};
+  return {
+    getAll: async (ownerId) => {
+      const response = await api.get(base(ownerId));
+      return unwrapList(response.data).map(normalize);
+    },
+
+    getById: async (ownerId, docId) => {
+      const response = await api.get(`${base(ownerId)}/${docId}`);
+      return normalize(unwrapOne(response.data));
+    },
+
+    fetchContent: async (ownerId, docId) => {
+      const response = await api.get(`${base(ownerId)}/${docId}/content`, {
+        responseType: 'blob',
+      });
+      return response.data as Blob;
+    },
+
+    upload: async (ownerId, payload, onProgress) => {
+      const form = new FormData();
+      form.append('title', payload.title);
+      form.append('document_type', payload.documentType);
+      form.append('file', payload.file);
+
+      const response = await api.post(base(ownerId), form, {
+        onUploadProgress: (event) => {
+          if (!onProgress || !event.total) return;
+          onProgress(Math.round((event.loaded * 100) / event.total));
+        },
+      });
+      return normalize(unwrapOne(response.data));
+    },
+
+    delete: async (ownerId, docId) => {
+      await api.delete(`${base(ownerId)}/${docId}`);
+    },
+  };
+}
+
+export const opportunityDocumentsService = createScopedDocumentsService(
+  'projects',
+  normalizeOppDoc
+);
+
+export const partnerDocumentsService = createScopedDocumentsService(
+  'partners',
+  normalizePartnerDoc
+);

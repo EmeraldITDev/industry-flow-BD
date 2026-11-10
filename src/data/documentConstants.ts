@@ -13,6 +13,16 @@ export const OPPORTUNITY_DOCUMENT_TYPES = [
   'Other',
 ] as const;
 
+/** Must match PartnerDocument::DOCUMENT_TYPES on the backend. */
+export const PARTNER_DOCUMENT_TYPES = [
+  'Agreement',
+  'NDA',
+  'Equipment List',
+  'Capability Deck',
+  'Certification',
+  'Other',
+] as const;
+
 export const ACCEPTED_DOCUMENT_EXTENSIONS = '.pdf,.docx,.xlsx,.pptx,.png,.jpg,.jpeg';
 export const ACCEPTED_DOCUMENT_MIME_HINT =
   'PDF, DOCX, XLSX, PPTX, PNG, or JPG (max 25MB)';

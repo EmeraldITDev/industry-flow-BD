@@ -37,6 +37,7 @@ import {
 import { PartnerFormSheet } from '@/components/partners/PartnerFormSheet';
 import { LinkScmVendorModal } from '@/components/partners/LinkScmVendorModal';
 import { PartnerMiniDashboard } from '@/components/partners/PartnerMiniDashboard';
+import { PartnerDocumentsSection } from '@/components/partners/PartnerDocumentsSection';
 import { TaskList } from '@/components/tasks/TaskList';
 import { KanbanBoard } from '@/components/tasks/KanbanBoard';
 import { AddTaskDialog } from '@/components/tasks/AddTaskDialog';
@@ -78,8 +79,8 @@ export default function PartnerDetail() {
   const [activeTab, setActiveTab] = useState(() =>
     deepLinkTaskId || tabParam === 'tasks'
       ? 'tasks'
-      : tabParam === 'opportunities'
-        ? 'opportunities'
+      : tabParam === 'opportunities' || tabParam === 'documents'
+        ? tabParam
         : 'profile',
   );
 
@@ -87,8 +88,8 @@ export default function PartnerDetail() {
   useEffect(() => {
     if (deepLinkTaskId || tabParam === 'tasks') {
       setActiveTab('tasks');
-    } else if (tabParam === 'opportunities') {
-      setActiveTab('opportunities');
+    } else if (tabParam === 'opportunities' || tabParam === 'documents') {
+      setActiveTab(tabParam);
     } else if (tabParam === 'profile') {
       setActiveTab('profile');
     }
@@ -289,6 +290,7 @@ export default function PartnerDetail() {
             )}
           </TabsTrigger>
           <TabsTrigger value="tasks">Tasks</TabsTrigger>
+          <TabsTrigger value="documents">Documents</TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile" className="mt-4 space-y-5">
@@ -718,6 +720,13 @@ export default function PartnerDetail() {
             }}
             task={editingTask}
             onTaskUpdated={handleTaskCreated}
+          />
+        </TabsContent>
+
+        <TabsContent value="documents" className="mt-4">
+          <PartnerDocumentsSection
+            partnerId={partner.id}
+            canManage={canEditPartners}
           />
         </TabsContent>
       </Tabs>
