@@ -7,7 +7,8 @@
  * This is the backend origin: request paths already start with `/api/...`.
  */
 //export const API_BASE_URL = 'http://localhost:8000';
-export const API_BASE_URL = 'https://industry-flow-backend.onrender.com';
+//export const API_BASE_URL = 'https://industry-flow-backend.onrender.com'; // Render (rollback)
+export const API_BASE_URL = 'https://bdportal-api.emeraldcfze.com';
 
 /** Backend hostname, used to scope service-worker API caching. */
 export const API_HOST = new URL(API_BASE_URL).hostname;
