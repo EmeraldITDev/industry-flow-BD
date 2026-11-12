@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react-swc";
 import { VitePWA } from "vite-plugin-pwa";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
+import { API_HOST } from "./src/config/api";
 
 // Emits /version.json with a per-build id, and serves it in dev.
 function buildVersionPlugin(): Plugin {
@@ -22,22 +23,6 @@ function buildVersionPlugin(): Plugin {
     },
   };
 }
-
-const API_ORIGIN = (
-  process.env.VITE_API_URL ||
-  process.env.VITE_API_BASE_URL ||
-  "https://industry-flow-backend.onrender.com"
-).replace(/\/$/, "");
-
-function resolveApiHostname(): string {
-  try {
-    return new URL(API_ORIGIN).hostname;
-  } catch {
-    return "industry-flow-backend.onrender.com";
-  }
-}
-
-const API_HOST = resolveApiHostname();
 
 /** Scope cache entries per Authorization header so users don't share offline data. */
 const authScopedCachePlugin = {

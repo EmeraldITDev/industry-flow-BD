@@ -26,13 +26,7 @@ cd industry-flow-BD
 npm install
 ```
 
-Create a `.env` file in the project root:
-
-```env
-VITE_API_URL=http://localhost:8000
-```
-
-If `VITE_API_URL` is not set, the app uses the production API.
+The backend URL is set in one place: [`src/config/api.ts`](src/config/api.ts). Edit `API_BASE_URL` there to point the app at a different backend (for example `http://localhost:8000`). It is not read from `.env`.
 
 ### Run
 
@@ -68,4 +62,4 @@ src/
 
 ## Deployment
 
-The app is deployed on **Vercel**. `vercel.json` rewrites all non-API routes to `index.html` for client-side routing. Set `VITE_API_URL` in the Vercel project's environment variables.
+The app is deployed on **Vercel**. `vercel.json` rewrites all non-API routes to `index.html` for client-side routing. The API URL comes from `src/config/api.ts`, so no API environment variable is needed on Vercel.

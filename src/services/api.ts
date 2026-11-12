@@ -1,11 +1,9 @@
 import axios from 'axios';
+import { API_BASE_URL } from '@/config/api';
 
-// Base URL - update this based on your environment
-const BASE_URL = import.meta.env.VITE_API_URL || 'https://industry-flow-backend.onrender.com';
-
-// Create axios instance
+// Create axios instance (backend URL is configured in src/config/api.ts)
 const api = axios.create({
-  baseURL: BASE_URL,
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',

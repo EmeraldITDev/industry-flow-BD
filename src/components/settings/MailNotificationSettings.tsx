@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { mailService, MailConfig } from '@/services/mail';
+import { API_BASE_URL } from '@/config/api';
 import { Mail, Loader2 } from 'lucide-react';
 
 export default function MailNotificationSettings() {
@@ -37,7 +38,7 @@ export default function MailNotificationSettings() {
     
     setIsSaving(true);
     try {
-      const response = await fetch('/api/mail/config', {
+      const response = await fetch(`${API_BASE_URL}/api/mail/config`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
