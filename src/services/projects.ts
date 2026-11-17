@@ -422,7 +422,7 @@ export const projectsService = {
     lastPage: number;
   }> {
     const response = await api.get('/api/projects', {
-      params: { per_page: 50, lean: 1, ...params },
+      params: { per_page: 50, lean: 1, with_partners: 1, ...params },
     });
     const data = response.data;
     const rows = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
@@ -506,7 +506,7 @@ export const projectsService = {
 
     const fetchPage = async (page: number) => {
       const response = await api.get('/api/projects', {
-        params: { ...filters, page, per_page: PER_PAGE, lean: 1 },
+        params: { ...filters, page, per_page: PER_PAGE, lean: 1, with_partners: 1 },
       });
       return readPage(response.data);
     };
