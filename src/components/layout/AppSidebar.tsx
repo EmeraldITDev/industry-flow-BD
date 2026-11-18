@@ -17,6 +17,7 @@ import {
   Boxes,
   Globe2,
   MapPin,
+  ContactRound,
 } from 'lucide-react';
 import emeraldLogo from '@/assets/emerald-logo.png';
 import { NavLink, useLocation } from 'react-router-dom';
@@ -79,6 +80,7 @@ const mainNavItems = [
   { title: 'All Tasks', url: '/tasks', icon: ListChecks },
   { title: 'Calendar', url: '/calendar', icon: Calendar },
   { title: 'Team', url: '/team', icon: Users },
+  { title: 'Contacts', url: '/contacts', icon: ContactRound },
   { title: 'Document Repository', url: '/document-repository', icon: FileStack },
 ];
 
@@ -104,6 +106,7 @@ const restrictedExecutiveNavItems = [
   { title: 'All Projects', url: '/projects', icon: FolderKanban },
   { title: 'Calendar', url: '/calendar', icon: Calendar },
   { title: 'Team', url: '/team', icon: Users },
+  { title: 'Contacts', url: '/contacts', icon: ContactRound },
   { title: 'Document Repository', url: '/document-repository', icon: FileStack },
 ];
 

@@ -33,6 +33,7 @@ const OperationsPage = lazy(() => import("./pages/OperationsPage"));
 const DocumentRepositoryPage = lazy(() => import("./pages/DocumentRepositoryPage"));
 const PartnersPage = lazy(() => import("./pages/PartnersPage"));
 const PartnerDetailPage = lazy(() => import("./pages/PartnerDetailPage"));
+const ContactsPage = lazy(() => import("./pages/ContactsPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const RouteFallback = () => (
@@ -82,6 +83,7 @@ const App = () => (
                     <Route path="/document-repository" element={<ProtectedRoute><DocumentRepositoryPage /></ProtectedRoute>} />
                     <Route path="/partners" element={<ProtectedRoute><PartnersPage /></ProtectedRoute>} />
                     <Route path="/partners/:id" element={<ProtectedRoute><PartnerDetailPage /></ProtectedRoute>} />
+                    <Route path="/contacts" element={<ProtectedRoute><ContactsPage /></ProtectedRoute>} />
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                     <Route path="*" element={<NotFound />} />
                   </Routes>
