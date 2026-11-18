@@ -4,8 +4,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { ContactDirectoryPicker } from "@/components/contacts/ContactDirectoryPicker";
 import type { ProjectContact, ProjectContactRole } from "@/types";
-import { Plus, Star, Trash2 } from "lucide-react";
+import type { ContactSummary } from "@/services/contacts";
+import { AlertTriangle, Star, Trash2 } from "lucide-react";
 
 const roles: { value: ProjectContactRole; label: string }[] = [
   { value: "procurement", label: "Procurement" },
@@ -21,20 +23,11 @@ interface Props {
   onChange: (contacts: ProjectContact[]) => void;
   /** Server or client field errors keyed like contacts.0.email or contacts */
   errors?: Record<string, string>;
+  clientName: string;
+  originalClientName?: string;
 }
 
-const newContact = (isPrimary: boolean): ProjectContact => ({
-  name: "",
-  jobTitle: "",
-  department: "",
-  email: "",
-  phone: "",
-  contactRole: "other",
-  isPrimary,
-  notes: "",
-});
-
-export function ProjectContactsEditor({ contacts, onChange, errors = {} }: Props) {
+export function ProjectContactsEditor({ contacts, onChange, errors = {}, clientName, originalClientName }: Props) {
   const fieldError = (...keys: string[]) =>
     keys.map((key) => errors[key]).find(Boolean);
 
@@ -54,7 +47,31 @@ export function ProjectContactsEditor({ contacts, onChange, errors = {} }: Props
     onChange(remaining);
   };
 
+  const selectContact = (selected: ContactSummary) => {
+    if (contacts.some((contact) => contact.contactId === selected.id)) return;
+    onChange([...contacts, {
+      contactId: selected.id,
+      organizationName: selected.organizationName ?? undefined,
+      name: selected.fullName ?? '',
+      jobTitle: selected.jobTitle ?? '',
+      department: selected.department ?? '',
+      email: selected.email ?? '',
+      phone: selected.phone ?? '',
+      contactRole: 'other',
+      isPrimary: contacts.length === 0,
+      notes: '',
+    }]);
+  };
+
   const generalError = fieldError('contacts');
+  const normalizedClient = clientName.trim().toLowerCase();
+  const clientMismatch = Boolean(
+    contacts.length > 0 && (
+      (originalClientName?.trim() && normalizedClient !== originalClientName.trim().toLowerCase())
+      || contacts.some((contact) => contact.organizationName?.trim()
+        && contact.organizationName.trim().toLowerCase() !== normalizedClient)
+    )
+  );
 
   return (
     <div className="space-y-4">
@@ -65,11 +82,20 @@ export function ProjectContactsEditor({ contacts, onChange, errors = {} }: Props
             Add the client contacts involved in this opportunity. One contact must be primary.
           </p>
         </div>
-        <Button type="button" variant="outline" onClick={() => onChange([...contacts, newContact(contacts.length === 0)])}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Contact
-        </Button>
+        <ContactDirectoryPicker
+          organizationType="client"
+          organizationName={clientName}
+          selectedIds={contacts.map((contact) => contact.contactId ?? '')}
+          onSelect={selectContact}
+        />
       </div>
+
+      {clientMismatch && (
+        <div className="flex gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-900 dark:text-amber-200">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>The client name changed. Existing contacts were kept; remove or replace any contacts that do not belong to the new client before saving.</span>
+        </div>
+      )}
 
       {generalError && (
         <p className="text-sm text-destructive" role="alert">
@@ -84,7 +110,7 @@ export function ProjectContactsEditor({ contacts, onChange, errors = {} }: Props
       ) : (
         contacts.map((contact, index) => {
           const isLegacyWithoutName = Boolean(contact.id && !contact.name.trim() && (contact.email || contact.phone));
-          const rowError = fieldError(`contacts.${index}`, `contacts.${index}.id`);
+          const rowError = fieldError(`contacts.${index}`, `contacts.${index}.id`, `contacts.${index}.contact_id`);
           const nameError = fieldError(`contacts.${index}.name`);
           const emailError = fieldError(`contacts.${index}.email`);
           const phoneError = fieldError(`contacts.${index}.phone`);
@@ -135,25 +161,26 @@ export function ProjectContactsEditor({ contacts, onChange, errors = {} }: Props
                       onChange={(event) => updateContact(index, { name: event.target.value })}
                       placeholder="Full name"
                       aria-invalid={Boolean(nameError)}
+                      disabled={Boolean(contact.contactId)}
                     />
                     {nameError && <p className="text-sm text-destructive">{nameError}</p>}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor={`contact-title-${index}`}>Job Title / Position</Label>
-                    <Input id={`contact-title-${index}`} value={contact.jobTitle} onChange={(event) => updateContact(index, { jobTitle: event.target.value })} placeholder="e.g. Procurement Manager" />
+                    <Input id={`contact-title-${index}`} value={contact.jobTitle} onChange={(event) => updateContact(index, { jobTitle: event.target.value })} placeholder="e.g. Procurement Manager" disabled={Boolean(contact.contactId)} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor={`contact-department-${index}`}>Department</Label>
-                    <Input id={`contact-department-${index}`} value={contact.department} onChange={(event) => updateContact(index, { department: event.target.value })} placeholder="Optional" />
+                    <Input id={`contact-department-${index}`} value={contact.department} onChange={(event) => updateContact(index, { department: event.target.value })} placeholder="Optional" disabled={Boolean(contact.contactId)} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor={`contact-email-${index}`}>Email Address</Label>
-                    <Input id={`contact-email-${index}`} type="email" value={contact.email} onChange={(event) => updateContact(index, { email: event.target.value })} placeholder="name@company.com" aria-invalid={Boolean(emailError)} />
+                    <Input id={`contact-email-${index}`} type="email" value={contact.email} onChange={(event) => updateContact(index, { email: event.target.value })} placeholder="name@company.com" aria-invalid={Boolean(emailError)} disabled={Boolean(contact.contactId)} />
                     {emailError && <p className="text-sm text-destructive">{emailError}</p>}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor={`contact-phone-${index}`}>Phone Number</Label>
-                    <Input id={`contact-phone-${index}`} type="tel" pattern="^[+0-9\s().-]{7,25}$" value={contact.phone} onChange={(event) => updateContact(index, { phone: event.target.value })} placeholder="+234 800 000 0000" aria-invalid={Boolean(phoneError)} />
+                    <Input id={`contact-phone-${index}`} type="tel" pattern="^[+0-9\s().-]{7,25}$" value={contact.phone} onChange={(event) => updateContact(index, { phone: event.target.value })} placeholder="+234 800 000 0000" aria-invalid={Boolean(phoneError)} disabled={Boolean(contact.contactId)} />
                     {phoneError && <p className="text-sm text-destructive">{phoneError}</p>}
                   </div>
                   <div className="space-y-2">

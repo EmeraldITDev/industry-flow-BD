@@ -1128,6 +1128,8 @@ export default function EditProject() {
             </div>
             <ProjectContactsEditor
               contacts={formData.projectContacts}
+              clientName={formData.clientName}
+              originalClientName={projectData?.clientName}
               errors={contactFieldErrors}
               onChange={(projectContacts) => {
                 setContactsDirty(true);

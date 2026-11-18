@@ -48,6 +48,8 @@ export interface PartnerOwner {
 
 export interface PartnerContact {
   id: string;
+  /** Stable canonical directory UUID; id remains the legacy JSON row id. */
+  contactId?: string;
   name?: string;
   email?: string;
   phone?: string;

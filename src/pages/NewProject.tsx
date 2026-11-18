@@ -825,6 +825,7 @@ export default function NewProject() {
             </div>
             <ProjectContactsEditor
               contacts={formData.projectContacts}
+              clientName={formData.clientName}
               errors={contactFieldErrors}
               onChange={(projectContacts) => {
                 setContactFieldErrors({});

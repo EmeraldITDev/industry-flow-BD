@@ -31,6 +31,7 @@ function normalizeContacts(raw: unknown, fallback?: {
       const title = String(row.title ?? '').trim();
       return {
         id: String(row.id ?? newContactId()),
+        contactId: row.contactId || row.contact_id ? String(row.contactId ?? row.contact_id) : undefined,
         name: name || undefined,
         email: email || undefined,
         phone: phone || undefined,

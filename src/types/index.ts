@@ -128,6 +128,10 @@ export type ProjectContactRole =
 
 export interface ProjectContact {
   id?: number;
+  /** Canonical directory UUID; id remains the numeric project association id. */
+  contactId?: string;
+  /** UI-only organization label used to warn when the selected client changes. */
+  organizationName?: string;
   name: string;
   jobTitle: string;
   department: string;

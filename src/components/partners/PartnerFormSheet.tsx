@@ -20,6 +20,7 @@ import type { Partner } from '@/types/partners';
 import { toast } from 'sonner';
 import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
+import axios from 'axios';
 
 interface PartnerFormSheetProps {
   open: boolean;
@@ -40,6 +41,7 @@ export function PartnerFormSheet({
 }: PartnerFormSheetProps) {
   const queryClient = useQueryClient();
   const [submitting, setSubmitting] = useState(false);
+  const [contactErrors, setContactErrors] = useState<Record<string, string>>({});
   const isEdit = !!partner;
 
   const createMutation = useMutation({
@@ -52,7 +54,7 @@ export function PartnerFormSheet({
       onCreated?.(created);
       onOpenChange(false);
     },
-    onError: () => toast.error('Failed to create partner'),
+    onError: handleError,
   });
 
   const updateMutation = useMutation({
@@ -66,11 +68,26 @@ export function PartnerFormSheet({
       onUpdated?.(updated);
       onOpenChange(false);
     },
-    onError: () => toast.error('Failed to update partner'),
+    onError: handleError,
   });
+
+  function handleError(error: unknown) {
+    const apiErrors = axios.isAxiosError(error) ? error.response?.data?.errors : undefined;
+    const next: Record<string, string> = {};
+    if (apiErrors && typeof apiErrors === 'object') {
+      Object.entries(apiErrors).forEach(([key, value]) => {
+        if (!key.startsWith('contacts')) return;
+        const message = Array.isArray(value) ? value[0] : value;
+        if (typeof message === 'string') next[key] = message;
+      });
+    }
+    setContactErrors(next);
+    toast.error(Object.values(next)[0] || 'Failed to save partner');
+  }
 
   const handleSubmit = async (values: PartnerFormValues) => {
     setSubmitting(true);
+    setContactErrors({});
     try {
       const payload = formValuesToPayload(values);
       if (isEdit) {
@@ -104,6 +121,7 @@ export function PartnerFormSheet({
                 partner ? partnerToFormValues(partner) : emptyPartnerForm()
               }
               submitting={submitting}
+              contactErrors={contactErrors}
               showActions={false}
               onSubmit={handleSubmit}
             />

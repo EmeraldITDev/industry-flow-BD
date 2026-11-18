@@ -14,7 +14,9 @@ import {
 import { MultiSearchableSelect } from '@/components/ui/multi-searchable-select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Plus, Star, Trash2, Users } from 'lucide-react';
+import { Star, Trash2, Users } from 'lucide-react';
+import { ContactDirectoryPicker } from '@/components/contacts/ContactDirectoryPicker';
+import type { ContactSummary } from '@/services/contacts';
 import { businessVerticals } from '@/data/mockData';
 import { PRODUCT_OPTIONS, getSubproductOptions } from '@/data/productCatalog';
 import { teamService } from '@/services/team';
@@ -35,21 +37,11 @@ const newContactId = () =>
     ? crypto.randomUUID()
     : `contact-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
-function emptyContact(isPrimary = false): PartnerContact {
-  return {
-    id: newContactId(),
-    name: '',
-    email: '',
-    phone: '',
-    title: '',
-    isPrimary,
-  };
-}
-
 function contactsFromPartner(partner: Partner): PartnerContact[] {
   if (partner.contacts && partner.contacts.length > 0) {
     return partner.contacts.map((c) => ({
       id: c.id || newContactId(),
+      contactId: c.contactId,
       name: c.name ?? '',
       email: c.email ?? '',
       phone: c.phone ?? '',
@@ -69,7 +61,7 @@ function contactsFromPartner(partner: Partner): PartnerContact[] {
       },
     ];
   }
-  return [emptyContact(true)];
+  return [];
 }
 
 export type PartnerFormValues = {
@@ -96,7 +88,7 @@ const NONE = '__none__';
 export function emptyPartnerForm(): PartnerFormValues {
   return {
     companyName: '',
-    contacts: [emptyContact(true)],
+    contacts: [],
     type: [],
     agreementType: '',
     validThru: '',
@@ -139,6 +131,7 @@ export function formValuesToPayload(values: PartnerFormValues): CreatePartnerDat
   const contacts = values.contacts
     .map((c) => ({
       id: c.id,
+      contactId: c.contactId,
       name: (c.name ?? '').trim() || undefined,
       email: (c.email ?? '').trim() || undefined,
       phone: (c.phone ?? '').trim() || undefined,
@@ -184,6 +177,7 @@ interface PartnerFormProps {
   onSubmit: (values: PartnerFormValues) => void | Promise<void>;
   onCancel?: () => void;
   formId?: string;
+  contactErrors?: Record<string, string>;
 }
 
 export function PartnerForm({
@@ -194,6 +188,7 @@ export function PartnerForm({
   onSubmit,
   onCancel,
   formId = 'partner-form',
+  contactErrors = {},
 }: PartnerFormProps) {
   const [values, setValues] = useState<PartnerFormValues>(
     initial ?? emptyPartnerForm()
@@ -247,6 +242,25 @@ export function PartnerForm({
     onSubmit(values);
   };
 
+  const selectDirectoryContact = (selected: ContactSummary) => {
+    setValues((prev) => {
+      if (prev.contacts.some((contact) => contact.contactId === selected.id)) return prev;
+      const populated = prev.contacts.filter((contact) => contact.name || contact.email || contact.phone || contact.title || contact.contactId);
+      return {
+        ...prev,
+        contacts: [...populated, {
+          id: newContactId(),
+          contactId: selected.id,
+          name: selected.fullName ?? undefined,
+          email: selected.email ?? undefined,
+          phone: selected.phone ?? undefined,
+          title: selected.jobTitle ?? undefined,
+          isPrimary: populated.length === 0,
+        }],
+      };
+    });
+  };
+
   return (
     <form id={formId} onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-2.5">
@@ -272,24 +286,17 @@ export function PartnerForm({
               Add multiple contacts. The primary contact is used on reports.
             </p>
           </div>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() =>
-              setValues((prev) => ({
-                ...prev,
-                contacts: [
-                  ...prev.contacts,
-                  emptyContact(prev.contacts.length === 0),
-                ],
-              }))
-            }
-          >
-            <Plus className="h-4 w-4 mr-1.5" />
-            Add contact
-          </Button>
+          <ContactDirectoryPicker
+            organizationType="partner"
+            organizationName={values.companyName}
+            selectedIds={values.contacts.map((contact) => contact.contactId ?? '')}
+            onSelect={selectDirectoryContact}
+          />
         </div>
+
+        {contactErrors.contacts && (
+          <p className="text-sm text-destructive" role="alert">{contactErrors.contacts}</p>
+        )}
 
         <div className="space-y-3">
           {values.contacts.map((contact, index) => (
@@ -329,8 +336,7 @@ export function PartnerForm({
                       Set primary
                     </Button>
                   )}
-                  {values.contacts.length > 1 && (
-                    <Button
+                  <Button
                       type="button"
                       variant="ghost"
                       size="icon"
@@ -348,11 +354,16 @@ export function PartnerForm({
                       }
                       aria-label="Remove contact"
                     >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  )}
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
+
+              {(contactErrors[`contacts.${index}`] || contactErrors[`contacts.${index}.contact_id`]) && (
+                <p className="text-sm text-destructive" role="alert">
+                  {contactErrors[`contacts.${index}`] || contactErrors[`contacts.${index}.contact_id`]}
+                </p>
+              )}
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-2">
@@ -373,6 +384,7 @@ export function PartnerForm({
                       }))
                     }
                     placeholder="Contact name"
+                    disabled={Boolean(contact.contactId)}
                   />
                 </div>
                 <div className="space-y-2">
@@ -393,6 +405,7 @@ export function PartnerForm({
                       }))
                     }
                     placeholder="Optional (e.g. Account Manager)"
+                    disabled={Boolean(contact.contactId)}
                   />
                 </div>
                 <div className="space-y-2">
@@ -414,6 +427,7 @@ export function PartnerForm({
                       }))
                     }
                     placeholder="contact@company.com"
+                    disabled={Boolean(contact.contactId)}
                   />
                 </div>
                 <div className="space-y-2">
@@ -434,6 +448,7 @@ export function PartnerForm({
                       }))
                     }
                     placeholder="+234 ..."
+                    disabled={Boolean(contact.contactId)}
                   />
                 </div>
               </div>

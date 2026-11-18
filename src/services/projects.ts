@@ -132,6 +132,7 @@ function normalizeProjectContacts(project: Record<string, unknown>): ProjectCont
 
     return {
       id: id == null ? undefined : Number(id),
+      contactId: stringValue(contact.contactId ?? contact.contact_id) || undefined,
       name: stringValue(contact.name),
       jobTitle: stringValue(contact.jobTitle ?? contact.job_title),
       department: stringValue(contact.department),
@@ -153,6 +154,7 @@ function serializeProjectContacts(contacts: ProjectContact[]): Record<string, un
 
     return {
       ...(id == null ? {} : { id }),
+      ...(contact.contactId ? { contact_id: contact.contactId } : {}),
       name: contact.name,
       job_title: contact.jobTitle,
       department: contact.department,
