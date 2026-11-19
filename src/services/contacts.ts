@@ -53,7 +53,11 @@ export interface ContactInput {
 export interface ContactFilters {
   search?: string;
   type?: ContactType;
+  /** Picker eligibility filter; includes unclassified contacts attach validation accepts. */
+  eligibleFor?: ContactType;
   organization?: string;
+  /** Prefer matching organizations without excluding others. */
+  prioritizeOrganization?: string;
   isActive?: boolean;
   potentialDuplicates?: boolean;
   page?: number;
@@ -93,7 +97,9 @@ export const contactsService = {
       params: {
         search: filters.search || undefined,
         type: filters.type,
+        eligible_for: filters.eligibleFor,
         organization: filters.organization || undefined,
+        prioritize_organization: filters.prioritizeOrganization || undefined,
         is_active: filters.isActive,
         potential_duplicates: filters.potentialDuplicates || undefined,
         page: filters.page ?? 1,
