@@ -131,14 +131,15 @@ export function formValuesToPayload(values: PartnerFormValues): CreatePartnerDat
   const contacts = values.contacts
     .map((c) => ({
       id: c.id,
-      contactId: c.contactId,
+      contactId: c.contactId?.trim() || undefined,
       name: (c.name ?? '').trim() || undefined,
       email: (c.email ?? '').trim() || undefined,
       phone: (c.phone ?? '').trim() || undefined,
       title: (c.title ?? '').trim() || undefined,
       isPrimary: Boolean(c.isPrimary),
     }))
-    .filter((c) => c.name || c.email || c.phone || c.title);
+    // Preserve directory-linked rows even if display fields are temporarily empty.
+    .filter((c) => c.contactId || c.name || c.email || c.phone || c.title);
 
   if (contacts.length > 0 && !contacts.some((c) => c.isPrimary)) {
     contacts[0].isPrimary = true;

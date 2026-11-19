@@ -39,7 +39,8 @@ function normalizeContacts(raw: unknown, fallback?: {
         isPrimary: Boolean(row.isPrimary ?? row.is_primary),
       };
     })
-    .filter((c) => c.name || c.email || c.phone || c.title);
+    // Keep canonical-linked rows even when identity fields are hydrated later.
+    .filter((c) => c.contactId || c.name || c.email || c.phone || c.title);
 
   if (contacts.length === 0) {
     const name = String(fallback?.name ?? '').trim();
@@ -613,15 +614,19 @@ const toPayload = (data: CreatePartnerData | UpdatePartnerData): Record<string, 
         value = value.map((id) => Number(id)).filter((id) => Number.isFinite(id) && id > 0);
       }
       if (camel === 'contacts' && Array.isArray(value)) {
-        value = value.map((row: PartnerContact) => ({
-          id: row.id,
-          name: row.name ?? null,
-          email: row.email ?? null,
-          phone: row.phone ?? null,
-          title: row.title ?? null,
-          is_primary: Boolean(row.isPrimary),
-          isPrimary: Boolean(row.isPrimary),
-        }));
+        value = value.map((row: PartnerContact) => {
+          const contactId = row.contactId?.trim() || undefined;
+          return {
+            id: row.id,
+            ...(contactId ? { contact_id: contactId, contactId } : {}),
+            name: row.name ?? null,
+            email: row.email ?? null,
+            phone: row.phone ?? null,
+            title: row.title ?? null,
+            is_primary: Boolean(row.isPrimary),
+            isPrimary: Boolean(row.isPrimary),
+          };
+        });
       }
       payload[camel] = value;
       payload[snake] = value;
