@@ -14,7 +14,7 @@ import {
 import { MultiSearchableSelect } from '@/components/ui/multi-searchable-select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Star, Trash2, Users } from 'lucide-react';
+import { Loader2, Star, Trash2, Users } from 'lucide-react';
 import { ContactDirectoryPicker } from '@/components/contacts/ContactDirectoryPicker';
 import type { ContactSummary } from '@/services/contacts';
 import { businessVerticals } from '@/data/mockData';
