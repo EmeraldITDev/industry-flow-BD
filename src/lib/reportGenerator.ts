@@ -1,5 +1,6 @@
 import { jsPDF } from 'jspdf';
 import { Project, Task, PIPELINE_STAGES } from '@/types';
+import type { Partner } from '@/types/partners';
 
 /* ------------------------------------------------------------------ */
 /* Helpers                                                             */
@@ -201,14 +202,18 @@ export interface ProjectFilterSummary {
  * printable width; it gets renormalised across whichever columns are selected,
  * so any subset still fills the page edge to edge.
  */
-export interface ProjectReportColumn {
+export interface ReportColumn<T> {
   key: string;
   label: string;
   /** Compact header used when many columns share one table. */
   shortLabel?: string;
   weight: number;
-  get: (project: Project) => string;
+  /** Wrapped lines allowed per cell in the PDF (defaults by key). */
+  maxLines?: number;
+  get: (row: T) => string;
 }
+
+export type ProjectReportColumn = ReportColumn<Project>;
 
 const stageLabelOf = (project: Project) =>
   PIPELINE_STAGES.find(s => s.value === project.pipelineStage)?.label || project.pipelineStage || '—';
@@ -375,7 +380,7 @@ function resolveColumns(keys: string[] | undefined): ProjectReportColumn[] {
 /** Soft max columns per landscape table before we split into sections. */
 const MAX_COLS_PER_TABLE = 12;
 
-function buildColumnLayout(columns: ProjectReportColumn[]): { label: string; x: number; w: number }[] {
+function buildColumnLayout<T>(columns: ReportColumn<T>[]): { label: string; x: number; w: number }[] {
   const totalWeight = columns.reduce((sum, c) => sum + c.weight, 0) || 1;
   // Floor each column so labels/values stay readable; renormalise if needed.
   const minShare = 0.055; // ~5.5% of content width
@@ -409,10 +414,10 @@ function maxLinesForColumn(key: string): number {
   return 2;
 }
 
-function drawProjectsTable(
+function drawReportTable<T>(
   pdf: jsPDF,
-  projects: Project[],
-  columns: ProjectReportColumn[],
+  rows: T[],
+  columns: ReportColumn<T>[],
   startY: number,
   sectionTitle?: string
 ): number {
@@ -432,12 +437,12 @@ function drawProjectsTable(
 
   y = drawTableHeader(pdf, cols, y, headerFont);
 
-  projects.forEach((p, idx) => {
+  rows.forEach((p, idx) => {
     pdf.setFontSize(bodyFont);
     pdf.setFont('helvetica', 'normal');
 
     const wrappedCells = columns.map((c, i) =>
-      wrapCellText(pdf, c.get(p), cellTextWidth(cols[i].w), maxLinesForColumn(c.key))
+      wrapCellText(pdf, c.get(p), cellTextWidth(cols[i].w), c.maxLines ?? maxLinesForColumn(c.key))
     );
     const maxLines = Math.max(1, ...wrappedCells.map((lines) => lines.length));
     const rowH = Math.max(ROW_H, maxLines * LINE_H + 10);
@@ -472,6 +477,81 @@ function drawProjectsTable(
   return y + 8;
 }
 
+/**
+ * Draws the selected columns as one table, or — when too wide for one landscape
+ * table — as logical sections, each led by the anchor column (e.g. name) so rows
+ * stay identifiable across pages.
+ */
+function drawColumnsWithSections<T>(
+  pdf: jsPDF,
+  rows: T[],
+  selectedColumns: ReportColumn<T>[],
+  opts: {
+    allColumns: ReportColumn<T>[];
+    sections: { title: string; keys: string[] }[];
+    anchorKey: string;
+    title: string;
+    startY: number;
+  }
+): number {
+  const { allColumns, sections, anchorKey, title } = opts;
+  let y = opts.startY;
+
+  if (selectedColumns.length <= MAX_COLS_PER_TABLE) {
+    return drawReportTable(pdf, rows, selectedColumns, y);
+  }
+
+  const pick = (keys: string[]) =>
+    keys
+      .map((key) => allColumns.find((c) => c.key === key))
+      .filter((c): c is ReportColumn<T> => Boolean(c));
+
+  const selectedKeys = new Set(selectedColumns.map((c) => c.key));
+  const anchorCol = allColumns.find((c) => c.key === anchorKey);
+  let printedAny = false;
+
+  const startContinuationPage = () => {
+    pdf.addPage();
+    y = MARGIN + 10;
+    pdf.setFontSize(11);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setTextColor(100, 116, 139);
+    pdf.text(`${title} — continued`, MARGIN, y);
+    y += 18;
+  };
+
+  for (const section of sections) {
+    const keys = Array.from(
+      new Set(section.keys.filter((k) => selectedKeys.has(k) || k === anchorKey))
+    );
+    const cols = pick(keys);
+    // Skip sections that only have the repeated anchor column.
+    if (!cols.some((c) => c.key !== anchorKey && selectedKeys.has(c.key))) continue;
+
+    if (printedAny) startContinuationPage();
+
+    const ordered =
+      anchorCol && cols[0]?.key !== anchorKey
+        ? [anchorCol, ...cols.filter((c) => c.key !== anchorKey)]
+        : cols;
+
+    y = drawReportTable(pdf, rows, ordered, y, section.title);
+    printedAny = true;
+  }
+
+  // Any selected columns not covered by the section maps (future-proof).
+  const covered = new Set(sections.flatMap((s) => s.keys));
+  const leftovers = selectedColumns.filter((c) => c.key !== anchorKey && !covered.has(c.key));
+  if (leftovers.length) {
+    pdf.addPage();
+    y = MARGIN + 10;
+    const ordered = anchorCol ? [anchorCol, ...leftovers] : leftovers;
+    y = drawReportTable(pdf, rows, ordered, y, 'Additional fields');
+  }
+
+  return y;
+}
+
 function buildFilterString(filters: ProjectFilterSummary): string {
   const parts: string[] = [];
   if (filters.search) parts.push(`Search: "${filters.search}"`);
@@ -497,53 +577,13 @@ export function generateProjectsReport(
 
   const selectedColumns = resolveColumns(columnKeys);
 
-  if (selectedColumns.length <= MAX_COLS_PER_TABLE) {
-    y = drawProjectsTable(pdf, projects, selectedColumns, y);
-  } else {
-    // Too many columns for one landscape table — print logical sections so
-    // description and other narrative fields stay readable.
-    const selectedKeys = new Set(selectedColumns.map((c) => c.key));
-    const nameCol = PROJECT_REPORT_COLUMNS.find((c) => c.key === 'name');
-    let printedAny = false;
-
-    for (const section of REPORT_COLUMN_SECTIONS) {
-      const keys = section.keys.filter((k) => selectedKeys.has(k) || k === 'name');
-      const uniqueKeys = Array.from(new Set(keys));
-      const cols = pickColumns(uniqueKeys);
-      // Skip sections that only have the repeated name column.
-      if (cols.length <= 1) continue;
-      if (!cols.some((c) => c.key !== 'name' && selectedKeys.has(c.key))) continue;
-
-      if (printedAny) {
-        pdf.addPage();
-        y = MARGIN + 10;
-        pdf.setFontSize(11);
-        pdf.setFont('helvetica', 'normal');
-        pdf.setTextColor(100, 116, 139);
-        pdf.text(`${title} — continued`, MARGIN, y);
-        y += 18;
-      }
-
-      // Ensure name is first for orientation across sections.
-      const ordered =
-        nameCol && cols[0]?.key !== 'name'
-          ? [nameCol, ...cols.filter((c) => c.key !== 'name')]
-          : cols;
-
-      y = drawProjectsTable(pdf, projects, ordered, y, section.title);
-      printedAny = true;
-    }
-
-    // Any selected columns not covered by the section maps (future-proof).
-    const covered = new Set(REPORT_COLUMN_SECTIONS.flatMap((s) => s.keys));
-    const leftovers = selectedColumns.filter((c) => c.key !== 'name' && !covered.has(c.key));
-    if (leftovers.length) {
-      pdf.addPage();
-      y = MARGIN + 10;
-      const ordered = nameCol ? [nameCol, ...leftovers] : leftovers;
-      y = drawProjectsTable(pdf, projects, ordered, y, 'Additional fields');
-    }
-  }
+  y = drawColumnsWithSections(pdf, projects, selectedColumns, {
+    allColumns: PROJECT_REPORT_COLUMNS,
+    sections: REPORT_COLUMN_SECTIONS,
+    anchorKey: 'name',
+    title,
+    startY: y,
+  });
 
   // Summary totals
   y = checkPageBreak(pdf, y, 48);
@@ -1273,4 +1313,162 @@ export function generateTasksReport(
   });
 
   pdf.save('tasks-report.pdf');
+}
+
+/* ------------------------------------------------------------------ */
+/* Partners Report                                                     */
+/* ------------------------------------------------------------------ */
+
+export type PartnerReportColumn = ReportColumn<Partner> & {
+  /** Hidden from users without financial-field permission. */
+  financial?: boolean;
+  /** Raw CSV value (numbers / ISO dates) when it differs from the PDF text. */
+  csv?: (row: Partner) => string;
+};
+
+const isoDate = (v?: string | null) => (v ? String(v).split('T')[0] : '');
+
+const joinOr = (values: (string | null | undefined)[] | undefined, sep = ', ') => {
+  const clean = (values ?? []).map((v) => String(v ?? '').trim()).filter(Boolean);
+  return clean.length ? clean.join(sep) : '—';
+};
+
+export const primaryPartnerContact = (p: Partner) =>
+  p.contacts?.find((c) => c.isPrimary) ?? p.contacts?.[0] ?? null;
+
+const formatPartnerContact = (c: NonNullable<Partner['contacts']>[number]) => {
+  const head = [c.name?.trim(), c.title?.trim() ? `(${c.title.trim()})` : '']
+    .filter(Boolean)
+    .join(' ');
+  return [head, c.email?.trim(), c.phone?.trim()].filter(Boolean).join(' · ');
+};
+
+export const PARTNER_REPORT_COLUMNS: PartnerReportColumn[] = [
+  { key: 'companyName',          label: 'Company',              shortLabel: 'Company',    weight: 14, get: p => p.companyName || '—' },
+  { key: 'primaryContact',       label: 'Primary Contact',      shortLabel: 'Contact',    weight: 10, get: p => primaryPartnerContact(p)?.name || p.contactPerson || '—' },
+  { key: 'primaryTitle',         label: 'Contact Title',        shortLabel: 'Title',      weight: 8,  get: p => primaryPartnerContact(p)?.title || '—' },
+  { key: 'primaryEmail',         label: 'Contact Email',        shortLabel: 'Email',      weight: 12, get: p => primaryPartnerContact(p)?.email || p.email || '—' },
+  { key: 'primaryPhone',         label: 'Contact Phone',        shortLabel: 'Phone',      weight: 9,  get: p => primaryPartnerContact(p)?.phone || p.phone || '—' },
+  { key: 'allContacts',          label: 'All Contacts',         shortLabel: 'Contacts',   weight: 18, maxLines: 6, get: p => joinOr((p.contacts ?? []).map(formatPartnerContact), '; ') },
+  { key: 'type',                 label: 'Partner Type',         shortLabel: 'Type',       weight: 8,  get: p => joinOr(p.type) },
+  { key: 'agreementType',        label: 'Agreement Type',       shortLabel: 'Agreement',  weight: 8,  get: p => p.agreementType || '—' },
+  { key: 'validThru',            label: 'Valid Thru',           shortLabel: 'Valid Thru', weight: 7,  get: p => fmtDateValue(p.validThru), csv: p => isoDate(p.validThru) },
+  { key: 'relationshipStage',    label: 'Stage',                shortLabel: 'Stage',      weight: 9,  maxLines: 3, get: p => p.relationshipStage || '—' },
+  { key: 'engagementStatus',     label: 'Engagement Status',    shortLabel: 'Engagement', weight: 8,  get: p => p.engagementStatus || '—' },
+  { key: 'strategicValue',       label: 'Strategic Value',      shortLabel: 'Strategic',  weight: 7,  get: p => p.strategicValue || '—' },
+  { key: 'specialization',       label: 'Specialization',       shortLabel: 'Special.',   weight: 10, maxLines: 4, get: p => p.specialization?.trim() || '—' },
+  { key: 'relationshipOwners',   label: 'Relationship Owners',  shortLabel: 'Owners',     weight: 10, maxLines: 3, get: p => joinOr((p.relationshipOwners ?? []).map((o) => o.name)) },
+  { key: 'verticals',            label: 'Verticals',            shortLabel: 'Verticals',  weight: 10, maxLines: 4, get: p => joinOr(p.verticals) },
+  { key: 'productCategories',    label: 'Products',             shortLabel: 'Products',   weight: 10, maxLines: 4, get: p => joinOr(p.productCategories) },
+  { key: 'subProductCategories', label: 'Sub-products',         shortLabel: 'Sub-prod.',  weight: 10, maxLines: 4, get: p => joinOr(p.subProductCategories) },
+  { key: 'website',              label: 'Website',              shortLabel: 'Website',    weight: 9,  get: p => p.website?.trim() || '—' },
+  { key: 'location',             label: 'Location',             shortLabel: 'Location',   weight: 8,  get: p => p.location?.trim() || '—' },
+  { key: 'lastContactDate',      label: 'Last Contact',         shortLabel: 'Last Cont.', weight: 7,  get: p => fmtDateValue(p.lastContactDate), csv: p => isoDate(p.lastContactDate) },
+  { key: 'nextAction',           label: 'Next Action',          shortLabel: 'Next',       weight: 12, maxLines: 4, get: p => p.nextAction?.trim() || '—' },
+  { key: 'notes',                label: 'Notes',                shortLabel: 'Notes',      weight: 16, maxLines: 6, get: p => p.notes?.trim() || '—' },
+  { key: 'scmLinked',            label: 'SCM Linked',           shortLabel: 'SCM',        weight: 5,  get: p => (p.isScmLinked || p.scmVendorId ? 'Yes' : 'No') },
+  { key: 'linkedOpportunities',  label: 'Linked Opportunities', shortLabel: 'Opps',       weight: 6,  get: p => String(p.linkedOpportunitiesCount ?? 0) },
+  { key: 'totalValueNgn',        label: 'Total Value (NGN)',    shortLabel: 'NGN',        weight: 10, financial: true, get: p => fmtCurrency(p.totalValueNgn ?? 0, 'NGN '), csv: p => String(p.totalValueNgn ?? 0) },
+  { key: 'totalValueUsd',        label: 'Total Value (USD)',    shortLabel: 'USD',        weight: 9,  financial: true, get: p => fmtCurrency(p.totalValueUsd ?? 0, 'USD '), csv: p => String(p.totalValueUsd ?? 0) },
+  { key: 'createdAt',            label: 'Created',              shortLabel: 'Created',    weight: 7,  get: p => fmtDateValue(p.createdAt), csv: p => isoDate(p.createdAt) },
+  { key: 'updatedAt',            label: 'Last Updated',         shortLabel: 'Updated',    weight: 7,  get: p => fmtDateValue(p.updatedAt), csv: p => isoDate(p.updatedAt) },
+];
+
+/** Same columns the old one-click partner CSV produced. */
+export const DEFAULT_PARTNER_REPORT_COLUMN_KEYS = [
+  'companyName',
+  'primaryContact',
+  'primaryTitle',
+  'primaryEmail',
+  'relationshipStage',
+  'verticals',
+  'productCategories',
+  'scmLinked',
+  'linkedOpportunities',
+  'totalValueNgn',
+  'totalValueUsd',
+];
+
+export const FULL_PARTNER_REPORT_COLUMN_KEYS = [
+  ...DEFAULT_PARTNER_REPORT_COLUMN_KEYS,
+  'primaryPhone',
+  'type',
+  'agreementType',
+  'engagementStatus',
+  'relationshipOwners',
+  'location',
+  'lastContactDate',
+  'nextAction',
+];
+
+const PARTNER_REPORT_COLUMN_SECTIONS: { title: string; keys: string[] }[] = [
+  {
+    title: 'Overview',
+    keys: ['companyName', 'type', 'agreementType', 'validThru', 'relationshipStage', 'engagementStatus', 'strategicValue', 'specialization', 'relationshipOwners', 'location', 'website'],
+  },
+  {
+    title: 'Contacts',
+    keys: ['companyName', 'primaryContact', 'primaryTitle', 'primaryEmail', 'primaryPhone', 'allContacts'],
+  },
+  {
+    title: 'Products & opportunities',
+    keys: ['companyName', 'verticals', 'productCategories', 'subProductCategories', 'scmLinked', 'linkedOpportunities', 'totalValueNgn', 'totalValueUsd'],
+  },
+  {
+    title: 'Activity & notes',
+    keys: ['companyName', 'lastContactDate', 'nextAction', 'notes', 'createdAt', 'updatedAt'],
+  },
+];
+
+export function generatePartnersReport(
+  partners: Partner[],
+  filterSummary: string,
+  title = 'Partners Report',
+  columnKeys: string[] = DEFAULT_PARTNER_REPORT_COLUMN_KEYS,
+  includeFinancialValues = false
+): void {
+  const pdf = new jsPDF({ orientation: 'landscape', unit: 'px', format: [PAGE_W, PAGE_H] });
+  let y = addReportHeader(pdf, title, filterSummary || 'No filters applied', partners.length, MARGIN + 10);
+
+  const keySet = new Set(columnKeys);
+  // Registry order keeps the layout predictable regardless of click order.
+  const selectedColumns = PARTNER_REPORT_COLUMNS.filter(
+    (c) => keySet.has(c.key) && (includeFinancialValues || !c.financial)
+  );
+  const columns = selectedColumns.length
+    ? selectedColumns
+    : PARTNER_REPORT_COLUMNS.filter((c) => c.key === 'companyName');
+
+  y = drawColumnsWithSections(pdf, partners, columns, {
+    allColumns: PARTNER_REPORT_COLUMNS,
+    sections: PARTNER_REPORT_COLUMN_SECTIONS,
+    anchorKey: 'companyName',
+    title,
+    startY: y,
+  });
+
+  // Summary
+  y = checkPageBreak(pdf, y, includeFinancialValues ? 66 : 48);
+  y += 8;
+  pdf.setDrawColor(203, 213, 225);
+  pdf.line(MARGIN, y, PAGE_W - MARGIN, y);
+  y += 14;
+
+  const linked = partners.reduce((s, p) => s + (Number(p.linkedOpportunitiesCount) || 0), 0);
+  pdf.setFontSize(13);
+  pdf.setFont('helvetica', 'bold');
+  pdf.setTextColor(15, 23, 42);
+  pdf.text(`Total Linked Opportunities: ${fmtNum(linked)}`, MARGIN, y);
+
+  if (includeFinancialValues) {
+    const totalNGN = partners.reduce((s, p) => s + (Number(p.totalValueNgn) || 0), 0);
+    const totalUSD = partners.reduce((s, p) => s + (Number(p.totalValueUsd) || 0), 0);
+    y += 18;
+    pdf.text(`Total Value (NGN): ${fmtCurrency(totalNGN, 'NGN ')}`, MARGIN, y);
+    y += 18;
+    pdf.text(`Total Value (USD): ${fmtCurrency(totalUSD, 'USD ')}`, MARGIN, y);
+  }
+
+  const safeName = title.replace(/[^a-z0-9-_]+/gi, '-').toLowerCase();
+  pdf.save(`${safeName}.pdf`);
 }

@@ -36,7 +36,6 @@ import {
   Plus,
   Search,
   Loader2,
-  Download,
   Trash2,
   X,
   ChevronLeft,
@@ -52,6 +51,7 @@ import type { Sector } from '@/types';
 import { PIPELINE_STAGES } from '@/types';
 import { RelationshipStageBadge } from '@/components/partners/RelationshipStageBadge';
 import { PartnerFormSheet } from '@/components/partners/PartnerFormSheet';
+import { PartnerReportButton } from '@/components/partners/PartnerReportButton';
 import { PartnerTrackerMiniDashboard } from '@/components/partners/PartnerTrackerMiniDashboard';
 import { MultiSearchableSelect } from '@/components/ui/multi-searchable-select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -84,53 +84,6 @@ function parsePipelineStagesParam(raw: string | null): string[] {
     .split(',')
     .map((s) => s.trim().toLowerCase())
     .filter((v) => allowed.has(v));
-}
-
-function exportPartnersCsv(partners: Partner[], includeFinancialValues: boolean) {
-  const headers = [
-    'Company',
-    'Primary Contact',
-    'Primary Title',
-    'Primary Email',
-    'Stage',
-    'Verticals',
-    'Products',
-    'SCM Linked',
-    'Linked Opportunities',
-    ...(includeFinancialValues ? ['Total Value NGN', 'Total Value USD'] : []),
-  ];
-  const escape = (v: string) => `"${String(v).replace(/"/g, '""')}"`;
-  const rows = partners.map((p) => {
-    const primary =
-      p.contacts?.find((c) => c.isPrimary) ??
-      p.contacts?.[0] ??
-      null;
-    return [
-      p.companyName,
-      primary?.name ?? p.contactPerson ?? '',
-      primary?.title ?? '',
-      primary?.email ?? p.email ?? '',
-      p.relationshipStage,
-      (p.verticals ?? []).join('; '),
-      (p.productCategories ?? []).join('; '),
-      p.isScmLinked || p.scmVendorId ? 'Yes' : 'No',
-      String(p.linkedOpportunitiesCount ?? 0),
-      ...(includeFinancialValues
-        ? [String(p.totalValueNgn ?? 0), String(p.totalValueUsd ?? 0)]
-        : []),
-    ]
-      .map(escape)
-      .join(',');
-  });
-  const csv = [headers.join(','), ...rows].join('\n');
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `partners-${new Date().toISOString().slice(0, 10)}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
-  toast.success('Partner report downloaded');
 }
 
 export default function Partners() {
@@ -216,6 +169,12 @@ export default function Partners() {
     ]
   );
 
+  /** Same filters without pagination — the report covers every matching partner. */
+  const exportFilters = useMemo(() => {
+    const { page: _page, per_page: _perPage, ...rest } = listFilters;
+    return rest;
+  }, [listFilters]);
+
   const { data: teamMembers = [] } = useQuery({
     queryKey: ['team'],
     queryFn: () => teamService.getAll(),
@@ -265,6 +224,40 @@ export default function Partners() {
         .sort((a, b) => a.name.localeCompare(b.name)),
     [teamMembers]
   );
+
+  const reportFilterSummary = useMemo(() => {
+    const parts: string[] = [];
+    if (debouncedSearch) parts.push(`Search: "${debouncedSearch}"`);
+    if (verticalFilter !== ALL) parts.push(`Vertical: ${verticalFilter}`);
+    if (stageFilter !== ALL) parts.push(`Stage: ${stageFilter}`);
+    if (productFilter !== ALL) parts.push(`Product: ${productFilter}`);
+    if (ownerFilter !== ALL) {
+      const owner =
+        ownerFilter === 'unassigned' || ownerFilter === 'none'
+          ? 'Unassigned'
+          : ownerOptions.find((o) => o.id === ownerFilter)?.name ?? ownerFilter;
+      parts.push(`Owner: ${owner}`);
+    }
+    if (pipelineStageFilter.length) {
+      const labels = pipelineStageFilter.map(
+        (v) => PIPELINE_STAGE_FILTER_OPTIONS.find((o) => o.value === v)?.label ?? v
+      );
+      parts.push(`Opportunity stages: ${labels.join(', ')}`);
+    }
+    if (incompleteOnly) parts.push('Incomplete profiles only');
+    if (zeroLinksOnly) parts.push('No linked opportunities');
+    return parts.length ? parts.join(' | ') : 'No filters applied';
+  }, [
+    debouncedSearch,
+    verticalFilter,
+    stageFilter,
+    productFilter,
+    ownerFilter,
+    ownerOptions,
+    pipelineStageFilter,
+    incompleteOnly,
+    zeroLinksOnly,
+  ]);
 
   const pageNumbers = useMemo(() => {
     const pages: number[] = [];
@@ -343,14 +336,16 @@ export default function Partners() {
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2 shrink-0">
-          <Button
-            variant="outline"
-            onClick={() => exportPartnersCsv(partners, canViewFinancialFields)}
-            disabled={partners.length === 0}
-          >
-            <Download className="mr-2 h-4 w-4" />
-            Export report
-          </Button>
+          <PartnerReportButton
+            partners={partners}
+            filters={exportFilters}
+            filterSummary={reportFilterSummary}
+            totalHint={totalCount}
+            canViewFinancialFields={canViewFinancialFields}
+            preselectedPartnerIds={
+              selectMode && selectedIds.size > 0 ? selectedIds : undefined
+            }
+          />
           {canDeletePartners &&
             (!selectMode ? (
               <Button variant="outline" onClick={() => setSelectMode(true)}>
